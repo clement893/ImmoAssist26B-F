@@ -1,0 +1,118 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+env:
+  PNPM_VERSION: 9.15.9
+  NODE_VERSION: 20.x
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Deploy Frontend to Railway (Staging)
+        uses: bervProject/railway-deploy@v1.0.0
+        with:
+          railway_token: ${{ secrets.RAILWAY_TOKEN }}
+          service: ${{ secrets.RAILWAY_FRONTEND_STAGING_SERVICE_ID }}
+          detach: false
+
+      - name: Deploy Backend to Railway (Staging)
+        uses: bervProject/railway-deploy@v1.0.0
+        with:
+          railway_token: ${{ secrets.RAILWAY_TOKEN }}
+          service: ${{ secrets.RAILWAY_BACKEND_STAGING_SERVICE_ID }}
+          detach: false
+
+      - name: Wait for deployments to be ready
+        run: |
+          echo "⏳ Waiting for deployments to be ready..."
+          sleep 30
+
+      - name: Health check Frontend (Staging)
+        continue-on-error: true
+        run: |
+          FRONTEND_URL="${{ secrets.FRONTEND_STAGING_URL }}"
+          if [ -z "$FRONTEND_URL" ]; then
+            echo "⚠️ Frontend staging URL not configured, skipping health check"
+            exit 0
+          fi
+          
+          MAX_RETRIES=10
+          RETRY_INTERVAL=10
+          
+          for i in $(seq 1 $MAX_RETRIES); do
+            if curl -f -s --max-time 10 "$FRONTEND_URL" > /dev/null 2>&1; then
+              echo "✅ Frontend staging health check passed"
+              exit 0
+            fi
+            echo "Attempt $i/$MAX_RETRIES - Retrying in ${RETRY_INTERVAL}s..."
+            sleep $RETRY_INTERVAL
+          done
+          
+          echo "⚠️ Frontend staging health check failed after $MAX_RETRIES attempts"
+          exit 0
+
+      - name: Health check Backend (Staging)
+        continue-on-error: true
+        run: |
+          BACKEND_URL="${{ secrets.BACKEND_STAGING_URL }}"
+          if [ -z "$BACKEND_URL" ]; then
+            echo "⚠️ Backend staging URL not configured, skipping health check"
+            exit 0
+          fi
+          
+          MAX_RETRIES=10
+          RETRY_INTERVAL=10
+          
+          for i in $(seq 1 $MAX_RETRIES); do
+            if curl -f -s --max-time 10 "$BACKEND_URL/api/v1/health/" > /dev/null 2>&1; then
+              if curl -f -s --max-time 10 "$BACKEND_URL/api/v1/health/ready" > /dev/null 2>&1; then
+                echo "✅ Backend staging health check passed"
+                exit 0
+              fi
+            fi
+            echo "Attempt $i/$MAX_RETRIES - Retrying in ${RETRY_INTERVAL}s..."
+            sleep $RETRY_INTERVAL
+          done
+          
+          echo "⚠️ Backend staging health check failed after $MAX_RETRIES attempts"
+          exit 0
+
+      - name: Comment deployment URL
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🚀 Staging deployment completed! Both frontend and backend deployed to Railway.'
+            })
+

@@ -1,0 +1,81 @@
+{
+  "$schema": "https://turbo.build/json-schema.json",
+  "globalDependencies": [
+    "**/.env.local",
+    "**/.env",
+    "package.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    "turbo.json"
+  ],
+  "globalEnv": ["NODE_ENV", "CI", "VERCEL", "RAILWAY"],
+  "remoteCache": {
+    "enabled": true
+  },
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [
+        "dist/**",
+        ".next/**",
+        "build/**",
+        "!.next/cache/**",
+        "out/**"
+      ],
+      "env": ["NODE_ENV", "NEXT_PUBLIC_*", "USE_WEBPACK", "USE_TURBOPACK"],
+      "cache": true,
+      "inputs": [
+        "src/**/*.{ts,tsx,js,jsx}",
+        "public/**",
+        "*.{js,ts,json}",
+        "next.config.js",
+        "tailwind.config.ts",
+        "postcss.config.js"
+      ]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "env": ["NODE_ENV", "NEXT_PUBLIC_*"]
+    },
+    "lint": {
+      "dependsOn": [],
+      "outputs": [],
+      "cache": true,
+      "env": ["NODE_ENV"]
+    },
+    "type-check": {
+      "dependsOn": [],
+      "outputs": [".next/cache/tsconfig.tsbuildinfo"],
+      "cache": true,
+      "env": ["NODE_ENV"]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": [
+        "coverage/**",
+        ".test-results/**",
+        "playwright-report/**",
+        "htmlcov/**",
+        ".coverage",
+        "coverage.xml",
+        "coverage.json"
+      ],
+      "cache": true,
+      "env": ["NODE_ENV", "CI", "DATABASE_URL", "TEST_DATABASE_URL"]
+    },
+    "test:e2e": {
+      "dependsOn": ["build"],
+      "outputs": [".test-results/**", "playwright-report/**"],
+      "cache": false,
+      "env": ["NODE_ENV", "CI"]
+    },
+    "format": {
+      "outputs": [],
+      "cache": false
+    },
+    "clean": {
+      "cache": false
+    }
+  }
+}

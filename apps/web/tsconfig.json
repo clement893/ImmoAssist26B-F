@@ -1,0 +1,59 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // Next.js specific overrides
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "allowImportingTsExtensions": true,
+    "allowJs": true,
+    "incremental": true,
+    "tsBuildInfoFile": ".next/cache/tsconfig.tsbuildinfo",
+    "allowSyntheticDefaultImports": true,
+    "useDefineForClassFields": true,
+    "noPropertyAccessFromIndexSignature": false,
+    "exactOptionalPropertyTypes": false,
+
+    // Emit
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    // Paths - override base paths with app-specific ones
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@modele/types": ["../../packages/types/src"],
+      "@modele/types/theme": ["../../packages/types/dist/theme"],
+      "@modele/types/portal": ["../../packages/types/dist/portal"]
+    },
+
+    // Next.js 16 specific
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next",
+    "out",
+    "dist",
+    "build",
+    "**/__tests__/**",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "**/*.stories.tsx",
+    "**/*.stories.ts",
+    "tests/**",
+    "src/test/**",
+    "playwright.config.ts"
+  ]
+}

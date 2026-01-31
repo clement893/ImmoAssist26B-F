@@ -1,0 +1,198 @@
+{
+  "common": {
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "create": "Créer",
+    "update": "Mettre à jour",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "submit": "Envoyer",
+    "close": "Fermer"
+  },
+  "auth": {
+    "login": "Connexion",
+    "logout": "Déconnexion",
+    "register": "Inscription",
+    "forgotPassword": "Mot de passe oublié",
+    "resetPassword": "Réinitialiser le mot de passe",
+    "email": "Email",
+    "password": "Mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "name": "Nom",
+    "signIn": "Se connecter",
+    "signUp": "S'inscrire",
+    "signOut": "Se déconnecter"
+  },
+  "subscriptions": {
+    "title": "Mes Abonnements",
+    "manage": "Gérez votre abonnement et vos paiements",
+    "currentPeriod": "Période actuelle",
+    "nextPayment": "Prochain paiement",
+    "cancelSubscription": "Annuler l'abonnement",
+    "resumeSubscription": "Reprendre l'abonnement",
+    "changePlan": "Changer de plan",
+    "noSubscription": "Vous n'avez pas d'abonnement actif",
+    "viewPlans": "Voir les plans",
+    "paymentHistory": "Historique des paiements",
+    "noPayments": "Aucun paiement pour le moment",
+    "status": {
+      "active": "Actif",
+      "cancelled": "Annulé",
+      "expired": "Expiré",
+      "trial": "Essai"
+    },
+    "paymentStatus": {
+      "paid": "Payé",
+      "pending": "En attente",
+      "failed": "Échoué"
+    }
+  },
+  "teams": {
+    "title": "Équipes",
+    "createTeam": "Créer une équipe",
+    "teamName": "Nom de l'équipe",
+    "description": "Description",
+    "members": "Membres",
+    "noTeams": "Aucune équipe trouvée",
+    "nameRequired": "Le nom de l'équipe est requis"
+  },
+  "invitations": {
+    "title": "Invitations",
+    "createInvitation": "Créer une invitation",
+    "email": "Email",
+    "role": "Rôle",
+    "status": "Statut",
+    "invitedBy": "Invité par",
+    "invitedAt": "Invité le",
+    "expiresAt": "Expire le",
+    "cancel": "Annuler l'invitation",
+    "resend": "Renvoyer l'invitation",
+    "emailRequired": "L'email est requis",
+    "cancelConfirm": "Êtes-vous sûr de vouloir annuler cette invitation ?"
+  },
+  "errors": {
+    "generic": "Une erreur s'est produite",
+    "network": "Erreur réseau. Veuillez vérifier votre connexion.",
+    "unauthorized": "Vous n'êtes pas autorisé à effectuer cette action",
+    "notFound": "Ressource non trouvée",
+    "serverError": "Erreur serveur. Veuillez réessayer plus tard."
+  },
+  "settings": {
+    "title": "Paramètres",
+    "description": "Gérez vos paramètres et préférences",
+    "breadcrumbs": {
+      "dashboard": "Tableau de bord",
+      "settings": "Paramètres"
+    },
+    "api": {
+      "title": "Paramètres API",
+      "description": "Gérez la configuration et les paramètres de l'API",
+      "breadcrumbs": {
+        "dashboard": "Tableau de bord",
+        "settings": "Paramètres",
+        "api": "API"
+      },
+      "errors": {
+        "loadFailed": "Échec du chargement des paramètres API. Veuillez réessayer.",
+        "saveFailed": "Échec de l'enregistrement des paramètres API. Veuillez réessayer."
+      },
+      "success": {
+        "saved": "Paramètres API enregistrés avec succès"
+      }
+    },
+    "billing": {
+      "title": "Paramètres de facturation",
+      "description": "Gérez vos paramètres de facturation et préférences",
+      "breadcrumbs": {
+        "dashboard": "Tableau de bord",
+        "settings": "Paramètres",
+        "billing": "Facturation"
+      },
+      "errors": {
+        "loadFailed": "Échec du chargement des paramètres de facturation. Veuillez réessayer.",
+        "saveFailed": "Échec de l'enregistrement des paramètres de facturation. Veuillez réessayer."
+      },
+      "success": {
+        "saved": "Paramètres de facturation enregistrés avec succès"
+      }
+    },
+    "organization": {
+      "title": "Paramètres de l'organisation",
+      "description": "Gérez les paramètres et la configuration de votre organisation",
+      "breadcrumbs": {
+        "dashboard": "Tableau de bord",
+        "settings": "Paramètres",
+        "organization": "Organisation"
+      },
+      "errors": {
+        "loadFailed": "Échec du chargement des paramètres de l'organisation. Veuillez réessayer.",
+        "saveFailed": "Échec de l'enregistrement des paramètres de l'organisation. Veuillez réessayer."
+      },
+      "success": {
+        "saved": "Paramètres de l'organisation enregistrés avec succès"
+      }
+    },
+    "notifications": {
+      "title": "Paramètres de notifications",
+      "description": "Gérez vos préférences de notifications",
+      "breadcrumbs": {
+        "dashboard": "Tableau de bord",
+        "settings": "Paramètres",
+        "notifications": "Notifications"
+      },
+      "errors": {
+        "loadFailed": "Échec du chargement des paramètres de notifications. Veuillez réessayer.",
+        "saveFailed": "Échec de l'enregistrement des paramètres de notifications. Veuillez réessayer."
+      },
+      "success": {
+        "saved": "Paramètres de notifications enregistrés avec succès"
+      }
+    },
+    "team": {
+      "title": "Paramètres d'équipe",
+      "description": "Gérez les membres de votre équipe et leurs permissions",
+      "breadcrumbs": {
+        "dashboard": "Tableau de bord",
+        "settings": "Paramètres",
+        "team": "Équipe"
+      },
+      "errors": {
+        "loadFailed": "Échec du chargement des paramètres d'équipe. Veuillez réessayer.",
+        "saveFailed": "Échec de l'enregistrement des paramètres d'équipe. Veuillez réessayer."
+      },
+      "success": {
+        "saved": "Paramètres d'équipe enregistrés avec succès"
+      }
+    },
+    "security": {
+      "title": "Paramètres de sécurité",
+      "description": "Gérez vos paramètres de sécurité, l'authentification à deux facteurs et les clés API",
+      "breadcrumbs": {
+        "dashboard": "Tableau de bord",
+        "settings": "Paramètres",
+        "security": "Sécurité"
+      },
+      "errors": {
+        "loadFailed": "Échec du chargement des paramètres de sécurité. Veuillez réessayer.",
+        "saveFailed": "Échec de l'enregistrement des paramètres de sécurité. Veuillez réessayer."
+      },
+      "success": {
+        "saved": "Paramètres de sécurité enregistrés avec succès"
+      },
+      "tabs": {
+        "security": "Sécurité",
+        "apiKeys": "Clés API"
+      },
+      "sections": {
+        "security": "Paramètres de sécurité",
+        "apiKeys": "Clés API"
+      }
+    }
+  }
+}

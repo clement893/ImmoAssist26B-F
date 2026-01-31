@@ -1,0 +1,445 @@
+{
+  "common": {
+    "welcome": "Bienvenue",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "create": "Créer",
+    "search": "Rechercher",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "confirm": "Confirmer",
+    "close": "Fermer",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "submit": "Soumettre",
+    "reset": "Réinitialiser",
+    "yes": "Oui",
+    "no": "Non",
+    "ok": "OK"
+  },
+  "auth": {
+    "signIn": "Se connecter",
+    "signOut": "Se déconnecter",
+    "signUp": "S'inscrire",
+    "email": "Email",
+    "password": "Mot de passe",
+    "forgotPassword": "Mot de passe oublié ?",
+    "rememberMe": "Se souvenir de moi",
+    "createAccount": "Créer un compte",
+    "alreadyHaveAccount": "Vous avez déjà un compte ?",
+    "dontHaveAccount": "Vous n'avez pas de compte ?",
+    "resetPassword": "Réinitialiser le mot de passe",
+    "confirmPassword": "Confirmer le mot de passe"
+  },
+  "navigation": {
+    "dashboard": "Tableau de bord",
+    "users": "Utilisateurs",
+    "settings": "Paramètres",
+    "profile": "Profil",
+    "home": "Accueil",
+    "about": "À propos",
+    "contact": "Contact",
+    "pricing": "Tarification",
+    "features": "Fonctionnalités"
+  },
+  "language": {
+    "switchLanguage": "Changer de langue",
+    "currentLanguage": "Langue actuelle",
+    "selectLanguage": "Sélectionner une langue"
+  },
+  "errors": {
+    "somethingWentWrong": "Quelque chose s'est mal passé",
+    "tryAgain": "Réessayer",
+    "unauthorized": "Non autorisé",
+    "forbidden": "Interdit",
+    "serverError": "Erreur serveur",
+    "errorTitle": "Erreur",
+    "unexpectedError": "Une erreur inattendue s'est produite",
+    "notFound": {
+      "title": "Page non trouvée",
+      "description": "La page que vous recherchez n'existe pas ou a été déplacée.",
+      "suggestion": "Vérifiez l'URL ou retournez à la page d'accueil.",
+      "backHome": "Retour à l'accueil",
+      "goBack": "Retour",
+      "browseComponents": "Explorer les composants",
+      "helpfulLinks": "Liens utiles:",
+      "documentation": "Documentation",
+      "sitemap": "Plan du site",
+      "dashboard": "Dashboard"
+    }
+  },
+  "settings": {
+    "title": "Paramètres",
+    "description": "Gérez les paramètres et préférences de l'application",
+    "breadcrumbs": {
+      "dashboard": "Tableau de bord",
+      "settings": "Paramètres"
+    },
+    "navigation": {
+      "general": "Général",
+      "generalDescription": "Paramètres et préférences de base de l'application",
+      "organization": "Organisation",
+      "organizationDescription": "Nom de l'organisation, logo et paramètres de domaine",
+      "team": "Équipe",
+      "teamDescription": "Gérer les membres de l'équipe et les permissions",
+      "billing": "Facturation",
+      "billingDescription": "Gestion de la facturation et des abonnements",
+      "integrations": "Intégrations",
+      "integrationsDescription": "Intégrations et connexions tierces",
+      "api": "API",
+      "apiDescription": "Configuration et paramètres de l'API",
+      "security": "Sécurité",
+      "securityDescription": "Paramètres de sécurité, 2FA et sessions",
+      "notifications": "Notifications",
+      "notificationsDescription": "Préférences et paramètres de notification",
+      "preferences": "Préférences",
+      "preferencesDescription": "Préférences utilisateur et personnalisation",
+      "logs": "Logs",
+      "logsDescription": "Consulter les logs système et la piste d'audit"
+    },
+    "errors": {
+      "loadFailed": "Échec du chargement des paramètres. Veuillez réessayer.",
+      "updateFailed": "Échec de la mise à jour des paramètres. Veuillez réessayer."
+    },
+    "general": {
+      "title": "Paramètres généraux",
+      "description": "Gérer les paramètres et préférences générales de l'application",
+      "breadcrumbs": {
+        "dashboard": "Tableau de bord",
+        "settings": "Paramètres",
+        "general": "Général"
+      },
+      "errors": {
+        "loadFailed": "Échec du chargement des paramètres généraux. Veuillez réessayer.",
+        "saveFailed": "Échec de l'enregistrement des paramètres généraux. Veuillez réessayer."
+      }
+    },
+    "organization": {
+      "title": "Paramètres de l'organisation",
+      "description": "Gérez les paramètres et la configuration de votre organisation",
+      "breadcrumbs": {
+        "dashboard": "Tableau de bord",
+        "settings": "Paramètres",
+        "organization": "Organisation"
+      },
+      "errors": {
+        "loadFailed": "Échec du chargement des paramètres de l'organisation. Veuillez réessayer.",
+        "saveFailed": "Échec de l'enregistrement des paramètres de l'organisation. Veuillez réessayer.",
+        "createFailed": "Échec de la création de l'organisation. Veuillez réessayer."
+      },
+      "noOrganization": {
+        "title": "Aucune organisation trouvée",
+        "description": "Vous devez créer une organisation pour gérer les paramètres. Cliquez sur le bouton ci-dessous pour commencer.",
+        "createButton": "Créer une organisation"
+      },
+      "createModal": {
+        "title": "Créer une organisation",
+        "cancel": "Annuler",
+        "create": "Créer",
+        "creating": "Création en cours..."
+      }
+    },
+    "team": {
+      "title": "Paramètres d'équipe",
+      "description": "Gérez les membres de votre équipe et leurs permissions",
+      "breadcrumbs": {
+        "dashboard": "Tableau de bord",
+        "settings": "Paramètres",
+        "team": "Équipe"
+      },
+      "errors": {
+        "loadFailed": "Échec du chargement des paramètres d'équipe. Veuillez réessayer.",
+        "saveFailed": "Échec de l'enregistrement des paramètres d'équipe. Veuillez réessayer."
+      },
+      "success": {
+        "saved": "Paramètres d'équipe enregistrés avec succès"
+      }
+    },
+    "preferences": {
+      "title": "Paramètres des préférences",
+      "description": "Gérez vos préférences utilisateur et la personnalisation",
+      "breadcrumbs": {
+        "dashboard": "Tableau de bord",
+        "settings": "Paramètres",
+        "preferences": "Préférences"
+      },
+      "errors": {
+        "loadFailed": "Échec du chargement des préférences. Veuillez réessayer.",
+        "saveFailed": "Échec de l'enregistrement des préférences. Veuillez réessayer."
+      }
+    },
+    "logs": {
+      "title": "Logs système",
+      "description": "Consulter les logs système et la piste d'audit",
+      "breadcrumbs": {
+        "dashboard": "Tableau de bord",
+        "settings": "Paramètres",
+        "logs": "Logs"
+      },
+      "columns": {
+        "timestamp": "Date/Heure",
+        "severity": "Sévérité",
+        "eventType": "Type",
+        "message": "Message",
+        "user": "Utilisateur",
+        "ipAddress": "IP",
+        "system": "Système"
+      },
+      "filters": {
+        "allTypes": "Tous les types",
+        "login": "Login",
+        "logout": "Logout",
+        "create": "Création",
+        "update": "Modification",
+        "delete": "Suppression",
+        "eventType": "Type d'événement",
+        "allSeverities": "Toutes les sévérités",
+        "info": "Info",
+        "warning": "Warning",
+        "error": "Error",
+        "critical": "Critical",
+        "severity": "Sévérité"
+      },
+      "searchPlaceholder": "Rechercher dans les logs...",
+      "refresh": "Actualiser",
+      "empty": "Aucun log trouvé",
+      "errors": {
+        "loadFailed": "Échec du chargement des logs. Veuillez réessayer.",
+        "unauthorized": "Vous n'avez pas la permission de consulter les logs"
+      }
+    },
+    "billing": {
+      "title": "Paramètres de facturation",
+      "description": "Gérez vos paramètres de facturation et préférences",
+      "breadcrumbs": {
+        "dashboard": "Tableau de bord",
+        "settings": "Paramètres",
+        "billing": "Facturation"
+      },
+      "errors": {
+        "loadFailed": "Échec du chargement des paramètres de facturation. Veuillez réessayer.",
+        "saveFailed": "Échec de l'enregistrement des paramètres de facturation. Veuillez réessayer."
+      },
+      "success": {
+        "saved": "Paramètres de facturation enregistrés avec succès"
+      }
+    },
+    "security": {
+      "title": "Paramètres de sécurité",
+      "description": "Gérez vos paramètres de sécurité, l'authentification à deux facteurs et les clés API",
+      "breadcrumbs": {
+        "dashboard": "Tableau de bord",
+        "settings": "Paramètres",
+        "security": "Sécurité"
+      },
+      "tabs": {
+        "security": "Sécurité",
+        "apiKeys": "Clés API"
+      },
+      "sections": {
+        "security": "Paramètres de sécurité",
+        "apiKeys": "Clés API"
+      },
+      "errors": {
+        "loadFailed": "Échec du chargement des paramètres de sécurité. Veuillez réessayer.",
+        "saveFailed": "Échec de l'enregistrement des paramètres de sécurité. Veuillez réessayer."
+      },
+      "success": {
+        "saved": "Paramètres de sécurité enregistrés avec succès"
+      }
+    },
+    "notifications": {
+      "title": "Paramètres de notifications",
+      "description": "Gérez vos préférences de notifications",
+      "breadcrumbs": {
+        "dashboard": "Tableau de bord",
+        "settings": "Paramètres",
+        "notifications": "Notifications"
+      },
+      "errors": {
+        "loadFailed": "Échec du chargement des paramètres de notifications. Veuillez réessayer.",
+        "saveFailed": "Échec de l'enregistrement des paramètres de notifications. Veuillez réessayer."
+      },
+      "success": {
+        "saved": "Paramètres de notifications enregistrés avec succès"
+      }
+    },
+    "integrations": {
+      "title": "Paramètres d'intégrations",
+      "description": "Gérez les intégrations et connexions tierces",
+      "breadcrumbs": {
+        "dashboard": "Tableau de bord",
+        "settings": "Paramètres",
+        "integrations": "Intégrations"
+      },
+      "errors": {
+        "loadFailed": "Échec du chargement des intégrations. Veuillez réessayer.",
+        "toggleFailed": "Échec de la modification de l'intégration. Veuillez réessayer.",
+        "cannotToggleDefault": "Les intégrations par défaut ne peuvent pas être modifiées. Veuillez d'abord créer une intégration."
+      },
+      "success": {
+        "enabled": "Intégration activée avec succès",
+        "disabled": "Intégration désactivée avec succès"
+      }
+    },
+    "api": {
+      "title": "Paramètres API",
+      "description": "Gérez la configuration et les paramètres de l'API",
+      "breadcrumbs": {
+        "dashboard": "Tableau de bord",
+        "settings": "Paramètres",
+        "api": "API"
+      },
+      "errors": {
+        "loadFailed": "Échec du chargement des paramètres API. Veuillez réessayer.",
+        "saveFailed": "Échec de l'enregistrement des paramètres API. Veuillez réessayer."
+      },
+      "success": {
+        "saved": "Paramètres API enregistrés avec succès"
+      }
+    }
+  },
+  "profile": {
+    "title": "Profil",
+    "description": "Gérez les informations de votre profil et les paramètres du compte",
+    "breadcrumbs": {
+      "dashboard": "Tableau de bord",
+      "profile": "Profil"
+    },
+    "databaseInfo": {
+      "title": "Informations de la base de données",
+      "userId": "ID Utilisateur",
+      "email": "Email",
+      "status": "Statut",
+      "active": "Actif",
+      "inactive": "Inactif",
+      "createdAt": "Date de création",
+      "updatedAt": "Dernière mise à jour"
+    },
+    "success": {
+      "updateSuccess": "Profil mis à jour avec succès"
+    },
+    "errors": {
+      "loadFailed": "Échec du chargement du profil. Veuillez réessayer.",
+      "updateFailed": "Échec de la mise à jour du profil. Veuillez réessayer."
+    },
+    "settings": {
+      "title": "Paramètres",
+      "description": "Gérez les paramètres et préférences de votre compte",
+      "breadcrumbs": {
+        "dashboard": "Tableau de bord",
+        "profile": "Profil",
+        "settings": "Paramètres"
+      },
+      "tabs": {
+        "account": "Compte",
+        "preferences": "Préférences"
+      },
+      "sections": {
+        "account": "Informations du compte",
+        "preferences": "Préférences utilisateur"
+      },
+      "errors": {
+        "loadFailed": "Échec du chargement des paramètres. Veuillez réessayer.",
+        "updateFailed": "Échec de la mise à jour des paramètres. Veuillez réessayer."
+      }
+    },
+    "security": {
+      "title": "Sécurité",
+      "description": "Gérez vos paramètres de sécurité, l'authentification à deux facteurs et les clés API",
+      "breadcrumbs": {
+        "dashboard": "Tableau de bord",
+        "profile": "Profil",
+        "security": "Sécurité"
+      },
+      "tabs": {
+        "security": "Sécurité",
+        "apiKeys": "Clés API"
+      },
+      "sections": {
+        "security": "Paramètres de sécurité",
+        "apiKeys": "Clés API"
+      },
+      "errors": {
+        "loadFailed": "Échec du chargement des paramètres de sécurité. Veuillez réessayer.",
+        "updateFailed": "Échec de la mise à jour des paramètres de sécurité. Veuillez réessayer."
+      }
+    },
+    "notifications": {
+      "title": "Notifications",
+      "description": "Gérez vos préférences de notifications",
+      "breadcrumbs": {
+        "dashboard": "Tableau de bord",
+        "profile": "Profil",
+        "notifications": "Notifications"
+      },
+      "section": {
+        "title": "Préférences de notification"
+      },
+      "errors": {
+        "loadFailed": "Échec du chargement des paramètres de notifications. Veuillez réessayer.",
+        "updateFailed": "Échec de la mise à jour des paramètres de notifications. Veuillez réessayer."
+      }
+    },
+    "activity": {
+      "title": "Journal d'activité",
+      "description": "Consultez l'historique de l'activité de votre compte",
+      "breadcrumbs": {
+        "dashboard": "Tableau de bord",
+        "profile": "Profil",
+        "activity": "Activité"
+      },
+      "section": {
+        "title": "Activité récente"
+      }
+    }
+  },
+  "admin": {
+    "Users": {
+      "RoleDefaultPermissions": {
+        "title": "Permissions par Défaut des Rôles",
+        "description": "Configurez les permissions par défaut pour chaque rôle. Ces permissions seront automatiquement assignées aux nouveaux utilisateurs ayant ce rôle.",
+        "selectRole": "Sélectionner un rôle",
+        "systemRole": "Rôle système",
+        "searchPlaceholder": "Rechercher des permissions...",
+        "noPermissionsFound": "Aucune permission trouvée",
+        "saveChangesButton": "Enregistrer les modifications",
+        "allPermissions": "Toutes les permissions",
+        "superadminWarning": "Le rôle Superadmin a toujours toutes les permissions (admin:*). Cette configuration ne peut pas être modifiée.",
+        "tabs": {
+          "admin": "Admin",
+          "users": "Utilisateurs",
+          "roles": "Rôles",
+          "permissions": "Permissions"
+        },
+        "errors": {
+          "saveFailed": "Échec de l'enregistrement des permissions. Veuillez réessayer."
+        }
+      }
+    }
+  },
+  "Dashboard": {
+    "AIChat": {
+      "title": "Assistant Template",
+      "clear": "Effacer",
+      "via": "via",
+      "inputPlaceholder": "Posez une question sur le template...",
+      "welcome": {
+        "title": "Assistant Template AI",
+        "description": "Je peux vous aider à comprendre et utiliser ce template Next.js Full-Stack. J'ai accès à toute la documentation !",
+        "examples": "Exemples de questions",
+        "example1": "Comment configurer l'authentification ?",
+        "example2": "Comment déployer sur Railway ?",
+        "example3": "Comment personnaliser les thèmes ?"
+      },
+      "errors": {
+        "sendFailed": "Échec de l'envoi du message",
+        "errorPrefix": "Erreur"
+      }
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "name": "@modele/types",
+  "version": "1.0.0",
+  "description": "Shared TypeScript types for MODELE-NEXTJS-FULLSTACK",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./theme": {
+      "types": "./dist/theme.d.ts",
+      "default": "./dist/theme.js"
+    },
+    "./portal": {
+      "types": "./dist/portal.d.ts",
+      "default": "./dist/portal.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "lint": "echo 'No linting for types package'",
+    "test": "echo 'No tests for types package'",
+    "prepublishOnly": "pnpm build"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "publishConfig": {
+    "access": "restricted"
+  }
+}

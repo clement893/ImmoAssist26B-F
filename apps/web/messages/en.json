@@ -1,0 +1,533 @@
+{
+  "common": {
+    "welcome": "Welcome",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "confirm": "Confirm",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "submit": "Submit",
+    "reset": "Reset",
+    "yes": "Yes",
+    "no": "No",
+    "ok": "OK"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "signUp": "Sign up",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot password?",
+    "rememberMe": "Remember me",
+    "createAccount": "Create account",
+    "alreadyHaveAccount": "Already have an account?",
+    "dontHaveAccount": "Don't have an account?",
+    "resetPassword": "Reset password",
+    "confirmPassword": "Confirm password"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "users": "Users",
+    "settings": "Settings",
+    "profile": "Profile",
+    "home": "Home",
+    "about": "About",
+    "contact": "Contact",
+    "pricing": "Pricing",
+    "features": "Features",
+    "analytics": "Analytics"
+  },
+  "dashboard": {
+    "analytics": {
+      "title": "Analytics",
+      "description": "Track your business metrics and performance",
+      "breadcrumbs": {
+        "dashboard": "Dashboard",
+        "analytics": "Analytics"
+      },
+      "section": {
+        "title": "Analytics Dashboard"
+      },
+      "errors": {
+        "loadFailed": "Failed to load analytics. Please try again."
+      }
+    },
+    "reports": {
+      "title": "Reports",
+      "description": "Create and view custom reports",
+      "breadcrumbs": {
+        "dashboard": "Dashboard",
+        "reports": "Reports"
+      },
+      "tabs": {
+        "builder": "Report Builder",
+        "viewer": "View Reports"
+      },
+      "sections": {
+        "builder": "Create New Report",
+        "viewer": "Saved Reports"
+      },
+      "empty": "No reports found. Create your first report using the Report Builder.",
+      "errors": {
+        "loadFailed": "Failed to load reports. Please try again.",
+        "saveFailed": "Failed to save report. Please try again."
+      }
+    },
+    "activity": {
+      "title": "Activity Feed",
+      "description": "View recent activities across the platform",
+      "breadcrumbs": {
+        "dashboard": "Dashboard",
+        "activity": "Activity"
+      },
+      "section": {
+        "title": "Recent Activity"
+      },
+      "empty": "No activity found",
+      "errors": {
+        "loadFailed": "Failed to load activity feed. Please try again."
+      }
+    },
+    "insights": {
+      "title": "Business Insights",
+      "description": "Key business metrics and trends",
+      "breadcrumbs": {
+        "dashboard": "Dashboard",
+        "insights": "Insights"
+      },
+      "sections": {
+        "metrics": "Key Metrics",
+        "revenue": "Revenue Trends",
+        "users": "User Growth"
+      },
+      "charts": {
+        "revenue": "Monthly Revenue",
+        "users": "Active Users Over Time"
+      },
+      "errors": {
+        "loadFailed": "Failed to load insights. Please try again."
+      }
+    }
+  },
+  "language": {
+    "switchLanguage": "Switch language",
+    "currentLanguage": "Current language",
+    "selectLanguage": "Select language"
+  },
+  "errors": {
+    "somethingWentWrong": "Something went wrong",
+    "tryAgain": "Try again",
+    "notFound": "Not found",
+    "unauthorized": "Unauthorized",
+    "forbidden": "Forbidden",
+    "serverError": "Server error"
+  },
+  "profile": {
+    "title": "Profile",
+    "description": "Manage your profile information and account settings",
+    "breadcrumbs": {
+      "dashboard": "Dashboard",
+      "profile": "Profile"
+    },
+    "databaseInfo": {
+      "title": "Database Information",
+      "userId": "User ID",
+      "email": "Email",
+      "status": "Status",
+      "active": "Active",
+      "inactive": "Inactive",
+      "createdAt": "Created At",
+      "updatedAt": "Last Updated"
+    },
+    "success": {
+      "updateSuccess": "Profile updated successfully"
+    },
+    "errors": {
+      "loadFailed": "Failed to load profile. Please try again.",
+      "updateFailed": "Failed to update profile. Please try again."
+    },
+    "settings": {
+      "title": "Settings",
+      "description": "Manage your account settings and preferences",
+      "breadcrumbs": {
+        "dashboard": "Dashboard",
+        "profile": "Profile",
+        "settings": "Settings"
+      },
+      "tabs": {
+        "account": "Account",
+        "preferences": "Preferences"
+      },
+      "sections": {
+        "account": "Account Information",
+        "preferences": "User Preferences"
+      },
+      "errors": {
+        "loadFailed": "Failed to load settings. Please try again.",
+        "updateFailed": "Failed to update settings. Please try again."
+      }
+    },
+    "security": {
+      "title": "Security",
+      "description": "Manage your security settings, 2FA, and API keys",
+      "breadcrumbs": {
+        "dashboard": "Dashboard",
+        "profile": "Profile",
+        "security": "Security"
+      },
+      "tabs": {
+        "security": "Security",
+        "apiKeys": "API Keys"
+      },
+      "sections": {
+        "security": "Security Settings",
+        "apiKeys": "API Keys"
+      },
+      "errors": {
+        "loadFailed": "Failed to load security settings. Please try again.",
+        "updateFailed": "Failed to update security settings. Please try again."
+      }
+    },
+    "notifications": {
+      "title": "Notifications",
+      "description": "Manage your notification preferences",
+      "breadcrumbs": {
+        "dashboard": "Dashboard",
+        "profile": "Profile",
+        "notifications": "Notifications"
+      },
+      "section": {
+        "title": "Notification Preferences"
+      },
+      "errors": {
+        "loadFailed": "Failed to load notification settings. Please try again.",
+        "updateFailed": "Failed to update notification settings. Please try again."
+      }
+    },
+    "activity": {
+      "title": "Activity Log",
+      "description": "View your account activity history",
+      "breadcrumbs": {
+        "dashboard": "Dashboard",
+        "profile": "Profile",
+        "activity": "Activity"
+      },
+      "section": {
+        "title": "Recent Activity"
+      },
+      "empty": "No activity found",
+      "errors": {
+        "loadFailed": "Failed to load activity log. Please try again."
+      }
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "Manage your application settings and preferences",
+    "breadcrumbs": {
+      "dashboard": "Dashboard",
+      "settings": "Settings"
+    },
+    "navigation": {
+      "general": "General",
+      "generalDescription": "Basic application settings and preferences",
+      "organization": "Organization",
+      "organizationDescription": "Organization name, logo, and domain settings",
+      "team": "Team",
+      "teamDescription": "Manage team members and permissions",
+      "billing": "Billing",
+      "billingDescription": "Billing and subscription management",
+      "integrations": "Integrations",
+      "integrationsDescription": "Third-party integrations and connections",
+      "api": "API",
+      "apiDescription": "API configuration and settings",
+      "security": "Security",
+      "securityDescription": "Security settings, 2FA, and sessions",
+      "notifications": "Notifications",
+      "notificationsDescription": "Notification preferences and settings",
+      "preferences": "Preferences",
+      "preferencesDescription": "User preferences and personalization",
+      "logs": "Logs",
+      "logsDescription": "View system logs and audit trail"
+    },
+    "errors": {
+      "loadFailed": "Failed to load settings. Please try again.",
+      "updateFailed": "Failed to update settings. Please try again."
+    },
+    "general": {
+      "title": "General Settings",
+      "description": "Manage general application settings and preferences",
+      "breadcrumbs": {
+        "dashboard": "Dashboard",
+        "settings": "Settings",
+        "general": "General"
+      },
+      "errors": {
+        "loadFailed": "Failed to load general settings. Please try again.",
+        "saveFailed": "Failed to save general settings. Please try again."
+      }
+    },
+    "organization": {
+      "title": "Organization Settings",
+      "description": "Manage your organization settings and configuration",
+      "breadcrumbs": {
+        "dashboard": "Dashboard",
+        "settings": "Settings",
+        "organization": "Organization"
+      },
+      "errors": {
+        "loadFailed": "Failed to load organization settings. Please try again.",
+        "saveFailed": "Failed to save organization settings. Please try again.",
+        "createFailed": "Failed to create organization. Please try again."
+      },
+      "noOrganization": {
+        "title": "No Organization Found",
+        "description": "You need to create an organization to manage settings. Click the button below to get started.",
+        "createButton": "Create Organization"
+      },
+      "createModal": {
+        "title": "Create Organization",
+        "cancel": "Cancel",
+        "create": "Create",
+        "creating": "Creating..."
+      }
+    },
+    "team": {
+      "title": "Team Settings",
+      "description": "Manage your team members and permissions",
+      "breadcrumbs": {
+        "dashboard": "Dashboard",
+        "settings": "Settings",
+        "team": "Team"
+      }
+    },
+    "billing": {
+      "title": "Billing Settings",
+      "description": "Manage your billing settings and preferences",
+      "breadcrumbs": {
+        "dashboard": "Dashboard",
+        "settings": "Settings",
+        "billing": "Billing"
+      },
+      "errors": {
+        "loadFailed": "Failed to load billing settings. Please try again.",
+        "saveFailed": "Failed to save billing settings. Please try again."
+      }
+    },
+    "integrations": {
+      "title": "Integrations Settings",
+      "description": "Manage third-party integrations and connections",
+      "breadcrumbs": {
+        "dashboard": "Dashboard",
+        "settings": "Settings",
+        "integrations": "Integrations"
+      },
+      "errors": {
+        "loadFailed": "Failed to load integrations. Please try again."
+      }
+    },
+    "api": {
+      "title": "API Settings",
+      "description": "Manage API configuration and settings",
+      "breadcrumbs": {
+        "dashboard": "Dashboard",
+        "settings": "Settings",
+        "api": "API"
+      },
+      "errors": {
+        "loadFailed": "Failed to load API settings. Please try again.",
+        "saveFailed": "Failed to save API settings. Please try again."
+      }
+    },
+    "security": {
+      "title": "Security Settings",
+      "description": "Manage your security settings, 2FA, and API keys",
+      "breadcrumbs": {
+        "dashboard": "Dashboard",
+        "settings": "Settings",
+        "security": "Security"
+      },
+      "tabs": {
+        "security": "Security",
+        "apiKeys": "API Keys"
+      },
+      "sections": {
+        "security": "Security Settings",
+        "apiKeys": "API Keys"
+      },
+      "errors": {
+        "loadFailed": "Failed to load security settings. Please try again.",
+        "saveFailed": "Failed to save security settings. Please try again."
+      }
+    },
+    "notifications": {
+      "title": "Notification Settings",
+      "description": "Manage your notification preferences",
+      "breadcrumbs": {
+        "dashboard": "Dashboard",
+        "settings": "Settings",
+        "notifications": "Notifications"
+      },
+      "errors": {
+        "loadFailed": "Failed to load notification settings. Please try again.",
+        "saveFailed": "Failed to save notification settings. Please try again."
+      }
+    },
+    "preferences": {
+      "title": "Preferences Settings",
+      "description": "Manage your user preferences and personalization",
+      "breadcrumbs": {
+        "dashboard": "Dashboard",
+        "settings": "Settings",
+        "preferences": "Preferences"
+      }
+    },
+    "logs": {
+      "title": "System Logs",
+      "description": "View system logs and audit trail",
+      "breadcrumbs": {
+        "dashboard": "Dashboard",
+        "settings": "Settings",
+        "logs": "Logs"
+      },
+      "columns": {
+        "timestamp": "Date/Time",
+        "severity": "Severity",
+        "eventType": "Type",
+        "message": "Message",
+        "user": "User",
+        "ipAddress": "IP",
+        "system": "System"
+      },
+      "filters": {
+        "allTypes": "All types",
+        "login": "Login",
+        "logout": "Logout",
+        "create": "Create",
+        "update": "Update",
+        "delete": "Delete",
+        "eventType": "Event type",
+        "allSeverities": "All severities",
+        "info": "Info",
+        "warning": "Warning",
+        "error": "Error",
+        "critical": "Critical",
+        "severity": "Severity"
+      },
+      "searchPlaceholder": "Search logs...",
+      "refresh": "Refresh",
+      "empty": "No logs found",
+      "errors": {
+        "loadFailed": "Failed to load logs. Please try again.",
+        "unauthorized": "You do not have permission to view logs"
+      }
+    }
+  },
+  "admin": {
+    "Users": {
+      "RoleDefaultPermissions": {
+        "title": "Default Role Permissions",
+        "description": "Configure default permissions for each role. These permissions will be automatically assigned to new users with this role.",
+        "selectRole": "Select a role",
+        "systemRole": "System role",
+        "searchPlaceholder": "Search permissions...",
+        "noPermissionsFound": "No permissions found",
+        "saveChangesButton": "Save Changes",
+        "allPermissions": "All permissions",
+        "superadminWarning": "The Superadmin role always has all permissions (admin:*). This configuration cannot be modified.",
+        "tabs": {
+          "admin": "Admin",
+          "users": "Users",
+          "roles": "Roles",
+          "permissions": "Permissions"
+        },
+        "errors": {
+          "saveFailed": "Failed to save permissions. Please try again."
+        }
+      }
+    },
+    "tenancy": {
+      "title": "Multi-Tenancy Configuration",
+      "description": "Configure and manage multi-tenancy settings",
+      "breadcrumbs": {
+        "home": "Home",
+        "admin": "Admin",
+        "tenancy": "Tenancy"
+      },
+      "currentStatus": "Current Status",
+      "configuration": "Configuration",
+      "information": "Information",
+      "mode": "Mode",
+      "status": "Status",
+      "enabled": "Multi-tenancy is enabled",
+      "disabled": "Multi-tenancy is disabled",
+      "tenancyMode": "Tenancy Mode",
+      "registryUrl": "Registry Database URL",
+      "baseUrl": "Base Database URL",
+      "registryUrlHelper": "Database URL for tenant registry",
+      "baseUrlHelper": "Base URL for tenant databases (pattern: {base_url}/tenant_{id}_db)",
+      "save": "Save Configuration",
+      "saving": "Saving...",
+      "reload": "Reload",
+      "modes": {
+        "title": "Available Modes",
+        "single": {
+          "label": "Single Tenant",
+          "description": "No multi-tenancy. Single database, no filtering. Default mode."
+        },
+        "shared_db": {
+          "label": "Shared Database",
+          "description": "Multi-tenancy with shared database. All data in one database, filtered by team_id."
+        },
+        "separate_db": {
+          "label": "Separate Databases",
+          "description": "Multi-tenancy with separate databases. One database per tenant for maximum isolation."
+        }
+      },
+      "info": {
+        "configNote": "Tenancy mode is configured via the TENANCY_MODE environment variable. Changes require server restart."
+      },
+      "warning": {
+        "title": "Important",
+        "message": "Changing tenancy mode requires database migrations and may affect existing data. Always backup your database before making changes."
+      },
+      "success": {
+        "saved": "Configuration saved successfully"
+      },
+      "errors": {
+        "loadFailed": "Failed to load configuration. Please try again.",
+        "saveFailed": "Failed to save configuration. Please try again."
+      }
+    }
+  },
+  "Dashboard": {
+    "AIChat": {
+      "title": "Template Assistant",
+      "clear": "Clear",
+      "via": "via",
+      "inputPlaceholder": "Ask a question about the template...",
+      "welcome": {
+        "title": "Template AI Assistant",
+        "description": "I can help you understand and work with this Next.js Full-Stack Template. I have access to all the documentation!",
+        "examples": "Example questions",
+        "example1": "How do I configure authentication?",
+        "example2": "How do I deploy to Railway?",
+        "example3": "How do I customize themes?"
+      },
+      "errors": {
+        "sendFailed": "Failed to send message",
+        "errorPrefix": "Error"
+      }
+    }
+  }
+}

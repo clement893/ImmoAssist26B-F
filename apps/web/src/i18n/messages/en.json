@@ -1,0 +1,198 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "update": "Update",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "submit": "Submit",
+    "close": "Close"
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "register": "Register",
+    "forgotPassword": "Forgot Password",
+    "resetPassword": "Reset Password",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "name": "Name",
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "signOut": "Sign Out"
+  },
+  "subscriptions": {
+    "title": "My Subscriptions",
+    "manage": "Manage your subscription and payments",
+    "currentPeriod": "Current Period",
+    "nextPayment": "Next Payment",
+    "cancelSubscription": "Cancel Subscription",
+    "resumeSubscription": "Resume Subscription",
+    "changePlan": "Change Plan",
+    "noSubscription": "You don't have an active subscription",
+    "viewPlans": "View Plans",
+    "paymentHistory": "Payment History",
+    "noPayments": "No payments yet",
+    "status": {
+      "active": "Active",
+      "cancelled": "Cancelled",
+      "expired": "Expired",
+      "trial": "Trial"
+    },
+    "paymentStatus": {
+      "paid": "Paid",
+      "pending": "Pending",
+      "failed": "Failed"
+    }
+  },
+  "teams": {
+    "title": "Teams",
+    "createTeam": "Create Team",
+    "teamName": "Team Name",
+    "description": "Description",
+    "members": "Members",
+    "noTeams": "No teams found",
+    "nameRequired": "Team name is required"
+  },
+  "invitations": {
+    "title": "Invitations",
+    "createInvitation": "Create Invitation",
+    "email": "Email",
+    "role": "Role",
+    "status": "Status",
+    "invitedBy": "Invited By",
+    "invitedAt": "Invited At",
+    "expiresAt": "Expires At",
+    "cancel": "Cancel Invitation",
+    "resend": "Resend Invitation",
+    "emailRequired": "Email is required",
+    "cancelConfirm": "Are you sure you want to cancel this invitation?"
+  },
+  "errors": {
+    "generic": "An error occurred",
+    "network": "Network error. Please check your connection.",
+    "unauthorized": "You are not authorized to perform this action",
+    "notFound": "Resource not found",
+    "serverError": "Server error. Please try again later."
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "Manage your settings and preferences",
+    "breadcrumbs": {
+      "dashboard": "Dashboard",
+      "settings": "Settings"
+    },
+    "api": {
+      "title": "API Settings",
+      "description": "Manage API configuration and settings",
+      "breadcrumbs": {
+        "dashboard": "Dashboard",
+        "settings": "Settings",
+        "api": "API"
+      },
+      "errors": {
+        "loadFailed": "Failed to load API settings. Please try again.",
+        "saveFailed": "Failed to save API settings. Please try again."
+      },
+      "success": {
+        "saved": "API settings saved successfully"
+      }
+    },
+    "billing": {
+      "title": "Billing Settings",
+      "description": "Manage your billing settings and preferences",
+      "breadcrumbs": {
+        "dashboard": "Dashboard",
+        "settings": "Settings",
+        "billing": "Billing"
+      },
+      "errors": {
+        "loadFailed": "Failed to load billing settings. Please try again.",
+        "saveFailed": "Failed to save billing settings. Please try again."
+      },
+      "success": {
+        "saved": "Billing settings saved successfully"
+      }
+    },
+    "organization": {
+      "title": "Organization Settings",
+      "description": "Manage your organization settings and configuration",
+      "breadcrumbs": {
+        "dashboard": "Dashboard",
+        "settings": "Settings",
+        "organization": "Organization"
+      },
+      "errors": {
+        "loadFailed": "Failed to load organization settings. Please try again.",
+        "saveFailed": "Failed to save organization settings. Please try again."
+      },
+      "success": {
+        "saved": "Organization settings saved successfully"
+      }
+    },
+    "notifications": {
+      "title": "Notification Settings",
+      "description": "Manage your notification preferences",
+      "breadcrumbs": {
+        "dashboard": "Dashboard",
+        "settings": "Settings",
+        "notifications": "Notifications"
+      },
+      "errors": {
+        "loadFailed": "Failed to load notification settings. Please try again.",
+        "saveFailed": "Failed to save notification settings. Please try again."
+      },
+      "success": {
+        "saved": "Notification settings saved successfully"
+      }
+    },
+    "team": {
+      "title": "Team Settings",
+      "description": "Manage your team members and permissions",
+      "breadcrumbs": {
+        "dashboard": "Dashboard",
+        "settings": "Settings",
+        "team": "Team"
+      },
+      "errors": {
+        "loadFailed": "Failed to load team settings. Please try again.",
+        "saveFailed": "Failed to save team settings. Please try again."
+      },
+      "success": {
+        "saved": "Team settings saved successfully"
+      }
+    },
+    "security": {
+      "title": "Security Settings",
+      "description": "Manage your security settings, two-factor authentication, and API keys",
+      "breadcrumbs": {
+        "dashboard": "Dashboard",
+        "settings": "Settings",
+        "security": "Security"
+      },
+      "errors": {
+        "loadFailed": "Failed to load security settings. Please try again.",
+        "saveFailed": "Failed to save security settings. Please try again."
+      },
+      "success": {
+        "saved": "Security settings saved successfully"
+      },
+      "tabs": {
+        "security": "Security",
+        "apiKeys": "API Keys"
+      },
+      "sections": {
+        "security": "Security Settings",
+        "apiKeys": "API Keys"
+      }
+    }
+  }
+}

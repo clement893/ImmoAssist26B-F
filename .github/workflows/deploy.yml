@@ -1,0 +1,336 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+env:
+  PNPM_VERSION: 9.15.9
+  NODE_VERSION: 20.x
+
+jobs:
+  deploy-frontend:
+    name: Deploy Frontend
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'production' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Save deployment version
+        id: save-version
+        run: |
+          echo "version=${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "deployment_time=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_OUTPUT
+
+      - name: Deploy Frontend to Railway
+        id: deploy-frontend
+        uses: bervProject/railway-deploy@v1.0.0
+        with:
+          railway_token: ${{ secrets.RAILWAY_TOKEN }}
+          service: ${{ secrets.RAILWAY_FRONTEND_SERVICE_ID }}
+          detach: false
+
+      - name: Wait for deployment to be ready
+        run: |
+          echo "⏳ Waiting for frontend deployment to be ready..."
+          sleep 30
+
+      - name: Health check Frontend
+        id: health-check-frontend
+        continue-on-error: true
+        run: |
+          FRONTEND_URL="${{ secrets.FRONTEND_URL }}"
+          if [ -z "$FRONTEND_URL" ]; then
+            echo "⚠️ Frontend URL not configured, skipping health check"
+            echo "status=skipped" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          MAX_RETRIES=10
+          RETRY_INTERVAL=10
+          
+          for i in $(seq 1 $MAX_RETRIES); do
+            if curl -f -s --max-time 10 "$FRONTEND_URL" > /dev/null 2>&1; then
+              echo "✅ Frontend health check passed"
+              echo "status=healthy" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            echo "Attempt $i/$MAX_RETRIES - Retrying in ${RETRY_INTERVAL}s..."
+            sleep $RETRY_INTERVAL
+          done
+          
+          echo "❌ Frontend health check failed after $MAX_RETRIES attempts"
+          echo "status=unhealthy" >> $GITHUB_OUTPUT
+          exit 1
+
+      - name: Rollback Frontend on health check failure
+        if: steps.health-check-frontend.outputs.status == 'unhealthy'
+        run: |
+          echo "🔄 Rolling back frontend deployment due to health check failure..."
+          # Railway rollback would be done via CLI or API
+          echo "⚠️ Manual rollback required. Run: railway rollback --service ${{ secrets.RAILWAY_FRONTEND_SERVICE_ID }}"
+          exit 1
+
+      # Deploy to AWS S3 + CloudFront
+      # - name: Configure AWS credentials
+      #   uses: aws-actions/configure-aws-credentials@v4
+      #   with:
+      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #     aws-region: us-east-1
+      #
+      # - name: Deploy to S3
+      #   run: |
+      #     aws s3 sync apps/web/out s3://${{ secrets.S3_BUCKET_NAME }} --delete
+      #
+      # - name: Invalidate CloudFront cache
+      #   run: |
+      #     aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
+
+  deploy-backend:
+    name: Deploy Backend
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'production' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Save deployment version
+        id: save-version
+        run: |
+          echo "version=${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "deployment_time=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_OUTPUT
+
+      - name: Deploy Backend to Railway
+        id: deploy-backend
+        uses: bervProject/railway-deploy@v1.0.0
+        with:
+          railway_token: ${{ secrets.RAILWAY_TOKEN }}
+          service: ${{ secrets.RAILWAY_BACKEND_SERVICE_ID }}
+          detach: false
+
+      - name: Wait for deployment to be ready
+        run: |
+          echo "⏳ Waiting for backend deployment to be ready..."
+          sleep 30
+
+      - name: Health check Backend
+        id: health-check-backend
+        continue-on-error: true
+        run: |
+          BACKEND_URL="${{ secrets.BACKEND_URL }}"
+          if [ -z "$BACKEND_URL" ]; then
+            echo "⚠️ Backend URL not configured, skipping health check"
+            echo "status=skipped" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          MAX_RETRIES=10
+          RETRY_INTERVAL=10
+          
+          for i in $(seq 1 $MAX_RETRIES); do
+            # Check basic health
+            if curl -f -s --max-time 10 "$BACKEND_URL/api/v1/health/" > /dev/null 2>&1; then
+              # Check readiness
+              if curl -f -s --max-time 10 "$BACKEND_URL/api/v1/health/ready" > /dev/null 2>&1; then
+                echo "✅ Backend health check passed"
+                echo "status=healthy" >> $GITHUB_OUTPUT
+                exit 0
+              fi
+            fi
+            echo "Attempt $i/$MAX_RETRIES - Retrying in ${RETRY_INTERVAL}s..."
+            sleep $RETRY_INTERVAL
+          done
+          
+          echo "❌ Backend health check failed after $MAX_RETRIES attempts"
+          echo "status=unhealthy" >> $GITHUB_OUTPUT
+          exit 1
+
+      - name: Detailed Backend Health Check
+        if: steps.health-check-backend.outputs.status == 'healthy'
+        run: |
+          BACKEND_URL="${{ secrets.BACKEND_URL }}"
+          echo "📋 Running detailed health check..."
+          curl -s --max-time 10 "$BACKEND_URL/api/v1/health/detailed" | jq '.' || echo "⚠️ Detailed health check unavailable"
+
+      - name: Rollback Backend on health check failure
+        if: steps.health-check-backend.outputs.status == 'unhealthy'
+        run: |
+          echo "🔄 Rolling back backend deployment due to health check failure..."
+          # Railway rollback would be done via CLI or API
+          echo "⚠️ Manual rollback required. Run: railway rollback --service ${{ secrets.RAILWAY_BACKEND_SERVICE_ID }}"
+          exit 1
+
+      # Alternative: Deploy to other platforms
+      # Uncomment and configure as needed
+
+      # Deploy to Heroku
+      # - name: Deploy to Heroku
+      #   uses: akhileshns/heroku-deploy@v3.13.15
+      #   if: env.HEROKU_API_KEY != ''
+      #   with:
+      #     heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
+      #     heroku_app_name: ${{ secrets.HEROKU_APP_NAME }}
+      #     heroku_email: ${{ secrets.HEROKU_EMAIL }}
+      #     appdir: "./backend"
+
+      # Deploy to AWS Elastic Beanstalk
+      # - name: Configure AWS credentials
+      #   uses: aws-actions/configure-aws-credentials@v4
+      #   with:
+      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #     aws-region: us-east-1
+      #
+      # - name: Deploy to Elastic Beanstalk
+      #   uses: einaregilsson/beanstalk-deploy@v22
+      #   with:
+      #     aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #     aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #     application_name: ${{ secrets.EB_APPLICATION_NAME }}
+      #     environment_name: ${{ secrets.EB_ENVIRONMENT_NAME }}
+      #     version_label: ${{ github.sha }}
+      #     region: us-east-1
+      #     deployment_package: backend.zip
+
+      # Deploy to Docker Hub / Container Registry
+      # - name: Set up Docker Buildx
+      #   uses: docker/setup-buildx-action@v3
+      #
+      # - name: Login to Docker Hub
+      #   uses: docker/login-action@v3
+      #   with:
+      #     username: ${{ secrets.DOCKER_USERNAME }}
+      #     password: ${{ secrets.DOCKER_PASSWORD }}
+      #
+      # - name: Build and push Docker image
+      #   uses: docker/build-push-action@v5
+      #   with:
+      #     context: ./backend
+      #     push: true
+      #     tags: ${{ secrets.DOCKER_USERNAME }}/backend:${{ github.sha }}
+      #     cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/backend:buildcache
+      #     cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/backend:buildcache,mode=max
+
+  verify-deployment:
+    name: Verify Deployment
+    runs-on: ubuntu-latest
+    needs: [deploy-frontend, deploy-backend]
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Run comprehensive health checks
+        continue-on-error: true
+        run: |
+          BACKEND_URL="${{ secrets.BACKEND_URL }}"
+          FRONTEND_URL="${{ secrets.FRONTEND_URL }}"
+          
+          if [ -z "$BACKEND_URL" ] || [ -z "$FRONTEND_URL" ]; then
+            echo "⚠️ Health check URLs not configured, skipping verification"
+            exit 0
+          fi
+          
+          chmod +x scripts/deployment/health-check.sh
+          ./scripts/deployment/health-check.sh "$BACKEND_URL" "$FRONTEND_URL" || {
+            echo "⚠️ Health checks failed, but deployment may still be successful"
+            exit 0
+          }
+
+      - name: Deployment Verification Summary
+        run: |
+          FRONTEND_STATUS="${{ needs.deploy-frontend.result }}"
+          BACKEND_STATUS="${{ needs.deploy-backend.result }}"
+          
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Service | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend | $FRONTEND_STATUS |" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend | $BACKEND_STATUS |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "$FRONTEND_STATUS" == "success" ] && [ "$BACKEND_STATUS" == "success" ]; then
+            echo "✅ **Deployment successful**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Deployment failed**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Rollback Instructions" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "To rollback this deployment:" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+            echo "./scripts/deployment/rollback.sh railway all" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+  notify:
+    name: Notify Deployment
+    runs-on: ubuntu-latest
+    needs: [deploy-frontend, deploy-backend, verify-deployment]
+    if: always()
+    steps:
+      - name: Deployment Status
+        run: |
+          FRONTEND_STATUS="${{ needs.deploy-frontend.result }}"
+          BACKEND_STATUS="${{ needs.deploy-backend.result }}"
+          VERIFY_STATUS="${{ needs.verify-deployment.result }}"
+          
+          if [ "$FRONTEND_STATUS" == "success" ] && [ "$BACKEND_STATUS" == "success" ] && [ "$VERIFY_STATUS" != "failure" ]; then
+            echo "✅ Deployment successful"
+          else
+            echo "❌ Deployment failed or verification incomplete"
+            echo "Frontend: $FRONTEND_STATUS"
+            echo "Backend: $BACKEND_STATUS"
+            echo "Verification: $VERIFY_STATUS"
+            exit 1
+          fi
+
+      # Uncomment to send Slack notification
+      # - name: Send Slack notification
+      #   uses: 8398a7/action-slack@v3
+      #   with:
+      #     status: ${{ job.status }}
+      #     text: 'Deployment to ${{ github.event.inputs.environment || "production" }} completed'
+      #     webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+      #   if: always()
+
+      # Uncomment to send Discord notification
+      # - name: Send Discord notification
+      #   uses: sarisia/actions-status-discord@v1
+      #   with:
+      #     webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+      #     title: 'Deployment Status'
+      #     description: 'Deployment to ${{ github.event.inputs.environment || "production" }}'
+      #   if: always()

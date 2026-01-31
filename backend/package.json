@@ -1,0 +1,23 @@
+{
+  "name": "@modele/backend",
+  "version": "1.0.0",
+  "description": "FastAPI backend for MODELE-NEXTJS-FULLSTACK",
+  "private": true,
+  "scripts": {
+    "dev": "python run.py",
+    "start": "uvicorn app.main:app --host 0.0.0.0 --port 8000",
+    "test": "pytest",
+    "test:cov": "pytest --cov=app --cov-report=html",
+    "test:watch": "pytest-watch",
+    "lint": "ruff check app tests",
+    "lint:fix": "ruff check --fix app tests",
+    "format": "black app tests",
+    "format:check": "black --check app tests",
+    "type-check": "mypy app",
+    "migrate:create": "python scripts/migrate.py create",
+    "migrate:upgrade": "python scripts/migrate.py upgrade",
+    "migrate:downgrade": "python scripts/migrate.py downgrade",
+    "migrate:current": "python scripts/migrate.py current",
+    "migrate:history": "python scripts/migrate.py history"
+  }
+}

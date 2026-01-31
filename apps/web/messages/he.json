@@ -1,0 +1,62 @@
+{
+  "common": {
+    "welcome": "ברוך הבא",
+    "save": "שמור",
+    "cancel": "בטל",
+    "delete": "מחק",
+    "edit": "ערוך",
+    "create": "צור",
+    "search": "חפש",
+    "loading": "טוען...",
+    "error": "שגיאה",
+    "success": "הצלחה",
+    "confirm": "אישור",
+    "close": "סגור",
+    "back": "חזור",
+    "next": "הבא",
+    "previous": "הקודם",
+    "submit": "שלח",
+    "reset": "איפוס",
+    "yes": "כן",
+    "no": "לא",
+    "ok": "אישור"
+  },
+  "auth": {
+    "signIn": "התחבר",
+    "signOut": "התנתק",
+    "signUp": "הירשם",
+    "email": "אימייל",
+    "password": "סיסמה",
+    "forgotPassword": "שכחת סיסמה?",
+    "rememberMe": "זכור אותי",
+    "createAccount": "צור חשבון",
+    "alreadyHaveAccount": "כבר יש לך חשבון?",
+    "dontHaveAccount": "אין לך חשבון?",
+    "resetPassword": "איפוס סיסמה",
+    "confirmPassword": "אישור סיסמה"
+  },
+  "navigation": {
+    "dashboard": "לוח בקרה",
+    "users": "משתמשים",
+    "settings": "הגדרות",
+    "profile": "פרופיל",
+    "home": "בית",
+    "about": "אודות",
+    "contact": "צור קשר",
+    "pricing": "תמחור",
+    "features": "תכונות"
+  },
+  "language": {
+    "switchLanguage": "החלף שפה",
+    "currentLanguage": "שפה נוכחית",
+    "selectLanguage": "בחר שפה"
+  },
+  "errors": {
+    "somethingWentWrong": "משהו השתבש",
+    "tryAgain": "נסה שוב",
+    "notFound": "לא נמצא",
+    "unauthorized": "לא מורשה",
+    "forbidden": "אסור",
+    "serverError": "שגיאת שרת"
+  }
+}

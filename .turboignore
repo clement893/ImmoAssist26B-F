@@ -1,0 +1,11 @@
+# Fichiers à ignorer pour le cache Turborepo
+node_modules/
+.next/cache/
+.turbo/
+dist/
+build/
+coverage/
+*.log
+.env.local
+.env*.local
+

@@ -1,0 +1,61 @@
+/** * Theme Presets * Predefined theme configurations */ import type { ThemeConfig } from './types';
+import { COLORS } from './constants';
+export const defaultTheme: ThemeConfig = {
+  primary: COLORS.BLUE_500,
+  secondary: COLORS.GREEN_500,
+  danger: COLORS.RED_500,
+  warning: COLORS.YELLOW_500,
+  info: COLORS.CYAN_500,
+  fontFamily: 'Inter',
+  fontFamilyHeading: 'Inter',
+  fontFamilySubheading: 'Inter',
+  textHeading: COLORS.GRAY_900,
+  textSubheading: COLORS.GRAY_700,
+  textBody: COLORS.GRAY_800,
+  textSecondary: COLORS.GRAY_500,
+  textLink: COLORS.BLUE_500,
+  errorColor: COLORS.RED_500,
+  errorBg: COLORS.RED_50,
+  successColor: COLORS.GREEN_500,
+  successBg: COLORS.GREEN_50,
+  borderRadius: '0.5rem',
+};
+export const themePresets = {
+  default: defaultTheme,
+  modern: {
+    ...defaultTheme,
+    primary: COLORS.INDIGO_500,
+    secondary: COLORS.VIOLET_500,
+    fontFamily: 'Inter',
+    fontFamilyHeading: 'Poppins',
+    borderRadius: '0.75rem',
+  },
+  corporate: {
+    ...defaultTheme,
+    primary: COLORS.BLUE_800,
+    secondary: COLORS.EMERALD_600,
+    fontFamily: 'Roboto',
+    fontFamilyHeading: 'Roboto',
+    borderRadius: '0.25rem',
+  },
+  vibrant: {
+    ...defaultTheme,
+    primary: COLORS.PINK_500,
+    secondary: COLORS.AMBER_500,
+    danger: COLORS.RED_500,
+    warning: COLORS.YELLOW_500,
+    info: COLORS.CYAN_500,
+    fontFamily: 'Poppins',
+    fontFamilyHeading: 'Poppins',
+    borderRadius: '1rem',
+  },
+  minimal: {
+    ...defaultTheme,
+    primary: COLORS.BLACK,
+    secondary: COLORS.GRAY_500,
+    fontFamily: 'Inter',
+    fontFamilyHeading: 'Inter',
+    borderRadius: '0rem',
+  },
+} as const;
+export type ThemePresetName = keyof typeof themePresets;

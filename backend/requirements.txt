@@ -1,0 +1,63 @@
+# FastAPI and server
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# Database
+sqlalchemy>=2.0.0
+alembic>=1.12.0
+asyncpg>=0.29.0  # Async PostgreSQL driver for SQLAlchemy async
+psycopg2-binary>=2.9.9  # Sync PostgreSQL driver for Alembic migrations
+
+# Authentication
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+python-multipart>=0.0.6
+pyotp>=2.9.0  # TOTP for 2FA
+qrcode[pil]>=7.4.2  # QR code generation for 2FA
+
+# HTTP client
+httpx>=0.25.0
+requests>=2.31.0
+
+# Utilities
+python-dotenv>=1.0.0
+email-validator>=2.1.0
+python-json-logger>=2.0.0
+slowapi>=0.1.9
+brotli>=1.1.0  # Brotli compression support
+msgpack>=1.0.7  # MessagePack for efficient serialization
+
+# Payment processing
+stripe>=7.0.0
+
+# AWS S3
+boto3>=1.28.0
+
+# AI Providers
+openai>=1.0.0
+anthropic>=0.18.0
+
+# Email
+sendgrid>=6.10.0
+
+# WebSocket support
+websockets>=12.0
+
+# Note: CORS is handled by FastAPI's CORSMiddleware (no separate package needed)
+
+python-magic>=0.4.27
+
+# Data Export/Import (optional but recommended)
+pandas>=2.0.0  # For Excel export/import
+openpyxl>=3.1.0  # Excel file support
+reportlab>=4.0.0  # For PDF export
+
+# Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+pytest-mock>=3.12.0
+httpx>=0.25.0  # For async test client
+aiosqlite>=0.19.0  # For in-memory SQLite testing

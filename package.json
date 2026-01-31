@@ -1,0 +1,41 @@
+{
+  "name": "modele-nextjs-fullstack",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter @modele/web dev",
+    "build": "pnpm --filter @modele/web build",
+    "lint": "pnpm --recursive lint",
+    "type-check": "pnpm --recursive type-check",
+    "test": "pnpm --recursive test",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "setup": "node scripts/setup.js",
+    "validate:env": "pnpm --filter @modele/web env:validate",
+    "validate:env:backend": "cd backend && python -m app.core.config",
+    "validate:env:frontend": "pnpm --filter @modele/web env:validate",
+    "security:scan": "bash scripts/security-scan.sh || powershell -ExecutionPolicy Bypass -File scripts/security-scan.ps1",
+    "security:audit": "pnpm audit --recursive && cd backend && safety check || echo 'safety not installed, skipping Python security check'",
+    "security:check": "pnpm security:scan && pnpm security:audit",
+    "api:check": "node scripts/check-api-connections.js",
+    "api:check:detailed": "node scripts/check-api-connections.js --detailed",
+    "api:check:backend": "node scripts/check-api-connections-backend.js",
+    "api:report": "node scripts/generate-api-connection-report.js",
+    "api:report:custom": "node scripts/generate-api-connection-report.js --output",
+    "migrate:module": "node scripts/migrate-module.js",
+    "migrate:guide": "node scripts/guide-module-integration.js",
+    "migrate:from-repo": "node scripts/integrate-from-repo.js",
+    "integrate:reseau": "node scripts/integrate-reseau-complete.js",
+    "validate:dependencies": "node scripts/validate-dependencies.js",
+    "audit:code": "node scripts/audit-code-complete.js",
+    "audit:performance": "node scripts/audit-performance-complete.js",
+    "audit:all": "pnpm audit:code && pnpm audit:performance",
+    "generate:secrets": "node scripts/generate-secrets.js"
+  },
+  "devDependencies": {
+    "prettier": "^3.1.1"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}

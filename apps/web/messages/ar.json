@@ -1,0 +1,62 @@
+{
+  "common": {
+    "welcome": "مرحباً",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "create": "إنشاء",
+    "search": "بحث",
+    "loading": "جاري التحميل...",
+    "error": "خطأ",
+    "success": "نجاح",
+    "confirm": "تأكيد",
+    "close": "إغلاق",
+    "back": "رجوع",
+    "next": "التالي",
+    "previous": "السابق",
+    "submit": "إرسال",
+    "reset": "إعادة تعيين",
+    "yes": "نعم",
+    "no": "لا",
+    "ok": "موافق"
+  },
+  "auth": {
+    "signIn": "تسجيل الدخول",
+    "signOut": "تسجيل الخروج",
+    "signUp": "إنشاء حساب",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "forgotPassword": "نسيت كلمة المرور؟",
+    "rememberMe": "تذكرني",
+    "createAccount": "إنشاء حساب",
+    "alreadyHaveAccount": "لديك حساب بالفعل؟",
+    "dontHaveAccount": "ليس لديك حساب؟",
+    "resetPassword": "إعادة تعيين كلمة المرور",
+    "confirmPassword": "تأكيد كلمة المرور"
+  },
+  "navigation": {
+    "dashboard": "لوحة التحكم",
+    "users": "المستخدمون",
+    "settings": "الإعدادات",
+    "profile": "الملف الشخصي",
+    "home": "الرئيسية",
+    "about": "حول",
+    "contact": "اتصل بنا",
+    "pricing": "الأسعار",
+    "features": "المميزات"
+  },
+  "language": {
+    "switchLanguage": "تغيير اللغة",
+    "currentLanguage": "اللغة الحالية",
+    "selectLanguage": "اختر اللغة"
+  },
+  "errors": {
+    "somethingWentWrong": "حدث خطأ ما",
+    "tryAgain": "حاول مرة أخرى",
+    "notFound": "غير موجود",
+    "unauthorized": "غير مصرح",
+    "forbidden": "محظور",
+    "serverError": "خطأ في الخادم"
+  }
+}

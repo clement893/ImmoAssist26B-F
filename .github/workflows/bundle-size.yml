@@ -1,0 +1,111 @@
+name: Bundle Size Check
+
+on:
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+env:
+  PNPM_VERSION: 9.15.9
+  NODE_VERSION: 20.x
+
+jobs:
+  check-bundle-size:
+    name: Check Bundle Size
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build application
+        run: pnpm build:web
+
+      - name: Analyze bundle size
+        id: analyze
+        run: |
+          cd apps/web
+          
+          # Get bundle sizes
+          if [ -f ".next/analyze/client.json" ]; then
+            TOTAL_SIZE=$(cat .next/analyze/client.json | jq '[.chunks[] | .size] | add' || echo "0")
+            echo "total_size=$TOTAL_SIZE" >> $GITHUB_OUTPUT
+          else
+            # Fallback: use build output
+            TOTAL_SIZE=$(du -sb .next/static 2>/dev/null | cut -f1 || echo "0")
+            echo "total_size=$TOTAL_SIZE" >> $GITHUB_OUTPUT
+          fi
+          
+          # Bundle size budgets (in bytes)
+          MAX_BUNDLE_SIZE=300000  # 300KB
+          WARNING_SIZE=250000     # 250KB
+          
+          echo "max_size=$MAX_BUNDLE_SIZE" >> $GITHUB_OUTPUT
+          echo "warning_size=$WARNING_SIZE" >> $GITHUB_OUTPUT
+          
+          if [ "$TOTAL_SIZE" -gt "$MAX_BUNDLE_SIZE" ]; then
+            echo "status=error" >> $GITHUB_OUTPUT
+            echo "message=Bundle size exceeds maximum ($MAX_BUNDLE_SIZE bytes)" >> $GITHUB_OUTPUT
+          elif [ "$TOTAL_SIZE" -gt "$WARNING_SIZE" ]; then
+            echo "status=warning" >> $GITHUB_OUTPUT
+            echo "message=Bundle size exceeds warning threshold ($WARNING_SIZE bytes)" >> $GITHUB_OUTPUT
+          else
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "message=Bundle size is within limits" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Comment PR with bundle size
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const status = '${{ steps.analyze.outputs.status }}';
+            const message = '${{ steps.analyze.outputs.message }}';
+            const totalSize = '${{ steps.analyze.outputs.total_size }}';
+            const maxSize = '${{ steps.analyze.outputs.max_size }}';
+            
+            const sizeKB = (parseInt(totalSize) / 1024).toFixed(2);
+            const maxKB = (parseInt(maxSize) / 1024).toFixed(2);
+            
+            const emoji = status === 'error' ? '❌' : status === 'warning' ? '⚠️' : '✅';
+            
+            const body = `## ${emoji} Bundle Size Check
+            
+            **Status:** ${status}
+            **Message:** ${message}
+            **Total Size:** ${sizeKB} KB / ${maxKB} KB
+            
+            ${status === 'error' ? '⚠️ **Action Required:** Bundle size exceeds maximum limit. Please optimize your bundle.' : ''}
+            ${status === 'warning' ? '💡 **Suggestion:** Consider optimizing bundle size to improve performance.' : ''}`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: Fail if bundle size exceeds limit
+        if: steps.analyze.outputs.status == 'error'
+        run: |
+          echo "❌ Bundle size check failed!"
+          echo "Bundle size: ${{ steps.analyze.outputs.total_size }} bytes"
+          echo "Maximum allowed: ${{ steps.analyze.outputs.max_size }} bytes"
+          exit 1
+
+
+
+

@@ -1,0 +1,201 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Swiss International Style Theme - Additional CSS */
+/* Swiss Style Typography - Inter Bold 900 for headings */
+.swiss-display {
+  font-size: 72px;
+  line-height: 80px;
+  font-weight: 900;
+  font-family: var(--font-inter, 'Inter', system-ui, sans-serif);
+}
+
+@media (max-width: 768px) {
+  .swiss-display {
+    font-size: 48px;
+    line-height: 56px;
+  }
+}
+
+.swiss-h1 {
+  font-size: 48px;
+  line-height: 56px;
+  font-weight: 900;
+  font-family: var(--font-inter, 'Inter', system-ui, sans-serif);
+}
+
+.swiss-h2 {
+  font-size: 36px;
+  line-height: 44px;
+  font-weight: 600;
+  font-family: var(--font-inter, 'Inter', system-ui, sans-serif);
+}
+
+.swiss-h3 {
+  font-size: 28px;
+  line-height: 36px;
+  font-weight: 600;
+  font-family: var(--font-inter, 'Inter', system-ui, sans-serif);
+}
+
+.swiss-body {
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 400;
+  font-family: var(--font-inter, 'Inter', system-ui, sans-serif);
+}
+
+.swiss-cta {
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 700;
+  font-family: var(--font-inter, 'Inter', system-ui, sans-serif);
+}
+
+/* Swiss Style Spacing - Large margins between sections */
+.swiss-section-spacing {
+  margin-top: 120px;
+  margin-bottom: 120px;
+}
+
+@media (max-width: 768px) {
+  .swiss-section-spacing {
+    margin-top: 80px;
+    margin-bottom: 80px;
+  }
+}
+
+/* Swiss Style Container - Max width with generous padding */
+.swiss-container {
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 80px;
+  padding-right: 80px;
+}
+
+@media (max-width: 768px) {
+  .swiss-container {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+}
+
+/* Swiss Style Grid - Strict 12 column grid */
+.swiss-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 24px;
+}
+
+/* Swiss Style animations - Subtle fade-in */
+@keyframes swiss-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.swiss-fade-in {
+  animation: swiss-fade-in 0.6s ease-out;
+}
+
+/* 
+ * No default colors defined here - all colors come from API theme via GlobalThemeProvider
+ * Theme system will set all CSS variables dynamically from the active theme
+ */
+
+/* Ensure body uses theme variables (will be set by theme system) */
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+}
+
+/* RTL Support */
+[dir="rtl"] {
+  direction: rtl;
+}
+
+[dir="ltr"] {
+  direction: ltr;
+}
+
+/* RTL-specific styles */
+.rtl {
+  direction: rtl;
+}
+
+.ltr {
+  direction: ltr;
+}
+
+/* RTL text alignment utilities */
+[dir="rtl"] .text-left {
+  text-align: right;
+}
+
+[dir="rtl"] .text-right {
+  text-align: left;
+}
+
+/* RTL flex utilities */
+[dir="rtl"] .flex-row {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .justify-start {
+  justify-content: flex-end;
+}
+
+[dir="rtl"] .justify-end {
+  justify-content: flex-start;
+}
+
+/* RTL margin/padding utilities */
+[dir="rtl"] .ml-auto {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+[dir="rtl"] .mr-auto {
+  margin-right: 0;
+  margin-left: auto;
+}
+
+/* RTL border radius */
+[dir="rtl"] .rounded-l {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-top-right-radius: 0.25rem;
+  border-bottom-right-radius: 0.25rem;
+}
+
+[dir="rtl"] .rounded-r {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-top-left-radius: 0.25rem;
+  border-bottom-left-radius: 0.25rem;
+}
+
+/* Performance optimizations for animations */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Optimize blob animations - only animate if motion is preferred */
+@media (prefers-reduced-motion: no-preference) {
+  .animate-blob {
+    will-change: transform;
+  }
+}

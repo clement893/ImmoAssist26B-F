@@ -1,0 +1,57 @@
+name: Dependabot Auto-merge
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  auto-merge:
+    name: Auto-merge Dependabot PRs
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Wait for status checks
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+
+            const requiredStatusChecks = ['CI', 'PR Checks'];
+            const maxWaitTime = 30 * 60 * 1000; // 30 minutes
+            const checkInterval = 30 * 1000; // 30 seconds
+            const startTime = Date.now();
+
+            while (Date.now() - startTime < maxWaitTime) {
+              const { data: statuses } = await github.rest.repos.listCommitStatusesForRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: pr.head.sha,
+              });
+
+              const allPassed = requiredStatusChecks.every(check =>
+                statuses.some(status => status.context === check && status.state === 'success')
+              );
+
+              if (allPassed) {
+                console.log('All required status checks passed');
+                break;
+              }
+
+              console.log('Waiting for status checks...');
+              await new Promise(resolve => setTimeout(resolve, checkInterval));
+            }
+
+      - name: Enable auto-merge
+        uses: peter-evans/enable-pull-request-automerge@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ github.event.pull_request.number }}
+          merge-method: squash
+

@@ -1,0 +1,50 @@
+{
+  "glassmorphism": {
+    "enabled": true,
+    "blur": "10px",
+    "opacity": 0.1,
+    "borderOpacity": 0.2,
+    "saturation": "180%"
+  },
+  "neon-glow": {
+    "description": "Effet de lueur néon pour les éléments",
+    "boxShadow": "0 0 10px rgba(59, 130, 246, 0.5), 0 0 20px rgba(59, 130, 246, 0.3), 0 0 30px rgba(59, 130, 246, 0.2)",
+    "textShadow": "0 0 10px rgba(59, 130, 246, 0.8)"
+  },
+  "frosted-glass": {
+    "description": "Effet de verre dépoli",
+    "backdropFilter": "blur(20px) saturate(200%)",
+    "background": "rgba(255, 255, 255, 0.15)",
+    "border": "1px solid rgba(255, 255, 255, 0.3)",
+    "boxShadow": "0 8px 32px 0 rgba(31, 38, 135, 0.37)"
+  },
+  "gradient-border": {
+    "description": "Bordure avec dégradé",
+    "border": "2px solid transparent",
+    "backgroundImage": "linear-gradient(white, white), linear-gradient(to right, #3b82f6, #8b5cf6)",
+    "backgroundOrigin": "border-box",
+    "backgroundClip": "padding-box, border-box"
+  },
+  "animated-shimmer": {
+    "description": "Effet de brillance animé",
+    "background": "linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0) 100%)",
+    "backgroundSize": "200% 100%",
+    "animation": "shimmer 2s infinite"
+  },
+  "dark-mode-glow": {
+    "description": "Lueur pour le mode sombre",
+    "boxShadow": "0 0 20px rgba(139, 92, 246, 0.3), inset 0 0 20px rgba(59, 130, 246, 0.1)",
+    "border": "1px solid rgba(139, 92, 246, 0.3)"
+  },
+  "soft-shadow": {
+    "description": "Ombre douce et diffuse",
+    "boxShadow": "0 2px 8px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.04)"
+  },
+  "text-gradient": {
+    "description": "Texte avec dégradé",
+    "background": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+    "WebkitBackgroundClip": "text",
+    "WebkitTextFillColor": "transparent",
+    "backgroundClip": "text"
+  }
+}

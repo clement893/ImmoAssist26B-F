@@ -1,0 +1,101 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+!apps/**/lib/
+!packages/**/lib/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Testing
+.pytest_cache/
+.coverage
+coverage/
+htmlcov/
+.nyc_output/
+*.lcov
+coverage.xml
+coverage.json
+.vitest/
+test-results/
+playwright-report/
+
+# Production
+.next/
+# But keep cache for incremental builds
+!.next/cache/
+.next/cache/*
+!.next/cache/tsconfig.tsbuildinfo
+out/
+build/
+dist/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.production.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# Logs
+logs/
+# Exception: Don't ignore admin logs page
+!apps/web/src/app/**/admin/logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Misc
+.cache/
+.turbo/
+.vercel/
+.railway/
+
+# Turborepo
+.turbo/
+turbo-*.log
+
+# pnpm
+.pnpm-store/
+.pnpm-debug.log
+pnpm-lock.yaml.bak
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Template-specific files (remove after customization)
+TEMPLATE_SETUP.md
+*.template.md
