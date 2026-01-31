@@ -19,7 +19,23 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Create ContactType enum
+    conn = op.get_bind()
+    
+    # Check if enum type exists before creating it
+    def enum_exists(enum_name: str) -> bool:
+        """Check if an enum type exists in PostgreSQL"""
+        result = conn.execute(sa.text(
+            "SELECT EXISTS (SELECT 1 FROM pg_type WHERE typname = :enum_name)"
+        ), {"enum_name": enum_name})
+        return result.scalar()
+    
+    # Create ContactType enum only if it doesn't exist
+    if not enum_exists('contacttype'):
+        conn.execute(sa.text(
+            "CREATE TYPE contacttype AS ENUM ('client', 'real_estate_broker', 'mortgage_broker', 'notary', 'inspector', 'contractor', 'insurance_broker', 'other')"
+        ))
+    
+    # Create enum object for use in table definitions (with create_type=False to prevent auto-creation)
     contact_type_enum = postgresql.ENUM(
         'client',
         'real_estate_broker',
@@ -30,58 +46,63 @@ def upgrade() -> None:
         'insurance_broker',
         'other',
         name='contacttype',
-        create_type=True
+        create_type=False
     )
-    contact_type_enum.create(op.get_bind(), checkfirst=True)
+    
+    # Check which tables already exist
+    inspector = sa.inspect(conn)
+    tables = inspector.get_table_names()
     
     # Create real_estate_contacts table
-    op.create_table(
-        'real_estate_contacts',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('first_name', sa.String(length=100), nullable=False, comment='Prénom'),
-        sa.Column('last_name', sa.String(length=100), nullable=False, comment='Nom de famille'),
-        sa.Column('email', sa.String(length=255), nullable=True, comment='Adresse email'),
-        sa.Column('phone', sa.String(length=50), nullable=True, comment='Numéro de téléphone'),
-        sa.Column('company', sa.String(length=200), nullable=True, comment='Entreprise ou agence'),
-        sa.Column('type', contact_type_enum, nullable=False, comment='Type de contact'),
-        sa.Column('user_id', sa.Integer(), nullable=True),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-        sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='SET NULL'),
-        sa.PrimaryKeyConstraint('id'),
-    )
-    
-    # Create indexes for real_estate_contacts
-    op.create_index('idx_real_estate_contacts_email', 'real_estate_contacts', ['email'], unique=False)
-    op.create_index('idx_real_estate_contacts_type', 'real_estate_contacts', ['type'], unique=False)
-    op.create_index('idx_real_estate_contacts_user_id', 'real_estate_contacts', ['user_id'], unique=False)
-    op.create_index('idx_real_estate_contacts_created_at', 'real_estate_contacts', ['created_at'], unique=False)
-    op.create_index(op.f('ix_real_estate_contacts_id'), 'real_estate_contacts', ['id'], unique=False)
-    op.create_index(op.f('ix_real_estate_contacts_first_name'), 'real_estate_contacts', ['first_name'], unique=False)
-    op.create_index(op.f('ix_real_estate_contacts_last_name'), 'real_estate_contacts', ['last_name'], unique=False)
-    
-    # Add unique constraint on email
-    op.create_unique_constraint('uq_real_estate_contacts_email', 'real_estate_contacts', ['email'])
-    # Add unique constraint on user_id
-    op.create_unique_constraint('uq_real_estate_contacts_user_id', 'real_estate_contacts', ['user_id'])
+    if 'real_estate_contacts' not in tables:
+        op.create_table(
+            'real_estate_contacts',
+            sa.Column('id', sa.Integer(), nullable=False),
+            sa.Column('first_name', sa.String(length=100), nullable=False, comment='Prénom'),
+            sa.Column('last_name', sa.String(length=100), nullable=False, comment='Nom de famille'),
+            sa.Column('email', sa.String(length=255), nullable=True, comment='Adresse email'),
+            sa.Column('phone', sa.String(length=50), nullable=True, comment='Numéro de téléphone'),
+            sa.Column('company', sa.String(length=200), nullable=True, comment='Entreprise ou agence'),
+            sa.Column('type', contact_type_enum, nullable=False, comment='Type de contact'),
+            sa.Column('user_id', sa.Integer(), nullable=True),
+            sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+            sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+            sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='SET NULL'),
+            sa.PrimaryKeyConstraint('id'),
+        )
+        
+        # Create indexes for real_estate_contacts
+        op.create_index('idx_real_estate_contacts_email', 'real_estate_contacts', ['email'], unique=False)
+        op.create_index('idx_real_estate_contacts_type', 'real_estate_contacts', ['type'], unique=False)
+        op.create_index('idx_real_estate_contacts_user_id', 'real_estate_contacts', ['user_id'], unique=False)
+        op.create_index('idx_real_estate_contacts_created_at', 'real_estate_contacts', ['created_at'], unique=False)
+        op.create_index(op.f('ix_real_estate_contacts_id'), 'real_estate_contacts', ['id'], unique=False)
+        op.create_index(op.f('ix_real_estate_contacts_first_name'), 'real_estate_contacts', ['first_name'], unique=False)
+        op.create_index(op.f('ix_real_estate_contacts_last_name'), 'real_estate_contacts', ['last_name'], unique=False)
+        
+        # Add unique constraint on email
+        op.create_unique_constraint('uq_real_estate_contacts_email', 'real_estate_contacts', ['email'])
+        # Add unique constraint on user_id
+        op.create_unique_constraint('uq_real_estate_contacts_user_id', 'real_estate_contacts', ['user_id'])
     
     # Create transaction_contacts table
-    op.create_table(
-        'transaction_contacts',
-        sa.Column('transaction_id', sa.Integer(), nullable=False, comment='ID de la transaction'),
-        sa.Column('contact_id', sa.Integer(), nullable=False, comment='ID du contact'),
-        sa.Column('role', sa.String(length=100), nullable=False, comment="Rôle du contact dans cette transaction (ex: 'Vendeur', 'Acheteur', 'Notaire instrumentant')"),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-        sa.ForeignKeyConstraint(['contact_id'], ['real_estate_contacts.id'], ondelete='CASCADE'),
-        sa.ForeignKeyConstraint(['transaction_id'], ['real_estate_transactions.id'], ondelete='CASCADE'),
-        sa.PrimaryKeyConstraint('transaction_id', 'contact_id', 'role'),
-    )
+    if 'transaction_contacts' not in tables:
+        op.create_table(
+            'transaction_contacts',
+            sa.Column('transaction_id', sa.Integer(), nullable=False, comment='ID de la transaction'),
+            sa.Column('contact_id', sa.Integer(), nullable=False, comment='ID du contact'),
+            sa.Column('role', sa.String(length=100), nullable=False, comment="Rôle du contact dans cette transaction (ex: 'Vendeur', 'Acheteur', 'Notaire instrumentant')"),
+            sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+            sa.ForeignKeyConstraint(['contact_id'], ['real_estate_contacts.id'], ondelete='CASCADE'),
+            sa.ForeignKeyConstraint(['transaction_id'], ['real_estate_transactions.id'], ondelete='CASCADE'),
+            sa.PrimaryKeyConstraint('transaction_id', 'contact_id', 'role'),
+        )
     
-    # Create indexes for transaction_contacts
-    op.create_index('idx_transaction_contacts_transaction', 'transaction_contacts', ['transaction_id'], unique=False)
-    op.create_index('idx_transaction_contacts_contact', 'transaction_contacts', ['contact_id'], unique=False)
-    op.create_index('idx_transaction_contacts_role', 'transaction_contacts', ['role'], unique=False)
-    op.create_index('idx_transaction_contacts_composite', 'transaction_contacts', ['transaction_id', 'contact_id', 'role'], unique=False)
+        # Create indexes for transaction_contacts
+        op.create_index('idx_transaction_contacts_transaction', 'transaction_contacts', ['transaction_id'], unique=False)
+        op.create_index('idx_transaction_contacts_contact', 'transaction_contacts', ['contact_id'], unique=False)
+        op.create_index('idx_transaction_contacts_role', 'transaction_contacts', ['role'], unique=False)
+        op.create_index('idx_transaction_contacts_composite', 'transaction_contacts', ['transaction_id', 'contact_id', 'role'], unique=False)
 
 
 def downgrade() -> None:
