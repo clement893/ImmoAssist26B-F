@@ -13,12 +13,10 @@ import Input from '@/components/ui/Input';
 import Textarea from '@/components/ui/Textarea';
 import Alert from '@/components/ui/Alert';
 import Loading from '@/components/ui/Loading';
-import Select from '@/components/ui/Select';
 import DataTable, { type Column } from '@/components/ui/DataTable';
 import Modal from '@/components/ui/Modal';
 import LeaChat from '@/components/lea/LeaChat';
 import { Plus, Edit, Trash2, User, Mail, Phone, Building } from 'lucide-react';
-import LeaChat from '@/components/lea/LeaChat';
 
 interface Agent extends Record<string, unknown> {
   id: number;
@@ -135,7 +133,7 @@ function AgentsContent() {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (_id: number) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer cet agent ?')) {
       return;
     }
@@ -158,7 +156,7 @@ function AgentsContent() {
     {
       key: 'name',
       label: 'Nom',
-      render: (agent) => (
+      render: (agent: Agent) => (
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
             <User className="w-4 h-4 text-primary" />
@@ -172,7 +170,7 @@ function AgentsContent() {
     {
       key: 'email',
       label: 'Email',
-      render: (agent) => (
+      render: (agent: Agent) => (
         <div className="flex items-center gap-2 text-muted-foreground">
           <Mail className="w-4 h-4" />
           {agent.email}
@@ -182,7 +180,7 @@ function AgentsContent() {
     {
       key: 'phone',
       label: 'Téléphone',
-      render: (agent) => agent.phone ? (
+      render: (agent: Agent) => agent.phone ? (
         <div className="flex items-center gap-2 text-muted-foreground">
           <Phone className="w-4 h-4" />
           {agent.phone}
@@ -194,7 +192,7 @@ function AgentsContent() {
     {
       key: 'agency',
       label: 'Agence',
-      render: (agent) => agent.agency ? (
+      render: (agent: Agent) => agent.agency ? (
         <div className="flex items-center gap-2 text-muted-foreground">
           <Building className="w-4 h-4" />
           {agent.agency}
@@ -206,15 +204,15 @@ function AgentsContent() {
     {
       key: 'license_number',
       label: 'N° de licence',
-      render: (agent) => agent.license_number || (
+      render: (agent: Agent) => agent.license_number || (
         <span className="text-muted-foreground">-</span>
       ),
     },
     {
       key: 'is_active',
       label: 'Statut',
-      render: (agent) => (
-        <Badge variant={agent.is_active ? 'success' : 'secondary'}>
+      render: (agent: Agent) => (
+        <Badge variant={agent.is_active ? 'success' : 'default'}>
           {agent.is_active ? 'Actif' : 'Inactif'}
         </Badge>
       ),
@@ -222,7 +220,7 @@ function AgentsContent() {
     {
       key: 'actions',
       label: 'Actions',
-      render: (agent) => (
+      render: (agent: Agent) => (
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"

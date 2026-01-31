@@ -48,11 +48,14 @@ export function useVoiceRecognition(language: string = 'fr-FR'): UseVoiceRecogni
       let finalTranscript = '';
 
       for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          finalTranscript += transcript + ' ';
-        } else {
-          interimTranscript += transcript;
+        const result = event.results[i];
+        if (result && result[0]) {
+          const transcript = result[0].transcript;
+          if (result.isFinal) {
+            finalTranscript += transcript + ' ';
+          } else {
+            interimTranscript += transcript;
+          }
         }
       }
 

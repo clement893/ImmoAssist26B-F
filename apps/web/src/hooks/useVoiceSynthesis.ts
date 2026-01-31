@@ -51,7 +51,7 @@ export function useVoiceSynthesis(): UseVoiceSynthesisReturn {
       );
       if (frenchVoice) {
         setSelectedVoice(frenchVoice);
-      } else if (availableVoices.length > 0) {
+      } else if (availableVoices.length > 0 && availableVoices[0]) {
         setSelectedVoice(availableVoices[0]);
       }
     };

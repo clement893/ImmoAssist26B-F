@@ -19,6 +19,7 @@ import { useAuth } from '@/hooks/useAuth';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import Sidebar from '@/components/ui/Sidebar';
 import { ThemeToggleWithIcon } from '@/components/ui/ThemeToggle';
+import LeaWidget from '@/components/lea/LeaWidget';
 import {
   LayoutDashboard,
   FolderKanban,

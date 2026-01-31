@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import LeaChat from './LeaChat';
 import Button from '@/components/ui/Button';
-import { MessageCircle, X } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface LeaWidgetProps {

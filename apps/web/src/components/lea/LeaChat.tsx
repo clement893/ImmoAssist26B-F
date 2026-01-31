@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useLea, LeaMessage } from '@/hooks/useLea';
+import { useLea } from '@/hooks/useLea';
 import { useVoiceRecognition } from '@/hooks/useVoiceRecognition';
 import { useVoiceSynthesis } from '@/hooks/useVoiceSynthesis';
 import Button from '@/components/ui/Button';
@@ -18,7 +18,7 @@ interface LeaChatProps {
 }
 
 export default function LeaChat({ onClose, className = '' }: LeaChatProps) {
-  const { messages, isLoading, error, sendMessage, clearChat, resetContext } = useLea();
+  const { messages, isLoading, error, sendMessage, clearChat } = useLea();
   const {
     isListening,
     transcript,
@@ -49,7 +49,7 @@ export default function LeaChat({ onClose, className = '' }: LeaChatProps) {
   useEffect(() => {
     if (autoSpeak && ttsSupported && messages.length > 0) {
       const lastMessage = messages[messages.length - 1];
-      if (lastMessage.role === 'assistant' && lastMessage.content && !isSpeaking) {
+      if (lastMessage && lastMessage.role === 'assistant' && lastMessage.content && !isSpeaking) {
         // Small delay to ensure UI is updated
         setTimeout(() => {
           speak(lastMessage.content, { lang: 'fr-FR', rate: 1.0 });
@@ -213,7 +213,7 @@ export default function LeaChat({ onClose, className = '' }: LeaChatProps) {
         <div className="flex items-center gap-2">
           {voiceSupported && (
             <Button
-              variant={isListening ? 'destructive' : 'outline'}
+              variant={isListening ? 'error' : 'outline'}
               size="sm"
               onClick={toggleListening}
               disabled={isLoading}
