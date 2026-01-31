@@ -23,6 +23,7 @@ import SkipLink from '@/components/ui/SkipLink';
 import { LocaleSync } from '@/components/preferences/LocaleSync';
 import type { Locale } from '@/i18n/routing';
 import { themeCacheInlineScript } from '@/lib/theme/theme-inline-cache-script';
+import LeaWidget from '@/components/lea/LeaWidget';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -271,6 +272,7 @@ export default async function LocaleLayout({
               <AppProviders>
                 <LocaleSync>
                   <App>{children}</App>
+                  <LeaWidget />
                 </LocaleSync>
               </AppProviders>
             </ErrorBoundary>

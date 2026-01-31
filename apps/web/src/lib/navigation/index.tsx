@@ -24,6 +24,7 @@ import {
   Network,
   Building2,
   MessageSquare,
+  UserCheck,
 } from 'lucide-react';
 
 export interface NavigationItem {
@@ -57,6 +58,18 @@ export function getNavigationConfig(isAdmin: boolean): NavigationConfig {
         name: 'Dashboard',
         href: '/dashboard',
         icon: <LayoutDashboard className="w-5 h-5" />,
+      },
+      // Agent (non-grouped)
+      {
+        name: 'Agent',
+        href: '/dashboard/agents',
+        icon: <UserCheck className="w-5 h-5" />,
+      },
+      // Léa AI Assistant (non-grouped)
+      {
+        name: 'Léa',
+        href: '/dashboard/lea',
+        icon: <MessageSquare className="w-5 h-5" />,
       },
       // Gestion (collapsible group)
       {

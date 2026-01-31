@@ -232,6 +232,8 @@ function DashboardLayoutContent({ children }: DashboardLayoutProps) {
           </main>
         </div>
       </div>
+      {/* Léa AI Widget - Available everywhere in dashboard */}
+      <LeaWidget />
     </div>
   );
 }
