@@ -29,7 +29,7 @@ export default function LeaMessageBubble({
         className={clsx(
           'max-w-[80%] rounded-xl px-4 py-3 shadow-sm',
           isUser
-            ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
+            ? 'bg-gradient-to-r from-green-600 to-blue-600 text-white'
             : 'bg-muted text-foreground border border-border'
         )}
       >

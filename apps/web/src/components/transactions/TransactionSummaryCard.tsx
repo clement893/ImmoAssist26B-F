@@ -121,8 +121,8 @@ export default function TransactionSummaryCard({ transaction }: TransactionSumma
 
           {/* Date de clôture */}
           <div className="flex items-start gap-2">
-            <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
-              <Calendar className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+            <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
+              <Calendar className="w-4 h-4 text-green-600 dark:text-green-400" />
             </div>
             <div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Clôture prévue</p>

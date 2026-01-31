@@ -230,7 +230,7 @@ export default function Sidebar({
       {!collapsed && (
         <div className="p-3 border-b border-neutral-700/50 flex-shrink-0">
           <div className="flex items-center gap-2 cursor-pointer hover:bg-gray-800/50 rounded-lg p-1.5 transition-colors">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-blue-500 flex items-center justify-center flex-shrink-0">
               <Sparkles className="w-4 h-4 text-white" />
             </div>
             <div className="flex-1 min-w-0">

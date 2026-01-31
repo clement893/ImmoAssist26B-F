@@ -453,9 +453,9 @@ function ContactsContent() {
         if (!value) return <span className="text-muted-foreground">-</span>;
 
         const circleColors: Record<string, string> = {
-          client: 'bg-purple-500 text-white',
+          client: 'bg-green-500 text-white',
           prospect: 'bg-orange-500 text-white',
-          partenaire: 'bg-green-500 text-white',
+          partenaire: 'bg-green-600 text-white',
           fournisseur: 'bg-blue-500 text-white',
           autre: 'bg-gray-500 text-white',
         };
@@ -544,7 +544,7 @@ function ContactsContent() {
           <Button
             variant="primary"
             onClick={() => setShowCreateModal(true)}
-            className="bg-purple-600 hover:bg-purple-700 text-white"
+            className="bg-green-600 hover:bg-green-700 text-white"
           >
             <Plus className="w-4 h-4 mr-2" />
             Nouveau contact
@@ -552,7 +552,7 @@ function ContactsContent() {
           <Button
             variant="outline"
             onClick={() => setShowImportModal(true)}
-            className="border-purple-300 text-purple-700 hover:bg-purple-50"
+            className="border-green-300 text-green-700 hover:bg-green-50"
           >
             <Upload className="w-4 h-4 mr-2" />
             Importer
@@ -560,7 +560,7 @@ function ContactsContent() {
           <Button
             variant="outline"
             onClick={handleExport}
-            className="border-purple-300 text-purple-700 hover:bg-purple-50"
+            className="border-green-300 text-green-700 hover:bg-green-50"
           >
             <Download className="w-4 h-4 mr-2" />
             Exporter

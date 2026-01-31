@@ -73,9 +73,9 @@ export default function ContactDetailPopup({
   }, [position]);
 
   const circleColors: Record<string, string> = {
-    client: 'bg-purple-500 text-white',
+    client: 'bg-green-500 text-white',
     prospect: 'bg-orange-500 text-white',
-    partenaire: 'bg-green-500 text-white',
+    partenaire: 'bg-green-600 text-white',
     fournisseur: 'bg-blue-500 text-white',
     autre: 'bg-gray-500 text-white',
   };
@@ -107,7 +107,7 @@ export default function ContactDetailPopup({
       }}
     >
       {/* Header with gradient background */}
-      <div className="relative bg-gradient-to-br from-purple-500 via-blue-500 to-pink-500 p-6 pb-8">
+      <div className="relative bg-gradient-to-br from-green-500 via-blue-500 to-green-400 p-6 pb-8">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.3),transparent_50%)]" />
         <div className="relative flex items-start justify-between">
           <div className="flex items-center gap-4">

@@ -26,7 +26,7 @@ export interface SpeechOptions {
 
 /**
  * Clean and prepare text for speech synthesis
- * Removes HTML tags, URLs, special characters, and formats text for natural reading
+ * Removes HTML tags, URLs, special characters, and formats text for natural, human-like reading
  */
 function cleanTextForSpeech(text: string): string {
   if (!text) return '';
@@ -36,39 +36,49 @@ function cleanTextForSpeech(text: string): string {
   // Remove HTML tags
   cleaned = cleaned.replace(/<[^>]*>/g, '');
   
-  // Remove markdown formatting
+  // Remove markdown formatting (keep the text content)
   cleaned = cleaned.replace(/\*\*(.*?)\*\*/g, '$1'); // Bold
   cleaned = cleaned.replace(/\*(.*?)\*/g, '$1'); // Italic
   cleaned = cleaned.replace(/`(.*?)`/g, '$1'); // Code
   cleaned = cleaned.replace(/\[(.*?)\]\(.*?\)/g, '$1'); // Links
   
-  // Remove URLs but keep the text
+  // Remove URLs completely (they sound unnatural when read)
   cleaned = cleaned.replace(/https?:\/\/[^\s]+/g, '');
   cleaned = cleaned.replace(/www\.[^\s]+/g, '');
   
-  // Replace special characters with their spoken equivalents
+  // Replace HTML entities with natural equivalents
   cleaned = cleaned.replace(/&nbsp;/g, ' ');
   cleaned = cleaned.replace(/&amp;/g, ' et ');
-  cleaned = cleaned.replace(/&lt;/g, ' moins que ');
-  cleaned = cleaned.replace(/&gt;/g, ' plus que ');
+  cleaned = cleaned.replace(/&lt;/g, '');
+  cleaned = cleaned.replace(/&gt;/g, '');
   cleaned = cleaned.replace(/&quot;/g, '"');
   cleaned = cleaned.replace(/&#39;/g, "'");
+  cleaned = cleaned.replace(/&apos;/g, "'");
+  
+  // Remove emojis and special Unicode characters that cause issues
+  cleaned = cleaned.replace(/[\u{1F600}-\u{1F64F}]/gu, ''); // Emoticons
+  cleaned = cleaned.replace(/[\u{1F300}-\u{1F5FF}]/gu, ''); // Misc symbols
+  cleaned = cleaned.replace(/[\u{1F680}-\u{1F6FF}]/gu, ''); // Transport
+  cleaned = cleaned.replace(/[\u{2600}-\u{26FF}]/gu, ''); // Misc symbols
+  cleaned = cleaned.replace(/[\u{2700}-\u{27BF}]/gu, ''); // Dingbats
   
   // Remove excessive whitespace
   cleaned = cleaned.replace(/\s+/g, ' ');
   
-  // Remove special characters that cause stuttering
-  cleaned = cleaned.replace(/[^\w\s.,!?;:()\-'"]/g, ' ');
+  // Keep only readable characters (letters, numbers, punctuation, spaces)
+  // Allow French accents and common punctuation
+  cleaned = cleaned.replace(/[^\w\s.,!?;:()\-'""«»àâäéèêëïîôùûüÿçÀÂÄÉÈÊËÏÎÔÙÛÜŸÇ]/g, ' ');
   
   // Clean up multiple spaces
   cleaned = cleaned.replace(/\s+/g, ' ').trim();
   
-  // Add pauses for punctuation
-  cleaned = cleaned.replace(/\./g, '. ');
-  cleaned = cleaned.replace(/!/g, '! ');
-  cleaned = cleaned.replace(/\?/g, '? ');
-  cleaned = cleaned.replace(/;/g, '; ');
-  cleaned = cleaned.replace(/:/g, ': ');
+  // Add natural pauses for punctuation (but don't overdo it)
+  // Only add space after punctuation if not already present
+  cleaned = cleaned.replace(/\.([^\s])/g, '. $1');
+  cleaned = cleaned.replace(/!([^\s])/g, '! $1');
+  cleaned = cleaned.replace(/\?([^\s])/g, '? $1');
+  cleaned = cleaned.replace(/;([^\s])/g, '; $1');
+  cleaned = cleaned.replace(/:([^\s])/g, ': $1');
   
   // Clean up multiple spaces again
   cleaned = cleaned.replace(/\s+/g, ' ').trim();
@@ -97,14 +107,38 @@ export function useVoiceSynthesis(): UseVoiceSynthesisReturn {
       const availableVoices = window.speechSynthesis.getVoices();
       setVoices(availableVoices);
       
-      // Prefer French female voice for a soft, gentle voice
-      // Look for French voices first, prioritizing female voices
+      // Prefer French female voice for a natural, human-like voice
+      // Look for French voices first, prioritizing neural/premium voices
       const frenchVoices = availableVoices.filter(
         (voice) => voice.lang.startsWith('fr') || voice.lang.startsWith('FR')
       );
       
-      // Prefer female voices (names often contain keywords like "female", "woman", or specific names)
-      const preferredFemaleKeywords = ['female', 'woman', 'femme', 'zira', 'hazel', 'catherine', 'thomas', 'helen'];
+      // Prioritize neural/premium voices (usually have "Neural" or "Premium" in name, or specific high-quality voices)
+      const neuralKeywords = ['neural', 'premium', 'enhanced', 'natural'];
+      const preferredFemaleKeywords = ['female', 'woman', 'femme', 'zira', 'hazel', 'catherine', 'thomas', 'helen', 'denise', 'claude'];
+      
+      // First, try to find a neural/premium French female voice
+      const neuralFemaleVoice = frenchVoices.find((voice) =>
+        neuralKeywords.some((keyword) => voice.name.toLowerCase().includes(keyword.toLowerCase())) &&
+        preferredFemaleKeywords.some((keyword) => voice.name.toLowerCase().includes(keyword.toLowerCase()))
+      );
+      
+      if (neuralFemaleVoice) {
+        setSelectedVoice(neuralFemaleVoice);
+        return;
+      }
+      
+      // Then try any neural/premium French voice
+      const neuralVoice = frenchVoices.find((voice) =>
+        neuralKeywords.some((keyword) => voice.name.toLowerCase().includes(keyword.toLowerCase()))
+      );
+      
+      if (neuralVoice) {
+        setSelectedVoice(neuralVoice);
+        return;
+      }
+      
+      // Then try French female voice
       const frenchFemaleVoice = frenchVoices.find((voice) =>
         preferredFemaleKeywords.some((keyword) =>
           voice.name.toLowerCase().includes(keyword.toLowerCase())
@@ -150,10 +184,13 @@ export function useVoiceSynthesis(): UseVoiceSynthesisReturn {
 
       const utterance = new SpeechSynthesisUtterance(cleanedText);
       
-      // Set options with improved defaults for smoother, more natural speech
-      utterance.rate = options.rate ?? 0.9; // Slightly slower for better clarity
-      utterance.pitch = options.pitch ?? 1.1; // Slightly higher for a more pleasant voice
-      utterance.volume = options.volume ?? 0.95; // Slightly softer for comfort
+      // Set options optimized for natural, human-like speech
+      // Rate: Slower for more natural, human-like diction (0.75-0.8 is ideal for human speech)
+      utterance.rate = options.rate ?? 0.78;
+      // Pitch: Closer to natural human pitch (1.0 is neutral, slightly higher for feminine voice)
+      utterance.pitch = options.pitch ?? 1.02;
+      // Volume: Full volume for clarity
+      utterance.volume = options.volume ?? 1.0;
       utterance.lang = options.lang ?? 'fr-FR';
       
       // Set voice if selected

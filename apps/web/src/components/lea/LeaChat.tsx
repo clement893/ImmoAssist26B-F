@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLea } from '@/hooks/useLea';
 import { useVoiceRecognition } from '@/hooks/useVoiceRecognition';
 import { useVoiceSynthesis } from '@/hooks/useVoiceSynthesis';
@@ -30,6 +30,7 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
   const [input, setInput] = useState('');
   const [autoSpeak, setAutoSpeak] = useState(false); // Mute par défaut
   const [initialMessageSent, setInitialMessageSent] = useState(false);
+  const lastSpokenMessageRef = useRef<string | null>(null); // Track last spoken message to prevent repetition
 
   // Send initial message if provided
   useEffect(() => {
@@ -46,23 +47,42 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
     }
   }, [transcript, isListening]);
 
-  // Auto-speak assistant responses with improved voice settings
+  // Auto-speak assistant responses with natural, human-like voice
   useEffect(() => {
     if (autoSpeak && ttsSupported && messages.length > 0) {
       const lastMessage = messages[messages.length - 1];
-      if (lastMessage && lastMessage.role === 'assistant' && lastMessage.content && !isSpeaking) {
+      
+      // Only speak if:
+      // 1. It's an assistant message
+      // 2. It has content
+      // 3. We're not currently speaking
+      // 4. This message hasn't been spoken yet (prevent repetition)
+      if (
+        lastMessage && 
+        lastMessage.role === 'assistant' && 
+        lastMessage.content &&
+        !isSpeaking &&
+        lastMessage.content !== lastSpokenMessageRef.current
+      ) {
+        // Mark this message as spoken
+        lastSpokenMessageRef.current = lastMessage.content;
+        
         // Small delay to ensure UI is updated
         setTimeout(() => {
-          // Improved voice settings: optimized rate for smooth, natural speech
-          // Text cleaning is handled in useVoiceSynthesis hook
+          // Optimized voice settings for natural, human-like speech
           speak(lastMessage.content, { 
             lang: 'fr-FR', 
-            rate: 0.9,       // Smooth rate for natural, fluid speech
-            pitch: 1.1,      // Pleasant pitch for a soft, feminine voice
-            volume: 0.95     // Comfortable volume level
+            rate: 0.78,      // Slower rate for natural, human-like diction
+            pitch: 1.02,     // Natural pitch (close to human voice)
+            volume: 1.0      // Full volume for clarity
           });
         }, 300);
       }
+    }
+    
+    // Reset spoken message tracking when autoSpeak is disabled
+    if (!autoSpeak) {
+      lastSpokenMessageRef.current = null;
     }
   }, [messages, autoSpeak, ttsSupported, isSpeaking, speak]);
 

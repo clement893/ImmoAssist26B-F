@@ -53,8 +53,8 @@ export default function LeaChatInput({
       <div className="max-w-4xl mx-auto px-4 py-4">
         {/* Voice listening indicator */}
         {isListening && (
-          <div className="flex items-center gap-2 text-sm text-purple-500 bg-purple-50 dark:bg-purple-950/20 rounded-lg p-2.5 mb-3">
-            <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse" />
+          <div className="flex items-center gap-2 text-sm text-green-500 bg-green-50 dark:bg-green-950/20 rounded-lg p-2.5 mb-3">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
             <span className="font-medium">Écoute en cours...</span>
           </div>
         )}
@@ -121,7 +121,7 @@ export default function LeaChatInput({
             className={clsx(
               'p-3 rounded-xl transition-all flex-shrink-0',
               value.trim() && !isLoading && !isListening
-                ? 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white shadow-lg'
+                ? 'bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white shadow-lg'
                 : 'bg-muted text-muted-foreground opacity-50 cursor-not-allowed'
             )}
             title="Envoyer"
