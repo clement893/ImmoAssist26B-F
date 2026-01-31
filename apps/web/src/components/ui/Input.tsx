@@ -105,15 +105,19 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             id={inputId}
             className={clsx(
-              'w-full border rounded-lg transition-all duration-200',
+              'w-full border rounded-lg transition-all duration-300 ease-out',
               paddingClasses,
               'bg-[var(--color-input)] text-foreground',
-              'focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent',
-              'disabled:opacity-50 disabled:cursor-not-allowed',
-              'placeholder:text-muted-foreground',
+              'backdrop-blur-sm',
+              'shadow-sm',
+              'focus:outline-none focus:ring-2 focus:ring-primary-500/50 dark:focus:ring-primary-400/50 focus:border-primary-500 dark:focus:border-primary-400',
+              'focus:shadow-md focus:shadow-primary-500/10',
+              'disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-muted/50',
+              'placeholder:text-muted-foreground placeholder:transition-opacity placeholder:duration-200',
+              'hover:border-primary-300 dark:hover:border-primary-600',
               error
-                ? 'border-error-500 dark:border-error-400 focus:ring-error-500 dark:focus:ring-error-400'
-                : 'border-border',
+                ? 'border-error-500 dark:border-error-400 focus:ring-error-500/50 dark:focus:ring-error-400/50 focus:shadow-error-500/10'
+                : 'border-border/60',
               leftIcon && 'pl-10',
               rightIcon && 'pr-10',
               className

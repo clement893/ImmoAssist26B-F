@@ -239,7 +239,7 @@ export default function Card({
 
       {cardFooter && (
         <div
-          className={clsx('border-t border-[var(--color-border)] bg-[var(--color-muted)]', !useThemePadding && 'px-lg py-md')}
+          className={clsx('border-t border-[var(--color-border)]/50 bg-[var(--color-muted)]/50 backdrop-blur-sm', !useThemePadding && 'px-lg py-md')}
           style={
             useThemePadding
               ? {

@@ -40,25 +40,25 @@ export interface AlertProps extends BaseComponentProps, ClosableProps, IconProps
 
 const variantClasses = {
   info: {
-    container: 'bg-primary-100 dark:bg-primary-900 border-primary-200 dark:border-primary-800',
+    container: 'bg-primary-50/80 dark:bg-primary-900/50 border-primary-200/60 dark:border-primary-800/60 backdrop-blur-sm shadow-sm',
     text: 'text-primary-900 dark:text-primary-100',
     title: 'text-primary-900 dark:text-primary-50 font-semibold',
     icon: 'text-primary-600 dark:text-primary-400',
   },
   success: {
-    container: 'bg-secondary-100 dark:bg-secondary-900 border-secondary-200 dark:border-secondary-800',
+    container: 'bg-secondary-50/80 dark:bg-secondary-900/50 border-secondary-200/60 dark:border-secondary-800/60 backdrop-blur-sm shadow-sm',
     text: 'text-secondary-900 dark:text-secondary-100',
     title: 'text-secondary-900 dark:text-secondary-50 font-semibold',
     icon: 'text-secondary-600 dark:text-secondary-400',
   },
   warning: {
-    container: 'bg-warning-100 dark:bg-warning-900 border-warning-200 dark:border-warning-800',
+    container: 'bg-warning-50/80 dark:bg-warning-900/50 border-warning-200/60 dark:border-warning-800/60 backdrop-blur-sm shadow-sm',
     text: 'text-warning-900 dark:text-warning-100',
     title: 'text-warning-900 dark:text-warning-50 font-semibold',
     icon: 'text-warning-600 dark:text-warning-400',
   },
   error: {
-    container: 'bg-error-100 dark:bg-error-900 border-error-200 dark:border-error-800',
+    container: 'bg-error-50/80 dark:bg-error-900/50 border-error-200/60 dark:border-error-800/60 backdrop-blur-sm shadow-sm',
     text: 'text-error-900 dark:text-error-100',
     title: 'text-error-900 dark:text-error-50 font-semibold',
     icon: 'text-error-600 dark:text-error-400',
@@ -114,12 +114,12 @@ function Alert({ variant = 'info', title, children, onClose, className, icon }: 
   const variantStyles = variantConfig ? applyVariantConfigAsStyles(variantConfig) : {};
 
   return (
-    <div className={clsx('rounded-lg border p-lg', classes.container, className)} style={variantStyles}>
+    <div className={clsx('rounded-xl border p-lg transition-all duration-300', classes.container, className)} style={variantStyles}>
       <div className="flex">
         <div className="flex-shrink-0">{displayIcon}</div>
         <div className="ml-4 flex-1">
-          {title && <h3 className={clsx('text-sm font-medium mb-2', classes.title)}>{title}</h3>}
-          <Text variant="small" className={classes.text}>
+          {title && <h3 className={clsx('text-sm font-semibold mb-2 tracking-tight', classes.title)}>{title}</h3>}
+          <Text variant="small" className={clsx(classes.text, 'leading-relaxed')}>
             {children}
           </Text>
         </div>
@@ -127,7 +127,7 @@ function Alert({ variant = 'info', title, children, onClose, className, icon }: 
           <div className="ml-auto pl-4">
             <button
               onClick={onClose}
-              className={clsx('inline-flex rounded-md p-1.5 hover:bg-opacity-20 transition-colors', classes.text)}
+              className={clsx('inline-flex rounded-lg p-1.5 hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200', classes.text)}
               aria-label="Close alert"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">

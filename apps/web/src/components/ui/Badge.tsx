@@ -33,6 +33,8 @@ function Badge({ children, variant = 'default', className }: BadgeProps) {
     <span
       className={clsx(
         'inline-flex items-center px-3.5 py-1.5 rounded-full text-sm font-medium',
+        'shadow-sm backdrop-blur-sm',
+        'transition-all duration-200',
         variantClasses,
         className
       )}
