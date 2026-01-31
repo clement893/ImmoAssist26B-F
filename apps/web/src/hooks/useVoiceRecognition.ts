@@ -68,22 +68,27 @@ export function useVoiceRecognition(language: string = 'fr-FR'): UseVoiceRecogni
       
       switch (event.error) {
         case 'no-speech':
-          errorMessage = 'Aucune parole détectée';
-          break;
+          // Don't show error for no-speech, just stop listening
+          setIsListening(false);
+          return;
         case 'aborted':
           // User stopped, not an error
+          setIsListening(false);
           return;
         case 'audio-capture':
-          errorMessage = 'Microphone non accessible';
+          errorMessage = 'Microphone non accessible. Vérifiez que le microphone est connecté et que les permissions sont accordées.';
           break;
         case 'network':
-          errorMessage = 'Erreur réseau';
+          errorMessage = 'Erreur réseau lors de la reconnaissance vocale';
           break;
         case 'not-allowed':
-          errorMessage = 'Permission microphone refusée';
+          errorMessage = 'Permission microphone refusée. Veuillez autoriser l\'accès au microphone dans les paramètres de votre navigateur.';
+          break;
+        case 'service-not-allowed':
+          errorMessage = 'Service de reconnaissance vocale non autorisé';
           break;
         default:
-          errorMessage = `Erreur: ${event.error}`;
+          errorMessage = `Erreur de reconnaissance vocale: ${event.error}`;
       }
       
       setError(errorMessage);
@@ -110,10 +115,31 @@ export function useVoiceRecognition(language: string = 'fr-FR'): UseVoiceRecogni
     }
 
     try {
-      // Always try to request permission - getUserMedia will trigger the browser prompt
-      // This is the only reliable way to request permission
+      // First, check if permission is already granted using Permissions API (if available)
+      if (navigator.permissions && navigator.permissions.query) {
+        try {
+          const permissionStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+          if (permissionStatus.state === 'granted') {
+            // Permission already granted, verify with getUserMedia
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            stream.getTracks().forEach(track => track.stop());
+            setError(null);
+            return true;
+          }
+        } catch (permErr) {
+          // Permissions API not fully supported, fall through to getUserMedia
+          console.log('Permissions API not available, using getUserMedia directly');
+        }
+      }
+
+      // Request permission via getUserMedia - this will trigger browser prompt if needed
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // Stop the stream immediately - we just needed permission
+      
+      // Keep stream active briefly to ensure permission is fully registered
+      // This helps with browsers that need the stream to be active when recognition starts
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Stop the stream - permission is now granted
       stream.getTracks().forEach(track => track.stop());
       setError(null);
       return true;
@@ -160,9 +186,23 @@ export function useVoiceRecognition(language: string = 'fr-FR'): UseVoiceRecogni
       return;
     }
 
+    // Small delay to ensure permission is fully registered
+    await new Promise(resolve => setTimeout(resolve, 150));
+
     try {
       setTranscript('');
       setError(null);
+      
+      // Ensure recognition is stopped before starting
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {
+        // Ignore errors if already stopped
+      }
+      
+      // Small delay before starting
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       recognitionRef.current.start();
     } catch (err: any) {
       console.error('Error starting recognition:', err);
@@ -171,24 +211,29 @@ export function useVoiceRecognition(language: string = 'fr-FR'): UseVoiceRecogni
         // Recognition is already running, try to stop and restart
         try {
           recognitionRef.current.stop();
-          setTimeout(() => {
+          setTimeout(async () => {
             try {
               setTranscript('');
               setError(null);
-              recognitionRef.current?.start();
+              // Request permission again before retry
+              const hasPerm = await requestPermission();
+              if (hasPerm) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                recognitionRef.current?.start();
+              }
             } catch (retryErr) {
               console.error('Error restarting recognition:', retryErr);
               setError('Impossible de démarrer la reconnaissance vocale');
             }
-          }, 200);
+          }, 300);
         } catch (stopErr) {
           console.error('Error stopping recognition:', stopErr);
           setError('Erreur lors du démarrage du microphone');
         }
-      } else if (err?.error === 'not-allowed') {
+      } else if (err?.error === 'not-allowed' || err?.name === 'NotAllowedError') {
         setError('Permission microphone refusée. Veuillez autoriser l\'accès au microphone.');
       } else {
-        setError('Impossible de démarrer la reconnaissance vocale. Vérifiez les permissions du microphone.');
+        setError(`Impossible de démarrer la reconnaissance vocale: ${err?.message || err?.error || 'Erreur inconnue'}. Vérifiez les permissions du microphone.`);
       }
     }
   }, [supported, isListening, requestPermission]);
