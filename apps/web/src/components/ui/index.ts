@@ -59,6 +59,9 @@ export { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '.
 export { default as Pagination } from './Pagination';
 export { default as EmptyState } from './EmptyState';
 export { default as StatsCard } from './StatsCard';
+export type { StatsCardProps, TrendDirection } from './StatsCard';
+export { default as ProgressRing } from './ProgressRing';
+export type { ProgressRingProps, ProgressRingSize, ProgressRingVariant } from './ProgressRing';
 export { default as Timeline } from './Timeline';
 export type { TimelineItem } from './Timeline';
 export { default as List } from './List';
