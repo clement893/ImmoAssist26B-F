@@ -127,22 +127,35 @@ export default function Sidebar({
           {!collapsed && (
             <div className="flex items-center space-x-2 flex-shrink-0">
               {item.badge && (
-                <span className="px-2 py-0.5 text-xs font-medium bg-primary-100 dark:bg-primary-900/40 text-primary-800 dark:text-primary-200 rounded-full">
+                <span className={clsx(
+                  "px-2 py-0.5 text-xs font-medium rounded-full",
+                  isActive 
+                    ? "bg-blue-500 text-white" 
+                    : "bg-slate-700 text-slate-300"
+                )}>
                   {item.badge}
                 </span>
               )}
               {hasChildren &&
                 (isExpanded ? (
-                  <ChevronDown className="w-4 h-4 transition-transform text-muted-foreground" />
+                  <ChevronDown className={clsx(
+                    "w-4 h-4 transition-transform",
+                    isActive ? "text-white" : "text-slate-400"
+                  )} />
                 ) : (
-                  <ChevronRight className="w-4 h-4 transition-transform text-muted-foreground" />
+                  <ChevronRight className={clsx(
+                    "w-4 h-4 transition-transform",
+                    isActive ? "text-white" : "text-slate-400"
+                  )} />
                 ))}
             </div>
           )}
         </div>
 
         {hasChildren && isExpanded && !collapsed && (
-          <div className="mt-1 space-y-1">{item.children!.map((child) => renderItem(child, level + 1))}</div>
+          <div className="mt-1 space-y-1 ml-2 border-l-2 border-slate-700 pl-2">
+            {item.children!.map((child) => renderItem(child, level + 1))}
+          </div>
         )}
       </div>
     );
@@ -165,25 +178,25 @@ export default function Sidebar({
   return (
     <aside
       className={clsx(
-        'bg-background border-r border-border h-full transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col',
+        'bg-slate-800 dark:bg-slate-900 border-r border-slate-700 h-full transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col',
         collapsed ? 'w-16' : 'w-64 md:w-72 lg:w-80',
         className
       )}
     >
       {/* Header: User info + Notifications (top left) */}
       {user && (
-        <div className="p-lg border-b border-border flex-shrink-0">
+        <div className="p-lg border-b border-slate-700 flex-shrink-0">
           <div className={clsx('flex items-center gap-3', collapsed && 'justify-center')}>
-            <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center flex-shrink-0 min-w-[44px] min-h-[44px]">
-              <span className="text-sm font-medium text-primary-700 dark:text-primary-300">
+            <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 min-w-[44px] min-h-[44px]">
+              <span className="text-sm font-medium text-white">
                 {user.name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
               </span>
             </div>
             {!collapsed && (
               <div className="flex-1 min-w-0 flex items-center gap-2">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{user.name || 'Utilisateur'}</p>
-                  <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                  <p className="text-sm font-medium text-slate-100 truncate">{user.name || 'Utilisateur'}</p>
+                  <p className="text-xs text-slate-400 truncate">{user.email}</p>
                 </div>
                 {notificationsComponent && <div className="flex-shrink-0">{notificationsComponent}</div>}
               </div>
@@ -195,21 +208,21 @@ export default function Sidebar({
 
       {/* Search Bar (UX/UI improvements - Batch 8) */}
       {showSearch && !collapsed && (
-        <div className="px-lg py-md border-b border-border flex-shrink-0">
+        <div className="px-lg py-md border-b border-slate-700 flex-shrink-0">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
             <Input
               type="text"
               placeholder="Rechercher..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-10 h-10 text-sm"
+              className="pl-10 pr-10 h-10 text-sm bg-slate-700 border-slate-600 text-slate-100 placeholder:text-slate-400 focus:border-blue-500"
               aria-label="Rechercher dans la navigation"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-100 min-h-[44px] min-w-[44px] flex items-center justify-center"
                 aria-label="Effacer la recherche"
               >
                 <X className="w-4 h-4" />
@@ -229,12 +242,12 @@ export default function Sidebar({
 
       {/* Footer: Collapse, Close button (mobile), Home, Theme Toggle, Logout (bottom) */}
       {(onToggleCollapse || onClose || onHomeClick || themeToggleComponent || onLogoutClick) && (
-        <div className="p-lg border-t border-border flex-shrink-0">
+        <div className="p-lg border-t border-slate-700 flex-shrink-0">
           <div className={clsx('flex items-center gap-2', collapsed || isMobile ? 'justify-center flex-wrap' : 'justify-start')}>
             {onToggleCollapse && (
               <button
                 onClick={onToggleCollapse}
-                className="p-2 rounded-lg hover:bg-muted dark:hover:bg-muted text-foreground transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="p-2 rounded-lg hover:bg-slate-700 text-slate-300 hover:text-slate-100 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] min-h-[44px] min-w-[44px] flex items-center justify-center"
                 aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                 title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               >
@@ -249,7 +262,7 @@ export default function Sidebar({
             {onClose && (
               <button
                 onClick={onClose}
-                className="p-2 rounded-lg hover:bg-muted dark:hover:bg-muted text-foreground transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="p-2 rounded-lg hover:bg-slate-700 text-slate-300 hover:text-slate-100 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] min-h-[44px] min-w-[44px] flex items-center justify-center"
                 aria-label="Fermer le menu"
                 title="Fermer le menu"
               >
@@ -259,7 +272,7 @@ export default function Sidebar({
             {onHomeClick && (
               <button
                 onClick={onHomeClick}
-                className="p-2 rounded-lg hover:bg-muted dark:hover:bg-muted text-foreground transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="p-2 rounded-lg hover:bg-slate-700 text-slate-300 hover:text-slate-100 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] min-h-[44px] min-w-[44px] flex items-center justify-center"
                 aria-label="Retour à l'accueil"
                 title="Retour à l'accueil"
               >
@@ -272,7 +285,7 @@ export default function Sidebar({
             {onLogoutClick && (
               <button
                 onClick={onLogoutClick}
-                className="p-2 rounded-lg hover:bg-error-100 dark:hover:bg-error-900/40 text-error-600 dark:text-error-400 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="p-2 rounded-lg hover:bg-red-600/20 text-red-400 hover:text-red-300 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] min-h-[44px] min-w-[44px] flex items-center justify-center"
                 aria-label="Déconnexion"
                 title="Déconnexion"
               >

@@ -10,6 +10,9 @@ import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { transactionsAPI } from '@/lib/api';
 import InlineEditableField from '@/components/transactions/InlineEditableField';
+import TransactionSummaryCard from '@/components/transactions/TransactionSummaryCard';
+import Breadcrumb from '@/components/ui/Breadcrumb';
+import Tabs, { TabList, Tab, TabPanels, TabPanel } from '@/components/ui/Tabs';
 import { 
   ArrowLeft, 
   Calendar, 
@@ -21,6 +24,9 @@ import {
   Upload,
   Trash2,
   Eye,
+  Receipt,
+  Shield,
+  History,
 } from 'lucide-react';
 
 interface Transaction {
@@ -220,405 +226,540 @@ export default function TransactionDetailPage() {
   return (
     <Container>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.push('/dashboard/transactions')}
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Retour
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold">{transaction.name}</h1>
-              {transaction.dossier_number && (
-                <p className="text-sm text-muted-foreground mt-1">
-                  Dossier: {transaction.dossier_number}
-                </p>
+        {/* Breadcrumbs */}
+        <Breadcrumb
+          items={[
+            { label: 'Transactions', href: '/dashboard/transactions', icon: <FileText className="w-4 h-4" /> },
+            { label: transaction.name },
+          ]}
+          showHome={true}
+          homeHref="/dashboard"
+        />
+
+        {/* Summary Card */}
+        <TransactionSummaryCard transaction={transaction} />
+
+        {/* Tabs */}
+        <Tabs defaultTab="information">
+          <TabList className="border-b border-slate-200 dark:border-slate-700">
+            <Tab value="information">
+              <FileText className="w-4 h-4 mr-2" />
+              Information
+            </Tab>
+            <Tab value="documents">
+              <FileText className="w-4 h-4 mr-2" />
+              Documents
+              {transaction.documents && transaction.documents.length > 0 && (
+                <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full">
+                  {transaction.documents.length}
+                </span>
               )}
-            </div>
-          </div>
-          <Badge variant={getStatusColor(transaction.status) as any}>
-            {transaction.status}
-          </Badge>
-        </div>
+            </Tab>
+            <Tab value="transactions">
+              <Receipt className="w-4 h-4 mr-2" />
+              Transactions
+            </Tab>
+            <Tab value="deposits">
+              <Shield className="w-4 h-4 mr-2" />
+              Dépôts de sécurité
+            </Tab>
+            <Tab value="balance">
+              <DollarSign className="w-4 h-4 mr-2" />
+              Solde
+            </Tab>
+            <Tab value="history">
+              <History className="w-4 h-4 mr-2" />
+              Historique
+            </Tab>
+          </TabList>
 
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Main Info */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Identification */}
-            <Card>
-              <div className="p-6 space-y-6">
-                <h2 className="text-lg font-semibold flex items-center gap-2">
-                  <FileText className="w-5 h-5" />
-                  Identification
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <InlineEditableField
-                    label="Nom de la transaction"
-                    value={transaction.name}
-                    onSave={(value) => handleFieldUpdate('name', value as string)}
-                  />
-                  <InlineEditableField
-                    label="Numéro de dossier"
-                    value={transaction.dossier_number}
-                    onSave={(value) => handleFieldUpdate('dossier_number', value as string)}
-                    placeholder="Optionnel"
-                  />
-                  <InlineEditableField
-                    label="Statut"
-                    value={transaction.status}
-                    type="select"
-                    options={STATUS_OPTIONS}
-                    onSave={(value) => handleFieldUpdate('status', value as string)}
-                  />
-                  <InlineEditableField
-                    label="Date de création"
-                    value={formatDate(transaction.created_at)}
-                    formatValue={() => formatDate(transaction.created_at)}
-                    onSave={async () => {}}
-                    className="opacity-60"
-                  />
-                </div>
-              </div>
-            </Card>
-
-            {/* Property Info */}
-            <Card>
-              <div className="p-6 space-y-6">
-                <h2 className="text-lg font-semibold flex items-center gap-2">
-                  <Home className="w-5 h-5" />
-                  Propriété
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <InlineEditableField
-                    label="Adresse"
-                    value={transaction.property_address}
-                    onSave={(value) => handleFieldUpdate('property_address', value as string)}
-                    placeholder="123 Rue Principale"
-                  />
-                  <InlineEditableField
-                    label="Ville"
-                    value={transaction.property_city}
-                    onSave={(value) => handleFieldUpdate('property_city', value as string)}
-                  />
-                  <InlineEditableField
-                    label="Code postal"
-                    value={transaction.property_postal_code}
-                    onSave={(value) => handleFieldUpdate('property_postal_code', value as string)}
-                  />
-                  <InlineEditableField
-                    label="Province"
-                    value={transaction.property_province}
-                    onSave={(value) => handleFieldUpdate('property_province', value as string)}
-                  />
-                  <InlineEditableField
-                    label="Type de propriété"
-                    value={transaction.property_type}
-                    type="select"
-                    options={PROPERTY_TYPE_OPTIONS}
-                    onSave={(value) => handleFieldUpdate('property_type', value as string)}
-                  />
-                  <InlineEditableField
-                    label="Année de construction"
-                    value={transaction.construction_year}
-                    type="number"
-                    onSave={(value) => handleFieldUpdate('construction_year', value as number)}
-                  />
-                  <InlineEditableField
-                    label="Superficie du terrain (pi²)"
-                    value={transaction.land_area_sqft}
-                    type="number"
-                    onSave={(value) => handleFieldUpdate('land_area_sqft', value as number)}
-                  />
-                  <InlineEditableField
-                    label="Superficie habitable (pi²)"
-                    value={transaction.living_area_sqft}
-                    type="number"
-                    onSave={(value) => handleFieldUpdate('living_area_sqft', value as number)}
-                  />
-                  <InlineEditableField
-                    label="Nombre de chambres"
-                    value={transaction.bedrooms}
-                    type="number"
-                    onSave={(value) => handleFieldUpdate('bedrooms', value as number)}
-                  />
-                  <InlineEditableField
-                    label="Nombre de salles de bain"
-                    value={transaction.bathrooms}
-                    type="number"
-                    onSave={(value) => handleFieldUpdate('bathrooms', value as number)}
-                  />
-                </div>
-              </div>
-            </Card>
-
-            {/* Financial Info */}
-            <Card>
-              <div className="p-6 space-y-6">
-                <h2 className="text-lg font-semibold flex items-center gap-2">
-                  <DollarSign className="w-5 h-5" />
-                  Informations financières
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <InlineEditableField
-                    label="Prix demandé"
-                    value={transaction.listing_price}
-                    type="number"
-                    formatValue={(val) => formatCurrency(val as number)}
-                    onSave={(value) => handleFieldUpdate('listing_price', value as number)}
-                  />
-                  <InlineEditableField
-                    label="Prix offert"
-                    value={transaction.offered_price}
-                    type="number"
-                    formatValue={(val) => formatCurrency(val as number)}
-                    onSave={(value) => handleFieldUpdate('offered_price', value as number)}
-                  />
-                  <InlineEditableField
-                    label="Prix de vente final"
-                    value={transaction.final_sale_price}
-                    type="number"
-                    formatValue={(val) => formatCurrency(val as number)}
-                    onSave={(value) => handleFieldUpdate('final_sale_price', value as number)}
-                  />
-                  <InlineEditableField
-                    label="Montant du dépôt"
-                    value={transaction.deposit_amount}
-                    type="number"
-                    formatValue={(val) => formatCurrency(val as number)}
-                    onSave={(value) => handleFieldUpdate('deposit_amount', value as number)}
-                  />
-                </div>
-              </div>
-            </Card>
-
-            {/* Dates */}
-            <Card>
-              <div className="p-6 space-y-6">
-                <h2 className="text-lg font-semibold flex items-center gap-2">
-                  <Calendar className="w-5 h-5" />
-                  Dates importantes
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <InlineEditableField
-                    label="Date de promesse d'achat"
-                    value={transaction.promise_to_purchase_date}
-                    type="date"
-                    formatValue={(val) => formatDate(val as string)}
-                    onSave={(value) => handleFieldUpdate('promise_to_purchase_date', value as string)}
-                  />
-                  <InlineEditableField
-                    label="Date d'acceptation"
-                    value={transaction.promise_acceptance_date}
-                    type="date"
-                    formatValue={(val) => formatDate(val as string)}
-                    onSave={(value) => handleFieldUpdate('promise_acceptance_date', value as string)}
-                  />
-                  <InlineEditableField
-                    label="Date de clôture prévue"
-                    value={transaction.expected_closing_date}
-                    type="date"
-                    formatValue={(val) => formatDate(val as string)}
-                    onSave={(value) => handleFieldUpdate('expected_closing_date', value as string)}
-                  />
-                  <InlineEditableField
-                    label="Date de clôture réelle"
-                    value={transaction.actual_closing_date}
-                    type="date"
-                    formatValue={(val) => formatDate(val as string)}
-                    onSave={(value) => handleFieldUpdate('actual_closing_date', value as string)}
-                  />
-                  <InlineEditableField
-                    label="Date de prise de possession"
-                    value={transaction.possession_date}
-                    type="date"
-                    formatValue={(val) => formatDate(val as string)}
-                    onSave={(value) => handleFieldUpdate('possession_date', value as string)}
-                  />
-                </div>
-              </div>
-            </Card>
-
-            {/* Notes */}
-            {transaction.notes && (
-              <Card>
-                <div className="p-6 space-y-6">
-                  <h2 className="text-lg font-semibold flex items-center gap-2">
-                    <FileText className="w-5 h-5" />
-                    Notes
-                  </h2>
-                  <InlineEditableField
-                    label="Notes"
-                    value={transaction.notes}
-                    type="textarea"
-                    onSave={(value) => handleFieldUpdate('notes', value as string)}
-                  />
-                </div>
-              </Card>
-            )}
-
-            {/* Documents */}
-            <Card>
-              <div className="p-6 space-y-6">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold flex items-center gap-2">
-                    <FileText className="w-5 h-5" />
-                    Documents
-                  </h2>
-                  <label className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg cursor-pointer hover:bg-muted transition-colors text-sm">
-                    <Upload className="w-4 h-4" />
-                    Ajouter un document
-                    <input
-                      type="file"
-                      className="hidden"
-                      onChange={async (e) => {
-                        const selectedFile = e.target.files?.[0];
-                        if (selectedFile) {
-                          try {
-                            setSaving({ ...saving, documents: true });
-                            const response = await transactionsAPI.addDocument(
-                              parseInt(transactionId),
-                              selectedFile
-                            );
-                            setTransaction(response.data);
-                          } catch (err) {
-                            setError(err instanceof Error ? err.message : 'Erreur lors de l\'ajout du document');
-                          } finally {
-                            setSaving({ ...saving, documents: false });
-                            e.target.value = '';
-                          }
-                        }
-                      }}
-                      disabled={saving.documents}
-                    />
-                  </label>
-                </div>
-                
-                {transaction.documents && transaction.documents.length > 0 ? (
-                  <div className="space-y-3">
-                    {transaction.documents.map((doc) => (
-                      <div
-                        key={doc.id}
-                        className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <FileText className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate">{doc.filename}</p>
-                            {doc.description && (
-                              <p className="text-sm text-muted-foreground truncate">{doc.description}</p>
-                            )}
-                            {doc.size && (
-                              <p className="text-xs text-muted-foreground">
-                                {(doc.size / 1024).toFixed(2)} KB
-                                {doc.uploaded_at && ` • ${formatDate(doc.uploaded_at)}`}
-                              </p>
-                            )}
-                          </div>
+          <TabPanels>
+            {/* Information Tab */}
+            <TabPanel value="information">
+              <div className="mt-6 space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Left Column - Main Info */}
+                  <div className="lg:col-span-2 space-y-6">
+                    {/* Identification */}
+                    <Card>
+                      <div className="p-6 space-y-6">
+                        <h2 className="text-lg font-semibold flex items-center gap-2">
+                          <FileText className="w-5 h-5" />
+                          Identification
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <InlineEditableField
+                            label="Nom de la transaction"
+                            value={transaction.name}
+                            onSave={(value) => handleFieldUpdate('name', value as string)}
+                          />
+                          <InlineEditableField
+                            label="Numéro de dossier"
+                            value={transaction.dossier_number}
+                            onSave={(value) => handleFieldUpdate('dossier_number', value as string)}
+                            placeholder="Optionnel"
+                          />
+                          <InlineEditableField
+                            label="Statut"
+                            value={transaction.status}
+                            type="select"
+                            options={STATUS_OPTIONS}
+                            onSave={(value) => handleFieldUpdate('status', value as string)}
+                          />
+                          <InlineEditableField
+                            label="Date de création"
+                            value={formatDate(transaction.created_at)}
+                            formatValue={() => formatDate(transaction.created_at)}
+                            onSave={async () => {}}
+                            disabled={true}
+                          />
                         </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          {doc.url && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => window.open(doc.url, '_blank')}
-                              title="Voir le document"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                          )}
+                      </div>
+                    </Card>
+
+                    {/* Property Info */}
+                    <Card>
+                      <div className="p-6 space-y-6">
+                        <h2 className="text-lg font-semibold flex items-center gap-2">
+                          <Home className="w-5 h-5" />
+                          Propriété
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <InlineEditableField
+                            label="Adresse"
+                            value={transaction.property_address}
+                            onSave={(value) => handleFieldUpdate('property_address', value as string)}
+                            placeholder="123 Rue Principale"
+                          />
+                          <InlineEditableField
+                            label="Ville"
+                            value={transaction.property_city}
+                            onSave={(value) => handleFieldUpdate('property_city', value as string)}
+                          />
+                          <InlineEditableField
+                            label="Code postal"
+                            value={transaction.property_postal_code}
+                            onSave={(value) => handleFieldUpdate('property_postal_code', value as string)}
+                          />
+                          <InlineEditableField
+                            label="Province"
+                            value={transaction.property_province}
+                            onSave={(value) => handleFieldUpdate('property_province', value as string)}
+                          />
+                          <InlineEditableField
+                            label="Type de propriété"
+                            value={transaction.property_type}
+                            type="select"
+                            options={PROPERTY_TYPE_OPTIONS}
+                            onSave={(value) => handleFieldUpdate('property_type', value as string)}
+                          />
+                          <InlineEditableField
+                            label="Année de construction"
+                            value={transaction.construction_year}
+                            type="number"
+                            onSave={(value) => handleFieldUpdate('construction_year', value as number)}
+                          />
+                          <InlineEditableField
+                            label="Superficie du terrain (pi²)"
+                            value={transaction.land_area_sqft}
+                            type="number"
+                            onSave={(value) => handleFieldUpdate('land_area_sqft', value as number)}
+                          />
+                          <InlineEditableField
+                            label="Superficie habitable (pi²)"
+                            value={transaction.living_area_sqft}
+                            type="number"
+                            onSave={(value) => handleFieldUpdate('living_area_sqft', value as number)}
+                          />
+                          <InlineEditableField
+                            label="Nombre de chambres"
+                            value={transaction.bedrooms}
+                            type="number"
+                            onSave={(value) => handleFieldUpdate('bedrooms', value as number)}
+                          />
+                          <InlineEditableField
+                            label="Nombre de salles de bain"
+                            value={transaction.bathrooms}
+                            type="number"
+                            onSave={(value) => handleFieldUpdate('bathrooms', value as number)}
+                          />
+                        </div>
+                      </div>
+                    </Card>
+
+                    {/* Financial Info */}
+                    <Card>
+                      <div className="p-6 space-y-6">
+                        <h2 className="text-lg font-semibold flex items-center gap-2">
+                          <DollarSign className="w-5 h-5" />
+                          Informations financières
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <InlineEditableField
+                            label="Prix demandé"
+                            value={transaction.listing_price}
+                            type="number"
+                            formatValue={(val) => formatCurrency(val as number)}
+                            onSave={(value) => handleFieldUpdate('listing_price', value as number)}
+                          />
+                          <InlineEditableField
+                            label="Prix offert"
+                            value={transaction.offered_price}
+                            type="number"
+                            formatValue={(val) => formatCurrency(val as number)}
+                            onSave={(value) => handleFieldUpdate('offered_price', value as number)}
+                          />
+                          <InlineEditableField
+                            label="Prix de vente final"
+                            value={transaction.final_sale_price}
+                            type="number"
+                            formatValue={(val) => formatCurrency(val as number)}
+                            onSave={(value) => handleFieldUpdate('final_sale_price', value as number)}
+                          />
+                          <InlineEditableField
+                            label="Montant du dépôt"
+                            value={transaction.deposit_amount}
+                            type="number"
+                            formatValue={(val) => formatCurrency(val as number)}
+                            onSave={(value) => handleFieldUpdate('deposit_amount', value as number)}
+                          />
+                        </div>
+                      </div>
+                    </Card>
+
+                    {/* Dates */}
+                    <Card>
+                      <div className="p-6 space-y-6">
+                        <h2 className="text-lg font-semibold flex items-center gap-2">
+                          <Calendar className="w-5 h-5" />
+                          Dates importantes
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <InlineEditableField
+                            label="Date de promesse d'achat"
+                            value={transaction.promise_to_purchase_date}
+                            type="date"
+                            formatValue={(val) => formatDate(val as string)}
+                            onSave={(value) => handleFieldUpdate('promise_to_purchase_date', value as string)}
+                          />
+                          <InlineEditableField
+                            label="Date d'acceptation"
+                            value={transaction.promise_acceptance_date}
+                            type="date"
+                            formatValue={(val) => formatDate(val as string)}
+                            onSave={(value) => handleFieldUpdate('promise_acceptance_date', value as string)}
+                          />
+                          <InlineEditableField
+                            label="Date de clôture prévue"
+                            value={transaction.expected_closing_date}
+                            type="date"
+                            formatValue={(val) => formatDate(val as string)}
+                            onSave={(value) => handleFieldUpdate('expected_closing_date', value as string)}
+                          />
+                          <InlineEditableField
+                            label="Date de clôture réelle"
+                            value={transaction.actual_closing_date}
+                            type="date"
+                            formatValue={(val) => formatDate(val as string)}
+                            onSave={(value) => handleFieldUpdate('actual_closing_date', value as string)}
+                          />
+                          <InlineEditableField
+                            label="Date de prise de possession"
+                            value={transaction.possession_date}
+                            type="date"
+                            formatValue={(val) => formatDate(val as string)}
+                            onSave={(value) => handleFieldUpdate('possession_date', value as string)}
+                          />
+                        </div>
+                      </div>
+                    </Card>
+
+                    {/* Notes */}
+                    <Card>
+                      <div className="p-6 space-y-6">
+                        <h2 className="text-lg font-semibold flex items-center gap-2">
+                          <FileText className="w-5 h-5" />
+                          Notes
+                        </h2>
+                        <InlineEditableField
+                          label="Notes"
+                          value={transaction.notes || ''}
+                          type="textarea"
+                          onSave={(value) => handleFieldUpdate('notes', value as string)}
+                        />
+                      </div>
+                    </Card>
+                  </div>
+
+                  {/* Right Column - Sidebar */}
+                  <div className="space-y-6">
+                    {/* Parties */}
+                    <Card>
+                      <div className="p-6 space-y-4">
+                        <h2 className="text-lg font-semibold flex items-center gap-2">
+                          <Users className="w-5 h-5" />
+                          Parties impliquées
+                        </h2>
+                        {transaction.sellers && transaction.sellers.length > 0 && (
+                          <div>
+                            <h3 className="text-sm font-medium text-muted-foreground mb-2">Vendeurs</h3>
+                            <div className="space-y-1">
+                              {transaction.sellers.map((seller, idx) => (
+                                <p key={idx} className="text-sm">{seller.name}</p>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {transaction.buyers && transaction.buyers.length > 0 && (
+                          <div>
+                            <h3 className="text-sm font-medium text-muted-foreground mb-2">Acheteurs</h3>
+                            <div className="space-y-1">
+                              {transaction.buyers.map((buyer, idx) => (
+                                <p key={idx} className="text-sm">{buyer.name}</p>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </Card>
+
+                    {/* Quick Actions */}
+                    <Card>
+                      <div className="p-6 space-y-4">
+                        <h2 className="text-lg font-semibold">Actions rapides</h2>
+                        <div className="space-y-2">
                           <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={async () => {
-                              if (confirm('Êtes-vous sûr de vouloir supprimer ce document ?')) {
-                                try {
-                                  setSaving({ ...saving, [`doc_${doc.id}`]: true });
-                                  const response = await transactionsAPI.removeDocument(
-                                    parseInt(transactionId),
-                                    doc.id
-                                  );
-                                  setTransaction(response.data);
-                                } catch (err) {
-                                  setError(err instanceof Error ? err.message : 'Erreur lors de la suppression');
-                                } finally {
-                                  setSaving({ ...saving, [`doc_${doc.id}`]: false });
-                                }
-                              }
-                            }}
-                            disabled={saving[`doc_${doc.id}`]}
-                            title="Supprimer le document"
+                            variant="outline"
+                            className="w-full justify-start"
+                            onClick={() => router.push(`/dashboard/transactions/steps?id=${transaction.id}`)}
                           >
-                            <Trash2 className="w-4 h-4 text-destructive" />
+                            <Clock className="w-4 h-4 mr-2" />
+                            Voir les étapes
                           </Button>
                         </div>
                       </div>
-                    ))}
+                    </Card>
                   </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p>Aucun document associé à cette transaction</p>
-                  </div>
-                )}
-              </div>
-            </Card>
-          </div>
-
-          {/* Right Column - Sidebar */}
-          <div className="space-y-6">
-            {/* Parties */}
-            <Card>
-              <div className="p-6 space-y-4">
-                <h2 className="text-lg font-semibold flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  Parties impliquées
-                </h2>
-                {transaction.sellers && transaction.sellers.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground mb-2">Vendeurs</h3>
-                    <div className="space-y-1">
-                      {transaction.sellers.map((seller, idx) => (
-                        <p key={idx} className="text-sm">{seller.name}</p>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {transaction.buyers && transaction.buyers.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground mb-2">Acheteurs</h3>
-                    <div className="space-y-1">
-                      {transaction.buyers.map((buyer, idx) => (
-                        <p key={idx} className="text-sm">{buyer.name}</p>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </Card>
-
-            {/* Quick Actions */}
-            <Card>
-              <div className="p-6 space-y-4">
-                <h2 className="text-lg font-semibold">Actions rapides</h2>
-                <div className="space-y-2">
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={() => router.push(`/dashboard/transactions/steps?id=${transaction.id}`)}
-                  >
-                    <Clock className="w-4 h-4 mr-2" />
-                    Voir les étapes
-                  </Button>
                 </div>
               </div>
-            </Card>
-          </div>
-        </div>
+            </TabPanel>
+
+            {/* Documents Tab */}
+            <TabPanel value="documents">
+              <div className="mt-6">
+                <Card>
+                  <div className="p-6 space-y-6">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-lg font-semibold flex items-center gap-2">
+                        <FileText className="w-5 h-5" />
+                        Documents
+                      </h2>
+                      <label className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg cursor-pointer hover:bg-muted transition-colors text-sm">
+                        <Upload className="w-4 h-4" />
+                        Ajouter un document
+                        <input
+                          type="file"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const selectedFile = e.target.files?.[0];
+                            if (selectedFile) {
+                              try {
+                                setSaving({ ...saving, documents: true });
+                                const response = await transactionsAPI.addDocument(
+                                  parseInt(transactionId),
+                                  selectedFile
+                                );
+                                setTransaction(response.data);
+                              } catch (err) {
+                                setError(err instanceof Error ? err.message : 'Erreur lors de l\'ajout du document');
+                              } finally {
+                                setSaving({ ...saving, documents: false });
+                                e.target.value = '';
+                              }
+                            }
+                          }}
+                          disabled={saving.documents}
+                        />
+                      </label>
+                    </div>
+                    
+                    {transaction.documents && transaction.documents.length > 0 ? (
+                      <div className="space-y-3">
+                        {transaction.documents.map((doc) => (
+                          <div
+                            key={doc.id}
+                            className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
+                          >
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <FileText className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate">{doc.filename}</p>
+                                {doc.description && (
+                                  <p className="text-sm text-muted-foreground truncate">{doc.description}</p>
+                                )}
+                                {doc.size && (
+                                  <p className="text-xs text-muted-foreground">
+                                    {(doc.size / 1024).toFixed(2)} KB
+                                    {doc.uploaded_at && ` • ${formatDate(doc.uploaded_at)}`}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              {doc.url && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => window.open(doc.url, '_blank')}
+                                  title="Voir le document"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </Button>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={async () => {
+                                  if (confirm('Êtes-vous sûr de vouloir supprimer ce document ?')) {
+                                    try {
+                                      setSaving({ ...saving, [`doc_${doc.id}`]: true });
+                                      const response = await transactionsAPI.removeDocument(
+                                        parseInt(transactionId),
+                                        doc.id
+                                      );
+                                      setTransaction(response.data);
+                                    } catch (err) {
+                                      setError(err instanceof Error ? err.message : 'Erreur lors de la suppression');
+                                    } finally {
+                                      setSaving({ ...saving, [`doc_${doc.id}`]: false });
+                                    }
+                                  }
+                                }}
+                                disabled={saving[`doc_${doc.id}`]}
+                                title="Supprimer le document"
+                              >
+                                <Trash2 className="w-4 h-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                        <p>Aucun document associé à cette transaction</p>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              </div>
+            </TabPanel>
+
+            {/* Transactions Tab */}
+            <TabPanel value="transactions">
+              <div className="mt-6">
+                <Card>
+                  <div className="p-6">
+                    <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                      <Receipt className="w-5 h-5" />
+                      Historique financier
+                    </h2>
+                    <div className="text-center py-12 text-muted-foreground">
+                      <Receipt className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                      <p>Fonctionnalité à venir</p>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            </TabPanel>
+
+            {/* Deposits Tab */}
+            <TabPanel value="deposits">
+              <div className="mt-6">
+                <Card>
+                  <div className="p-6">
+                    <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                      <Shield className="w-5 h-5" />
+                      Dépôts de sécurité
+                    </h2>
+                    <div className="text-center py-12 text-muted-foreground">
+                      <Shield className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                      <p>Fonctionnalité à venir</p>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            </TabPanel>
+
+            {/* Balance Tab */}
+            <TabPanel value="balance">
+              <div className="mt-6">
+                <Card>
+                  <div className="p-6">
+                    <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                      <DollarSign className="w-5 h-5" />
+                      Solde
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                      <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+                        <div className="p-6">
+                          <p className="text-sm text-muted-foreground mb-2">Solde du bail</p>
+                          <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                            {formatCurrency(transaction.deposit_amount ? -transaction.deposit_amount : 0)}
+                          </p>
+                        </div>
+                      </Card>
+                      <Card className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+                        <div className="p-6">
+                          <p className="text-sm text-muted-foreground mb-2">Dépôts de sécurité</p>
+                          <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                            {formatCurrency(transaction.deposit_amount)}
+                          </p>
+                        </div>
+                      </Card>
+                    </div>
+                    <div className="text-center py-8 text-muted-foreground">
+                      <DollarSign className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                      <p>Détails financiers à venir</p>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            </TabPanel>
+
+            {/* History Tab */}
+            <TabPanel value="history">
+              <div className="mt-6">
+                <Card>
+                  <div className="p-6">
+                    <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                      <History className="w-5 h-5" />
+                      Historique
+                    </h2>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-4 p-4 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded">
+                        <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">Transaction créée</p>
+                          <p className="text-xs text-muted-foreground">{formatDate(transaction.created_at)}</p>
+                        </div>
+                      </div>
+                      {transaction.updated_at !== transaction.created_at && (
+                        <div className="flex items-center gap-4 p-4 border-l-4 border-green-500 bg-green-50 dark:bg-green-900/20 rounded">
+                          <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">Dernière modification</p>
+                            <p className="text-xs text-muted-foreground">{formatDate(transaction.updated_at)}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            </TabPanel>
+          </TabPanels>
+        </Tabs>
       </div>
     </Container>
   );
