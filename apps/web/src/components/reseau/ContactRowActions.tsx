@@ -22,31 +22,28 @@ export default function ContactRowActions({
         size="sm"
         variant="ghost"
         onClick={onView}
-        className="h-8 w-8 p-0"
+        className="h-7 w-7 p-0"
         aria-label={`Voir ${contactName}`}
       >
-        {' '}
-        <Eye className="w-4 h-4" />{' '}
-      </Button>{' '}
+        <Eye className="w-3.5 h-3.5" />
+      </Button>
       <Button
         size="sm"
         variant="ghost"
         onClick={onEdit}
-        className="h-8 w-8 p-0"
+        className="h-7 w-7 p-0"
         aria-label={`Modifier ${contactName}`}
       >
-        {' '}
-        <Edit className="w-4 h-4" />{' '}
-      </Button>{' '}
+        <Edit className="w-3.5 h-3.5" />
+      </Button>
       <Button
         size="sm"
         variant="ghost"
         onClick={onDelete}
-        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+        className="h-7 w-7 p-0 text-destructive hover:text-destructive"
         aria-label={`Supprimer ${contactName}`}
       >
-        {' '}
-        <Trash2 className="w-4 h-4" />{' '}
+        <Trash2 className="w-3.5 h-3.5" />
       </Button>{' '}
     </div>
   );

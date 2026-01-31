@@ -43,22 +43,21 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   asChild?: boolean;
 }
 
-// Base styles - Modern and clean with improved rounded corners
+// Base styles - Modern, compact and clean design
 const baseStyles = [
   'font-medium',
-  'rounded-xl', // More rounded (12px) for modern look
+  'rounded-lg', // Moderate rounded (8px) for clean look
   'transition-all',
-  'duration-200', // Faster transitions
+  'duration-150', // Faster transitions
   'ease-out',
   'focus:outline-none',
   'focus:ring-2',
-  'focus:ring-offset-2',
+  'focus:ring-offset-1',
   'disabled:opacity-50',
   'disabled:cursor-not-allowed',
   'shadow-sm',
-  'hover:shadow-md',
+  'hover:shadow',
   'active:scale-[0.98]',
-  'backdrop-blur-sm',
 ].join(' ');
 
 // Variant styles - Split into arrays for better readability
@@ -68,15 +67,15 @@ const createVariantStyles = (base: string[], hover: string[], focus: string[], c
 
 const variants = {
   primary: createVariantStyles(
-    ['bg-gradient-to-r', 'from-primary-600', 'to-primary-500', 'dark:from-primary-500', 'dark:to-primary-400', 'text-white', 'shadow-md', 'shadow-primary-500/30'],
-    ['hover:from-primary-700', 'hover:to-primary-600', 'dark:hover:from-primary-600', 'dark:hover:to-primary-500', 'hover:shadow-lg', 'hover:shadow-primary-500/40', 'hover:-translate-y-0.5'],
-    ['focus:ring-primary-500', 'dark:focus:ring-primary-400', 'focus:ring-offset-2'],
+    ['bg-primary-600', 'dark:bg-primary-500', 'text-white', 'shadow-sm'],
+    ['hover:bg-primary-700', 'dark:hover:bg-primary-600', 'hover:shadow'],
+    ['focus:ring-primary-500', 'dark:focus:ring-primary-400', 'focus:ring-offset-1'],
     'color-primary-500'
   ),
   secondary: createVariantStyles(
-    ['bg-gradient-to-r', 'from-secondary-600', 'to-secondary-500', 'dark:from-secondary-500', 'dark:to-secondary-400', 'text-white', 'shadow-md', 'shadow-secondary-500/30'],
-    ['hover:from-secondary-700', 'hover:to-secondary-600', 'dark:hover:from-secondary-600', 'dark:hover:to-secondary-500', 'hover:shadow-lg', 'hover:shadow-secondary-500/40', 'hover:-translate-y-0.5'],
-    ['focus:ring-secondary-500', 'dark:focus:ring-secondary-400', 'focus:ring-offset-2'],
+    ['bg-secondary-600', 'dark:bg-secondary-500', 'text-white', 'shadow-sm'],
+    ['hover:bg-secondary-700', 'dark:hover:bg-secondary-600', 'hover:shadow'],
+    ['focus:ring-secondary-500', 'dark:focus:ring-secondary-400', 'focus:ring-offset-1'],
     'color-secondary-500'
   ),
   gradient: [
@@ -86,14 +85,12 @@ const variants = {
     'dark:from-primary-500',
     'dark:to-secondary-400',
     'text-white',
-    'shadow-md',
-    'shadow-primary-500/30',
+    'shadow-sm',
     'hover:from-primary-700',
     'hover:to-secondary-600',
     'dark:hover:from-primary-600',
     'dark:hover:to-secondary-500',
-    'hover:shadow-lg',
-    'hover:-translate-y-0.5',
+    'hover:shadow',
     'focus:ring-primary-500',
     'dark:focus:ring-primary-400',
   ].join(' '),
@@ -105,27 +102,26 @@ const variants = {
     'hover:bg-primary-100',
     'dark:hover:bg-primary-900/50',
     'shadow-sm',
-    'hover:shadow-md',
+    'hover:shadow',
     'focus:ring-primary-500',
     'dark:focus:ring-primary-400',
   ].join(' '),
   outline: [
-    'border-2',
-    'border-primary-500/60',
-    'dark:border-primary-400/60',
+    'border',
+    'border-primary-500/50',
+    'dark:border-primary-400/50',
     'text-primary-600',
     'dark:text-primary-400',
     'bg-transparent',
-    'backdrop-blur-sm',
-    'hover:bg-primary-50/80',
+    'hover:bg-primary-50/50',
     'dark:hover:bg-primary-900/20',
     'hover:border-primary-600',
     'dark:hover:border-primary-400',
     'focus:ring-primary-500',
     'dark:focus:ring-primary-400',
-    'focus:ring-offset-2',
+    'focus:ring-offset-1',
     'shadow-sm',
-    'hover:shadow-md',
+    'hover:shadow',
     '[border-color:var(--color-primary-500)]',
     '[color:var(--color-primary-500)]',
   ].join(' '),
@@ -135,30 +131,29 @@ const variants = {
     'bg-transparent',
     'hover:bg-neutral-100',
     'dark:hover:bg-neutral-800',
-    'hover:shadow-sm',
     'focus:ring-primary-500',
     'dark:focus:ring-primary-400',
-    'focus:ring-offset-2',
+    'focus:ring-offset-1',
   ].join(' '),
   danger: createVariantStyles(
-    ['bg-gradient-to-r', 'from-error-600', 'to-error-500', 'dark:from-error-500', 'dark:to-error-400', 'text-background', 'shadow-lg', 'shadow-error-500/25'],
-    ['hover:from-error-700', 'hover:to-error-600', 'dark:hover:from-error-600', 'dark:hover:to-error-500', 'hover:shadow-xl', 'hover:shadow-error-500/30'],
-    ['focus:ring-error-500', 'dark:focus:ring-error-400', 'focus:ring-offset-2'],
+    ['bg-error-600', 'dark:bg-error-500', 'text-background', 'shadow-sm'],
+    ['hover:bg-error-700', 'dark:hover:bg-error-600', 'hover:shadow'],
+    ['focus:ring-error-500', 'dark:focus:ring-error-400', 'focus:ring-offset-1'],
     'color-error-500'
   ),
   error: createVariantStyles(
-    ['bg-gradient-to-r', 'from-error-600', 'to-error-500', 'dark:from-error-500', 'dark:to-error-400', 'text-background', 'shadow-lg', 'shadow-error-500/25'],
-    ['hover:from-error-700', 'hover:to-error-600', 'dark:hover:from-error-600', 'dark:hover:to-error-500', 'hover:shadow-xl', 'hover:shadow-error-500/30'],
-    ['focus:ring-error-500', 'dark:focus:ring-error-400', 'focus:ring-offset-2'],
+    ['bg-error-600', 'dark:bg-error-500', 'text-background', 'shadow-sm'],
+    ['hover:bg-error-700', 'dark:hover:bg-error-600', 'hover:shadow'],
+    ['focus:ring-error-500', 'dark:focus:ring-error-400', 'focus:ring-offset-1'],
     'color-error-500'
   ),
 };
 
-// Default sizes (fallback if theme config not available) - Compact design for better density
+// Default sizes (fallback if theme config not available) - Compact and elegant design
 const defaultSizes = {
-  sm: 'px-3 py-1.5 text-xs min-h-[36px]', // Compact small - Reduced padding and font for better density
-  md: 'px-4 py-2 text-sm min-h-[40px]', // Standard size - Reduced padding and font while maintaining usability
-  lg: 'px-5 py-2.5 text-base min-h-[44px]', // Large size - Reduced padding while maintaining prominence
+  sm: 'px-2.5 py-1 text-xs min-h-[28px]', // Compact small - Minimal padding for density
+  md: 'px-3 py-1.5 text-sm min-h-[32px]', // Standard size - Balanced and elegant
+  lg: 'px-4 py-2 text-sm min-h-[36px]', // Large size - Slightly larger but still compact
 };
 
 function Button({

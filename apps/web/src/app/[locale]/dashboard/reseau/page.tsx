@@ -8,14 +8,14 @@ import { PageHeader } from '@/components/layout';
 import { Card } from '@/components/ui';
 import MotionDiv from '@/components/motion/MotionDiv';
 import Link from 'next/link';
-import { UserCircle, Building2, MessageSquare, ArrowRight } from 'lucide-react';
+import { UserCircle, Building2, ArrowRight } from 'lucide-react';
 
 function ReseauContent() {
   return (
     <MotionDiv variant="slideUp" duration="normal" className="space-y-2xl">
       <PageHeader
         title="Module Réseau"
-        description="Gérez vos contacts, entreprises et témoignages"
+        description="Gérez vos contacts et entreprises"
         breadcrumbs={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Module Réseau' }]}
       />
 
@@ -47,23 +47,6 @@ function ReseauContent() {
                 <div className="flex-1">
                   <h3 className="text-lg font-semibold text-foreground">Entreprises</h3>
                   <p className="text-sm text-muted-foreground">Gérez vos entreprises</p>
-                </div>
-                <ArrowRight className="w-5 h-5 text-muted-foreground" />
-              </div>
-            </div>
-          </Card>
-        </Link>
-
-        <Link href="/dashboard/reseau/temoignages">
-          <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
-            <div className="p-6">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="p-3 bg-primary-100 dark:bg-primary-900/40 rounded-lg">
-                  <MessageSquare className="w-8 h-8 text-primary-600 dark:text-primary-400" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-foreground">Témoignages</h3>
-                  <p className="text-sm text-muted-foreground">Gérez vos témoignages</p>
                 </div>
                 <ArrowRight className="w-5 h-5 text-muted-foreground" />
               </div>

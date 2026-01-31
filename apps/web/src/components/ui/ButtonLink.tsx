@@ -21,18 +21,21 @@ import { Link } from '@/i18n/routing';
 import { clsx } from 'clsx';
 import type { ButtonVariant, Size } from './types';
 
-// Base styles - same as Button component
+// Base styles - same as Button component (compact design)
 const baseStyles = [
   'font-medium',
   'rounded-lg',
   'transition-all',
-  'duration-200',
+  'duration-150',
   'focus:outline-none',
   'focus:ring-2',
-  'focus:ring-offset-2',
+  'focus:ring-offset-1',
   'inline-flex',
   'items-center',
   'justify-center',
+  'shadow-sm',
+  'hover:shadow',
+  'active:scale-[0.98]',
 ].join(' ');
 
 // Variant styles - same as Button component
@@ -41,50 +44,53 @@ const createVariantStyles = (base: string[], hover: string[], focus: string[], c
 
 const variants: Record<string, string> = {
   primary: createVariantStyles(
-    ['bg-primary-600', 'dark:bg-primary-500', 'text-background'],
-    ['hover:bg-primary-700', 'dark:hover:bg-primary-600'],
-    ['focus:ring-primary-500', 'dark:focus:ring-primary-400'],
+    ['bg-primary-600', 'dark:bg-primary-500', 'text-background', 'shadow-sm'],
+    ['hover:bg-primary-700', 'dark:hover:bg-primary-600', 'hover:shadow'],
+    ['focus:ring-primary-500', 'dark:focus:ring-primary-400', 'focus:ring-offset-1'],
     'color-primary-500'
   ),
   secondary: createVariantStyles(
-    ['bg-secondary-600', 'dark:bg-secondary-500', 'text-background'],
-    ['hover:bg-secondary-700', 'dark:hover:bg-secondary-600'],
-    ['focus:ring-secondary-500', 'dark:focus:ring-secondary-400'],
+    ['bg-secondary-600', 'dark:bg-secondary-500', 'text-background', 'shadow-sm'],
+    ['hover:bg-secondary-700', 'dark:hover:bg-secondary-600', 'hover:shadow'],
+    ['focus:ring-secondary-500', 'dark:focus:ring-secondary-400', 'focus:ring-offset-1'],
     'color-secondary-500'
   ),
   outline: [
-    'border-2',
-    'border-primary-600',
-    'dark:border-primary-500',
+    'border',
+    'border-primary-500/50',
+    'dark:border-primary-400/50',
     'text-primary-600',
     'dark:text-primary-400',
-    'hover:bg-primary-50',
+    'hover:bg-primary-50/50',
     'dark:hover:bg-primary-900/20',
     'focus:ring-primary-500',
     'dark:focus:ring-primary-400',
+    'focus:ring-offset-1',
+    'shadow-sm',
+    'hover:shadow',
     '[border-color:var(--color-primary-500)]',
     '[color:var(--color-primary-500)]',
   ].join(' '),
-  ghost: ['text-foreground', 'hover:bg-muted', 'focus:ring-muted-foreground'].join(' '),
+  ghost: ['text-foreground', 'hover:bg-muted', 'focus:ring-primary-500', 'dark:focus:ring-primary-400', 'focus:ring-offset-1'].join(' '),
   danger: createVariantStyles(
-    ['bg-error-600', 'dark:bg-error-500', 'text-background'],
-    ['hover:bg-error-700', 'dark:hover:bg-error-600'],
-    ['focus:ring-error-500', 'dark:focus:ring-error-400'],
+    ['bg-error-600', 'dark:bg-error-500', 'text-background', 'shadow-sm'],
+    ['hover:bg-error-700', 'dark:hover:bg-error-600', 'hover:shadow'],
+    ['focus:ring-error-500', 'dark:focus:ring-error-400', 'focus:ring-offset-1'],
     'color-error-500'
   ),
   error: createVariantStyles(
-    ['bg-error-600', 'dark:bg-error-500', 'text-background'],
-    ['hover:bg-error-700', 'dark:hover:bg-error-600'],
-    ['focus:ring-error-500', 'dark:focus:ring-error-400'],
+    ['bg-error-600', 'dark:bg-error-500', 'text-background', 'shadow-sm'],
+    ['hover:bg-error-700', 'dark:hover:bg-error-600', 'hover:shadow'],
+    ['focus:ring-error-500', 'dark:focus:ring-error-400', 'focus:ring-offset-1'],
     'color-error-500'
   ),
 };
 
-// Size styles - same as Button component
+// Size styles - same as Button component (compact design)
 const sizes: Record<string, string> = {
-  sm: 'px-4 py-2 text-sm min-h-[44px]',
-  md: 'px-6 py-3 text-base min-h-[44px]',
-  lg: 'px-8 py-4 text-lg min-h-[44px]',
+  sm: 'px-2.5 py-1 text-xs min-h-[28px]',
+  md: 'px-3 py-1.5 text-sm min-h-[32px]',
+  lg: 'px-4 py-2 text-sm min-h-[36px]',
 };
 
 export interface ButtonLinkProps {

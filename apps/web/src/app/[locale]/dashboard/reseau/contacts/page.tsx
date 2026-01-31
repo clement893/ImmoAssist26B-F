@@ -543,36 +543,38 @@ function ContactsContent() {
         <div className="flex items-center gap-3">
           <Button
             variant="primary"
+            size="sm"
             onClick={() => setShowCreateModal(true)}
             className="bg-green-600 hover:bg-green-700 text-white"
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-3.5 h-3.5 mr-1.5" />
             Nouveau contact
           </Button>
           <Button
             variant="outline"
+            size="sm"
             onClick={() => setShowImportModal(true)}
             className="border-green-300 text-green-700 hover:bg-green-50"
           >
-            <Upload className="w-4 h-4 mr-2" />
+            <Upload className="w-3.5 h-3.5 mr-1.5" />
             Importer
           </Button>
           <Button
             variant="outline"
+            size="sm"
             onClick={handleExport}
             className="border-green-300 text-green-700 hover:bg-green-50"
           >
-            <Download className="w-4 h-4 mr-2" />
+            <Download className="w-3.5 h-3.5 mr-1.5" />
             Exporter
           </Button>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" className="text-muted-foreground">
-            <Settings className="w-4 h-4 mr-2" />
-            View settings
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="sm" className="text-muted-foreground px-2">
+            <Settings className="w-3.5 h-3.5" />
           </Button>
-          <Button variant="ghost" size="sm" className="text-muted-foreground">
-            <MoreVertical className="w-4 h-4" />
+          <Button variant="ghost" size="sm" className="text-muted-foreground px-2">
+            <MoreVertical className="w-3.5 h-3.5" />
           </Button>
         </div>
       </div>
@@ -843,6 +845,7 @@ function ContactsContent() {
             <div className="flex gap-2">
               <Button
                 variant="outline"
+                size="sm"
                 onClick={async () => {
                   try {
                     await reseauContactsAPI.downloadTemplate();
@@ -859,11 +862,12 @@ function ContactsContent() {
                   }
                 }}
               >
-                <FileSpreadsheet className="w-4 h-4 mr-2" />
+                <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />
                 Template Excel
               </Button>
               <Button
                 variant="outline"
+                size="sm"
                 onClick={async () => {
                   try {
                     await reseauContactsAPI.downloadZipTemplate();
@@ -880,7 +884,7 @@ function ContactsContent() {
                   }
                 }}
               >
-                <FileSpreadsheet className="w-4 h-4 mr-2" />
+                <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />
                 Template ZIP (avec photos)
               </Button>
             </div>
@@ -906,17 +910,18 @@ function ContactsContent() {
           </div>
 
           <div className="flex justify-end gap-2 pt-4 border-t border-border">
-            <Button variant="outline" onClick={() => setShowImportModal(false)}>
+            <Button variant="outline" size="sm" onClick={() => setShowImportModal(false)}>
               Annuler
             </Button>
             <Button
               variant="ghost"
+              size="sm"
               onClick={() => {
                 setShowImportInstructions(true);
                 setShowImportModal(false);
               }}
             >
-              <HelpCircle className="w-4 h-4 mr-2" />
+              <HelpCircle className="w-3.5 h-3.5 mr-1.5" />
               Instructions
             </Button>
           </div>

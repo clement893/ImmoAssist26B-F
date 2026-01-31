@@ -106,11 +106,6 @@ export function getNavigationConfig(isAdmin: boolean): NavigationConfig {
             href: '/dashboard/reseau/contacts',
             icon: <User className="w-5 h-5" />,
           },
-          {
-            name: 'Témoignages',
-            href: '/dashboard/reseau/temoignages',
-            icon: <MessageSquare className="w-5 h-5" />,
-          },
         ],
         collapsible: true,
         defaultOpen: false,
