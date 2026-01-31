@@ -238,6 +238,9 @@ async def create_transaction(
     except HTTPException:
         raise
     except Exception as e:
+        # Use the existing handle_database_error function
+        if isinstance(e, (OperationalError, ProgrammingError)):
+            await handle_database_error(e, "creating transaction", db)
         await db.rollback()
         logger.error(f"Error creating transaction: {e}", exc_info=True)
         raise HTTPException(
