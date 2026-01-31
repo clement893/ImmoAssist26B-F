@@ -22,7 +22,6 @@ import { ThemeToggleWithIcon } from '@/components/ui/ThemeToggle';
 import LeaWidget from '@/components/lea/LeaWidget';
 import {
   LayoutDashboard,
-  FolderKanban,
   Shield,
   User,
   Settings,
