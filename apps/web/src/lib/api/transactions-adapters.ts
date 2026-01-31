@@ -84,6 +84,21 @@ export const transactionsAPI = {
       data: response.data,
     } as any;
   },
+  addPhoto: async (transactionId: number, file: File, description?: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (description) {
+      formData.append('description', description);
+    }
+    const response = await apiClient.post(`/api/v1/transactions/${transactionId}/photos`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return {
+      data: response.data,
+    } as any;
+  },
 };
 
 export const realEstateContactsAPI = createRealEstateContactsAPI({

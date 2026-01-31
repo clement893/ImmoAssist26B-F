@@ -25,6 +25,7 @@ import {
   Receipt,
   Shield,
   History,
+  Image as ImageIcon,
 } from 'lucide-react';
 
 interface Transaction {
@@ -108,6 +109,7 @@ interface Transaction {
     description?: string;
     uploaded_at?: string;
     uploaded_by?: number;
+    type?: string; // 'photo' or 'document'
   }>;
 }
 
@@ -234,12 +236,21 @@ export default function TransactionDetailPage() {
               <FileText className="w-4 h-4 mr-2" />
               Information
             </Tab>
+            <Tab value="photos">
+              <ImageIcon className="w-4 h-4 mr-2" />
+              Photos
+              {transaction.documents && transaction.documents.filter(d => d.type === 'photo').length > 0 && (
+                <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full">
+                  {transaction.documents.filter(d => d.type === 'photo').length}
+                </span>
+              )}
+            </Tab>
             <Tab value="documents">
               <FileText className="w-4 h-4 mr-2" />
               Documents
-              {transaction.documents && transaction.documents.length > 0 && (
+              {transaction.documents && transaction.documents.filter(d => d.type !== 'photo').length > 0 && (
                 <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full">
-                  {transaction.documents.length}
+                  {transaction.documents.filter(d => d.type !== 'photo').length}
                 </span>
               )}
             </Tab>
@@ -529,6 +540,118 @@ export default function TransactionDetailPage() {
               </div>
             </TabPanel>
 
+            {/* Photos Tab */}
+            <TabPanel value="photos">
+              <div className="mt-6">
+                <Card>
+                  <div className="p-6 space-y-6">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-lg font-semibold flex items-center gap-2">
+                        <ImageIcon className="w-5 h-5" />
+                        Photos
+                      </h2>
+                      <label className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg cursor-pointer hover:bg-muted transition-colors text-sm">
+                        <Upload className="w-4 h-4" />
+                        Ajouter une photo
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const selectedFile = e.target.files?.[0];
+                            if (selectedFile) {
+                              try {
+                                setSaving({ ...saving, photos: true });
+                                const response = await transactionsAPI.addPhoto(
+                                  parseInt(transactionId),
+                                  selectedFile
+                                );
+                                setTransaction(response.data);
+                              } catch (err) {
+                                setError(err instanceof Error ? err.message : 'Erreur lors de l\'ajout de la photo');
+                              } finally {
+                                setSaving({ ...saving, photos: false });
+                                e.target.value = '';
+                              }
+                            }
+                          }}
+                          disabled={saving.photos}
+                        />
+                      </label>
+                    </div>
+                    
+                    {transaction.documents && transaction.documents.filter(d => d.type === 'photo').length > 0 ? (
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {transaction.documents.filter(d => d.type === 'photo').map((photo) => (
+                          <div
+                            key={photo.id}
+                            className="group relative aspect-square border border-border rounded-lg overflow-hidden bg-muted hover:shadow-lg transition-shadow"
+                          >
+                            <img
+                              src={photo.url}
+                              alt={photo.description || photo.filename}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23ddd" width="200" height="200"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="14" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EImage%3C/text%3E%3C/svg%3E';
+                              }}
+                            />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => window.open(photo.url, '_blank')}
+                                  title="Voir la photo"
+                                  className="text-white hover:bg-white/20"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={async () => {
+                                    if (confirm('Êtes-vous sûr de vouloir supprimer cette photo ?')) {
+                                      try {
+                                        setSaving({ ...saving, [`photo_${photo.id}`]: true });
+                                        const response = await transactionsAPI.removeDocument(
+                                          parseInt(transactionId),
+                                          photo.id
+                                        );
+                                        setTransaction(response.data);
+                                      } catch (err) {
+                                        setError(err instanceof Error ? err.message : 'Erreur lors de la suppression');
+                                      } finally {
+                                        setSaving({ ...saving, [`photo_${photo.id}`]: false });
+                                      }
+                                    }
+                                  }}
+                                  disabled={saving[`photo_${photo.id}`]}
+                                  title="Supprimer la photo"
+                                  className="text-white hover:bg-white/20"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </div>
+                            {photo.description && (
+                              <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-2 truncate">
+                                {photo.description}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <ImageIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                        <p>Aucune photo associée à cette transaction</p>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              </div>
+            </TabPanel>
+
             {/* Documents Tab */}
             <TabPanel value="documents">
               <div className="mt-6">
@@ -568,9 +691,9 @@ export default function TransactionDetailPage() {
                       </label>
                     </div>
                     
-                    {transaction.documents && transaction.documents.length > 0 ? (
+                    {transaction.documents && transaction.documents.filter(d => d.type !== 'photo').length > 0 ? (
                       <div className="space-y-3">
-                        {transaction.documents.map((doc) => (
+                        {transaction.documents.filter(d => d.type !== 'photo').map((doc) => (
                           <div
                             key={doc.id}
                             className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"

@@ -840,8 +840,23 @@ async def remove_document_from_transaction(
                 detail="Transaction not found"
             )
         
-        # Remove document from list
+        # Find document to delete and remove from S3 if it has a file_key
         if transaction.documents:
+            document_to_delete = next(
+                (doc for doc in transaction.documents if doc.get("id") == document_id),
+                None
+            )
+            
+            # Delete from S3 if file_key exists
+            if document_to_delete and document_to_delete.get("file_key"):
+                try:
+                    if S3Service.is_configured():
+                        s3_service = S3Service()
+                        s3_service.delete_file(document_to_delete["file_key"])
+                except Exception as s3_error:
+                    logger.warning(f"Failed to delete file from S3: {s3_error}")
+            
+            # Remove document from list
             transaction.documents = [
                 doc for doc in transaction.documents
                 if doc.get("id") != document_id
@@ -859,4 +874,89 @@ async def remove_document_from_transaction(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error removing document: {str(e)}"
+        )
+
+
+@router.post("/{transaction_id}/photos", response_model=RealEstateTransactionResponse, tags=["transactions"])
+async def add_photo_to_transaction(
+    transaction_id: int,
+    file: UploadFile = File(...),
+    description: Optional[str] = Query(None, description="Description de la photo"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Add a photo to a transaction
+    """
+    try:
+        # Validate file is an image
+        if not file.content_type or not file.content_type.startswith('image/'):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="File must be an image"
+            )
+        
+        # Get transaction
+        result = await db.execute(
+            select(RealEstateTransaction).where(
+                and_(
+                    RealEstateTransaction.id == transaction_id,
+                    RealEstateTransaction.user_id == current_user.id
+                )
+            )
+        )
+        transaction = result.scalar_one_or_none()
+        
+        if not transaction:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Transaction not found"
+            )
+        
+        # Upload file to S3
+        if not S3Service.is_configured():
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="File upload service is not configured"
+            )
+        
+        s3_service = S3Service()
+        upload_result = s3_service.upload_file(
+            file=file,
+            folder=f"transactions/{transaction_id}/photos",
+            user_id=str(current_user.id),
+        )
+        
+        # Create photo entry
+        photo_entry = {
+            "id": len(transaction.documents or []) + 1,
+            "filename": file.filename or "photo",
+            "url": upload_result.get("url") or upload_result.get("file_key", ""),
+            "file_key": upload_result.get("file_key", ""),
+            "size": upload_result.get("size", 0),
+            "content_type": file.content_type or "image/jpeg",
+            "description": description,
+            "uploaded_at": datetime.now().isoformat(),
+            "uploaded_by": current_user.id,
+            "type": "photo",  # Mark as photo
+        }
+        
+        # Add to documents list
+        if transaction.documents is None:
+            transaction.documents = []
+        transaction.documents.append(photo_entry)
+        
+        await db.commit()
+        await db.refresh(transaction)
+        
+        return RealEstateTransactionResponse.model_validate(transaction)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error adding photo to transaction: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error adding photo: {str(e)}"
         )
