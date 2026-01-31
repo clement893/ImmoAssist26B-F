@@ -267,17 +267,23 @@ export default function TransactionForm({ onSubmit, onCancel, initialData, isLoa
         {activeTab === 'identification' && (
           <div className="space-y-4">
             <Input
-              label="Numéro de dossier *"
-              value={formData.dossier_number}
-              onChange={(e) => setFormData({ ...formData, dossier_number: e.target.value })}
+              label="Nom de la transaction *"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               required
+              placeholder="Ex: Vente Maison Laval - 123 Rue Principale"
+            />
+            <Input
+              label="Numéro de dossier"
+              value={formData.dossier_number || ''}
+              onChange={(e) => setFormData({ ...formData, dossier_number: e.target.value || undefined })}
+              placeholder="Optionnel"
             />
             <Select
-              label="Statut *"
+              label="Statut"
               options={STATUS_OPTIONS}
               value={formData.status}
               onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-              required
             />
             <Input
               label="Date de clôture prévue"
@@ -1148,7 +1154,7 @@ export default function TransactionForm({ onSubmit, onCancel, initialData, isLoa
         <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
           Annuler
         </Button>
-        <Button type="submit" disabled={isLoading || !formData.dossier_number || !formData.property_address || !formData.property_city || !formData.property_postal_code}>
+        <Button type="submit" disabled={isLoading || !formData.name || formData.name.trim().length === 0}>
           {isLoading ? 'Création...' : 'Créer la transaction'}
         </Button>
       </div>
