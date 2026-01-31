@@ -51,8 +51,6 @@ export function getTransactionProgressionStatus(transaction: TransactionData): {
   overallProgress: number;
   status: 'draft' | 'active' | 'pending_conditions' | 'firm' | 'closing' | 'closed' | 'cancelled';
 } {
-  const now = new Date();
-  
   // 1. DRAFT - Transaction créée mais pas encore listée
   if (!transaction.promise_to_purchase_date) {
     return {

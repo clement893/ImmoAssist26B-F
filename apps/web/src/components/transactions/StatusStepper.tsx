@@ -202,7 +202,7 @@ export default function StatusStepper({
               <div className="flex gap-4">
                 {/* Icon */}
                 <div className={`flex-shrink-0 w-12 h-12 rounded-full border-2 flex items-center justify-center ${getStepColor(step)}`}>
-                  {step.icon || getStepIcon(step, index)}
+                  {step.icon || getStepIcon(step)}
                 </div>
 
                 {/* Content */}
@@ -251,7 +251,7 @@ export default function StatusStepper({
                     <ul className="mt-2 space-y-1">
                       {step.details.map((detail, detailIndex) => (
                         <li key={detailIndex} className="text-sm text-muted-foreground flex items-start gap-2">
-                          <span className={`mt-1 ${isCompleted ? 'text-success-600' : isCurrent ? 'text-primary-600' : 'text-muted-foreground'}`}>•</span>
+                          <span className={`mt-1 ${isCompleted ? 'text-success-600' : step.status === 'current' ? 'text-primary-600' : 'text-muted-foreground'}`}>•</span>
                           <span>{detail}</span>
                         </li>
                       ))}
