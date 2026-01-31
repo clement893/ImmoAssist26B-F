@@ -220,10 +220,10 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
       {/* Error Alert */}
       {(error || voiceError) && (
         <div className="px-4 pb-2">
-          <Alert variant="error" title={voiceError?.includes('Permission') ? 'Permission microphone requise' : 'Erreur'}>
+          <Alert variant="error" title={(error || voiceError)?.includes('Permission') ? 'Permission microphone requise' : 'Erreur'}>
             <div className="space-y-2">
               <p>{error || voiceError}</p>
-              {voiceError?.includes('Permission') && (
+              {(error || voiceError)?.includes('Permission') && (
                 <div className="text-sm text-gray-300 mt-2">
                   <p className="font-semibold mb-2">Pour autoriser le microphone :</p>
                   <ul className="list-disc list-inside space-y-1 text-xs mb-3">

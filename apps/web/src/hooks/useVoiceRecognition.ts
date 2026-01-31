@@ -164,9 +164,24 @@ export function useVoiceRecognition(language: string = 'fr-FR'): UseVoiceRecogni
       return stream;
     } catch (err: any) {
       console.error('Microphone permission error:', err);
-      let errorMessage = 'Permission microphone refusée';
+      let errorMessage = 'Erreur d\'accès au microphone';
       
-      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+      // Check permission status first if Permissions API is available
+      let permissionDenied = false;
+      if (navigator.permissions && navigator.permissions.query) {
+        try {
+          const permissionStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+          permissionDenied = permissionStatus.state === 'denied';
+        } catch (permErr) {
+          // Permissions API might not support 'microphone' query, use error name as fallback
+          permissionDenied = err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError';
+        }
+      } else {
+        // Fallback: use error name to determine if it's a permission issue
+        permissionDenied = err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError';
+      }
+      
+      if (permissionDenied) {
         errorMessage = 'Permission microphone refusée. Veuillez autoriser l\'accès au microphone dans les paramètres de votre navigateur.';
       } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
         errorMessage = 'Aucun microphone trouvé. Veuillez connecter un microphone.';
@@ -271,9 +286,27 @@ export function useVoiceRecognition(language: string = 'fr-FR'): UseVoiceRecogni
           setError('Erreur lors du démarrage du microphone');
         }
       } else if (err?.error === 'not-allowed' || err?.name === 'NotAllowedError') {
-        setError('Permission microphone refusée. Veuillez autoriser l\'accès au microphone.');
+        // Double-check permission status before showing permission error
+        let isPermissionDenied = false;
+        if (navigator.permissions && navigator.permissions.query) {
+          try {
+            const permissionStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+            isPermissionDenied = permissionStatus.state === 'denied';
+          } catch (permErr) {
+            // If we can't check, assume it's a permission issue based on error
+            isPermissionDenied = true;
+          }
+        } else {
+          isPermissionDenied = true;
+        }
+        
+        if (isPermissionDenied) {
+          setError('Permission microphone refusée. Veuillez autoriser l\'accès au microphone.');
+        } else {
+          setError(`Impossible de démarrer la reconnaissance vocale: ${err?.message || err?.error || 'Erreur inconnue'}.`);
+        }
       } else {
-        setError(`Impossible de démarrer la reconnaissance vocale: ${err?.message || err?.error || 'Erreur inconnue'}. Vérifiez les permissions du microphone.`);
+        setError(`Impossible de démarrer la reconnaissance vocale: ${err?.message || err?.error || 'Erreur inconnue'}.`);
       }
     }
   }, [supported, isListening, requestPermission]);
