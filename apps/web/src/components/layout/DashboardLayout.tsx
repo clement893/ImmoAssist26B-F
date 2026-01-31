@@ -29,6 +29,7 @@ import {
   Network,
   Building2,
   MessageSquare,
+  UserCheck,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -43,6 +44,11 @@ const createSidebarItems = (isAdmin: boolean) => [
     label: 'Dashboard',
     href: '/dashboard',
     icon: <LayoutDashboard className="w-5 h-5" />,
+  },
+  {
+    label: 'Agents',
+    href: '/dashboard/agents',
+    icon: <UserCheck className="w-5 h-5" />,
   },
   {
     label: 'Profile',
