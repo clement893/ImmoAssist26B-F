@@ -30,6 +30,9 @@ from app.services.import_service import ImportService
 from app.services.export_service import ExportService
 from app.services.s3_service import S3Service
 from app.core.logging import logger
+from app.core.security import decode_token
+from fastapi import Query
+from sqlalchemy import select
 
 router = APIRouter(prefix="/commercial/contacts", tags=["commercial-contacts"])
 
@@ -1519,11 +1522,53 @@ async def import_contacts(
 @router.get("/import/{import_id}/logs")
 async def stream_import_logs(
     import_id: str,
-    current_user: User = Depends(get_current_user),
+    request: Request,
+    token: Optional[str] = Query(None, description="JWT token for SSE authentication"),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Stream import logs via Server-Sent Events (SSE)
+    Accepts token from query parameter (for EventSource compatibility) or Authorization header
     """
+    # Authenticate user - try query parameter first (for SSE/EventSource), then Authorization header
+    current_user = None
+    
+    # Try query parameter first (for SSE/EventSource)
+    if token:
+        payload = decode_token(token, token_type="access")
+        if payload:
+            email = payload.get("sub")
+            if email:
+                result = await db.execute(select(User).where(User.email == email))
+                user = result.scalar_one_or_none()
+                if user and user.is_active:
+                    current_user = user
+    
+    # Fall back to Authorization header if query token not provided or invalid
+    if not current_user:
+        from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+        security = HTTPBearer()
+        try:
+            credentials: HTTPAuthorizationCredentials = await security(request)
+            if credentials:
+                payload = decode_token(credentials.credentials, token_type="access")
+                if payload:
+                    email = payload.get("sub")
+                    if email:
+                        result = await db.execute(select(User).where(User.email == email))
+                        user = result.scalar_one_or_none()
+                        if user and user.is_active:
+                            current_user = user
+        except Exception:
+            pass
+    
+    # If both fail, raise 401
+    if not current_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     async def event_generator():
         last_index = 0
         

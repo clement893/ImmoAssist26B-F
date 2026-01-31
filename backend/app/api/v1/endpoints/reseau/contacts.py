@@ -7,7 +7,7 @@ contacts logic to avoid code duplication while maintaining isolation.
 """
 
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Query, Request, UploadFile, File
+from fastapi import APIRouter, Depends, Query, Request, UploadFile, File, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -146,10 +146,14 @@ async def export_contacts(
 @router.get("/import/{import_id}/logs")
 async def stream_import_logs(
     import_id: str,
-    current_user: User = Depends(get_current_user),
+    request: Request,
+    token: Optional[str] = Query(None, description="JWT token for SSE authentication"),
+    db: AsyncSession = Depends(get_db),
 ):
     """Stream import logs via Server-Sent Events (SSE) for network module"""
     return await commercial_contacts.stream_import_logs(
         import_id=import_id,
-        current_user=current_user,
+        request=request,
+        token=token,
+        db=db,
     )
