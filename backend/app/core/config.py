@@ -287,6 +287,14 @@ class Settings(BaseSettings):
         default="",
         description="Google OAuth redirect URI",
     )
+    
+    @field_validator("GOOGLE_REDIRECT_URI", mode="before")
+    @classmethod
+    def clean_redirect_uri(cls, v):
+        """Clean redirect URI by removing quotes and whitespace"""
+        if isinstance(v, str):
+            return v.strip().strip('"').strip("'").rstrip("/")
+        return v
 
     # AI Provider Configuration
     OPENAI_API_KEY: str = Field(

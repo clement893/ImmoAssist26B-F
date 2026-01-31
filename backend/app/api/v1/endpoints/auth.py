@@ -712,6 +712,9 @@ async def get_google_auth_url(
         
         # Build redirect URI - use the configured one or construct from request
         callback_uri = settings.GOOGLE_REDIRECT_URI
+        # Clean up the URI: remove quotes, whitespace, and trailing slashes
+        if callback_uri:
+            callback_uri = callback_uri.strip().strip('"').strip("'").rstrip("/")
         if not callback_uri:
             # Use BASE_URL from settings if available, otherwise construct from request
             if settings.BASE_URL:
@@ -850,6 +853,9 @@ async def google_oauth_callback(
     
     # Build redirect URI - must match EXACTLY the one used in /google endpoint
     redirect_uri = settings.GOOGLE_REDIRECT_URI
+    # Clean up the URI: remove quotes, whitespace, and trailing slashes
+    if redirect_uri:
+        redirect_uri = redirect_uri.strip().strip('"').strip("'").rstrip("/")
     if not redirect_uri:
         # Use BASE_URL from settings if available, otherwise construct from request
         if settings.BASE_URL:

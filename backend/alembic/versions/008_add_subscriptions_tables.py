@@ -21,20 +21,33 @@ def upgrade() -> None:
     inspector = sa.inspect(conn)
     tables = inspector.get_table_names()
 
-    # Create enum types using SQLAlchemy with checkfirst=True to avoid duplicate creation
-    # This ensures SQLAlchemy recognizes the types and won't try to create them again
-    planinterval_enum = postgresql.ENUM('MONTH', 'YEAR', 'WEEK', 'DAY', name='planinterval', create_type=True)
-    planstatus_enum = postgresql.ENUM('ACTIVE', 'INACTIVE', 'ARCHIVED', name='planstatus', create_type=True)
-    subscriptionstatus_enum = postgresql.ENUM('ACTIVE', 'CANCELED', 'PAST_DUE', 'UNPAID', 'TRIALING', 'INCOMPLETE', 'INCOMPLETE_EXPIRED', name='subscriptionstatus', create_type=True)
-    invoicestatus_enum = postgresql.ENUM('DRAFT', 'OPEN', 'PAID', 'VOID', 'UNCOLLECTIBLE', name='invoicestatus', create_type=True)
-    
-    # Create enum types only if they don't exist (using checkfirst)
+    # Check if enum types exist before creating them
     # This prevents duplicate creation errors
-    bind = op.get_bind()
-    planinterval_enum.create(bind, checkfirst=True)
-    planstatus_enum.create(bind, checkfirst=True)
-    subscriptionstatus_enum.create(bind, checkfirst=True)
-    invoicestatus_enum.create(bind, checkfirst=True)
+    def enum_exists(enum_name: str) -> bool:
+        """Check if an enum type exists in PostgreSQL"""
+        result = conn.execute(sa.text(
+            "SELECT EXISTS (SELECT 1 FROM pg_type WHERE typname = :enum_name)"
+        ), {"enum_name": enum_name})
+        return result.scalar()
+
+    # Create enum types only if they don't exist
+    if not enum_exists('planinterval'):
+        conn.execute(sa.text("CREATE TYPE planinterval AS ENUM ('MONTH', 'YEAR', 'WEEK', 'DAY')"))
+    
+    if not enum_exists('planstatus'):
+        conn.execute(sa.text("CREATE TYPE planstatus AS ENUM ('ACTIVE', 'INACTIVE', 'ARCHIVED')"))
+    
+    if not enum_exists('subscriptionstatus'):
+        conn.execute(sa.text("CREATE TYPE subscriptionstatus AS ENUM ('ACTIVE', 'CANCELED', 'PAST_DUE', 'UNPAID', 'TRIALING', 'INCOMPLETE', 'INCOMPLETE_EXPIRED')"))
+    
+    if not enum_exists('invoicestatus'):
+        conn.execute(sa.text("CREATE TYPE invoicestatus AS ENUM ('DRAFT', 'OPEN', 'PAID', 'VOID', 'UNCOLLECTIBLE')"))
+    
+    # Create enum objects for use in table definitions
+    planinterval_enum = postgresql.ENUM('MONTH', 'YEAR', 'WEEK', 'DAY', name='planinterval', create_type=False)
+    planstatus_enum = postgresql.ENUM('ACTIVE', 'INACTIVE', 'ARCHIVED', name='planstatus', create_type=False)
+    subscriptionstatus_enum = postgresql.ENUM('ACTIVE', 'CANCELED', 'PAST_DUE', 'UNPAID', 'TRIALING', 'INCOMPLETE', 'INCOMPLETE_EXPIRED', name='subscriptionstatus', create_type=False)
+    invoicestatus_enum = postgresql.ENUM('DRAFT', 'OPEN', 'PAID', 'VOID', 'UNCOLLECTIBLE', name='invoicestatus', create_type=False)
 
     # Create plans table
     if 'plans' not in tables:
