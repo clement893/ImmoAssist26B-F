@@ -18,7 +18,8 @@ import {
   ListTodo,
   Sparkles,
   Quote,
-  ChevronDown
+  ChevronDown,
+  ArrowLeft
 } from 'lucide-react';
 import LeaChat from '@/components/lea/LeaChat';
 import { clsx } from 'clsx';
@@ -66,8 +67,25 @@ function AgentsContent() {
 
   if (showChat) {
     return (
-      <div className="h-[calc(100vh-120px)] min-h-[600px] w-full">
-        <LeaChat initialMessage={selectedPrompt || undefined} />
+      <div className="w-full">
+        {/* Back button */}
+        <div className="mb-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setShowChat(false);
+              setSelectedPrompt(null);
+            }}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Retour à l'accueil
+          </Button>
+        </div>
+        <div className="h-[calc(100vh-180px)] min-h-[600px] w-full">
+          <LeaChat initialMessage={selectedPrompt || undefined} />
+        </div>
       </div>
     );
   }
@@ -84,7 +102,14 @@ function AgentsContent() {
           <UserPlus className="w-4 h-4 mr-2" />
           Inviter
         </Button>
-        <Button variant="primary" size="sm">
+        <Button 
+          variant="primary" 
+          size="sm"
+          onClick={() => {
+            setShowChat(true);
+            setSelectedPrompt(null);
+          }}
+        >
           <Plus className="w-4 h-4 mr-2" />
           Nouvelle conversation
         </Button>
@@ -125,6 +150,14 @@ function AgentsContent() {
                   setSelectedPrompt(e.currentTarget.value.trim());
                   setShowChat(true);
                 }
+              }}
+              onFocus={(e) => {
+                e.currentTarget.addEventListener('keydown', (ev) => {
+                  if (ev.key === 'Enter' && e.currentTarget.value.trim()) {
+                    setSelectedPrompt(e.currentTarget.value.trim());
+                    setShowChat(true);
+                  }
+                });
               }}
             />
             <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">

@@ -108,11 +108,11 @@ export default function Sidebar({
               : 'px-3 py-2 rounded-lg',
             isActive 
               ? collapsed
-                ? 'bg-gray-800' 
-                : 'bg-gray-800 text-white'
+                ? 'bg-primary-600/20' 
+                : 'bg-primary-600/10 text-white border-l-2 border-primary-500'
               : collapsed
-                ? 'hover:bg-gray-800/50'
-                : 'text-gray-300 hover:bg-gray-800/50 hover:text-white',
+                ? 'hover:bg-neutral-700/50'
+                : 'text-neutral-300 hover:bg-neutral-700/50 hover:text-white',
             level > 0 && !collapsed && 'ml-4' // Indentation for nested items
           )}
         >
@@ -131,8 +131,8 @@ export default function Sidebar({
                     ? 'w-10 h-10' 
                     : 'w-9 h-9',
                   isActive 
-                    ? 'bg-gray-700 text-white' 
-                    : 'text-gray-400 hover:text-white'
+                    ? 'bg-primary-500 text-white' 
+                    : 'text-neutral-400 hover:text-white'
                 )}>
                   {item.icon}
                 </span>
@@ -156,8 +156,8 @@ export default function Sidebar({
                     ? 'w-10 h-10' 
                     : 'w-9 h-9',
                   isActive 
-                    ? 'bg-gray-700 text-white' 
-                    : 'text-gray-400 hover:text-white'
+                    ? 'bg-primary-500 text-white' 
+                    : 'text-neutral-400 hover:text-white'
                 )}>
                   {item.icon}
                 </span>
@@ -195,7 +195,7 @@ export default function Sidebar({
         </div>
 
         {hasChildren && isExpanded && !collapsed && (
-          <div className="mt-1 space-y-1 ml-4 border-l-2 border-gray-700/50 pl-3">
+          <div className="mt-1 space-y-1 ml-4 border-l-2 border-neutral-700/50 pl-3">
             {item.children!.map((child) => renderItem(child, level + 1))}
           </div>
         )}
@@ -220,14 +220,15 @@ export default function Sidebar({
   return (
     <aside
       className={clsx(
-        'bg-[#171717] dark:bg-[#0a0a0a] border-r border-gray-800/50 h-full transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col',
+        'bg-neutral-800 dark:bg-neutral-900 border-r border-neutral-700/50 h-full transition-all duration-300 ease-out flex flex-col',
+        'shadow-lg',
         collapsed ? 'w-16' : 'w-64 md:w-72 lg:w-80',
         className
       )}
     >
       {/* Header: AI Model Selector (like ChatGPT AI in image) */}
       {!collapsed && (
-        <div className="p-4 border-b border-gray-800/50 flex-shrink-0">
+        <div className="p-4 border-b border-neutral-700/50 flex-shrink-0">
           <div className="flex items-center gap-3 cursor-pointer hover:bg-gray-800/50 rounded-lg p-2 transition-colors">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center flex-shrink-0">
               <Sparkles className="w-4 h-4 text-white" />
@@ -235,7 +236,7 @@ export default function Sidebar({
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-white truncate">Léa AI</p>
             </div>
-            <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            <ChevronDown className="w-4 h-4 text-neutral-400 flex-shrink-0" />
           </div>
         </div>
       )}
@@ -277,7 +278,7 @@ export default function Sidebar({
 
       <nav className={clsx('flex-1 overflow-y-auto', collapsed ? 'p-2 space-y-2' : 'p-3 space-y-1')}>
         {filteredItems.length === 0 ? (
-          <div className={clsx('text-sm text-gray-400 text-center', collapsed ? 'px-2 py-4' : 'px-lg py-md')}>
+          <div className={clsx('text-sm text-neutral-400 text-center', collapsed ? 'px-2 py-4' : 'px-lg py-md')}>
             Aucun résultat trouvé
           </div>
         ) : (
@@ -287,7 +288,7 @@ export default function Sidebar({
 
       {/* Footer: User Avatar at bottom (like in image) */}
       {user && (
-        <div className={clsx('border-t border-gray-800/50 flex-shrink-0', collapsed ? 'p-2' : 'p-4')}>
+        <div className={clsx('border-t border-neutral-700/50 flex-shrink-0', collapsed ? 'p-2' : 'p-4')}>
           {collapsed ? (
             <div className="flex justify-center">
               <div className="relative">
@@ -311,7 +312,7 @@ export default function Sidebar({
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-white truncate">{user.name || 'Utilisateur'}</p>
-                <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                <p className="text-xs text-neutral-400 truncate">{user.email}</p>
               </div>
             </div>
           )}
@@ -326,7 +327,7 @@ export default function Sidebar({
               <button
                 onClick={onToggleCollapse}
                 className={clsx(
-                  'rounded-lg hover:bg-gray-800 text-gray-400 hover:text-white transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] flex items-center justify-center',
+                  'rounded-lg hover:bg-neutral-700 text-neutral-400 hover:text-white transition-all duration-200 ease-out flex items-center justify-center',
                   collapsed ? 'w-10 h-10' : 'p-2 min-h-[44px] min-w-[44px]'
                 )}
                 aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
@@ -344,7 +345,7 @@ export default function Sidebar({
               <button
                 onClick={onClose}
                 className={clsx(
-                  'rounded-lg hover:bg-gray-800 text-gray-400 hover:text-white transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] flex items-center justify-center',
+                  'rounded-lg hover:bg-neutral-700 text-neutral-400 hover:text-white transition-all duration-200 ease-out flex items-center justify-center',
                   collapsed ? 'w-10 h-10' : 'p-2 min-h-[44px] min-w-[44px]'
                 )}
                 aria-label="Fermer le menu"
@@ -357,7 +358,7 @@ export default function Sidebar({
               <button
                 onClick={onHomeClick}
                 className={clsx(
-                  'rounded-lg hover:bg-gray-800 text-gray-400 hover:text-white transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] flex items-center justify-center',
+                  'rounded-lg hover:bg-neutral-700 text-neutral-400 hover:text-white transition-all duration-200 ease-out flex items-center justify-center',
                   collapsed ? 'w-10 h-10' : 'p-2 min-h-[44px] min-w-[44px]'
                 )}
                 aria-label="Retour à l'accueil"

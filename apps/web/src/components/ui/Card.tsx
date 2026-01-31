@@ -81,6 +81,8 @@ import { type ReactNode, type HTMLAttributes } from 'react';
 import { clsx } from 'clsx';
 import { useGlobalTheme } from '@/lib/theme/global-theme-provider';
 
+export type CardVariant = 'default' | 'elevated' | 'outlined' | 'gradient';
+
 export interface CardProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onClick'> {
   /** Card content */
   children: ReactNode;
@@ -94,6 +96,8 @@ export interface CardProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onClick
   footer?: ReactNode;
   /** Actions (alias for footer) */
   actions?: ReactNode;
+  /** Card variant style */
+  variant?: CardVariant;
   /** Enable hover effect */
   hover?: boolean;
   /** Click handler */
@@ -110,6 +114,7 @@ export default function Card({
   footer,
   actions,
   className,
+  variant = 'default',
   hover = false,
   onClick,
   padding = true,
@@ -130,7 +135,7 @@ export default function Card({
   // Get card padding - use theme config if available, otherwise use defaults
   const getCardPadding = () => {
     if (!cardPaddingConfig) {
-      return 'p-lg'; // Default padding: 24px (UX/UI improvements - Batch 5)
+      return 'p-6'; // Default padding: 24px (modern spacing)
     }
 
     // Use theme padding (sm, md, lg)
@@ -140,33 +145,32 @@ export default function Card({
   };
 
   const cardPadding = getCardPadding();
-  const useThemePadding = typeof cardPadding === 'string' && cardPadding !== 'p-lg';
+  const useThemePadding = typeof cardPadding === 'string' && cardPadding !== 'p-6';
+
+  // Variant styles
+  const variantStyles = {
+    default: 'bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-sm',
+    elevated: 'bg-white dark:bg-neutral-900 border-0 shadow-md hover:shadow-lg',
+    outlined: 'bg-transparent border-2 border-neutral-300 dark:border-neutral-700 shadow-none',
+    gradient: 'bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-primary-950 dark:to-secondary-950 border border-primary-200 dark:border-primary-800 shadow-sm',
+  };
 
   return (
     <div
       className={clsx(
-        'rounded-xl border',
-        // Modern shadow system
-        'shadow-sm',
-        'bg-[var(--color-background)]',
-        'border-[var(--color-border)]',
+        'rounded-xl', // Modern rounded corners (12px)
+        variantStyles[variant],
         'backdrop-blur-sm',
+        'transition-all duration-200 ease-out',
         // Enhanced hover effects
-        hover && 'transition-all duration-300 ease-out hover:shadow-xl hover:-translate-y-0.5',
-        onClick && 'cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500/50 dark:focus:ring-primary-400/50 focus:ring-offset-2 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5',
+        (hover || onClick) && 'hover:shadow-lg hover:-translate-y-1',
+        onClick && 'cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:ring-offset-2',
         className
       )}
       style={
         {
-          // Glassmorphism support: use CSS variables with fallbacks
-          backgroundColor: 'var(--glassmorphism-card-background, var(--color-background))',
-          backdropFilter: 'var(--glassmorphism-card-backdrop-blur, var(--glassmorphism-backdrop, blur(8px)))',
-          WebkitBackdropFilter: 'var(--glassmorphism-card-backdrop-blur, var(--glassmorphism-backdrop, blur(8px)))',
-          borderColor: 'var(--glassmorphism-card-border, var(--color-border))',
-          // Enhanced shadow for glassmorphism with modern layered shadows
-          boxShadow: hover || onClick
-            ? 'var(--glassmorphism-shadow, 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.05))'
-            : 'var(--glassmorphism-shadow, 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06))',
+          // Modern card styling with CSS variables
+          backgroundColor: variant === 'gradient' ? undefined : 'var(--color-background, #ffffff)',
         } as React.CSSProperties
       }
       onClick={
@@ -203,22 +207,22 @@ export default function Card({
     >
       {(title || subtitle || header) && (
         <div
-          className={clsx('border-b border-[var(--color-border)]', !useThemePadding && 'px-lg py-md')}
+          className={clsx('border-b border-neutral-200 dark:border-neutral-800', !useThemePadding && 'px-6 py-4')}
           style={
             useThemePadding
               ? {
                   paddingLeft: cardPadding,
                   paddingRight: cardPadding,
-                  paddingTop: cardPadding,
-                  paddingBottom: cardPadding,
+                  paddingTop: '1rem',
+                  paddingBottom: '1rem',
                 }
               : undefined
           }
         >
           {header || (
             <>
-              {title && <h3 className="text-lg font-semibold text-[var(--color-foreground)]">{title}</h3>}
-              {subtitle && <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">{subtitle}</p>}
+              {title && <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">{title}</h3>}
+              {subtitle && <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">{subtitle}</p>}
             </>
           )}
         </div>
@@ -239,14 +243,14 @@ export default function Card({
 
       {cardFooter && (
         <div
-          className={clsx('border-t border-[var(--color-border)]/50 bg-[var(--color-muted)]/50 backdrop-blur-sm', !useThemePadding && 'px-lg py-md')}
+          className={clsx('border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/50', !useThemePadding && 'px-6 py-4')}
           style={
             useThemePadding
               ? {
                   paddingLeft: cardPadding,
                   paddingRight: cardPadding,
-                  paddingTop: cardPadding,
-                  paddingBottom: cardPadding,
+                  paddingTop: '1rem',
+                  paddingBottom: '1rem',
                 }
               : undefined
           }

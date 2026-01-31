@@ -43,12 +43,12 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   asChild?: boolean;
 }
 
-// Base styles - Modern and clean
+// Base styles - Modern and clean with improved rounded corners
 const baseStyles = [
   'font-medium',
-  'rounded-lg',
+  'rounded-xl', // More rounded (12px) for modern look
   'transition-all',
-  'duration-300',
+  'duration-200', // Faster transitions
   'ease-out',
   'focus:outline-none',
   'focus:ring-2',
@@ -68,20 +68,50 @@ const createVariantStyles = (base: string[], hover: string[], focus: string[], c
 
 const variants = {
   primary: createVariantStyles(
-    ['bg-gradient-to-r', 'from-primary-600', 'to-primary-500', 'dark:from-primary-500', 'dark:to-primary-400', 'text-background', 'shadow-lg', 'shadow-primary-500/25'],
-    ['hover:from-primary-700', 'hover:to-primary-600', 'dark:hover:from-primary-600', 'dark:hover:to-primary-500', 'hover:shadow-xl', 'hover:shadow-primary-500/30'],
+    ['bg-gradient-to-r', 'from-primary-600', 'to-primary-500', 'dark:from-primary-500', 'dark:to-primary-400', 'text-white', 'shadow-md', 'shadow-primary-500/30'],
+    ['hover:from-primary-700', 'hover:to-primary-600', 'dark:hover:from-primary-600', 'dark:hover:to-primary-500', 'hover:shadow-lg', 'hover:shadow-primary-500/40', 'hover:-translate-y-0.5'],
     ['focus:ring-primary-500', 'dark:focus:ring-primary-400', 'focus:ring-offset-2'],
     'color-primary-500'
   ),
   secondary: createVariantStyles(
-    ['bg-gradient-to-r', 'from-secondary-600', 'to-secondary-500', 'dark:from-secondary-500', 'dark:to-secondary-400', 'text-background', 'shadow-lg', 'shadow-secondary-500/25'],
-    ['hover:from-secondary-700', 'hover:to-secondary-600', 'dark:hover:from-secondary-600', 'dark:hover:to-secondary-500', 'hover:shadow-xl', 'hover:shadow-secondary-500/30'],
+    ['bg-gradient-to-r', 'from-secondary-600', 'to-secondary-500', 'dark:from-secondary-500', 'dark:to-secondary-400', 'text-white', 'shadow-md', 'shadow-secondary-500/30'],
+    ['hover:from-secondary-700', 'hover:to-secondary-600', 'dark:hover:from-secondary-600', 'dark:hover:to-secondary-500', 'hover:shadow-lg', 'hover:shadow-secondary-500/40', 'hover:-translate-y-0.5'],
     ['focus:ring-secondary-500', 'dark:focus:ring-secondary-400', 'focus:ring-offset-2'],
     'color-secondary-500'
   ),
+  gradient: [
+    'bg-gradient-to-r',
+    'from-primary-600',
+    'to-secondary-500',
+    'dark:from-primary-500',
+    'dark:to-secondary-400',
+    'text-white',
+    'shadow-md',
+    'shadow-primary-500/30',
+    'hover:from-primary-700',
+    'hover:to-secondary-600',
+    'dark:hover:from-primary-600',
+    'dark:hover:to-secondary-500',
+    'hover:shadow-lg',
+    'hover:-translate-y-0.5',
+    'focus:ring-primary-500',
+    'dark:focus:ring-primary-400',
+  ].join(' '),
+  soft: [
+    'bg-primary-50',
+    'dark:bg-primary-900/30',
+    'text-primary-700',
+    'dark:text-primary-300',
+    'hover:bg-primary-100',
+    'dark:hover:bg-primary-900/50',
+    'shadow-sm',
+    'hover:shadow-md',
+    'focus:ring-primary-500',
+    'dark:focus:ring-primary-400',
+  ].join(' '),
   outline: [
     'border-2',
-    'border-primary-600/60',
+    'border-primary-500/60',
     'dark:border-primary-400/60',
     'text-primary-600',
     'dark:text-primary-400',
@@ -100,9 +130,11 @@ const variants = {
     '[color:var(--color-primary-500)]',
   ].join(' '),
   ghost: [
-    'text-foreground',
+    'text-neutral-700',
+    'dark:text-neutral-300',
     'bg-transparent',
-    'hover:bg-muted/80',
+    'hover:bg-neutral-100',
+    'dark:hover:bg-neutral-800',
     'hover:shadow-sm',
     'focus:ring-primary-500',
     'dark:focus:ring-primary-400',
