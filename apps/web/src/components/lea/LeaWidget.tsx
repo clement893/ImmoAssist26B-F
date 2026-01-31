@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import LeaChat from './LeaChat';
-import Button from '@/components/ui/Button';
 import { MessageCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 

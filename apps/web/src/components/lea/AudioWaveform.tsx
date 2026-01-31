@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface AudioWaveformProps {
   isActive?: boolean;
@@ -9,7 +9,6 @@ interface AudioWaveformProps {
 
 export default function AudioWaveform({ isActive = false, className = '' }: AudioWaveformProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [animationFrame, setAnimationFrame] = useState<number | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -26,10 +25,7 @@ export default function AudioWaveform({ isActive = false, className = '' }: Audi
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
-    const centerY = canvas.height / 2;
     const barCount = 50;
-    const barWidth = canvas.width / barCount;
-    const maxBarHeight = canvas.height * 0.6;
 
     let phase = 0;
     let frameId: number | null = null;

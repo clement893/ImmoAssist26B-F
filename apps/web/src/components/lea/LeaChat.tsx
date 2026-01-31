@@ -5,11 +5,9 @@ import { useLea } from '@/hooks/useLea';
 import { useVoiceRecognition } from '@/hooks/useVoiceRecognition';
 import { useVoiceSynthesis } from '@/hooks/useVoiceSynthesis';
 import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
-import Card from '@/components/ui/Card';
 import Loading from '@/components/ui/Loading';
 import Alert from '@/components/ui/Alert';
-import { Send, Mic, MicOff, Volume2, VolumeX, X, Trash2, Paperclip, ArrowUp } from 'lucide-react';
+import { Mic, MicOff, Volume2, VolumeX, X, Trash2, Paperclip, ArrowUp } from 'lucide-react';
 import { clsx } from 'clsx';
 import AudioWaveform from './AudioWaveform';
 
