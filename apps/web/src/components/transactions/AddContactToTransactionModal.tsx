@@ -8,10 +8,9 @@ import Button from '@/components/ui/Button';
 import Loading from '@/components/ui/Loading';
 import Alert from '@/components/ui/Alert';
 import { realEstateContactsAPI } from '@/lib/api/real-estate-contacts';
-import { RealEstateContact, TransactionRole, TRANSACTION_ROLES, ContactType } from '@/types/real-estate-contact';
+import { RealEstateContact, TRANSACTION_ROLES } from '@/types/real-estate-contact';
 import { Search, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 
 interface AddContactToTransactionModalProps {
   isOpen: boolean;

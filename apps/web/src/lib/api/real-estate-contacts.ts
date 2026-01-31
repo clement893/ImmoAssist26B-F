@@ -29,7 +29,7 @@ export const realEstateContactsAPI = {
    */
   async create(data: RealEstateContactCreate): Promise<{ data: RealEstateContact }> {
     const response = await apiClient.post('/real-estate-contacts', data);
-    return extractApiData(response);
+    return { data: extractApiData<RealEstateContact>(response) };
   },
 
   /**
@@ -37,7 +37,7 @@ export const realEstateContactsAPI = {
    */
   async list(params?: ListContactsParams): Promise<{ data: RealEstateContactListResponse }> {
     const response = await apiClient.get('/real-estate-contacts', { params });
-    return extractApiData(response);
+    return { data: extractApiData<RealEstateContactListResponse>(response) };
   },
 
   /**
@@ -45,7 +45,7 @@ export const realEstateContactsAPI = {
    */
   async get(id: number): Promise<{ data: RealEstateContact }> {
     const response = await apiClient.get(`/real-estate-contacts/${id}`);
-    return extractApiData(response);
+    return { data: extractApiData<RealEstateContact>(response) };
   },
 
   /**
@@ -53,7 +53,7 @@ export const realEstateContactsAPI = {
    */
   async update(id: number, data: RealEstateContactUpdate): Promise<{ data: RealEstateContact }> {
     const response = await apiClient.put(`/real-estate-contacts/${id}`, data);
-    return extractApiData(response);
+    return { data: extractApiData<RealEstateContact>(response) };
   },
 
   /**
@@ -71,7 +71,7 @@ export const realEstateContactsAPI = {
     data: TransactionContactCreate
   ): Promise<{ data: TransactionContact }> {
     const response = await apiClient.post(`/transactions/${transactionId}/contacts`, data);
-    return extractApiData(response);
+    return { data: extractApiData<TransactionContact>(response) };
   },
 
   /**
@@ -84,7 +84,7 @@ export const realEstateContactsAPI = {
     const response = await apiClient.get(`/transactions/${transactionId}/contacts`, {
       params: role ? { role } : undefined,
     });
-    return extractApiData(response);
+    return { data: extractApiData<TransactionContactListResponse>(response) };
   },
 
   /**

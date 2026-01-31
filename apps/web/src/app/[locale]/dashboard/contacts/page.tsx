@@ -255,7 +255,7 @@ function ContactsContent() {
                         </div>
                       </td>
                       <td className="p-4">
-                        <Badge variant="outline">
+                        <Badge variant="default">
                           {CONTACT_TYPE_LABELS[contact.type]}
                         </Badge>
                       </td>

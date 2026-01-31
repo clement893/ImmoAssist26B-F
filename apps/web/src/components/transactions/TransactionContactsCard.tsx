@@ -75,7 +75,7 @@ export default function TransactionContactsCard({
     if (!acc[tc.role]) {
       acc[tc.role] = [];
     }
-    acc[tc.role].push(tc);
+    acc[tc.role]!.push(tc);
     return acc;
   }, {} as Record<string, TransactionContact[]>);
 
@@ -135,7 +135,7 @@ export default function TransactionContactsCard({
                     {role}
                   </h4>
                   <div className="space-y-3">
-                    {contactsByRole[role].map((tc) => (
+                    {contactsByRole[role]!.map((tc) => (
                       <div
                         key={`${tc.contact_id}-${tc.role}`}
                         className="flex items-start justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
@@ -146,7 +146,7 @@ export default function TransactionContactsCard({
                               {tc.contact.first_name} {tc.contact.last_name}
                             </span>
                             {tc.contact.company && (
-                              <Badge variant="outline" className="text-xs">
+                              <Badge variant="default" className="text-xs">
                                 <Building2 className="w-3 h-3 mr-1" />
                                 {tc.contact.company}
                               </Badge>
