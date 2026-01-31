@@ -88,7 +88,7 @@ export function createTransactionsAPI(config: TransactionsAPIConfig) {
  * Create real estate contacts API client
  */
 export function createRealEstateContactsAPI(config: TransactionsAPIConfig) {
-  const { apiClient, extractApiData = (data: any) => data } = config;
+  const { apiClient, extractApiData = <T>(data: any): T => data as T } = config;
 
   return {
     /**
