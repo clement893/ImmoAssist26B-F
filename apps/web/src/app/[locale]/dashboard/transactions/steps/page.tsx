@@ -7,7 +7,6 @@ export const dynamicParams = true;
 import { useState, useEffect } from 'react';
 import Container from '@/components/ui/Container';
 import Card from '@/components/ui/Card';
-import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Select from '@/components/ui/Select';
 import Loading from '@/components/ui/Loading';
@@ -25,8 +24,6 @@ import {
   DollarSign,
   FileCheck,
   Home,
-  Building2,
-  ArrowRight,
   XCircle
 } from 'lucide-react';
 
@@ -59,9 +56,11 @@ interface Transaction {
   inspection_report_received?: boolean;
   inspection_report_satisfactory?: boolean;
   financing_approval_received?: boolean;
+  financing_approval_date?: string;
   home_insurance_proof_received?: boolean;
   seller_quittance_received?: boolean;
   seller_quittance_confirmed?: boolean;
+  registry_publication_number?: string;
 }
 
 interface TransactionStep {
@@ -229,9 +228,9 @@ function TransactionStepsContent() {
       date: transaction.financing_condition_lifted_date || transaction.financing_approval_date,
       deadline: transaction.financing_deadline,
       details: [
-        financingApproved && `Approbation reçue: ${formatDate(transaction.financing_approval_date)}`,
+        financingApproved && transaction.financing_approval_date && `Approbation reçue: ${formatDate(transaction.financing_approval_date)}`,
         financingDeadline && `Date limite: ${formatDate(transaction.financing_deadline)}`,
-        financingLifted && `Condition levée: ${formatDate(transaction.financing_condition_lifted_date)}`,
+        financingLifted && transaction.financing_condition_lifted_date && `Condition levée: ${formatDate(transaction.financing_condition_lifted_date)}`,
       ].filter(Boolean) as string[],
     });
 
@@ -448,14 +447,14 @@ function TransactionStepsContent() {
                     </span>
                   </div>
                   <div className="flex items-center gap-4 text-sm">
-                    {selectedTransaction.sellers && selectedTransaction.sellers.length > 0 && (
+                    {selectedTransaction.sellers && selectedTransaction.sellers.length > 0 && selectedTransaction.sellers[0] && (
                       <div className="flex items-center gap-2">
                         <Users className="w-4 h-4 text-muted-foreground" />
                         <span className="text-muted-foreground">Vendeur:</span>
                         <span className="font-medium">{selectedTransaction.sellers[0].name}</span>
                       </div>
                     )}
-                    {selectedTransaction.buyers && selectedTransaction.buyers.length > 0 && (
+                    {selectedTransaction.buyers && selectedTransaction.buyers.length > 0 && selectedTransaction.buyers[0] && (
                       <div className="flex items-center gap-2">
                         <Users className="w-4 h-4 text-muted-foreground" />
                         <span className="text-muted-foreground">Acheteur:</span>
