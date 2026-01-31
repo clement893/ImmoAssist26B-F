@@ -162,9 +162,13 @@ export default function Card({
         variantStyles[variant],
         'backdrop-blur-sm',
         'transition-all duration-200 ease-out',
-        // Enhanced hover effects
+        // Enhanced hover effects (desktop only)
         (hover || onClick) && 'hover:shadow-lg hover:-translate-y-1',
+        // Touch-friendly on mobile
+        onClick && 'active:scale-[0.98]',
         onClick && 'cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:ring-offset-2',
+        // Responsive padding
+        'w-full',
         className
       )}
       style={

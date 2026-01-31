@@ -87,10 +87,10 @@ export default function ActivityChart({
   const maxHeight = height - 60; // Reserve space for labels
 
   return (
-    <div className={clsx('w-full', className)}>
-      <div className="relative" style={{ height: `${height}px` }}>
+    <div className={clsx('w-full overflow-x-auto', className)}>
+      <div className="relative min-w-[320px]" style={{ height: `${height}px` }}>
         {/* Chart bars */}
-        <div className="flex items-end justify-between gap-2 h-full pb-12">
+        <div className="flex items-end justify-between gap-1 sm:gap-2 h-full pb-12">
           {data.map((point, index) => {
             const barHeight = (point.value / calculatedMax) * maxHeight;
             const isHovered = hoveredIndex === index;

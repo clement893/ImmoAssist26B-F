@@ -453,6 +453,69 @@ body {
   @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-neutral-900;
 }
 
+/* Responsive utilities */
+@media (max-width: 640px) {
+  /* Mobile-specific styles */
+  .mobile-hidden {
+    display: none;
+  }
+  
+  /* Touch-friendly tap targets */
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Tablet and up */
+@media (min-width: 768px) {
+  .tablet-hidden {
+    display: none;
+  }
+}
+
+/* Desktop and up */
+@media (min-width: 1024px) {
+  .desktop-hidden {
+    display: none;
+  }
+}
+
+/* Prevent horizontal scroll on mobile */
+@media (max-width: 640px) {
+  body {
+    overflow-x: hidden;
+  }
+}
+
+/* Responsive text sizes */
+@media (max-width: 640px) {
+  .text-responsive-sm {
+    font-size: 0.875rem;
+  }
+  
+  .text-responsive-base {
+    font-size: 0.9375rem;
+  }
+  
+  .text-responsive-lg {
+    font-size: 1.125rem;
+  }
+}
+
+/* Responsive spacing */
+@media (max-width: 640px) {
+  .space-y-responsive > * + * {
+    margin-top: 0.75rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .space-y-responsive > * + * {
+    margin-top: 1rem;
+  }
+}
+
 /* Hide scrollbar but keep functionality */
 .scrollbar-hide {
   -ms-overflow-style: none;  /* IE and Edge */

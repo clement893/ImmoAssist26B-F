@@ -85,9 +85,10 @@ export default function MetricCard({
   return (
     <div
       className={clsx(
-        'rounded-xl border p-6 transition-all duration-200',
+        'rounded-xl border p-4 sm:p-6 transition-all duration-200',
+        'w-full', // Full width on mobile
         variantStyles[variant],
-        onClick && 'cursor-pointer hover:shadow-lg hover:-translate-y-1',
+        onClick && 'cursor-pointer hover:shadow-lg hover:-translate-y-1 active:scale-[0.98]',
         className
       )}
       onClick={onClick}
@@ -123,8 +124,8 @@ export default function MetricCard({
 
       <div className="space-y-3">
         {/* Primary value */}
-        <div className="flex items-baseline gap-2">
-          <p className="text-3xl font-bold text-neutral-900 dark:text-neutral-100">{value}</p>
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <p className="text-2xl sm:text-3xl font-bold text-neutral-900 dark:text-neutral-100">{value}</p>
           {trend !== 'neutral' && (
             <div className={clsx('flex items-center gap-1 text-sm font-semibold', trendColors[trend])}>
               <TrendIcon className="w-4 h-4" />

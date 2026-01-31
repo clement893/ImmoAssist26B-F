@@ -89,9 +89,9 @@ export default function DashboardHeader({
       )}
     >
       <div className="px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 gap-4">
+        <div className="flex items-center justify-between h-14 sm:h-16 gap-2 sm:gap-4">
           {/* Left Section: Mobile Menu + Title/Breadcrumbs */}
-          <div className="flex items-center gap-4 flex-1 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
             {/* Mobile Menu Button */}
             {onMobileMenuToggle && (
               <button
@@ -111,9 +111,9 @@ export default function DashboardHeader({
             {/* Title or Breadcrumbs */}
             <div className="flex-1 min-w-0">
               {breadcrumbs && breadcrumbs.length > 0 ? (
-                <Breadcrumb items={breadcrumbs} />
+                <Breadcrumb items={breadcrumbs} className="text-xs sm:text-sm" />
               ) : title ? (
-                <h1 className="text-xl font-bold text-neutral-900 dark:text-neutral-100 truncate">
+                <h1 className="text-lg sm:text-xl font-bold text-neutral-900 dark:text-neutral-100 truncate">
                   {title}
                 </h1>
               ) : null}
@@ -137,7 +137,7 @@ export default function DashboardHeader({
           )}
 
           {/* Right Section: Actions + Notifications + User */}
-          <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             {/* Additional Actions */}
             {actions}
 
