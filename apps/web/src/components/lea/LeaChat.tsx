@@ -212,6 +212,10 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
           inputValue={input}
           onInputChange={setInput}
           showExampleCards={messages.length === 0}
+          isListening={isListening}
+          onVoiceToggle={toggleListening}
+          voiceSupported={voiceSupported}
+          isLoading={isLoading}
         />
       </div>
 

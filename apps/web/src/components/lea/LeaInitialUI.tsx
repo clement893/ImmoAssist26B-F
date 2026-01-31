@@ -1,9 +1,10 @@
 'use client';
 
 import { useAuthStore } from '@/lib/store';
-import { Sparkles, Quote, Plus, Paperclip, ChevronDown, ListTodo, Mail, FileText, Code } from 'lucide-react';
+import { Sparkles, Quote, Plus, Paperclip, ChevronDown, ListTodo, Mail, FileText, Code, Mic, MicOff, ArrowUp } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { Card } from '@/components/ui';
+import { clsx } from 'clsx';
 
 interface LeaInitialUIProps {
   onPromptSelect?: (prompt: string) => void;
@@ -12,6 +13,10 @@ interface LeaInitialUIProps {
   onInputChange?: (value: string) => void;
   inputPlaceholder?: string;
   showExampleCards?: boolean;
+  isListening?: boolean;
+  onVoiceToggle?: () => void;
+  voiceSupported?: boolean;
+  isLoading?: boolean;
 }
 
 const exampleCards = [
@@ -44,6 +49,10 @@ export default function LeaInitialUI({
   onInputChange,
   inputPlaceholder = "Posez une question à l'IA ou faites une demande...",
   showExampleCards = true,
+  isListening = false,
+  onVoiceToggle,
+  voiceSupported = false,
+  isLoading = false,
 }: LeaInitialUIProps) {
   const { user } = useAuthStore();
 
@@ -94,9 +103,52 @@ export default function LeaInitialUI({
             onChange={(e) => onInputChange?.(e.target.value)}
             onKeyPress={handleInputKeyPress}
             placeholder={inputPlaceholder}
-            className="w-full bg-transparent text-foreground placeholder:text-muted-foreground text-lg outline-none pr-20"
+            disabled={isLoading || isListening}
+            className="w-full bg-transparent text-foreground placeholder:text-muted-foreground text-lg outline-none pr-24"
           />
           <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+            {/* Voice Button */}
+            {voiceSupported && onVoiceToggle && (
+              <button
+                type="button"
+                onClick={onVoiceToggle}
+                disabled={isLoading}
+                className={clsx(
+                  'p-2 rounded-lg transition-colors',
+                  isListening
+                    ? 'bg-red-500 hover:bg-red-600 text-white'
+                    : 'hover:bg-muted'
+                )}
+                title={isListening ? 'Arrêter l\'écoute' : 'Parler à Léa'}
+              >
+                {isListening ? (
+                  <MicOff className="w-5 h-5" />
+                ) : (
+                  <Mic className="w-5 h-5" />
+                )}
+              </button>
+            )}
+            {/* Send Button */}
+            {inputValue.trim() && (
+              <button
+                type="button"
+                onClick={() => inputValue.trim() && onInputSubmit?.(inputValue.trim())}
+                disabled={!inputValue.trim() || isLoading || isListening}
+                className={clsx(
+                  'p-2 rounded-lg transition-colors',
+                  inputValue.trim() && !isLoading && !isListening
+                    ? 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white'
+                    : 'bg-muted opacity-50 cursor-not-allowed'
+                )}
+                title="Envoyer"
+              >
+                {isLoading ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <ArrowUp className="w-5 h-5" />
+                )}
+              </button>
+            )}
             <button
               className="p-2 rounded-lg hover:bg-muted transition-colors"
               title="Citation"
