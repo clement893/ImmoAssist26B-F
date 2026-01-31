@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import Loading from '@/components/ui/Loading';
 import LeaMessageBubble from './LeaMessageBubble';
-import type { LeaMessage } from './LeaConversationView';
+import type { LeaMessage } from '@/hooks/useLea';
 
 interface LeaMessagesListProps {
   messages: LeaMessage[];

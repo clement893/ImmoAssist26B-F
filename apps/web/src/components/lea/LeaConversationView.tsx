@@ -6,12 +6,7 @@ import Button from '@/components/ui/Button';
 import LeaConversationHeader from './LeaConversationHeader';
 import LeaMessagesList from './LeaMessagesList';
 import LeaChatInput from './LeaChatInput';
-
-export interface LeaMessage {
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp?: string;
-}
+import type { LeaMessage } from '@/hooks/useLea';
 
 interface LeaConversationViewProps {
   messages: LeaMessage[];
