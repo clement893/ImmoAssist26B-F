@@ -12,6 +12,13 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json ./apps/web/
 COPY packages/types/package.json ./packages/types/
+COPY packages/ui/package.json ./packages/ui/
+COPY packages/reseau/package.json ./packages/reseau/
+COPY packages/transactions/package.json ./packages/transactions/
+COPY packages/admin/package.json ./packages/admin/
+COPY packages/profil/package.json ./packages/profil/
+COPY packages/formulaire/package.json ./packages/formulaire/
+COPY packages/config/package.json ./packages/config/
 
 # Install dependencies
 # Sharp will automatically download prebuilt binaries (faster than building from source)
@@ -34,6 +41,13 @@ COPY --from=deps /app/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=deps /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
 COPY --from=deps /app/apps/web/package.json ./apps/web/package.json
 COPY --from=deps /app/packages/types/package.json ./packages/types/package.json
+COPY --from=deps /app/packages/ui/package.json ./packages/ui/package.json
+COPY --from=deps /app/packages/reseau/package.json ./packages/reseau/package.json
+COPY --from=deps /app/packages/transactions/package.json ./packages/transactions/package.json
+COPY --from=deps /app/packages/admin/package.json ./packages/admin/package.json
+COPY --from=deps /app/packages/profil/package.json ./packages/profil/package.json
+COPY --from=deps /app/packages/formulaire/package.json ./packages/formulaire/package.json
+COPY --from=deps /app/packages/config/package.json ./packages/config/package.json
 # Reinstall to recreate symlinks for binaries
 # Railway caches .pnpm-store automatically via railway.json, so pnpm will reuse cached packages
 # Use --prefer-offline to use cache if available, but don't fail if not
