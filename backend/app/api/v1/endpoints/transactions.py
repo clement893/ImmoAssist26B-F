@@ -12,12 +12,18 @@ from decimal import Decimal
 
 from app.core.database import get_db
 from app.dependencies import get_current_user
-from app.models import User, RealEstateTransaction
+from app.models import User, RealEstateTransaction, RealEstateContact, TransactionContact
 from app.schemas.real_estate_transaction import (
     RealEstateTransactionCreate,
     RealEstateTransactionUpdate,
     RealEstateTransactionResponse,
     RealEstateTransactionListResponse,
+)
+from app.schemas.real_estate_contact import (
+    TransactionContactCreate,
+    TransactionContactResponse,
+    TransactionContactListResponse,
+    RealEstateContactResponse,
 )
 from app.core.logging import logger
 
@@ -414,4 +420,221 @@ async def get_transaction_progression(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error getting transaction progression: {str(e)}",
+        )
+
+
+@router.post("/{transaction_id}/contacts", response_model=TransactionContactResponse, status_code=status.HTTP_201_CREATED)
+async def add_contact_to_transaction(
+    transaction_id: int,
+    contact_data: TransactionContactCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Associate a contact to a transaction with a specific role
+    """
+    try:
+        # Verify transaction exists and belongs to user
+        transaction_query = select(RealEstateTransaction).where(
+            and_(
+                RealEstateTransaction.id == transaction_id,
+                RealEstateTransaction.user_id == current_user.id,
+            )
+        )
+        transaction_result = await db.execute(transaction_query)
+        transaction = transaction_result.scalar_one_or_none()
+        
+        if not transaction:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Transaction not found",
+            )
+        
+        # Verify contact exists
+        contact_query = select(RealEstateContact).where(RealEstateContact.id == contact_data.contact_id)
+        contact_result = await db.execute(contact_query)
+        contact = contact_result.scalar_one_or_none()
+        
+        if not contact:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Contact not found",
+            )
+        
+        # Check if association already exists
+        existing = await db.execute(
+            select(TransactionContact).where(
+                and_(
+                    TransactionContact.transaction_id == transaction_id,
+                    TransactionContact.contact_id == contact_data.contact_id,
+                    TransactionContact.role == contact_data.role
+                )
+            )
+        )
+        if existing.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Contact {contact_data.contact_id} already has role '{contact_data.role}' in this transaction",
+            )
+        
+        # Create association
+        transaction_contact = TransactionContact(
+            transaction_id=transaction_id,
+            contact_id=contact_data.contact_id,
+            role=contact_data.role
+        )
+        db.add(transaction_contact)
+        await db.commit()
+        await db.refresh(transaction_contact)
+        
+        # Load contact for response
+        await db.refresh(contact)
+        
+        return TransactionContactResponse(
+            transaction_id=transaction_contact.transaction_id,
+            contact_id=transaction_contact.contact_id,
+            role=transaction_contact.role,
+            created_at=transaction_contact.created_at,
+            contact=RealEstateContactResponse.model_validate(contact)
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error adding contact to transaction: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error adding contact to transaction: {str(e)}",
+        )
+
+
+@router.get("/{transaction_id}/contacts", response_model=TransactionContactListResponse)
+async def get_transaction_contacts(
+    transaction_id: int,
+    role_filter: Optional[str] = Query(None, alias="role", description="Filter by role"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get all contacts associated with a transaction
+    """
+    try:
+        # Verify transaction exists and belongs to user
+        transaction_query = select(RealEstateTransaction).where(
+            and_(
+                RealEstateTransaction.id == transaction_id,
+                RealEstateTransaction.user_id == current_user.id,
+            )
+        )
+        transaction_result = await db.execute(transaction_query)
+        transaction = transaction_result.scalar_one_or_none()
+        
+        if not transaction:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Transaction not found",
+            )
+        
+        # Build query
+        query = select(TransactionContact).where(
+            TransactionContact.transaction_id == transaction_id
+        ).options(selectinload(TransactionContact.contact))
+        
+        # Apply role filter
+        if role_filter:
+            query = query.where(TransactionContact.role == role_filter)
+        
+        # Get total count
+        count_query = select(func.count()).select_from(query.subquery())
+        total_result = await db.execute(count_query)
+        total = total_result.scalar() or 0
+        
+        # Execute query
+        result = await db.execute(query)
+        transaction_contacts = result.scalars().all()
+        
+        return TransactionContactListResponse(
+            contacts=[
+                TransactionContactResponse(
+                    transaction_id=tc.transaction_id,
+                    contact_id=tc.contact_id,
+                    role=tc.role,
+                    created_at=tc.created_at,
+                    contact=RealEstateContactResponse.model_validate(tc.contact)
+                )
+                for tc in transaction_contacts
+            ],
+            total=total,
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting transaction contacts: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error getting transaction contacts: {str(e)}",
+        )
+
+
+@router.delete("/{transaction_id}/contacts/{contact_id}/{role}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_contact_from_transaction(
+    transaction_id: int,
+    contact_id: int,
+    role: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Remove a contact from a transaction (dissociate by role)
+    """
+    try:
+        # Verify transaction exists and belongs to user
+        transaction_query = select(RealEstateTransaction).where(
+            and_(
+                RealEstateTransaction.id == transaction_id,
+                RealEstateTransaction.user_id == current_user.id,
+            )
+        )
+        transaction_result = await db.execute(transaction_query)
+        transaction = transaction_result.scalar_one_or_none()
+        
+        if not transaction:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Transaction not found",
+            )
+        
+        # Find the association
+        query = select(TransactionContact).where(
+            and_(
+                TransactionContact.transaction_id == transaction_id,
+                TransactionContact.contact_id == contact_id,
+                TransactionContact.role == role
+            )
+        )
+        
+        result = await db.execute(query)
+        transaction_contact = result.scalar_one_or_none()
+        
+        if not transaction_contact:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Contact association not found",
+            )
+        
+        await db.delete(transaction_contact)
+        await db.commit()
+        
+        return None
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error removing contact from transaction: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error removing contact from transaction: {str(e)}",
         )

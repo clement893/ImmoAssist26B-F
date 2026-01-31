@@ -81,3 +81,6 @@ export type {
 
 // Re-export API utilities
 export { extractApiData } from './utils';
+
+// Re-export real estate contacts API
+export { realEstateContactsAPI } from './real-estate-contacts';

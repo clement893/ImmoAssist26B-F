@@ -12,6 +12,7 @@ import Select from '@/components/ui/Select';
 import Loading from '@/components/ui/Loading';
 import Alert from '@/components/ui/Alert';
 import StatusStepper from '@/components/transactions/StatusStepper';
+import TransactionContactsCard from '@/components/transactions/TransactionContactsCard';
 import { transactionsAPI } from '@/lib/api';
 import { calculateTransactionSteps, getTransactionProgressionStatus } from '@/lib/transactions/progression';
 import { 
@@ -247,6 +248,19 @@ function TransactionStepsContent() {
               </div>
             </div>
           </Card>
+        )}
+
+        {/* Contacts Card */}
+        {selectedTransaction && (
+          <TransactionContactsCard
+            transactionId={selectedTransaction.id}
+            onContactAdded={() => {
+              // Optionally reload transaction details
+            }}
+            onContactRemoved={() => {
+              // Optionally reload transaction details
+            }}
+          />
         )}
 
         {/* Steps Timeline */}

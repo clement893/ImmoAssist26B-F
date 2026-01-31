@@ -154,3 +154,9 @@ class RealEstateTransaction(Base):
     # Relations
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     user = relationship("User", backref="real_estate_transactions")
+    transaction_contacts = relationship("TransactionContact", back_populates="transaction", cascade="all, delete-orphan")
+    
+    def get_contacts_by_role(self, role: str):
+        """Helper method to get contacts by role"""
+        from app.models.real_estate_contact import RealEstateContact
+        return [tc.contact for tc in self.transaction_contacts if tc.role == role]
