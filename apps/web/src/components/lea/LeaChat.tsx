@@ -34,7 +34,6 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
   const [autoSpeak, setAutoSpeak] = useState(false); // Mute par défaut
   const [initialMessageSent, setInitialMessageSent] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   // Send initial message if provided
   useEffect(() => {
@@ -75,15 +74,6 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
     }
   }, [messages, autoSpeak, ttsSupported, isSpeaking, speak]);
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
-
-    const message = input.trim();
-    setInput('');
-    await sendMessage(message);
-    inputRef.current?.focus();
-  };
-
   const toggleListening = async () => {
     if (isListening) {
       stopListening();
@@ -103,7 +93,7 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
   return (
     <div className={clsx('flex flex-col h-full min-h-screen bg-background', className)}>
       {/* Top Right Navigation */}
-      <div className="flex items-center justify-end gap-4 mb-8 px-6 pt-6">
+      <div className="flex items-center justify-end gap-3 mb-6 px-4 pt-4">
         {ttsSupported && (
           <Button
             variant="ghost"
@@ -147,7 +137,7 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
       <div className="flex-1 overflow-y-auto">
         {/* Messages Section - Above Initial UI if messages exist */}
         {messages.length > 0 && (
-          <div className="max-w-4xl mx-auto px-6 pb-8 space-y-4">
+          <div className="max-w-4xl mx-auto px-4 pb-6 space-y-3">
             {messages.map((message, index) => (
               <div
                 key={index}
@@ -158,13 +148,13 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
               >
                 <div
                   className={clsx(
-                    'max-w-[80%] rounded-lg px-4 py-2',
+                    'max-w-[80%] rounded-lg px-3 py-1.5', // Reduced padding for better density
                     message.role === 'user'
                       ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
                       : 'bg-muted text-foreground'
                   )}
                 >
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  <p className="text-xs whitespace-pre-wrap">{message.content}</p>
                   {message.timestamp && (
                     <p className="text-xs opacity-70 mt-1">
                       {new Date(message.timestamp).toLocaleTimeString('fr-FR', {
@@ -179,7 +169,7 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
 
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-muted rounded-lg px-4 py-2">
+                <div className="bg-muted rounded-lg px-3 py-1.5">
                   <Loading size="sm" />
                 </div>
               </div>
@@ -213,7 +203,7 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
 
       {/* Error Alert */}
       {(error || voiceError) && (
-        <div className="px-6 pb-4">
+        <div className="px-4 pb-3">
           <Alert variant="error" title={(error || voiceError)?.includes('Permission') ? 'Permission microphone requise' : 'Erreur'}>
             <div className="space-y-2">
               <p>{error || voiceError}</p>
@@ -247,8 +237,8 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
 
       {/* Voice Input Indicator */}
       {isListening && (
-        <div className="px-6 pb-4">
-          <div className="flex items-center gap-2 text-sm text-purple-500 bg-purple-50 dark:bg-purple-950/20 rounded-lg p-3">
+        <div className="px-4 pb-3">
+          <div className="flex items-center gap-2 text-xs text-purple-500 bg-purple-50 dark:bg-purple-950/20 rounded-lg p-2.5">
             <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse" />
             <span className="font-medium">Écoute en cours...</span>
             {transcript && <span className="text-muted-foreground">({transcript})</span>}
