@@ -54,7 +54,7 @@ export const transactionsAPI = {
   analyzePDF: async (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
-    const response = await apiClient.post('/api/v1/transactions/analyze-pdf', formData, {
+    const response = await apiClient.post('/v1/transactions/analyze-pdf', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -69,7 +69,7 @@ export const transactionsAPI = {
     if (description) {
       formData.append('description', description);
     }
-    const response = await apiClient.post(`/api/v1/transactions/${transactionId}/documents`, formData, {
+    const response = await apiClient.post(`/v1/transactions/${transactionId}/documents`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -79,7 +79,7 @@ export const transactionsAPI = {
     } as any;
   },
   removeDocument: async (transactionId: number, documentId: number) => {
-    const response = await apiClient.delete(`/api/v1/transactions/${transactionId}/documents/${documentId}`);
+    const response = await apiClient.delete(`/v1/transactions/${transactionId}/documents/${documentId}`);
     return {
       data: response.data,
     } as any;
@@ -90,7 +90,7 @@ export const transactionsAPI = {
     if (description) {
       formData.append('description', description);
     }
-    const response = await apiClient.post(`/api/v1/transactions/${transactionId}/photos`, formData, {
+    const response = await apiClient.post(`/v1/transactions/${transactionId}/photos`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
