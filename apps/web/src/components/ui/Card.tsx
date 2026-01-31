@@ -135,7 +135,7 @@ export default function Card({
   // Get card padding - use theme config if available, otherwise use defaults
   const getCardPadding = () => {
     if (!cardPaddingConfig) {
-      return 'p-6'; // Default padding: 24px (modern spacing)
+      return 'p-4'; // Default padding: 16px - Reduced from 24px (-33%) for better density
     }
 
     // Use theme padding (sm, md, lg)
@@ -158,7 +158,7 @@ export default function Card({
   return (
     <div
       className={clsx(
-        'rounded-xl', // Modern rounded corners (12px)
+        'rounded-lg', // Reduced rounded corners (8px) - Reduced from 12px (-33%) for more compact look
         variantStyles[variant],
         'backdrop-blur-sm',
         'transition-all duration-200 ease-out',
@@ -211,14 +211,14 @@ export default function Card({
     >
       {(title || subtitle || header) && (
         <div
-          className={clsx('border-b border-neutral-200 dark:border-neutral-800', !useThemePadding && 'px-6 py-4')}
+          className={clsx('border-b border-neutral-200 dark:border-neutral-800', !useThemePadding && 'px-4 py-3')}
           style={
             useThemePadding
               ? {
                   paddingLeft: cardPadding,
                   paddingRight: cardPadding,
-                  paddingTop: '1rem',
-                  paddingBottom: '1rem',
+                  paddingTop: '0.75rem', // Reduced from 1rem (-25%)
+                  paddingBottom: '0.75rem', // Reduced from 1rem (-25%)
                 }
               : undefined
           }
@@ -247,14 +247,14 @@ export default function Card({
 
       {cardFooter && (
         <div
-          className={clsx('border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/50', !useThemePadding && 'px-6 py-4')}
+          className={clsx('border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/50', !useThemePadding && 'px-4 py-3')}
           style={
             useThemePadding
               ? {
                   paddingLeft: cardPadding,
                   paddingRight: cardPadding,
-                  paddingTop: '1rem',
-                  paddingBottom: '1rem',
+                  paddingTop: '0.75rem', // Reduced from 1rem (-25%)
+                  paddingBottom: '0.75rem', // Reduced from 1rem (-25%)
                 }
               : undefined
           }

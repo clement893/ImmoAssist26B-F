@@ -154,11 +154,11 @@ const variants = {
   ),
 };
 
-// Default sizes (fallback if theme config not available)
+// Default sizes (fallback if theme config not available) - Compact design for better density
 const defaultSizes = {
-  sm: 'px-4 py-2.5 text-sm min-h-[44px]', // Ensure minimum touch target (44x44px) - Increased py for better breathing room
-  md: 'px-6 py-3 text-base min-h-[44px]', // Standard size - py-3 (12px) provides good balance
-  lg: 'px-8 py-4 text-lg min-h-[44px]', // Large size - py-4 (16px) for prominence
+  sm: 'px-3 py-1.5 text-xs min-h-[36px]', // Compact small - Reduced padding and font for better density
+  md: 'px-4 py-2 text-sm min-h-[40px]', // Standard size - Reduced padding and font while maintaining usability
+  lg: 'px-5 py-2.5 text-base min-h-[44px]', // Large size - Reduced padding while maintaining prominence
 };
 
 function Button({

@@ -136,7 +136,7 @@ function DataTable<T extends Record<string, unknown>>({
       {/* Table - Responsive wrapper for horizontal scroll on mobile */}
       <div className="bg-white dark:bg-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-800 shadow-sm overflow-hidden">
         {/* Scroll hint for mobile users */}
-        <div className="px-4 py-2 text-xs text-neutral-500 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-800/50 border-b border-neutral-200 dark:border-neutral-700 md:hidden">
+        <div className="px-3 py-1.5 text-xs text-neutral-500 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-800/50 border-b border-neutral-200 dark:border-neutral-700 md:hidden">
           <span className="inline-flex items-center gap-1">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path

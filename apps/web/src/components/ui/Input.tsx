@@ -56,7 +56,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
 
     // Build input style - use theme config if available
     const inputStyle: React.CSSProperties = {};
-    let paddingClasses = 'px-4 py-2';
+    let paddingClasses = 'px-3 py-1.5'; // Reduced padding for better density (-25%)
 
     if (sizeConfig) {
       if (sizeConfig.paddingX || sizeConfig.paddingY) {
@@ -81,7 +81,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className={clsx('flex flex-col', fullWidth && 'w-full')}>
         {label && (
-          <label htmlFor={inputId} className="block text-sm font-medium text-foreground mb-2">
+          <label htmlFor={inputId} className="block text-xs font-medium text-foreground mb-1.5">
             {label}
             {props.required && (
               <span className="text-error-500 dark:text-error-400 ml-1" aria-label="required">

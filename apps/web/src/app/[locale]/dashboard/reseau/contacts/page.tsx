@@ -703,7 +703,7 @@ function ContactsContent() {
                       const contactData = contact as Contact;
                       return (
                         <div
-                          className="flex items-center gap-3"
+                          className="flex items-center gap-2"
                           onMouseEnter={(e) => handleRowHover(contactData, e)}
                         >
                           <ContactAvatar contact={contactData} size="md" />
@@ -833,7 +833,7 @@ function ContactsContent() {
         title="Importer des contacts"
         size="lg"
       >
-        <div className="space-y-6">
+        <div className="space-y-4">
           <div className="bg-muted/50 p-4 rounded-lg">
             <h4 className="font-semibold mb-2">Télécharger le template</h4>
             <p className="text-sm text-muted-foreground mb-4">

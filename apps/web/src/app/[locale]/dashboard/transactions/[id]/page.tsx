@@ -215,7 +215,7 @@ export default function TransactionDetailPage() {
 
   return (
     <Container>
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Breadcrumbs */}
         <Breadcrumb
           items={[
@@ -275,18 +275,18 @@ export default function TransactionDetailPage() {
           <TabPanels>
             {/* Information Tab */}
             <TabPanel value="information">
-              <div className="mt-6 space-y-6">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="mt-4 space-y-4">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                   {/* Left Column - Main Info */}
                   <div className="lg:col-span-2 space-y-6">
                     {/* Identification */}
                     <Card>
-                      <div className="p-6 space-y-6">
-                        <h2 className="text-lg font-semibold flex items-center gap-2">
-                          <FileText className="w-5 h-5" />
+                      <div className="p-4 space-y-4">
+                        <h2 className="text-base font-semibold flex items-center gap-2">
+                          <FileText className="w-4 h-4" />
                           Identification
                         </h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <InlineEditableField
                             label="Nom de la transaction"
                             value={transaction.name}
@@ -315,12 +315,12 @@ export default function TransactionDetailPage() {
 
                     {/* Property Info */}
                     <Card>
-                      <div className="p-6 space-y-6">
-                        <h2 className="text-lg font-semibold flex items-center gap-2">
-                          <Home className="w-5 h-5" />
+                      <div className="p-4 space-y-4">
+                        <h2 className="text-base font-semibold flex items-center gap-2">
+                          <Home className="w-4 h-4" />
                           Propriété
                         </h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <InlineEditableField
                             label="Adresse"
                             value={transaction.property_address}
@@ -385,12 +385,12 @@ export default function TransactionDetailPage() {
 
                     {/* Financial Info */}
                     <Card>
-                      <div className="p-6 space-y-6">
-                        <h2 className="text-lg font-semibold flex items-center gap-2">
-                          <DollarSign className="w-5 h-5" />
+                      <div className="p-4 space-y-4">
+                        <h2 className="text-base font-semibold flex items-center gap-2">
+                          <DollarSign className="w-4 h-4" />
                           Informations financières
                         </h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <InlineEditableField
                             label="Prix demandé"
                             value={transaction.listing_price}
@@ -425,12 +425,12 @@ export default function TransactionDetailPage() {
 
                     {/* Dates */}
                     <Card>
-                      <div className="p-6 space-y-6">
-                        <h2 className="text-lg font-semibold flex items-center gap-2">
-                          <Calendar className="w-5 h-5" />
+                      <div className="p-4 space-y-4">
+                        <h2 className="text-base font-semibold flex items-center gap-2">
+                          <Calendar className="w-4 h-4" />
                           Dates importantes
                         </h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <InlineEditableField
                             label="Date de promesse d'achat"
                             value={transaction.promise_to_purchase_date}
@@ -472,9 +472,9 @@ export default function TransactionDetailPage() {
 
                     {/* Notes */}
                     <Card>
-                      <div className="p-6 space-y-6">
-                        <h2 className="text-lg font-semibold flex items-center gap-2">
-                          <FileText className="w-5 h-5" />
+                      <div className="p-4 space-y-4">
+                        <h2 className="text-base font-semibold flex items-center gap-2">
+                          <FileText className="w-4 h-4" />
                           Notes
                         </h2>
                         <InlineEditableField
@@ -488,12 +488,12 @@ export default function TransactionDetailPage() {
                   </div>
 
                   {/* Right Column - Sidebar */}
-                  <div className="space-y-6">
+                  <div className="space-y-4">
                     {/* Parties */}
                     <Card>
-                      <div className="p-6 space-y-4">
-                        <h2 className="text-lg font-semibold flex items-center gap-2">
-                          <Users className="w-5 h-5" />
+                      <div className="p-4 space-y-3">
+                        <h2 className="text-base font-semibold flex items-center gap-2">
+                          <Users className="w-4 h-4" />
                           Parties impliquées
                         </h2>
                         {transaction.sellers && transaction.sellers.length > 0 && (
@@ -521,8 +521,8 @@ export default function TransactionDetailPage() {
 
                     {/* Quick Actions */}
                     <Card>
-                      <div className="p-6 space-y-4">
-                        <h2 className="text-lg font-semibold">Actions rapides</h2>
+                      <div className="p-4 space-y-3">
+                        <h2 className="text-base font-semibold">Actions rapides</h2>
                         <div className="space-y-2">
                           <Button
                             variant="outline"
@@ -542,12 +542,12 @@ export default function TransactionDetailPage() {
 
             {/* Photos Tab */}
             <TabPanel value="photos">
-              <div className="mt-6">
+              <div className="mt-4">
                 <Card>
-                  <div className="p-6 space-y-6">
+                  <div className="p-4 space-y-4">
                     <div className="flex items-center justify-between">
-                      <h2 className="text-lg font-semibold flex items-center gap-2">
-                        <ImageIcon className="w-5 h-5" />
+                      <h2 className="text-base font-semibold flex items-center gap-2">
+                        <ImageIcon className="w-4 h-4" />
                         Photos
                       </h2>
                       <label className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg cursor-pointer hover:bg-muted transition-colors text-sm">
@@ -581,7 +581,7 @@ export default function TransactionDetailPage() {
                     </div>
                     
                     {transaction.documents && transaction.documents.filter(d => d.type === 'photo').length > 0 ? (
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                         {transaction.documents.filter(d => d.type === 'photo').map((photo) => (
                           <div
                             key={photo.id}
@@ -654,12 +654,12 @@ export default function TransactionDetailPage() {
 
             {/* Documents Tab */}
             <TabPanel value="documents">
-              <div className="mt-6">
+              <div className="mt-4">
                 <Card>
-                  <div className="p-6 space-y-6">
+                  <div className="p-4 space-y-4">
                     <div className="flex items-center justify-between">
-                      <h2 className="text-lg font-semibold flex items-center gap-2">
-                        <FileText className="w-5 h-5" />
+                      <h2 className="text-base font-semibold flex items-center gap-2">
+                        <FileText className="w-4 h-4" />
                         Documents
                       </h2>
                       <label className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg cursor-pointer hover:bg-muted transition-colors text-sm">
@@ -692,14 +692,14 @@ export default function TransactionDetailPage() {
                     </div>
                     
                     {transaction.documents && transaction.documents.filter(d => d.type !== 'photo').length > 0 ? (
-                      <div className="space-y-3">
+                      <div className="space-y-2">
                         {transaction.documents.filter(d => d.type !== 'photo').map((doc) => (
                           <div
                             key={doc.id}
-                            className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
+                            className="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-muted/50 transition-colors"
                           >
-                            <div className="flex items-center gap-3 flex-1 min-w-0">
-                              <FileText className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                               <div className="flex-1 min-w-0">
                                 <p className="font-medium truncate">{doc.filename}</p>
                                 {doc.description && (
@@ -765,11 +765,11 @@ export default function TransactionDetailPage() {
 
             {/* Transactions Tab */}
             <TabPanel value="transactions">
-              <div className="mt-6">
+              <div className="mt-4">
                 <Card>
-                  <div className="p-6">
-                    <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
-                      <Receipt className="w-5 h-5" />
+                  <div className="p-4">
+                    <h2 className="text-base font-semibold flex items-center gap-2 mb-3">
+                      <Receipt className="w-4 h-4" />
                       Historique financier
                     </h2>
                     <div className="text-center py-12 text-muted-foreground">
@@ -783,11 +783,11 @@ export default function TransactionDetailPage() {
 
             {/* Deposits Tab */}
             <TabPanel value="deposits">
-              <div className="mt-6">
+              <div className="mt-4">
                 <Card>
-                  <div className="p-6">
-                    <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
-                      <Shield className="w-5 h-5" />
+                  <div className="p-4">
+                    <h2 className="text-base font-semibold flex items-center gap-2 mb-3">
+                      <Shield className="w-4 h-4" />
                       Dépôts de sécurité
                     </h2>
                     <div className="text-center py-12 text-muted-foreground">
@@ -801,25 +801,25 @@ export default function TransactionDetailPage() {
 
             {/* Balance Tab */}
             <TabPanel value="balance">
-              <div className="mt-6">
+              <div className="mt-4">
                 <Card>
-                  <div className="p-6">
-                    <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
-                      <DollarSign className="w-5 h-5" />
+                  <div className="p-4">
+                    <h2 className="text-base font-semibold flex items-center gap-2 mb-3">
+                      <DollarSign className="w-4 h-4" />
                       Solde
                     </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                       <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-                        <div className="p-6">
-                          <p className="text-sm text-muted-foreground mb-2">Solde du bail</p>
+                        <div className="p-4">
+                          <p className="text-xs text-muted-foreground mb-1.5">Solde du bail</p>
                           <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                             {formatCurrency(transaction.deposit_amount ? -transaction.deposit_amount : 0)}
                           </p>
                         </div>
                       </Card>
                       <Card className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
-                        <div className="p-6">
-                          <p className="text-sm text-muted-foreground mb-2">Dépôts de sécurité</p>
+                        <div className="p-4">
+                          <p className="text-xs text-muted-foreground mb-1.5">Dépôts de sécurité</p>
                           <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                             {formatCurrency(transaction.deposit_amount)}
                           </p>
@@ -837,27 +837,27 @@ export default function TransactionDetailPage() {
 
             {/* History Tab */}
             <TabPanel value="history">
-              <div className="mt-6">
+              <div className="mt-4">
                 <Card>
-                  <div className="p-6">
-                    <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
-                      <History className="w-5 h-5" />
+                  <div className="p-4">
+                    <h2 className="text-base font-semibold flex items-center gap-2 mb-3">
+                      <History className="w-4 h-4" />
                       Historique
                     </h2>
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-4 p-4 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3 p-3 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded">
                         <div className="w-2 h-2 rounded-full bg-blue-500"></div>
                         <div className="flex-1">
-                          <p className="text-sm font-medium">Transaction créée</p>
-                          <p className="text-xs text-muted-foreground">{formatDate(transaction.created_at)}</p>
+                          <p className="text-xs font-medium">Transaction créée</p>
+                          <p className="text-[10px] text-muted-foreground">{formatDate(transaction.created_at)}</p>
                         </div>
                       </div>
                       {transaction.updated_at !== transaction.created_at && (
-                        <div className="flex items-center gap-4 p-4 border-l-4 border-green-500 bg-green-50 dark:bg-green-900/20 rounded">
+                        <div className="flex items-center gap-3 p-3 border-l-4 border-green-500 bg-green-50 dark:bg-green-900/20 rounded">
                           <div className="w-2 h-2 rounded-full bg-green-500"></div>
                           <div className="flex-1">
-                            <p className="text-sm font-medium">Dernière modification</p>
-                            <p className="text-xs text-muted-foreground">{formatDate(transaction.updated_at)}</p>
+                            <p className="text-xs font-medium">Dernière modification</p>
+                            <p className="text-[10px] text-muted-foreground">{formatDate(transaction.updated_at)}</p>
                           </div>
                         </div>
                       )}

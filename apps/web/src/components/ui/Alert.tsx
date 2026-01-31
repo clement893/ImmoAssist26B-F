@@ -114,23 +114,23 @@ function Alert({ variant = 'info', title, children, onClose, className, icon }: 
   const variantStyles = variantConfig ? applyVariantConfigAsStyles(variantConfig) : {};
 
   return (
-    <div className={clsx('rounded-xl border p-lg transition-all duration-300', classes.container, className)} style={variantStyles}>
+    <div className={clsx('rounded-lg border p-3 transition-all duration-300', classes.container, className)} style={variantStyles}>
       <div className="flex">
         <div className="flex-shrink-0">{displayIcon}</div>
-        <div className="ml-4 flex-1">
-          {title && <h3 className={clsx('text-sm font-semibold mb-2 tracking-tight', classes.title)}>{title}</h3>}
+        <div className="ml-3 flex-1">
+          {title && <h3 className={clsx('text-xs font-semibold mb-1.5 tracking-tight', classes.title)}>{title}</h3>}
           <Text variant="small" className={clsx(classes.text, 'leading-relaxed')}>
             {children}
           </Text>
         </div>
         {onClose && (
-          <div className="ml-auto pl-4">
+          <div className="ml-auto pl-3">
             <button
               onClick={onClose}
-              className={clsx('inline-flex rounded-lg p-1.5 hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200', classes.text)}
+              className={clsx('inline-flex rounded-lg p-1 hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200', classes.text)}
               aria-label="Close alert"
             >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path
                   fillRule="evenodd"
                   d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"

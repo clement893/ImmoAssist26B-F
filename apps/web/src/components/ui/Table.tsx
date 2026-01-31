@@ -102,7 +102,7 @@ export function TableHeader({
   return (
     <th
       className={clsx(
-        'px-6 py-4 text-left text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider',
+        'px-4 py-2.5 text-left text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider', // Reduced padding: px-4 py-2.5 (-33% horizontal, -37.5% vertical)
         sortable && 'cursor-pointer select-none hover:text-primary-600 dark:hover:text-primary-400 transition-colors',
         className
       )}
@@ -158,7 +158,7 @@ export function TableCell({ children, className, colSpan, onClick, style }: Tabl
       colSpan={colSpan}
       onClick={onClick}
       className={clsx(
-        'px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100',
+        'px-4 py-2.5 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100', // Reduced padding: px-4 py-2.5 (-33% horizontal, -37.5% vertical)
         className
       )}
       style={style}

@@ -774,6 +774,8 @@ async def import_contacts(
             all_companies = companies_result.scalars().all()
             # Create a case-insensitive mapping: company_name_lower -> company_id
             company_name_to_id = {}
+            # Create a set of valid company IDs for quick validation
+            valid_company_ids = {company.id for company in all_companies}
             for company in all_companies:
                 if company.name:
                     company_name_to_id[company.name.lower().strip()] = company.id
@@ -1295,6 +1297,56 @@ async def import_contacts(
                 
                 # Get photo_filename for photo matching
                 logo_filename = get_field_value(row_data, ['logo_filename', 'photo_filename', 'nom_fichier_photo'])
+                
+                # Validate company_id exists if provided
+                if company_id:
+                    company_exists = company_id in valid_company_ids
+                    if not company_exists:
+                        # Company ID doesn't exist, try to find by name if available
+                        company_name = get_field_value(row_data, [
+                            'company_name', 'company', 'entreprise', 'entreprise_name',
+                            'nom_entreprise', 'company name', 'nom entreprise',
+                            'société', 'societe', 'organisation', 'organization',
+                            'firme', 'business', 'client'
+                        ])
+                        
+                        if company_name and company_name.strip():
+                            company_name_normalized = company_name.strip().lower()
+                            company_name_clean = company_name_normalized.replace('sarl', '').replace('sa', '').replace('sas', '').replace('eurl', '').strip()
+                            
+                            # Try to find company by name
+                            matched_company_id = None
+                            if company_name_normalized in company_name_to_id:
+                                matched_company_id = company_name_to_id[company_name_normalized]
+                            elif company_name_clean and company_name_clean in company_name_to_id:
+                                matched_company_id = company_name_to_id[company_name_clean]
+                            
+                            if matched_company_id:
+                                company_id = matched_company_id
+                                warnings.append({
+                                    'row': idx + 2,
+                                    'type': 'company_id_invalid_but_name_matched',
+                                    'message': f"L'entreprise avec ID {company_id} n'existe pas, mais l'entreprise '{company_name}' a été trouvée par nom (ID: {matched_company_id})",
+                                    'data': {'invalid_company_id': company_id, 'company_name': company_name, 'matched_company_id': matched_company_id}
+                                })
+                            else:
+                                # Company not found by name either, set to None
+                                warnings.append({
+                                    'row': idx + 2,
+                                    'type': 'company_id_not_found',
+                                    'message': f"L'entreprise avec ID {company_id} n'existe pas dans la base de données. Le contact sera créé sans entreprise.",
+                                    'data': {'invalid_company_id': company_id, 'company_name': company_name}
+                                })
+                                company_id = None
+                        else:
+                            # No company name provided, just set to None
+                            warnings.append({
+                                'row': idx + 2,
+                                'type': 'company_id_not_found',
+                                'message': f"L'entreprise avec ID {company_id} n'existe pas dans la base de données. Le contact sera créé sans entreprise.",
+                                'data': {'invalid_company_id': company_id}
+                            })
+                            company_id = None
                 
                 # Prepare contact data
                 contact_data = ContactCreate(

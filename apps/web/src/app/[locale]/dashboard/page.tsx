@@ -77,7 +77,7 @@ function DashboardContent() {
       {/* Léa AI Assistant - En haut du dashboard */}
       <MotionDiv variant="slideUp" delay={150}>
         <Card className="bg-gradient-to-br from-[#1A1A2E] to-[#16213E] border-gray-800 hover:shadow-xl transition-all duration-300">
-          <div className="flex items-center gap-4 mb-4">
+          <div className="flex items-center gap-3 mb-3">
             <div className="p-3 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg">
               <Sparkles className="w-6 h-6 text-white" />
             </div>
@@ -117,7 +117,7 @@ function DashboardContent() {
             <StatsCard
               title="Activities"
               value="0"
-              icon={<Activity className="w-5 h-5" />}
+              icon={<Activity className="w-4 h-4" />}
               variant="default"
             />
           </WidgetGrid.Item>
@@ -127,7 +127,7 @@ function DashboardContent() {
               value="+12%"
               trend="+12%"
               trendDirection="up"
-              icon={<TrendingUp className="w-5 h-5" />}
+              icon={<TrendingUp className="w-4 h-4" />}
               variant="success"
             />
           </WidgetGrid.Item>
@@ -135,7 +135,7 @@ function DashboardContent() {
       </MotionDiv>
 
       <MotionDiv variant="slideUp" delay={300}>
-        <WidgetGrid columns={{ sm: 1, md: 2 }} gap={6}>
+        <WidgetGrid columns={{ sm: 1, md: 2 }} gap={4}>
           {/* User Profile Metric Card */}
           <WidgetGrid.Item size="md">
             <MetricCard
@@ -155,7 +155,7 @@ function DashboardContent() {
           {/* Quick Actions Card */}
           <WidgetGrid.Item size="md">
             <Card variant="gradient" className="hover:shadow-xl transition-all duration-300">
-              <div className="flex items-center gap-4 mb-6">
+              <div className="flex items-center gap-3 mb-4">
                 <div className="p-3 bg-primary-600 dark:bg-primary-500 rounded-lg">
                   <Zap className="w-6 h-6 text-white" />
                 </div>

@@ -104,8 +104,8 @@ export default function Sidebar({
             'flex items-center justify-between transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]',
             // Modern circular icon design like in the image
             collapsed 
-              ? 'justify-center p-2' 
-              : 'px-3 py-2 rounded-lg',
+              ? 'justify-center p-1.5' 
+              : 'px-2.5 py-1.5 rounded-lg', // Reduced padding for better density (-17% horizontal, -25% vertical)
             isActive 
               ? collapsed
                 ? 'bg-primary-600/20' 
@@ -228,8 +228,8 @@ export default function Sidebar({
     >
       {/* Header: AI Model Selector (like ChatGPT AI in image) */}
       {!collapsed && (
-        <div className="p-4 border-b border-neutral-700/50 flex-shrink-0">
-          <div className="flex items-center gap-3 cursor-pointer hover:bg-gray-800/50 rounded-lg p-2 transition-colors">
+        <div className="p-3 border-b border-neutral-700/50 flex-shrink-0">
+          <div className="flex items-center gap-2 cursor-pointer hover:bg-gray-800/50 rounded-lg p-1.5 transition-colors">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center flex-shrink-0">
               <Sparkles className="w-4 h-4 text-white" />
             </div>
@@ -243,7 +243,7 @@ export default function Sidebar({
       
       {/* Collapsed: Just show icon */}
       {collapsed && (
-        <div className="p-4 border-b border-gray-800/50 flex-shrink-0 flex justify-center">
+        <div className="p-3 border-b border-gray-800/50 flex-shrink-0 flex justify-center">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
             <Sparkles className="w-4 h-4 text-white" />
           </div>
@@ -276,7 +276,7 @@ export default function Sidebar({
         </div>
       )}
 
-      <nav className={clsx('flex-1 overflow-y-auto', collapsed ? 'p-2 space-y-2' : 'p-3 space-y-1')}>
+      <nav className={clsx('flex-1 overflow-y-auto', collapsed ? 'p-1.5 space-y-1.5' : 'p-2.5 space-y-1')}>
         {filteredItems.length === 0 ? (
           <div className={clsx('text-sm text-neutral-400 text-center', collapsed ? 'px-2 py-4' : 'px-lg py-md')}>
             Aucun résultat trouvé
@@ -288,7 +288,7 @@ export default function Sidebar({
 
       {/* Footer: User Avatar at bottom (like in image) */}
       {user && (
-        <div className={clsx('border-t border-neutral-700/50 flex-shrink-0', collapsed ? 'p-2' : 'p-4')}>
+        <div className={clsx('border-t border-neutral-700/50 flex-shrink-0', collapsed ? 'p-1.5' : 'p-3')}>
           {collapsed ? (
             <div className="flex justify-center">
               <div className="relative">
@@ -321,7 +321,7 @@ export default function Sidebar({
 
       {/* Footer: Actions (Collapse, Close, Home, Theme, Logout) */}
       {(onToggleCollapse || onClose || onHomeClick || themeToggleComponent || onLogoutClick) && (
-        <div className={clsx('border-t border-gray-800/50 flex-shrink-0', collapsed ? 'p-2' : 'p-3')}>
+        <div className={clsx('border-t border-gray-800/50 flex-shrink-0', collapsed ? 'p-1.5' : 'p-2.5')}>
           <div className={clsx('flex items-center gap-2', collapsed || isMobile ? 'justify-center flex-wrap' : 'justify-start')}>
             {onToggleCollapse && (
               <button

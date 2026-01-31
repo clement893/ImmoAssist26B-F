@@ -174,22 +174,22 @@ export const DEFAULT_THEME_CONFIG = {
     button: {
       sizes: {
         sm: {
-          paddingX: '1rem',
-          paddingY: '0.5rem',
-          fontSize: '0.875rem',
-          minHeight: '36px',
+          paddingX: '0.75rem', // 12px - Reduced from 16px (-25%)
+          paddingY: '0.375rem', // 6px - Reduced from 8px (-25%)
+          fontSize: '0.75rem', // 12px - Reduced from 14px (-14%)
+          minHeight: '36px', // Reduced from 44px (-18%)
         },
         md: {
-          paddingX: '1.5rem',
-          paddingY: '0.75rem',
-          fontSize: '1rem',
-          minHeight: '44px',
+          paddingX: '1rem', // 16px - Reduced from 24px (-33%)
+          paddingY: '0.5rem', // 8px - Reduced from 12px (-33%)
+          fontSize: '0.875rem', // 14px - Reduced from 16px (-12.5%)
+          minHeight: '40px', // Reduced from 44px (-9%)
         },
         lg: {
-          paddingX: '2rem',
-          paddingY: '1rem',
-          fontSize: '1.125rem',
-          minHeight: '48px',
+          paddingX: '1.25rem', // 20px - Reduced from 32px (-37.5%)
+          paddingY: '0.625rem', // 10px - Reduced from 16px (-37.5%)
+          fontSize: '1rem', // 16px - Reduced from 18px (-11%)
+          minHeight: '48px', // Maintained for prominence
         },
       },
       variants: {
@@ -226,9 +226,9 @@ export const DEFAULT_THEME_CONFIG = {
     },
     card: {
       padding: {
-        sm: '1rem',
-        md: '1.5rem',
-        lg: '2rem',
+        sm: '0.75rem', // 12px - Reduced from 16px (-25%)
+        md: '1rem', // 16px - Reduced from 24px (-33%)
+        lg: '1.5rem', // 24px - Reduced from 32px (-25%)
       },
       structure: {
         header: true,
@@ -239,22 +239,22 @@ export const DEFAULT_THEME_CONFIG = {
     input: {
       sizes: {
         sm: {
-          paddingX: '0.75rem',
-          paddingY: '0.5rem',
-          fontSize: '0.875rem',
-          minHeight: '36px',
+          paddingX: '0.5rem', // 8px - Reduced from 12px (-33%)
+          paddingY: '0.375rem', // 6px - Reduced from 8px (-25%)
+          fontSize: '0.75rem', // 12px - Reduced from 14px (-14%)
+          minHeight: '32px', // Reduced from 36px (-11%)
         },
         md: {
-          paddingX: '1rem',
-          paddingY: '0.75rem',
-          fontSize: '1rem',
-          minHeight: '44px',
+          paddingX: '0.75rem', // 12px - Reduced from 16px (-25%)
+          paddingY: '0.375rem', // 6px - Reduced from 12px (-50%)
+          fontSize: '0.875rem', // 14px - Reduced from 16px (-12.5%)
+          minHeight: '38px', // Reduced from 44px (-14%)
         },
         lg: {
-          paddingX: '1.25rem',
-          paddingY: '1rem',
-          fontSize: '1.125rem',
-          minHeight: '48px',
+          paddingX: '1rem', // 16px - Reduced from 20px (-20%)
+          paddingY: '0.5rem', // 8px - Reduced from 16px (-50%)
+          fontSize: '1rem', // 16px - Reduced from 18px (-11%)
+          minHeight: '44px', // Maintained for prominence
         },
       },
     },

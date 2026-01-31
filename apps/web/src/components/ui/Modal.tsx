@@ -244,7 +244,7 @@ function Modal({
       >
         {/* Header */}
         {(title || showCloseButton) && (
-          <div className="flex items-center justify-between p-xl border-b border-border flex-shrink-0">
+          <div className="flex items-center justify-between p-4 border-b border-border flex-shrink-0">
             {title && <h2 className="text-lg md:text-xl font-semibold text-foreground pr-2">{title}</h2>}
             {showCloseButton && (
               <button
@@ -261,11 +261,11 @@ function Modal({
         )}
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-xl">{children}</div>
+        <div className="flex-1 overflow-y-auto p-4">{children}</div>
 
         {/* Footer */}
         {footer && (
-          <div className="flex items-center justify-end gap-3 p-xl border-t border-border flex-shrink-0">{footer}</div>
+          <div className="flex items-center justify-end gap-3 p-4 border-t border-border flex-shrink-0">{footer}</div>
         )}
       </div>
     </div>

@@ -52,28 +52,28 @@ export default function TransactionSummaryCard({ transaction }: TransactionSumma
 
   return (
     <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-900 border-blue-200 dark:border-slate-700">
-      <div className="p-6">
-        <div className="flex items-start justify-between mb-6">
+      <div className="p-4">
+        <div className="flex items-start justify-between mb-4">
           <div>
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-1">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-1">
               {transaction.name}
             </h2>
             {transaction.dossier_number && (
-              <p className="text-sm text-slate-600 dark:text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 Dossier: {transaction.dossier_number}
               </p>
             )}
           </div>
-          <Badge variant={getStatusColor(transaction.status) as any} className="text-sm px-3 py-1">
+          <Badge variant={getStatusColor(transaction.status) as any} className="text-xs px-2 py-1">
             {transaction.status}
           </Badge>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {/* Propriété */}
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
-              <Home className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+          <div className="flex items-start gap-2">
+            <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+              <Home className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Propriété</p>
@@ -91,9 +91,9 @@ export default function TransactionSummaryCard({ transaction }: TransactionSumma
           </div>
 
           {/* Parties */}
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
-              <Users className="w-5 h-5 text-green-600 dark:text-green-400" />
+          <div className="flex items-start gap-2">
+            <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
+              <Users className="w-4 h-4 text-green-600 dark:text-green-400" />
             </div>
             <div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Parties</p>
@@ -107,9 +107,9 @@ export default function TransactionSummaryCard({ transaction }: TransactionSumma
           </div>
 
           {/* Prix */}
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
-              <DollarSign className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+          <div className="flex items-start gap-2">
+            <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
+              <DollarSign className="w-4 h-4 text-amber-600 dark:text-amber-400" />
             </div>
             <div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Prix de vente</p>
@@ -120,9 +120,9 @@ export default function TransactionSummaryCard({ transaction }: TransactionSumma
           </div>
 
           {/* Date de clôture */}
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
-              <Calendar className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+          <div className="flex items-start gap-2">
+            <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
+              <Calendar className="w-4 h-4 text-purple-600 dark:text-purple-400" />
             </div>
             <div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Clôture prévue</p>

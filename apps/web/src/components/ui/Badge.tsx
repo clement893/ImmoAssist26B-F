@@ -32,7 +32,7 @@ function Badge({ children, variant = 'default', className }: BadgeProps) {
   return (
     <span
       className={clsx(
-        'inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold',
+        'inline-flex items-center px-2 py-1 rounded-full text-[10px] font-semibold', // Reduced padding (-33%) and font (-17%) for better density
         'shadow-sm backdrop-blur-sm',
         'transition-all duration-200',
         'border border-transparent',
