@@ -2,7 +2,7 @@
 
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
-import { FileText, Home, Users, Calendar, DollarSign } from 'lucide-react';
+import { Home, Users, Calendar, DollarSign } from 'lucide-react';
 
 interface TransactionSummaryCardProps {
   transaction: {

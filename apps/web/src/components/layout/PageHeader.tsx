@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import Breadcrumbs from '@/components/ui/Breadcrumbs';
+import Breadcrumb from '@/components/ui/Breadcrumb';
 import { Container } from '@/components/ui';
 import Heading from '@/components/ui/Heading';
 import Text from '@/components/ui/Text';
@@ -31,7 +31,7 @@ export default function PageHeader({
     <Container className={clsx('py-8', className)}>
       {breadcrumbs && (
         <div className="mb-6">
-          <Breadcrumbs items={breadcrumbs} />
+          <Breadcrumb items={breadcrumbs} />
         </div>
       )}
 

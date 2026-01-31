@@ -6,7 +6,6 @@ import Container from '@/components/ui/Container';
 import Card from '@/components/ui/Card';
 import Loading from '@/components/ui/Loading';
 import Alert from '@/components/ui/Alert';
-import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { transactionsAPI } from '@/lib/api';
 import InlineEditableField from '@/components/transactions/InlineEditableField';
@@ -14,7 +13,6 @@ import TransactionSummaryCard from '@/components/transactions/TransactionSummary
 import Breadcrumb from '@/components/ui/Breadcrumb';
 import Tabs, { TabList, Tab, TabPanels, TabPanel } from '@/components/ui/Tabs';
 import { 
-  ArrowLeft, 
   Calendar, 
   DollarSign, 
   Users, 
@@ -150,16 +148,6 @@ function formatCurrency(amount?: number): string {
   }).format(amount);
 }
 
-function getStatusColor(status: string): string {
-  const colors: Record<string, string> = {
-    'En cours': 'default',
-    'Conditionnelle': 'warning',
-    'Ferme': 'success',
-    'Annulée': 'error',
-    'Conclue': 'success',
-  };
-  return colors[status] || 'default';
-}
 
 export default function TransactionDetailPage() {
   const params = useParams();
@@ -306,13 +294,10 @@ export default function TransactionDetailPage() {
                             options={STATUS_OPTIONS}
                             onSave={(value) => handleFieldUpdate('status', value as string)}
                           />
-                          <InlineEditableField
-                            label="Date de création"
-                            value={formatDate(transaction.created_at)}
-                            formatValue={() => formatDate(transaction.created_at)}
-                            onSave={async () => {}}
-                            disabled={true}
-                          />
+                          <div>
+                            <label className="text-sm font-medium text-muted-foreground">Date de création</label>
+                            <p className="text-base font-medium">{formatDate(transaction.created_at)}</p>
+                          </div>
                         </div>
                       </div>
                     </Card>
