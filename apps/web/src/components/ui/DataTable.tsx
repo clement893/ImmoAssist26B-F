@@ -105,7 +105,7 @@ function DataTable<T extends Record<string, unknown>>({
     <div className={clsx('space-y-4', className)}>
       {/* Search and Filters */}
       {(searchable || filterable) && (
-        <div className="bg-background p-4 rounded-lg border border-border">
+        <div className="bg-white dark:bg-neutral-900 p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 shadow-sm">
           <div className="flex flex-col md:flex-row gap-4">
             {searchable && (
               <div className="flex-1">
@@ -126,7 +126,7 @@ function DataTable<T extends Record<string, unknown>>({
             )}
           </div>
           {hasActiveFilters && filteredData.length !== data.length && (
-            <div className="mt-2 text-sm text-muted-foreground">
+            <div className="mt-3 text-sm text-neutral-600 dark:text-neutral-400">
               {filteredData.length} résultat(s) sur {data.length}
             </div>
           )}
@@ -134,9 +134,9 @@ function DataTable<T extends Record<string, unknown>>({
       )}
 
       {/* Table - Responsive wrapper for horizontal scroll on mobile */}
-      <div className="bg-background rounded-lg border border-border overflow-hidden">
+      <div className="bg-white dark:bg-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-800 shadow-sm overflow-hidden">
         {/* Scroll hint for mobile users */}
-        <div className="px-4 py-2 text-xs text-muted-foreground bg-muted/50 border-b border-border md:hidden">
+        <div className="px-4 py-2 text-xs text-neutral-500 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-800/50 border-b border-neutral-200 dark:border-neutral-700 md:hidden">
           <span className="inline-flex items-center gap-1">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -154,7 +154,7 @@ function DataTable<T extends Record<string, unknown>>({
         <div className="overflow-x-auto relative">
           {/* Horizontal scroll indicator - shows on mobile when content overflows */}
           <div
-            className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white dark:from-gray-800 to-transparent pointer-events-none z-10 md:hidden"
+            className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white dark:from-neutral-900 to-transparent pointer-events-none z-10 md:hidden"
             aria-hidden="true"
           />
 
@@ -176,7 +176,7 @@ function DataTable<T extends Record<string, unknown>>({
                   </TableHeader>
                 ))}
                 {actions && (
-                  <TableHeader className="sticky right-0 bg-muted z-10 shadow-md dark:shadow-lg">
+                  <TableHeader className="sticky right-0 bg-neutral-50 dark:bg-neutral-800/50 z-10 shadow-[4px_0_6px_-1px_rgba(0,0,0,0.1)]">
                     Actions
                   </TableHeader>
                 )}
@@ -220,14 +220,14 @@ function DataTable<T extends Record<string, unknown>>({
                     {actions && (
                       <TableCell
                         onClick={(e) => e.stopPropagation()}
-                        className="sticky right-0 bg-background z-10 shadow-md dark:shadow-lg"
+                        className="sticky right-0 bg-white dark:bg-neutral-900 z-10 shadow-[4px_0_6px_-1px_rgba(0,0,0,0.1)] group"
                       >
                         <Dropdown
                           trigger={
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="min-w-[44px] min-h-[44px] p-2"
+                              className="min-w-[44px] min-h-[44px] p-2 opacity-0 group-hover:opacity-100 transition-opacity"
                               aria-label="Row actions"
                             >
                               ⋯

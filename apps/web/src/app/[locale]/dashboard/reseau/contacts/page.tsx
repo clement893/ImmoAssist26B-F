@@ -24,6 +24,7 @@ import ContactActionLink from '@/components/reseau/ContactActionLink';
 import ContactRowActions from '@/components/reseau/ContactRowActions';
 import SearchBar from '@/components/ui/SearchBar';
 import MultiSelectFilter from '@/components/reseau/MultiSelectFilter';
+import ContactDetailPopup from '@/components/reseau/ContactDetailPopup';
 import {
   Plus,
   Download,
@@ -32,6 +33,9 @@ import {
   MoreVertical,
   Trash2,
   HelpCircle,
+  Settings,
+  Globe,
+  Lock,
 } from 'lucide-react';
 import ImportContactsInstructions from '@/components/reseau/ImportContactsInstructions';
 import ImportLogsViewer from '@/components/reseau/ImportLogsViewer';
@@ -86,6 +90,9 @@ function ContactsContent() {
   const [showImportInstructions, setShowImportInstructions] = useState(false);
   const [showImportLogs, setShowImportLogs] = useState(false);
   const [currentImportId, setCurrentImportId] = useState<string | null>(null);
+  const [hoveredContact, setHoveredContact] = useState<Contact | null>(null);
+  const [popupPosition, setPopupPosition] = useState<{ x: number; y: number } | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   // Debounce search query to avoid excessive re-renders (300ms delay)
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
@@ -397,46 +404,52 @@ function ContactsContent() {
     setShowEditModal(true);
   };
 
-  // Table columns
+  // Handle row hover for popup
+  const handleRowHover = useCallback((contact: Contact, event: React.MouseEvent) => {
+    setHoveredContact(contact);
+    const target = event.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    setPopupPosition({
+      x: rect.right + 20,
+      y: rect.top + window.scrollY,
+    });
+  }, []);
+
+  const handleRowLeave = useCallback(() => {
+    // Don't close immediately to allow moving to popup
+  }, []);
+
+  // Table columns with improved design
   const columns: Column<Contact>[] = [
     {
-      key: 'photo_url',
-      label: '',
-      sortable: false,
-      render: (_value, contact) => (
-        <div className="flex items-center">
-          <ContactAvatar contact={contact} size="md" />
-        </div>
-      ),
-    },
-    {
-      key: 'first_name',
-      label: 'Prénom',
+      key: 'person',
+      label: 'Person',
       sortable: true,
       render: (_value, contact) => (
-        <div className="flex items-center justify-between group">
+        <div className="flex items-center gap-3">
+          <ContactAvatar contact={contact} size="md" />
           <div>
-            <div className="font-medium">
+            <div className="font-medium text-foreground">
               {contact.first_name} {contact.last_name}
             </div>
-            {contact.position && (
-              <div className="text-sm text-muted-foreground">{contact.position}</div>
+            {contact.phone && (
+              <div className="text-sm text-muted-foreground">{contact.phone}</div>
             )}
-          </div>
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-            <ContactRowActions
-              contact={contact}
-              onView={() => openDetailPage(contact)}
-              onEdit={() => openEditModal(contact)}
-              onDelete={() => handleDelete(contact.id)}
-            />
           </div>
         </div>
       ),
     },
     {
       key: 'company_name',
-      label: 'Entreprise',
+      label: 'Company Name',
+      sortable: true,
+      render: (value) => (
+        <span className="text-muted-foreground">{value ? String(value) : '-'}</span>
+      ),
+    },
+    {
+      key: 'position',
+      label: 'Role',
       sortable: true,
       render: (value) => (
         <span className="text-muted-foreground">{value ? String(value) : '-'}</span>
@@ -444,53 +457,81 @@ function ContactsContent() {
     },
     {
       key: 'circle',
-      label: 'Cercle',
+      label: 'Status',
       sortable: true,
       render: (value) => {
         if (!value) return <span className="text-muted-foreground">-</span>;
 
         const circleColors: Record<string, string> = {
-          client: 'bg-success-500 hover:bg-success-600',
-          prospect: 'bg-primary-500 hover:bg-primary-600',
-          partenaire: 'bg-secondary-500 hover:bg-secondary-600',
-          fournisseur: 'bg-warning-500 hover:bg-warning-600',
-          autre: 'bg-muted hover:bg-muted/80',
+          client: 'bg-purple-500 text-white',
+          prospect: 'bg-orange-500 text-white',
+          partenaire: 'bg-green-500 text-white',
+          fournisseur: 'bg-blue-500 text-white',
+          autre: 'bg-gray-500 text-white',
+        };
+
+        const circleLabel: Record<string, string> = {
+          client: 'Customer',
+          prospect: 'Prospect',
+          partenaire: 'Partner',
+          fournisseur: 'Supplier',
+          autre: 'Other',
         };
 
         return (
           <Badge
             variant="default"
-            className={`capitalize text-background ${circleColors[String(value)] || 'bg-muted'}`}
+            className={`capitalize ${circleColors[String(value)] || 'bg-gray-500 text-white'}`}
           >
-            {String(value)}
+            {circleLabel[String(value)] || String(value)}
           </Badge>
         );
       },
     },
     {
       key: 'email',
-      label: 'Courriel',
+      label: 'Email',
       sortable: true,
       render: (value, contact) => (
         <ContactActionLink type="email" value={String(value)} contact={contact} />
       ),
     },
     {
-      key: 'phone',
-      label: 'Téléphone',
+      key: 'linkedin',
+      label: 'Website',
       sortable: true,
-      render: (value, contact) => (
-        <ContactActionLink type="phone" value={String(value)} contact={contact} />
-      ),
+      render: (value, contact) => {
+        if (!value && !contact.linkedin) return <span className="text-muted-foreground">-</span>;
+        const url = contact.linkedin || String(value);
+        return (
+          <a
+            href={url.startsWith('http') ? url : `https://${url}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline flex items-center gap-1"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Globe className="w-4 h-4" />
+            <span className="text-sm">{url.replace(/^https?:\/\//, '')}</span>
+          </a>
+        );
+      },
     },
     {
-      key: 'city',
-      label: 'Ville',
-      sortable: true,
-      render: (_value, contact) => (
-        <span className="text-muted-foreground">
-          {[contact.city, contact.country].filter(Boolean).join(', ') || '-'}
-        </span>
+      key: 'access',
+      label: 'Access',
+      sortable: false,
+      render: () => (
+        <div className="flex items-center gap-2">
+          <select
+            className="text-sm border border-border rounded-md px-2 py-1 bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500"
+            onClick={(e) => e.stopPropagation()}
+            onChange={(e) => e.stopPropagation()}
+          >
+            <option>Everyone</option>
+            <option>Only me</option>
+          </select>
+        </div>
       ),
     },
   ];
@@ -507,18 +548,48 @@ function ContactsContent() {
         ]}
       />
 
-      {/* Toolbar */}
-      <Card>
-        <div className="space-y-3">
-          {/* Contact count with improved visual */}
-          <div className="flex items-center justify-between">
-            <ContactCounter
-              filtered={filteredContacts.length}
-              total={contacts.length}
-              showFilteredBadge={hasActiveFilters}
-            />
-          </div>
+      {/* Header Actions Bar */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <Button
+            variant="primary"
+            onClick={() => setShowCreateModal(true)}
+            className="bg-purple-600 hover:bg-purple-700 text-white"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Nouveau contact
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setShowImportModal(true)}
+            className="border-purple-300 text-purple-700 hover:bg-purple-50"
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            Importer
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleExport}
+            className="border-purple-300 text-purple-700 hover:bg-purple-50"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Exporter
+          </Button>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" className="text-muted-foreground">
+            <Settings className="w-4 h-4 mr-2" />
+            View settings
+          </Button>
+          <Button variant="ghost" size="sm" className="text-muted-foreground">
+            <MoreVertical className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
 
+      {/* Toolbar */}
+      <Card className="mb-4">
+        <div className="space-y-3">
           {/* Search bar */}
           <SearchBar
             value={searchQuery}
@@ -607,143 +678,11 @@ function ContactsContent() {
               />
             </div>
 
-            {/* Bottom row: View toggle, Actions */}
+            {/* Bottom row: View toggle */}
             <div className="flex items-center justify-between">
-              {/* View mode toggle */}
               <ViewModeToggle value={viewMode} onChange={setViewMode} />
-
-              {/* Actions menu */}
-              <div className="relative ml-auto">
-                <div className="flex items-center gap-2">
-                  {/* Primary action */}
-                  <Button
-                    size="sm"
-                    onClick={() => setShowCreateModal(true)}
-                    className="text-xs px-3 py-1.5 h-auto"
-                  >
-                    <Plus className="w-3.5 h-3.5 mr-1.5" />
-                    Nouveau contact
-                  </Button>
-
-                  {/* Secondary actions dropdown */}
-                  <div className="relative">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowActionsMenu(!showActionsMenu)}
-                      className="text-xs px-2 py-1.5 h-auto"
-                      aria-label="Actions"
-                    >
-                      <MoreVertical className="w-3.5 h-3.5" />
-                    </Button>
-                    {showActionsMenu && (
-                      <>
-                        <div
-                          className="fixed inset-0 z-10"
-                          onClick={() => setShowActionsMenu(false)}
-                        />
-                        <div className="absolute right-0 mt-1 w-48 bg-background border border-border rounded-md shadow-lg z-20">
-                          <div className="py-1">
-                            <button
-                              onClick={() => {
-                                setShowImportInstructions(true);
-                                setShowActionsMenu(false);
-                              }}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted"
-                            >
-                              <HelpCircle className="w-3.5 h-3.5" />
-                              Instructions d'import
-                            </button>
-                            <button
-                              onClick={async () => {
-                                try {
-                                  await reseauContactsAPI.downloadTemplate();
-                                  setShowActionsMenu(false);
-                                } catch (err) {
-                                  const appError = handleApiError(err);
-                                  showToast({
-                                    message:
-                                      appError.message || 'Erreur lors du téléchargement du modèle',
-                                    type: 'error',
-                                  });
-                                }
-                              }}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted border-t border-border"
-                            >
-                              <FileSpreadsheet className="w-3.5 h-3.5" />
-                              Modèle Excel
-                            </button>
-                            <button
-                              onClick={async () => {
-                                try {
-                                  await reseauContactsAPI.downloadZipTemplate();
-                                  setShowActionsMenu(false);
-                                  showToast({
-                                    message: 'Modèle ZIP téléchargé avec succès',
-                                    type: 'success',
-                                  });
-                                } catch (err) {
-                                  const appError = handleApiError(err);
-                                  showToast({
-                                    message:
-                                      appError.message ||
-                                      'Erreur lors du téléchargement du modèle ZIP',
-                                    type: 'error',
-                                  });
-                                }
-                              }}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted border-t border-border"
-                            >
-                              <FileSpreadsheet className="w-3.5 h-3.5" />
-                              Modèle ZIP (avec photos)
-                            </button>
-                            <input
-                              type="file"
-                              accept=".xlsx,.xls,.zip"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) {
-                                  handleImport(file);
-                                  setShowActionsMenu(false);
-                                }
-                              }}
-                              className="hidden"
-                              id="import-contacts"
-                            />
-                            <label
-                              htmlFor="import-contacts"
-                              className="flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted cursor-pointer"
-                            >
-                              <Upload className="w-3.5 h-3.5" />
-                              Importer
-                            </label>
-                            <button
-                              onClick={() => {
-                                handleExport();
-                                setShowActionsMenu(false);
-                              }}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted"
-                            >
-                              <Download className="w-3.5 h-3.5" />
-                              Exporter
-                            </button>
-                            <button
-                              onClick={() => {
-                                handleDeleteAll();
-                                setShowActionsMenu(false);
-                              }}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-xs text-destructive hover:bg-destructive/10 border-t border-border"
-                              disabled={loading || contacts.length === 0}
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                              Supprimer tous les contacts
-                            </button>
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
+              <div className="text-sm text-muted-foreground">
+                {filteredContacts.length} contact{filteredContacts.length > 1 ? 's' : ''}
               </div>
             </div>
           </div>
@@ -762,15 +701,47 @@ function ContactsContent() {
         </Card>
       ) : viewMode === 'list' ? (
         <Card>
-          <DataTable
-            data={filteredContacts as unknown as Record<string, unknown>[]}
-            columns={columns as unknown as Column<Record<string, unknown>>[]}
-            searchable={false}
-            filterable={false}
-            emptyMessage="Aucun contact trouvé"
-            loading={loading}
-            onRowClick={(row) => openDetailPage(row as unknown as Contact)}
-          />
+          <div className="relative">
+            <DataTable
+              data={filteredContacts as unknown as Record<string, unknown>[]}
+              columns={columns.map((col, colIndex) => {
+                if (colIndex === 0) {
+                  // Add hover handlers to first column
+                  return {
+                    ...col,
+                    render: (_value, contact) => {
+                      const contactData = contact as unknown as Contact;
+                      return (
+                        <div
+                          className="flex items-center gap-3"
+                          onMouseEnter={(e) => handleRowHover(contactData, e)}
+                        >
+                          <ContactAvatar contact={contactData} size="md" />
+                          <div>
+                            <div className="font-medium text-foreground">
+                              {contactData.first_name} {contactData.last_name}
+                            </div>
+                            {contactData.phone && (
+                              <div className="text-sm text-muted-foreground">{contactData.phone}</div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    },
+                  };
+                }
+                return col;
+              }) as unknown as Column<Record<string, unknown>>[]}
+              searchable={false}
+              filterable={false}
+              emptyMessage="Aucun contact trouvé"
+              loading={loading}
+              onRowClick={(row) => {
+                const contact = row as unknown as Contact;
+                openDetailPage(contact);
+              }}
+            />
+          </div>
         </Card>
       ) : (
         <ContactsGallery
@@ -863,6 +834,135 @@ function ContactsContent() {
             }}
           />
         </Modal>
+      )}
+
+      {/* Import Modal with Template Download */}
+      <Modal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        title="Importer des contacts"
+        size="lg"
+      >
+        <div className="space-y-6">
+          <div className="bg-muted/50 p-4 rounded-lg">
+            <h4 className="font-semibold mb-2">Télécharger le template</h4>
+            <p className="text-sm text-muted-foreground mb-4">
+              Téléchargez le fichier Excel template pour préparer votre import. Le template contient
+              toutes les colonnes nécessaires avec des exemples.
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  try {
+                    await reseauContactsAPI.downloadTemplate();
+                    showToast({
+                      message: 'Template Excel téléchargé avec succès',
+                      type: 'success',
+                    });
+                  } catch (err) {
+                    const appError = handleApiError(err);
+                    showToast({
+                      message: appError.message || 'Erreur lors du téléchargement du template',
+                      type: 'error',
+                    });
+                  }
+                }}
+              >
+                <FileSpreadsheet className="w-4 h-4 mr-2" />
+                Template Excel
+              </Button>
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  try {
+                    await reseauContactsAPI.downloadZipTemplate();
+                    showToast({
+                      message: 'Template ZIP téléchargé avec succès',
+                      type: 'success',
+                    });
+                  } catch (err) {
+                    const appError = handleApiError(err);
+                    showToast({
+                      message: appError.message || 'Erreur lors du téléchargement du template ZIP',
+                      type: 'error',
+                    });
+                  }
+                }}
+              >
+                <FileSpreadsheet className="w-4 h-4 mr-2" />
+                Template ZIP (avec photos)
+              </Button>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="font-semibold mb-2">Importer votre fichier</h4>
+            <p className="text-sm text-muted-foreground mb-4">
+              Sélectionnez un fichier Excel (.xlsx, .xls) ou ZIP (.zip) contenant vos contacts.
+            </p>
+            <input
+              type="file"
+              accept=".xlsx,.xls,.zip"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  handleImport(file);
+                  setShowImportModal(false);
+                }
+              }}
+              className="block w-full text-sm text-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary/90"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4 border-t border-border">
+            <Button variant="outline" onClick={() => setShowImportModal(false)}>
+              Annuler
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setShowImportInstructions(true);
+                setShowImportModal(false);
+              }}
+            >
+              <HelpCircle className="w-4 h-4 mr-2" />
+              Instructions
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Contact Detail Popup */}
+      {hoveredContact && popupPosition && (
+        <div
+          onMouseEnter={() => {
+            // Keep popup open when hovering over it
+          }}
+          onMouseLeave={() => {
+            setHoveredContact(null);
+            setPopupPosition(null);
+          }}
+        >
+          <ContactDetailPopup
+            contact={hoveredContact}
+            position={popupPosition}
+            onEdit={() => {
+              openEditModal(hoveredContact);
+              setHoveredContact(null);
+              setPopupPosition(null);
+            }}
+            onDelete={() => {
+              handleDelete(hoveredContact.id);
+              setHoveredContact(null);
+              setPopupPosition(null);
+            }}
+            onClose={() => {
+              setHoveredContact(null);
+              setPopupPosition(null);
+            }}
+          />
+        </div>
       )}
     </MotionDiv>
   );
