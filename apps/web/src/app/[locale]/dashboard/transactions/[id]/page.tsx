@@ -12,20 +12,13 @@ import { transactionsAPI } from '@/lib/api';
 import InlineEditableField from '@/components/transactions/InlineEditableField';
 import { 
   ArrowLeft, 
-  MapPin, 
   Calendar, 
   DollarSign, 
   Users, 
   FileText,
-  Building2,
   Home,
-  CreditCard,
   Clock,
-  CheckCircle2,
-  XCircle,
 } from 'lucide-react';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
 
 interface Transaction {
   id: number;
@@ -119,15 +112,11 @@ const PROPERTY_TYPE_OPTIONS = [
   { label: 'Autre', value: 'Autre' },
 ];
 
-const MORTGAGE_TYPE_OPTIONS = [
-  { label: 'Taux fixe', value: 'Taux fixe' },
-  { label: 'Taux variable', value: 'Taux variable' },
-];
-
 function formatDate(dateString?: string): string {
   if (!dateString) return '-';
   try {
-    return format(new Date(dateString), 'PPP', { locale: fr });
+    const date = new Date(dateString);
+    return date.toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' });
   } catch {
     return dateString;
   }

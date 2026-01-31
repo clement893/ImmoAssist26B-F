@@ -28,7 +28,7 @@ export const realEstateContactsAPI = {
    * Create a new contact
    */
   async create(data: RealEstateContactCreate): Promise<{ data: RealEstateContact }> {
-    const response = await apiClient.post('/real-estate-contacts', data);
+    const response = await apiClient.post<RealEstateContact>('/real-estate-contacts', data);
     return { data: extractApiData<RealEstateContact>(response) };
   },
 
@@ -36,7 +36,7 @@ export const realEstateContactsAPI = {
    * List all contacts with optional filters
    */
   async list(params?: ListContactsParams): Promise<{ data: RealEstateContactListResponse }> {
-    const response = await apiClient.get('/real-estate-contacts', { params });
+    const response = await apiClient.get<RealEstateContactListResponse>('/real-estate-contacts', { params });
     return { data: extractApiData<RealEstateContactListResponse>(response) };
   },
 
@@ -44,7 +44,7 @@ export const realEstateContactsAPI = {
    * Get a specific contact by ID
    */
   async get(id: number): Promise<{ data: RealEstateContact }> {
-    const response = await apiClient.get(`/real-estate-contacts/${id}`);
+    const response = await apiClient.get<RealEstateContact>(`/real-estate-contacts/${id}`);
     return { data: extractApiData<RealEstateContact>(response) };
   },
 
@@ -52,7 +52,7 @@ export const realEstateContactsAPI = {
    * Update a contact
    */
   async update(id: number, data: RealEstateContactUpdate): Promise<{ data: RealEstateContact }> {
-    const response = await apiClient.put(`/real-estate-contacts/${id}`, data);
+    const response = await apiClient.put<RealEstateContact>(`/real-estate-contacts/${id}`, data);
     return { data: extractApiData<RealEstateContact>(response) };
   },
 
@@ -70,7 +70,7 @@ export const realEstateContactsAPI = {
     transactionId: number,
     data: TransactionContactCreate
   ): Promise<{ data: TransactionContact }> {
-    const response = await apiClient.post(`/transactions/${transactionId}/contacts`, data);
+    const response = await apiClient.post<TransactionContact>(`/transactions/${transactionId}/contacts`, data);
     return { data: extractApiData<TransactionContact>(response) };
   },
 
@@ -81,7 +81,7 @@ export const realEstateContactsAPI = {
     transactionId: number,
     role?: string
   ): Promise<{ data: TransactionContactListResponse }> {
-    const response = await apiClient.get(`/transactions/${transactionId}/contacts`, {
+    const response = await apiClient.get<TransactionContactListResponse>(`/transactions/${transactionId}/contacts`, {
       params: role ? { role } : undefined,
     });
     return { data: extractApiData<TransactionContactListResponse>(response) };
