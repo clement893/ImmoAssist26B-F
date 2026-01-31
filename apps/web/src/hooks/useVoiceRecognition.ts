@@ -21,6 +21,7 @@ export function useVoiceRecognition(language: string = 'fr-FR'): UseVoiceRecogni
   const [error, setError] = useState<string | null>(null);
   const [supported, setSupported] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const streamRef = useRef<MediaStream | null>(null); // Keep stream active during recognition
 
   useEffect(() => {
     // Check if browser supports Speech Recognition
@@ -97,6 +98,11 @@ export function useVoiceRecognition(language: string = 'fr-FR'): UseVoiceRecogni
 
     recognition.onend = () => {
       setIsListening(false);
+      // Stop the microphone stream when recognition ends
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
     };
 
     recognitionRef.current = recognition;
@@ -105,13 +111,18 @@ export function useVoiceRecognition(language: string = 'fr-FR'): UseVoiceRecogni
       if (recognitionRef.current) {
         recognitionRef.current.stop();
       }
+      // Clean up stream on unmount
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
     };
   }, [language]);
 
-  const requestPermission = useCallback(async (): Promise<boolean> => {
+  const requestPermission = useCallback(async (keepStreamActive: boolean = false): Promise<MediaStream | null> => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       setError('L\'accès au microphone n\'est pas disponible dans ce navigateur');
-      return false;
+      return null;
     }
 
     try {
@@ -120,11 +131,16 @@ export function useVoiceRecognition(language: string = 'fr-FR'): UseVoiceRecogni
         try {
           const permissionStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName });
           if (permissionStatus.state === 'granted') {
-            // Permission already granted, verify with getUserMedia
+            // Permission already granted, get stream
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            stream.getTracks().forEach(track => track.stop());
+            if (!keepStreamActive) {
+              // Stop immediately if we don't need to keep it active
+              stream.getTracks().forEach(track => track.stop());
+              setError(null);
+              return null;
+            }
             setError(null);
-            return true;
+            return stream;
           }
         } catch (permErr) {
           // Permissions API not fully supported, fall through to getUserMedia
@@ -135,14 +151,17 @@ export function useVoiceRecognition(language: string = 'fr-FR'): UseVoiceRecogni
       // Request permission via getUserMedia - this will trigger browser prompt if needed
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
-      // Keep stream active briefly to ensure permission is fully registered
-      // This helps with browsers that need the stream to be active when recognition starts
-      await new Promise(resolve => setTimeout(resolve, 100));
+      if (!keepStreamActive) {
+        // Keep stream active briefly to ensure permission is fully registered
+        await new Promise(resolve => setTimeout(resolve, 100));
+        // Stop the stream - permission is now granted
+        stream.getTracks().forEach(track => track.stop());
+        setError(null);
+        return null;
+      }
       
-      // Stop the stream - permission is now granted
-      stream.getTracks().forEach(track => track.stop());
       setError(null);
-      return true;
+      return stream;
     } catch (err: any) {
       console.error('Microphone permission error:', err);
       let errorMessage = 'Permission microphone refusée';
@@ -158,7 +177,7 @@ export function useVoiceRecognition(language: string = 'fr-FR'): UseVoiceRecogni
       }
       
       setError(errorMessage);
-      return false;
+      return null;
     }
   }, []);
 
@@ -173,21 +192,36 @@ export function useVoiceRecognition(language: string = 'fr-FR'): UseVoiceRecogni
     if (isListening && recognitionRef.current) {
       try {
         recognitionRef.current.stop();
+        // Stop stream when stopping recognition
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(track => track.stop());
+          streamRef.current = null;
+        }
       } catch (err) {
         console.error('Error stopping recognition:', err);
       }
       return;
     }
 
-    // Request microphone permission first
-    const hasPermission = await requestPermission();
-    if (!hasPermission) {
+    // Clean up any existing stream
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+
+    // Request microphone permission and keep stream active
+    // Some browsers (especially Chrome) need the stream to be active when SpeechRecognition starts
+    const stream = await requestPermission(true);
+    if (!stream) {
       // Error already set by requestPermission
       return;
     }
 
-    // Small delay to ensure permission is fully registered
-    await new Promise(resolve => setTimeout(resolve, 150));
+    // Store stream reference to keep it active
+    streamRef.current = stream;
+
+    // Small delay to ensure stream is fully active
+    await new Promise(resolve => setTimeout(resolve, 200));
 
     try {
       setTranscript('');
@@ -196,16 +230,21 @@ export function useVoiceRecognition(language: string = 'fr-FR'): UseVoiceRecogni
       // Ensure recognition is stopped before starting
       try {
         recognitionRef.current.stop();
+        await new Promise(resolve => setTimeout(resolve, 100));
       } catch (e) {
         // Ignore errors if already stopped
       }
       
-      // Small delay before starting
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
       recognitionRef.current.start();
     } catch (err: any) {
       console.error('Error starting recognition:', err);
+      
+      // Stop stream on error
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
+      
       // Handle specific error cases
       if (err?.message?.includes('already started') || err?.name === 'InvalidStateError') {
         // Recognition is already running, try to stop and restart
@@ -215,10 +254,11 @@ export function useVoiceRecognition(language: string = 'fr-FR'): UseVoiceRecogni
             try {
               setTranscript('');
               setError(null);
-              // Request permission again before retry
-              const hasPerm = await requestPermission();
-              if (hasPerm) {
-                await new Promise(resolve => setTimeout(resolve, 100));
+              // Request permission again and keep stream active
+              const newStream = await requestPermission(true);
+              if (newStream) {
+                streamRef.current = newStream;
+                await new Promise(resolve => setTimeout(resolve, 200));
                 recognitionRef.current?.start();
               }
             } catch (retryErr) {
@@ -242,7 +282,18 @@ export function useVoiceRecognition(language: string = 'fr-FR'): UseVoiceRecogni
     if (recognitionRef.current && isListening) {
       recognitionRef.current.stop();
     }
+    // Stop stream when stopping listening
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
   }, [isListening]);
+
+  // Wrapper for requestPermission that returns boolean for backward compatibility
+  const requestPermissionWrapper = useCallback(async (): Promise<boolean> => {
+    const stream = await requestPermission(false);
+    return stream !== null;
+  }, [requestPermission]);
 
   return {
     isListening,
@@ -251,7 +302,7 @@ export function useVoiceRecognition(language: string = 'fr-FR'): UseVoiceRecogni
     startListening,
     stopListening,
     supported,
-    requestPermission,
+    requestPermission: requestPermissionWrapper,
   };
 }
 
