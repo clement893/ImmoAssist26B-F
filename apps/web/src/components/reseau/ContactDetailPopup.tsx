@@ -10,7 +10,6 @@ import {
   Building2,
   Briefcase,
   Globe,
-  Linkedin,
   MoreVertical,
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
@@ -25,8 +24,6 @@ interface ContactDetailPopupProps {
 
 export default function ContactDetailPopup({
   contact,
-  onEdit,
-  onDelete,
   onClose,
   position,
 }: ContactDetailPopupProps) {

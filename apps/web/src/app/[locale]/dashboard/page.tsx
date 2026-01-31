@@ -6,7 +6,7 @@ export const dynamicParams = true;
 
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/lib/store';
-import { Card, Badge, Button, LoadingSkeleton, Grid, Stack } from '@/components/ui';
+import { Card, Button, LoadingSkeleton, Grid, Stack } from '@/components/ui';
 import { StatsCard, MetricCard, WidgetGrid } from '@/components/ui';
 import { PageHeader } from '@/components/layout';
 import { Link } from '@/i18n/routing';
@@ -16,9 +16,7 @@ import MotionDiv from '@/components/motion/MotionDiv';
 import LeaChat from '@/components/lea/LeaChat';
 import {
   User,
-  Mail,
   CheckCircle2,
-  XCircle,
   Settings,
   Activity,
   Database,
@@ -27,7 +25,6 @@ import {
   Zap,
   TrendingUp,
   FileText,
-  Folder,
 } from 'lucide-react';
 
 // Lazy load TemplateAIChat to avoid circular dependency issues during build
@@ -121,7 +118,7 @@ function DashboardContent() {
               title="Activities"
               value="0"
               icon={<Activity className="w-5 h-5" />}
-              variant="info"
+              variant="default"
             />
           </WidgetGrid.Item>
           <WidgetGrid.Item size="md">

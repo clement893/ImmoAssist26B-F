@@ -18,10 +18,8 @@ import ContactsGallery from '@/components/reseau/ContactsGallery';
 import ContactForm from '@/components/reseau/ContactForm';
 import ContactAvatar from '@/components/reseau/ContactAvatar';
 import ContactFilterBadges from '@/components/reseau/ContactFilterBadges';
-import ContactCounter from '@/components/reseau/ContactCounter';
 import ViewModeToggle from '@/components/reseau/ViewModeToggle';
 import ContactActionLink from '@/components/reseau/ContactActionLink';
-import ContactRowActions from '@/components/reseau/ContactRowActions';
 import SearchBar from '@/components/ui/SearchBar';
 import MultiSelectFilter from '@/components/reseau/MultiSelectFilter';
 import ContactDetailPopup from '@/components/reseau/ContactDetailPopup';
@@ -31,11 +29,9 @@ import {
   Upload,
   FileSpreadsheet,
   MoreVertical,
-  Trash2,
   HelpCircle,
   Settings,
   Globe,
-  Lock,
 } from 'lucide-react';
 import ImportContactsInstructions from '@/components/reseau/ImportContactsInstructions';
 import ImportLogsViewer from '@/components/reseau/ImportLogsViewer';
@@ -86,7 +82,6 @@ function ContactsContent() {
   const [filterCircle, setFilterCircle] = useState<string[]>([]);
   const [filterCompany, setFilterCompany] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [showActionsMenu, setShowActionsMenu] = useState(false);
   const [showImportInstructions, setShowImportInstructions] = useState(false);
   const [showImportLogs, setShowImportLogs] = useState(false);
   const [currentImportId, setCurrentImportId] = useState<string | null>(null);
@@ -168,14 +163,6 @@ function ContactsContent() {
     });
   }, [contacts, filterCity, filterPhone, filterCircle, filterCompany, debouncedSearchQuery]);
 
-  // Check if any filters are active (use debounced search for display)
-  const hasActiveFilters = !!(
-    filterCity.length > 0 ||
-    filterPhone.length > 0 ||
-    filterCircle.length > 0 ||
-    filterCompany.length > 0 ||
-    debouncedSearchQuery
-  );
 
   // Clear all filters function
   const clearAllFilters = useCallback(() => {
@@ -252,8 +239,9 @@ function ContactsContent() {
     }
   };
 
-  // Handle delete all contacts with React Query mutation
-  const handleDeleteAll = async () => {
+  // Handle delete all contacts with React Query mutation (unused but kept for future use)
+  // @ts-ignore - unused variable
+  const _handleDeleteAll = async () => {
     const count = contacts.length;
     if (count === 0) {
       showToast({
@@ -415,7 +403,9 @@ function ContactsContent() {
     });
   }, []);
 
-  const handleRowLeave = useCallback(() => {
+  // Handle row leave (unused but kept for future use)
+  // @ts-ignore - unused variable
+  const _handleRowLeave = useCallback(() => {
     // Don't close immediately to allow moving to popup
   }, []);
 
@@ -709,8 +699,8 @@ function ContactsContent() {
                   // Add hover handlers to first column
                   return {
                     ...col,
-                    render: (_value, contact) => {
-                      const contactData = contact as unknown as Contact;
+                    render: (_value: unknown, contact: unknown) => {
+                      const contactData = contact as Contact;
                       return (
                         <div
                           className="flex items-center gap-3"

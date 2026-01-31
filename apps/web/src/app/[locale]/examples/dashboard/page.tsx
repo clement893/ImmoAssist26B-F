@@ -21,22 +21,26 @@ export default function ExampleDashboardPage() {
         <StatsCard
           title="Total Utilisateurs"
           value="1,234"
-          change={{ value: 12, type: 'increase', period: 'ce mois' }}
+          trend="+12%"
+          trendDirection="up"
         />
         <StatsCard
           title="Campagnes Actives"
           value="8"
-          trend={<div className="text-sm text-info-600 mt-2">3 nouvelles</div>}
+          trend="+3"
+          trendDirection="up"
         />
         <StatsCard
           title="Montant Collecté"
           value="45,678€"
-          change={{ value: 8, type: 'increase', period: 'ce mois' }}
+          trend="+8%"
+          trendDirection="up"
         />
         <StatsCard
           title="Taux de Conversion"
           value="3.2%"
-          change={{ value: 0.5, type: 'increase', period: 'ce mois' }}
+          trend="+0.5%"
+          trendDirection="up"
         />
       </div>
 

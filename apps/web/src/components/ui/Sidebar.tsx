@@ -41,7 +41,7 @@ export default function Sidebar({
   onToggleCollapse,
   user,
   showSearch = false, // Search bar disabled by default for backward compatibility
-  notificationsComponent,
+  notificationsComponent: _notificationsComponent,
   onHomeClick,
   themeToggleComponent,
   onLogoutClick,

@@ -22,7 +22,6 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import LeaChat from '@/components/lea/LeaChat';
-import { clsx } from 'clsx';
 
 const exampleCards = [
   {
@@ -152,7 +151,7 @@ function AgentsContent() {
                 }
               }}
               onFocus={(e) => {
-                e.currentTarget.addEventListener('keydown', (ev) => {
+                e.currentTarget.addEventListener('keydown', (ev: KeyboardEvent) => {
                   if (ev.key === 'Enter' && e.currentTarget.value.trim()) {
                     setSelectedPrompt(e.currentTarget.value.trim());
                     setShowChat(true);

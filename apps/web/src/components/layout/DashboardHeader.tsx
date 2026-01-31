@@ -9,7 +9,7 @@
 'use client';
 
 import { ReactNode, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { clsx } from 'clsx';
 import { Search, Bell, Menu, X, ChevronDown } from 'lucide-react';
 import Input from '@/components/ui/Input';
@@ -17,7 +17,7 @@ import Dropdown from '@/components/ui/Dropdown';
 import type { DropdownItem } from '@/components/ui/Dropdown';
 import Breadcrumb from '@/components/ui/Breadcrumb';
 import type { BreadcrumbItem } from '@/components/ui/Breadcrumb';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/Avatar';
+import Avatar from '@/components/ui/Avatar';
 
 export interface DashboardHeaderProps {
   /** Page title */
@@ -65,7 +65,7 @@ export default function DashboardHeader({
   mobileMenuOpen = false,
 }: DashboardHeaderProps) {
   const [searchValue, setSearchValue] = useState('');
-  const pathname = usePathname();
+  const router = useRouter();
 
   const handleSearchChange = (value: string) => {
     setSearchValue(value);
@@ -75,9 +75,9 @@ export default function DashboardHeader({
   // Default user menu items
   const defaultUserMenuItems: DropdownItem[] = [
     ...userMenuItems,
-    { label: 'Mon profil', href: '/dashboard/modules/profil' },
-    { label: 'Paramètres', href: '/dashboard/modules/profil/settings' },
-    { type: 'divider' },
+    { label: 'Mon profil', onClick: () => router.push('/dashboard/modules/profil') },
+    { label: 'Paramètres', onClick: () => router.push('/dashboard/modules/profil/settings') },
+    { divider: true },
     { label: 'Déconnexion', onClick: () => {}, variant: 'danger' },
   ];
 
@@ -157,12 +157,15 @@ export default function DashboardHeader({
               <Dropdown
                 trigger={
                   <button className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
-                    <Avatar className="w-8 h-8">
-                      {user.avatar && <AvatarImage src={user.avatar} alt={user.name || user.email || 'User'} />}
-                      <AvatarFallback>
-                        {user.name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
+                    {user.avatar ? (
+                      <Avatar src={user.avatar} alt={user.name || user.email || 'User'} className="w-8 h-8" />
+                    ) : (
+                      <Avatar
+                        name={user.name || user.email || 'User'}
+                        className="w-8 h-8"
+                        fallback={user.name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
+                      />
+                    )}
                     <div className="hidden lg:block text-left">
                       <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                         {user.name || 'Utilisateur'}
@@ -175,7 +178,7 @@ export default function DashboardHeader({
                   </button>
                 }
                 items={defaultUserMenuItems}
-                align="right"
+                position="right"
               />
             )}
           </div>

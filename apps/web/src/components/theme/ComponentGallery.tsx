@@ -236,7 +236,8 @@ export function ComponentGallery() {
           <StatsCard
             title="Statistiques"
             value="1,234"
-            change={{ value: 12, type: 'increase', period: 'last month' }}
+            trend="+12%"
+            trendDirection="up"
           />{' '}
           <EmptyState title="Aucune donnée" description="Il n'y a pas de données à afficher" />{' '}
         </div>{' '}

@@ -68,12 +68,6 @@ export default function WidgetGrid({
   gap = 6,
   className,
 }: WidgetGridProps) {
-  const gridCols = {
-    sm: `grid-cols-${columns.sm || 1}`,
-    md: columns.md ? `md:grid-cols-${columns.md}` : '',
-    lg: columns.lg ? `lg:grid-cols-${columns.lg}` : '',
-    xl: columns.xl ? `xl:grid-cols-${columns.xl}` : '',
-  };
 
   return (
     <div
