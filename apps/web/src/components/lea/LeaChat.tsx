@@ -14,9 +14,10 @@ import AudioWaveform from './AudioWaveform';
 interface LeaChatProps {
   onClose?: () => void;
   className?: string;
+  initialMessage?: string;
 }
 
-export default function LeaChat({ onClose, className = '' }: LeaChatProps) {
+export default function LeaChat({ onClose, className = '', initialMessage }: LeaChatProps) {
   const { messages, isLoading, error, sendMessage, clearChat } = useLea();
   const {
     isListening,
@@ -31,8 +32,17 @@ export default function LeaChat({ onClose, className = '' }: LeaChatProps) {
   
   const [input, setInput] = useState('');
   const [autoSpeak, setAutoSpeak] = useState(true);
+  const [initialMessageSent, setInitialMessageSent] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Send initial message if provided
+  useEffect(() => {
+    if (initialMessage && !initialMessageSent && messages.length === 0) {
+      setInitialMessageSent(true);
+      sendMessage(initialMessage);
+    }
+  }, [initialMessage, initialMessageSent, messages.length, sendMessage]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {

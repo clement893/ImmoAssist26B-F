@@ -4,7 +4,7 @@ import { ReactNode, useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { clsx } from 'clsx';
-import { ChevronRight, ChevronDown, Search, X, Home, LogOut } from 'lucide-react';
+import { ChevronRight, ChevronDown, Search, X, Home, LogOut, Sparkles } from 'lucide-react';
 import Input from './Input';
 
 interface SidebarItem {
@@ -101,27 +101,63 @@ export default function Sidebar({
       <div key={item.label}>
         <div
           className={clsx(
-            'flex items-center justify-between px-lg py-md rounded-lg transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] min-h-[44px]',
-            // Improved spacing and touch target (UX/UI improvements - Batch 8, 17)
+            'flex items-center justify-between transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]',
+            // Modern circular icon design like in the image
+            collapsed 
+              ? 'justify-center p-2' 
+              : 'px-3 py-2 rounded-lg',
             isActive 
-              ? 'bg-gradient-to-r from-primary/10 via-primary/5 to-transparent text-primary border-l-4 border-primary font-semibold shadow-sm shadow-primary/5' 
-              : 'text-foreground hover:bg-muted/50 hover:text-foreground border-l-4 border-transparent',
-            level > 0 && 'ml-lg' // Increased indentation for nested items
+              ? collapsed
+                ? 'bg-gray-800' 
+                : 'bg-gray-800 text-white'
+              : collapsed
+                ? 'hover:bg-gray-800/50'
+                : 'text-gray-300 hover:bg-gray-800/50 hover:text-white',
+            level > 0 && !collapsed && 'ml-4' // Indentation for nested items
           )}
         >
           {item.href ? (
-            <Link href={item.href} className="flex items-center flex-1 space-x-3 min-w-0">
-              {item.icon && <span className="flex-shrink-0 w-5 h-5">{item.icon}</span>}
+            <Link 
+              href={item.href} 
+              className={clsx(
+                'flex items-center min-w-0 transition-all',
+                collapsed ? 'justify-center' : 'flex-1 space-x-3'
+              )}
+            >
+              {item.icon && (
+                <span className={clsx(
+                  'flex-shrink-0 flex items-center justify-center transition-all',
+                  collapsed 
+                    ? 'w-10 h-10 rounded-full' 
+                    : 'w-8 h-8 rounded-full',
+                  isActive && !collapsed && 'bg-gray-700'
+                )}>
+                  {item.icon}
+                </span>
+              )}
               {!collapsed && <span className="flex-1 truncate text-sm font-medium">{item.label}</span>}
             </Link>
           ) : (
             <button
               onClick={item.onClick || (hasChildren ? () => toggleItem(item.label) : undefined)}
-              className="flex items-center flex-1 space-x-3 text-left min-w-0"
+              className={clsx(
+                'flex items-center min-w-0 text-left transition-all',
+                collapsed ? 'justify-center' : 'flex-1 space-x-3'
+              )}
               aria-expanded={hasChildren ? isExpanded : undefined}
               aria-label={hasChildren ? `Toggle ${item.label}` : item.label}
             >
-              {item.icon && <span className="flex-shrink-0 w-5 h-5">{item.icon}</span>}
+              {item.icon && (
+                <span className={clsx(
+                  'flex-shrink-0 flex items-center justify-center transition-all',
+                  collapsed 
+                    ? 'w-10 h-10 rounded-full' 
+                    : 'w-8 h-8 rounded-full',
+                  isActive && !collapsed && 'bg-gray-700'
+                )}>
+                  {item.icon}
+                </span>
+              )}
               {!collapsed && <span className="flex-1 truncate text-sm font-medium">{item.label}</span>}
             </button>
           )}
@@ -155,7 +191,7 @@ export default function Sidebar({
         </div>
 
         {hasChildren && isExpanded && !collapsed && (
-          <div className="mt-1 space-y-1 ml-2 border-l-2 border-border/30 pl-2">
+          <div className="mt-1 space-y-1 ml-4 border-l-2 border-gray-700/50 pl-3">
             {item.children!.map((child) => renderItem(child, level + 1))}
           </div>
         )}
@@ -180,30 +216,31 @@ export default function Sidebar({
   return (
     <aside
       className={clsx(
-        'bg-gradient-to-b from-background via-background to-muted/30 border-r border-border/50 h-full transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col backdrop-blur-sm',
+        'bg-[#171717] dark:bg-[#0a0a0a] border-r border-gray-800/50 h-full transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col',
         collapsed ? 'w-16' : 'w-64 md:w-72 lg:w-80',
         className
       )}
     >
-      {/* Header: User info + Notifications (top left) */}
-      {user && (
-        <div className="p-lg border-b border-border/50 flex-shrink-0 bg-background/50 backdrop-blur-sm">
-          <div className={clsx('flex items-center gap-3', collapsed && 'justify-center')}>
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center flex-shrink-0 min-w-[44px] min-h-[44px] shadow-lg shadow-primary/20">
-              <span className="text-sm font-medium text-primary-foreground">
-                {user.name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
-              </span>
+      {/* Header: AI Model Selector (like ChatGPT AI in image) */}
+      {!collapsed && (
+        <div className="p-4 border-b border-gray-800/50 flex-shrink-0">
+          <div className="flex items-center gap-3 cursor-pointer hover:bg-gray-800/50 rounded-lg p-2 transition-colors">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center flex-shrink-0">
+              <Sparkles className="w-4 h-4 text-white" />
             </div>
-            {!collapsed && (
-              <div className="flex-1 min-w-0 flex items-center gap-2">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-foreground truncate">{user.name || 'Utilisateur'}</p>
-                  <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                </div>
-                {notificationsComponent && <div className="flex-shrink-0">{notificationsComponent}</div>}
-              </div>
-            )}
-            {collapsed && notificationsComponent && <div className="flex-shrink-0">{notificationsComponent}</div>}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-white truncate">Léa AI</p>
+            </div>
+            <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />
+          </div>
+        </div>
+      )}
+      
+      {/* Collapsed: Just show icon */}
+      {collapsed && (
+        <div className="p-4 border-b border-gray-800/50 flex-shrink-0 flex justify-center">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
+            <Sparkles className="w-4 h-4 text-white" />
           </div>
         </div>
       )}
@@ -234,22 +271,60 @@ export default function Sidebar({
         </div>
       )}
 
-      <nav className="p-lg space-y-1 flex-1 overflow-y-auto">
+      <nav className={clsx('flex-1 overflow-y-auto', collapsed ? 'p-2 space-y-2' : 'p-3 space-y-1')}>
         {filteredItems.length === 0 ? (
-          <div className="px-lg py-md text-sm text-muted-foreground text-center">Aucun résultat trouvé</div>
+          <div className={clsx('text-sm text-gray-400 text-center', collapsed ? 'px-2 py-4' : 'px-lg py-md')}>
+            Aucun résultat trouvé
+          </div>
         ) : (
           filteredItems.map((item) => renderItem(item))
         )}
       </nav>
 
-      {/* Footer: Collapse, Close button (mobile), Home, Theme Toggle, Logout (bottom) */}
+      {/* Footer: User Avatar at bottom (like in image) */}
+      {user && (
+        <div className={clsx('border-t border-gray-800/50 flex-shrink-0', collapsed ? 'p-2' : 'p-4')}>
+          {collapsed ? (
+            <div className="flex justify-center">
+              <div className="relative">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
+                  <span className="text-sm font-medium text-white">
+                    {user.name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
+                  </span>
+                </div>
+                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#171717] dark:border-[#0a0a0a]" />
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
+                  <span className="text-sm font-medium text-white">
+                    {user.name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
+                  </span>
+                </div>
+                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#171717] dark:border-[#0a0a0a]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-white truncate">{user.name || 'Utilisateur'}</p>
+                <p className="text-xs text-gray-400 truncate">{user.email}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Footer: Actions (Collapse, Close, Home, Theme, Logout) */}
       {(onToggleCollapse || onClose || onHomeClick || themeToggleComponent || onLogoutClick) && (
-        <div className="p-lg border-t border-border/50 flex-shrink-0 bg-background/50 backdrop-blur-sm">
+        <div className={clsx('border-t border-gray-800/50 flex-shrink-0', collapsed ? 'p-2' : 'p-3')}>
           <div className={clsx('flex items-center gap-2', collapsed || isMobile ? 'justify-center flex-wrap' : 'justify-start')}>
             {onToggleCollapse && (
               <button
                 onClick={onToggleCollapse}
-                className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className={clsx(
+                  'rounded-lg hover:bg-gray-800 text-gray-400 hover:text-white transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] flex items-center justify-center',
+                  collapsed ? 'w-10 h-10' : 'p-2 min-h-[44px] min-w-[44px]'
+                )}
                 aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                 title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               >
@@ -264,7 +339,10 @@ export default function Sidebar({
             {onClose && (
               <button
                 onClick={onClose}
-                className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className={clsx(
+                  'rounded-lg hover:bg-gray-800 text-gray-400 hover:text-white transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] flex items-center justify-center',
+                  collapsed ? 'w-10 h-10' : 'p-2 min-h-[44px] min-w-[44px]'
+                )}
                 aria-label="Fermer le menu"
                 title="Fermer le menu"
               >
@@ -274,7 +352,10 @@ export default function Sidebar({
             {onHomeClick && (
               <button
                 onClick={onHomeClick}
-                className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className={clsx(
+                  'rounded-lg hover:bg-gray-800 text-gray-400 hover:text-white transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] flex items-center justify-center',
+                  collapsed ? 'w-10 h-10' : 'p-2 min-h-[44px] min-w-[44px]'
+                )}
                 aria-label="Retour à l'accueil"
                 title="Retour à l'accueil"
               >
@@ -287,7 +368,10 @@ export default function Sidebar({
             {onLogoutClick && (
               <button
                 onClick={onLogoutClick}
-                className="p-2 rounded-lg hover:bg-destructive/10 text-destructive hover:text-destructive transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className={clsx(
+                  'rounded-lg hover:bg-red-600/20 text-red-400 hover:text-red-300 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] flex items-center justify-center',
+                  collapsed ? 'w-10 h-10' : 'p-2 min-h-[44px] min-w-[44px]'
+                )}
                 aria-label="Déconnexion"
                 title="Déconnexion"
               >
