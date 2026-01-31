@@ -8,8 +8,10 @@ import Loading from '@/components/ui/Loading';
 import Alert from '@/components/ui/Alert';
 import Button from '@/components/ui/Button';
 import { transactionsAPI } from '@/lib/api';
+import { realEstateContactsAPI } from '@/lib/api/real-estate-contacts';
 import InlineEditableField from '@/components/transactions/InlineEditableField';
 import TransactionSummaryCard from '@/components/transactions/TransactionSummaryCard';
+import TransactionContactsCard from '@/components/transactions/TransactionContactsCard';
 import Breadcrumb from '@/components/ui/Breadcrumb';
 import Tabs, { TabList, Tab, TabPanels, TabPanel } from '@/components/ui/Tabs';
 import { 
@@ -163,7 +165,18 @@ export default function TransactionDetailPage() {
 
   useEffect(() => {
     loadTransaction();
+    loadContactsCount();
   }, [transactionId]);
+
+  const loadContactsCount = async () => {
+    try {
+      const response = await realEstateContactsAPI.getTransactionContacts(parseInt(transactionId));
+      setContactsCount(response.data.contacts?.length || 0);
+    } catch (err) {
+      // Silently fail - contacts count is optional
+      setContactsCount(0);
+    }
+  };
 
   const loadTransaction = async () => {
     try {
@@ -235,6 +248,15 @@ export default function TransactionDetailPage() {
             <Tab value="information">
               <FileText className="w-4 h-4 mr-2" />
               Information
+            </Tab>
+            <Tab value="contacts">
+              <Users className="w-4 h-4 mr-2" />
+              Contacts
+              {contactsCount > 0 && (
+                <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full">
+                  {contactsCount}
+                </span>
+              )}
             </Tab>
             <Tab value="photos">
               <ImageIcon className="w-4 h-4 mr-2" />
@@ -537,6 +559,21 @@ export default function TransactionDetailPage() {
                     </Card>
                   </div>
                 </div>
+              </div>
+            </TabPanel>
+
+            {/* Contacts Tab */}
+            <TabPanel value="contacts">
+              <div className="mt-4">
+                <TransactionContactsCard
+                  transactionId={parseInt(transactionId)}
+                  onContactAdded={() => {
+                    loadContactsCount();
+                  }}
+                  onContactRemoved={() => {
+                    loadContactsCount();
+                  }}
+                />
               </div>
             </TabPanel>
 
