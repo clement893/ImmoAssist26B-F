@@ -1,7 +1,7 @@
 """add_documents_field_to_transactions
 
-Revision ID: 66a1b2c3d4e5
-Revises: 65c2048cc7c2
+Revision ID: 7a8b9c0d1e2f
+Revises: 66a1b2c3d4e5
 Create Date: 2026-01-31 19:00:00.000000
 
 """
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = '66a1b2c3d4e5'
-down_revision: Union[str, None] = '65c2048cc7c2'
+revision: str = '7a8b9c0d1e2f'
+down_revision: Union[str, None] = '66a1b2c3d4e5'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

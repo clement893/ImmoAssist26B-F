@@ -7,6 +7,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
+from sqlalchemy.exc import SQLAlchemyError, OperationalError, ProgrammingError
 
 from app.models.form import Form, FormSubmission, FormSubmissionVersion
 from app.models.real_estate_transaction import RealEstateTransaction
@@ -30,6 +31,41 @@ from app.core.tenancy_helpers import apply_tenant_scope
 router = APIRouter()
 
 
+def handle_database_error(e: Exception, operation: str = "operation"):
+    """Handle database errors and provide helpful error messages"""
+    error_msg = str(e).lower()
+    
+    # Check if it's a schema/migration error
+    if isinstance(e, (OperationalError, ProgrammingError)):
+        if 'column' in error_msg and ('does not exist' in error_msg or 'not found' in error_msg):
+            logger.error(f"Database schema error - migration may not be applied: {e}", exc_info=True)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Database schema is not up to date. Please run database migrations (alembic upgrade head)."
+            )
+        if 'relation' in error_msg and ('does not exist' in error_msg or 'not found' in error_msg):
+            logger.error(f"Database table error - migration may not be applied: {e}", exc_info=True)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Database schema is not up to date. Please run database migrations (alembic upgrade head)."
+            )
+    
+    # Re-raise if it's a SQLAlchemy error that we haven't handled
+    if isinstance(e, SQLAlchemyError):
+        logger.error(f"Database error during {operation}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="A database error occurred"
+        )
+    
+    # For other exceptions, log and raise generic error
+    logger.error(f"Unexpected error during {operation}: {e}", exc_info=True)
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail="An unexpected error occurred"
+    )
+
+
 @router.get("/oaciq/forms", response_model=List[OACIQFormResponse], tags=["oaciq-forms"])
 async def list_oaciq_forms(
     category: Optional[OACIQFormCategory] = Query(None),
@@ -37,18 +73,21 @@ async def list_oaciq_forms(
     db: AsyncSession = Depends(get_db),
 ):
     """Liste tous les formulaires OACIQ"""
-    query = select(Form).where(Form.code.isnot(None))
-    
-    if category:
-        query = query.where(Form.category == category.value)
-    
-    query = apply_tenant_scope(query, Form)
-    query = query.order_by(Form.created_at.desc())
-    
-    result = await db.execute(query)
-    forms = result.scalars().all()
-    
-    return [OACIQFormResponse.model_validate(form) for form in forms]
+    try:
+        query = select(Form).where(Form.code.isnot(None))
+        
+        if category:
+            query = query.where(Form.category == category.value)
+        
+        query = apply_tenant_scope(query, Form)
+        query = query.order_by(Form.created_at.desc())
+        
+        result = await db.execute(query)
+        forms = result.scalars().all()
+        
+        return [OACIQFormResponse.model_validate(form) for form in forms]
+    except Exception as e:
+        handle_database_error(e, "listing OACIQ forms")
 
 
 @router.get("/oaciq/forms/{code}", response_model=OACIQFormResponse, tags=["oaciq-forms"])
