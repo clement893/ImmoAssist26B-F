@@ -234,7 +234,8 @@ class RealEstateTransactionUpdate(BaseModel):
 class RealEstateTransactionResponse(BaseModel):
     """Schéma de réponse pour une transaction"""
     id: int
-    dossier_number: str
+    name: str
+    dossier_number: Optional[str] = None
     status: str
     created_at: datetime
     expected_closing_date: Optional[date] = None
@@ -242,10 +243,10 @@ class RealEstateTransactionResponse(BaseModel):
     updated_at: datetime
     
     # Propriété
-    property_address: str
-    property_city: str
-    property_postal_code: str
-    property_province: str
+    property_address: Optional[str] = None
+    property_city: Optional[str] = None
+    property_postal_code: Optional[str] = None
+    property_province: Optional[str] = None
     lot_number: Optional[str] = None
     matricule_number: Optional[str] = None
     property_type: Optional[str] = None

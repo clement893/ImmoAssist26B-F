@@ -14,8 +14,9 @@ import Input from '@/components/ui/Input';
 import Loading from '@/components/ui/Loading';
 import Alert from '@/components/ui/Alert';
 import TransactionForm from '@/components/transactions/TransactionForm';
+import PDFImportModal from '@/components/transactions/PDFImportModal';
 import { transactionsAPI } from '@/lib/api';
-import { FileText, Plus, Search, MapPin, Calendar, DollarSign, Users, Trash2, Eye } from 'lucide-react';
+import { FileText, Plus, Search, MapPin, Calendar, DollarSign, Users, Trash2, Eye, Upload } from 'lucide-react';
 // Simple date formatting function
 const formatDate = (dateString?: string) => {
   if (!dateString) return '-';
@@ -58,6 +59,7 @@ function TransactionsContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showPDFImportModal, setShowPDFImportModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -97,6 +99,11 @@ function TransactionsContent() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePDFImportSuccess = async () => {
+    setShowPDFImportModal(false);
+    await loadTransactions();
   };
 
   const handleDelete = async (id: number) => {
@@ -152,13 +159,23 @@ function TransactionsContent() {
               Gérez vos transactions immobilières et suivez leur progression
             </p>
           </div>
-          <Button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Nouvelle transaction
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setShowPDFImportModal(true)}
+              className="flex items-center gap-2"
+            >
+              <Upload className="w-4 h-4" />
+              Importer depuis PDF
+            </Button>
+            <Button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Nouvelle transaction
+            </Button>
+          </div>
         </div>
 
         {/* Error Alert */}
@@ -341,6 +358,13 @@ function TransactionsContent() {
             ))}
           </div>
         )}
+
+        {/* PDF Import Modal */}
+        <PDFImportModal
+          isOpen={showPDFImportModal}
+          onClose={() => setShowPDFImportModal(false)}
+          onSuccess={handlePDFImportSuccess}
+        />
 
         {/* Create Modal */}
         <Modal

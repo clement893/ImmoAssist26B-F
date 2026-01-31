@@ -18,6 +18,10 @@ import {
   FileText,
   Home,
   Clock,
+  Upload,
+  Trash2,
+  Download,
+  Eye,
 } from 'lucide-react';
 
 interface Transaction {
@@ -91,6 +95,17 @@ interface Transaction {
   registry_publication_number?: string;
   registry_publication_date?: string;
   notes?: string;
+  documents?: Array<{
+    id: number;
+    filename: string;
+    url: string;
+    file_key?: string;
+    size?: number;
+    content_type?: string;
+    description?: string;
+    uploaded_at?: string;
+    uploaded_by?: number;
+  }>;
 }
 
 const STATUS_OPTIONS = [
@@ -446,6 +461,113 @@ export default function TransactionDetailPage() {
                 </div>
               </Card>
             )}
+
+            {/* Documents */}
+            <Card>
+              <div className="p-6 space-y-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    Documents
+                  </h2>
+                  <label className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg cursor-pointer hover:bg-muted transition-colors text-sm">
+                    <Upload className="w-4 h-4" />
+                    Ajouter un document
+                    <input
+                      type="file"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const selectedFile = e.target.files?.[0];
+                        if (selectedFile) {
+                          try {
+                            setSaving({ ...saving, documents: true });
+                            const response = await transactionsAPI.addDocument(
+                              parseInt(transactionId),
+                              selectedFile
+                            );
+                            setTransaction(response.data);
+                          } catch (err) {
+                            setError(err instanceof Error ? err.message : 'Erreur lors de l\'ajout du document');
+                          } finally {
+                            setSaving({ ...saving, documents: false });
+                            e.target.value = '';
+                          }
+                        }
+                      }}
+                      disabled={saving.documents}
+                    />
+                  </label>
+                </div>
+                
+                {transaction.documents && transaction.documents.length > 0 ? (
+                  <div className="space-y-3">
+                    {transaction.documents.map((doc) => (
+                      <div
+                        key={doc.id}
+                        className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <FileText className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{doc.filename}</p>
+                            {doc.description && (
+                              <p className="text-sm text-muted-foreground truncate">{doc.description}</p>
+                            )}
+                            {doc.size && (
+                              <p className="text-xs text-muted-foreground">
+                                {(doc.size / 1024).toFixed(2)} KB
+                                {doc.uploaded_at && ` • ${formatDate(doc.uploaded_at)}`}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {doc.url && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => window.open(doc.url, '_blank')}
+                              title="Voir le document"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={async () => {
+                              if (confirm('Êtes-vous sûr de vouloir supprimer ce document ?')) {
+                                try {
+                                  setSaving({ ...saving, [`doc_${doc.id}`]: true });
+                                  const response = await transactionsAPI.removeDocument(
+                                    parseInt(transactionId),
+                                    doc.id
+                                  );
+                                  setTransaction(response.data);
+                                } catch (err) {
+                                  setError(err instanceof Error ? err.message : 'Erreur lors de la suppression');
+                                } finally {
+                                  setSaving({ ...saving, [`doc_${doc.id}`]: false });
+                                }
+                              }
+                            }}
+                            disabled={saving[`doc_${doc.id}`]}
+                            title="Supprimer le document"
+                          >
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>Aucun document associé à cette transaction</p>
+                  </div>
+                )}
+              </div>
+            </Card>
           </div>
 
           {/* Right Column - Sidebar */}

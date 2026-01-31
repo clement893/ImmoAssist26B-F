@@ -641,3 +641,183 @@ async def remove_contact_from_transaction(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error removing contact from transaction: {str(e)}",
         )
+
+
+@router.post("/analyze-pdf", response_model=Dict[str, Any], tags=["transactions"])
+async def analyze_transaction_pdf(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Upload and analyze a PDF to extract transaction data using AI
+    Returns extracted data and PDF preview for validation
+    """
+    try:
+        # Validate file type
+        if not file.filename or not file.filename.lower().endswith('.pdf'):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Only PDF files are supported"
+            )
+        
+        # Read PDF content
+        pdf_content = await file.read()
+        
+        if len(pdf_content) == 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="PDF file is empty"
+            )
+        
+        # Analyze PDF
+        pdf_analyzer = PDFAnalyzerService()
+        analysis_result = await pdf_analyzer.analyze_transaction_pdf(
+            pdf_content=pdf_content,
+            pdf_filename=file.filename or "document.pdf"
+        )
+        
+        return analysis_result
+        
+    except ImportError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"PDF analysis service not available: {str(e)}"
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Error analyzing PDF: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to analyze PDF: {str(e)}"
+        )
+
+
+@router.post("/{transaction_id}/documents", response_model=RealEstateTransactionResponse, tags=["transactions"])
+async def add_document_to_transaction(
+    transaction_id: int,
+    file: UploadFile = File(...),
+    description: Optional[str] = Query(None, description="Description du document"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Add a document (PDF, image, etc.) to a transaction
+    """
+    try:
+        # Get transaction
+        result = await db.execute(
+            select(RealEstateTransaction).where(
+                and_(
+                    RealEstateTransaction.id == transaction_id,
+                    RealEstateTransaction.user_id == current_user.id
+                )
+            )
+        )
+        transaction = result.scalar_one_or_none()
+        
+        if not transaction:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Transaction not found"
+            )
+        
+        # Upload file to S3
+        if not S3Service.is_configured():
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="File upload service is not configured"
+            )
+        
+        s3_service = S3Service()
+        upload_result = s3_service.upload_file(
+            file=file,
+            folder=f"transactions/{transaction_id}/documents",
+            user_id=str(current_user.id),
+        )
+        
+        # Create document entry
+        document_entry = {
+            "id": len(transaction.documents or []) + 1,
+            "filename": file.filename or "document",
+            "url": upload_result.get("url") or upload_result.get("file_key", ""),
+            "file_key": upload_result.get("file_key", ""),
+            "size": upload_result.get("size", 0),
+            "content_type": file.content_type or "application/pdf",
+            "description": description,
+            "uploaded_at": datetime.now().isoformat(),
+            "uploaded_by": current_user.id,
+        }
+        
+        # Add to documents list
+        if transaction.documents is None:
+            transaction.documents = []
+        transaction.documents.append(document_entry)
+        
+        await db.commit()
+        await db.refresh(transaction)
+        
+        return RealEstateTransactionResponse.model_validate(transaction)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error adding document to transaction: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error adding document: {str(e)}"
+        )
+
+
+@router.delete("/{transaction_id}/documents/{document_id}", response_model=RealEstateTransactionResponse, tags=["transactions"])
+async def remove_document_from_transaction(
+    transaction_id: int,
+    document_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Remove a document from a transaction
+    """
+    try:
+        # Get transaction
+        result = await db.execute(
+            select(RealEstateTransaction).where(
+                and_(
+                    RealEstateTransaction.id == transaction_id,
+                    RealEstateTransaction.user_id == current_user.id
+                )
+            )
+        )
+        transaction = result.scalar_one_or_none()
+        
+        if not transaction:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Transaction not found"
+            )
+        
+        # Remove document from list
+        if transaction.documents:
+            transaction.documents = [
+                doc for doc in transaction.documents
+                if doc.get("id") != document_id
+            ]
+            await db.commit()
+            await db.refresh(transaction)
+        
+        return RealEstateTransactionResponse.model_validate(transaction)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error removing document from transaction: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error removing document: {str(e)}"
+        )
