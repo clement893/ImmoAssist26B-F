@@ -91,13 +91,13 @@ export default function MesClausesPage() {
                 title: clauseTitle,
                 content: clauseContent,
                 category: clauseCategory,
-                updatedAt: new Date().toISOString().split('T')[0] || c.updatedAt,
+                updatedAt: new Date().toISOString().split('T')[0] || new Date().toISOString(),
               }
             : c
         ));
       } else {
         // Create new clause
-        const now = new Date().toISOString().split('T')[0];
+        const now = new Date().toISOString().split('T')[0] || new Date().toISOString();
         const newClause: Clause = {
           id: Date.now().toString(),
           title: clauseTitle,
