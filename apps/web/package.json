@@ -40,7 +40,10 @@
   },
   "dependencies": {
     "@axe-core/react": "^4.11.0",
+    "@immoassist/admin": "workspace:*",
     "@immoassist/config": "workspace:*",
+    "@immoassist/formulaire": "workspace:*",
+    "@immoassist/profil": "workspace:*",
     "@immoassist/reseau": "workspace:*",
     "@immoassist/transactions": "workspace:*",
     "@immoassist/ui": "workspace:*",

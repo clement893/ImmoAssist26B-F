@@ -25,6 +25,8 @@ import {
   Building2,
   MessageSquare,
   UserCheck,
+  ClipboardList,
+  Receipt,
 } from 'lucide-react';
 
 export interface NavigationItem {
@@ -71,55 +73,26 @@ export function getNavigationConfig(isAdmin: boolean): NavigationConfig {
         href: '/dashboard/lea',
         icon: <MessageSquare className="w-5 h-5" />,
       },
-      // Gestion (collapsible group)
+      // Module Transactions
       {
-        name: 'Gestion',
-        icon: <Users className="w-5 h-5" />,
+        name: 'Transactions',
+        icon: <Receipt className="w-5 h-5" />,
         items: [
           {
-            name: 'Utilisateurs',
-            href: '/admin/users',
-            icon: <Users className="w-5 h-5" />,
-          },
-          {
-            name: 'Équipes',
-            href: '/admin/teams',
-            icon: <UserCog className="w-5 h-5" />,
-          },
-          {
-            name: 'Rôles',
-            href: '/admin/roles',
-            icon: <Shield className="w-5 h-5" />,
-          },
-        ],
-        collapsible: true,
-        defaultOpen: false,
-      },
-      // Contenu (collapsible group)
-      {
-        name: 'Contenu',
-        icon: <FolderKanban className="w-5 h-5" />,
-        items: [
-          {
-            name: 'Pages',
-            href: '/admin/pages',
+            name: 'Liste des transactions',
+            href: '/dashboard/transactions',
             icon: <FileText className="w-5 h-5" />,
           },
           {
-            name: 'Articles',
-            href: '/admin/articles',
+            name: 'Étapes des transactions',
+            href: '/dashboard/transactions/steps',
             icon: <FileCheck className="w-5 h-5" />,
-          },
-          {
-            name: 'Médias',
-            href: '/admin/media',
-            icon: <Image className="w-5 h-5" />,
           },
         ],
         collapsible: true,
         defaultOpen: false,
       },
-      // Réseau (collapsible group)
+      // Module Réseau
       {
         name: 'Réseau',
         icon: <Network className="w-5 h-5" />,
@@ -143,25 +116,49 @@ export function getNavigationConfig(isAdmin: boolean): NavigationConfig {
         collapsible: true,
         defaultOpen: false,
       },
-      // Paramètres (collapsible group)
+      // Module Formulaire
       {
-        name: 'Paramètres',
-        icon: <Settings className="w-5 h-5" />,
+        name: 'Formulaire',
+        icon: <ClipboardList className="w-5 h-5" />,
         items: [
           {
-            name: 'Profil',
-            href: '/settings/profile',
+            name: 'Gestion des formulaires',
+            href: '/dashboard/modules/formulaire',
+            icon: <FileText className="w-5 h-5" />,
+          },
+        ],
+        collapsible: true,
+        defaultOpen: false,
+      },
+      // Module Profil
+      {
+        name: 'Profil',
+        icon: <User className="w-5 h-5" />,
+        items: [
+          {
+            name: 'Mon profil',
+            href: '/dashboard/modules/profil',
             icon: <User className="w-5 h-5" />,
           },
           {
+            name: 'Paramètres',
+            href: '/dashboard/modules/profil/settings',
+            icon: <Settings className="w-5 h-5" />,
+          },
+          {
             name: 'Sécurité',
-            href: '/settings/security',
+            href: '/dashboard/modules/profil/security',
             icon: <Lock className="w-5 h-5" />,
           },
           {
-            name: 'Préférences',
-            href: '/settings/preferences',
-            icon: <Sliders className="w-5 h-5" />,
+            name: 'Activité',
+            href: '/dashboard/modules/profil/activity',
+            icon: <FileCheck className="w-5 h-5" />,
+          },
+          {
+            name: 'Notifications',
+            href: '/dashboard/modules/profil/notifications',
+            icon: <MessageSquare className="w-5 h-5" />,
           },
         ],
         collapsible: true,
@@ -170,26 +167,81 @@ export function getNavigationConfig(isAdmin: boolean): NavigationConfig {
     ],
   };
 
-  // Add Admin group only for admins
+  // Add Admin module only for admins
   if (isAdmin) {
     config.items.push({
       name: 'Admin',
       icon: <Shield className="w-5 h-5" />,
       items: [
         {
-          name: 'Logs',
-          href: '/admin-logs/testing',
+          name: 'Vue d\'ensemble',
+          href: '/dashboard/modules/admin',
+          icon: <LayoutDashboard className="w-5 h-5" />,
+        },
+        {
+          name: 'Utilisateurs',
+          href: '/dashboard/modules/admin/users',
+          icon: <Users className="w-5 h-5" />,
+        },
+        {
+          name: 'Équipes',
+          href: '/dashboard/modules/admin/teams',
+          icon: <UserCog className="w-5 h-5" />,
+        },
+        {
+          name: 'Rôles et permissions',
+          href: '/dashboard/modules/admin/rbac',
+          icon: <Shield className="w-5 h-5" />,
+        },
+        {
+          name: 'Organisations',
+          href: '/dashboard/modules/admin/organizations',
+          icon: <Building2 className="w-5 h-5" />,
+        },
+        {
+          name: 'Invitations',
+          href: '/dashboard/modules/admin/invitations',
+          icon: <UserCheck className="w-5 h-5" />,
+        },
+        {
+          name: 'Pages',
+          href: '/dashboard/modules/admin/pages',
           icon: <FileText className="w-5 h-5" />,
         },
         {
+          name: 'Articles',
+          href: '/dashboard/modules/admin/articles',
+          icon: <FileCheck className="w-5 h-5" />,
+        },
+        {
+          name: 'Médias',
+          href: '/dashboard/modules/admin/media',
+          icon: <Image className="w-5 h-5" />,
+        },
+        {
           name: 'Thèmes',
-          href: '/admin/themes',
+          href: '/dashboard/modules/admin/themes',
           icon: <Palette className="w-5 h-5" />,
         },
         {
+          name: 'Clés API',
+          href: '/dashboard/modules/admin/api-keys',
+          icon: <Lock className="w-5 h-5" />,
+        },
+        {
+          name: 'Statistiques',
+          href: '/dashboard/modules/admin/statistics',
+          icon: <Sliders className="w-5 h-5" />,
+        },
+        {
           name: 'Configuration',
-          href: '/admin/settings',
+          href: '/dashboard/modules/admin/settings',
           icon: <Cog className="w-5 h-5" />,
+        },
+        {
+          name: 'Tenancy',
+          href: '/dashboard/modules/admin/tenancy',
+          icon: <Building2 className="w-5 h-5" />,
         },
       ],
       collapsible: true,

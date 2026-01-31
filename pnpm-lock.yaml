@@ -17,9 +17,18 @@ importers:
       '@axe-core/react':
         specifier: ^4.11.0
         version: 4.11.0
+      '@immoassist/admin':
+        specifier: workspace:*
+        version: link:../../packages/admin
       '@immoassist/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@immoassist/formulaire':
+        specifier: workspace:*
+        version: link:../../packages/formulaire
+      '@immoassist/profil':
+        specifier: workspace:*
+        version: link:../../packages/profil
       '@immoassist/reseau':
         specifier: workspace:*
         version: link:../../packages/reseau
@@ -216,8 +225,83 @@ importers:
 
   backend: {}
 
+  packages/admin:
+    dependencies:
+      '@immoassist/ui':
+        specifier: workspace:*
+        version: link:../ui
+      axios:
+        specifier: ^1.6.2
+        version: 1.13.2
+    devDependencies:
+      '@types/react':
+        specifier: ^18.2.46
+        version: 18.3.27
+      '@types/react-dom':
+        specifier: ^18.2.18
+        version: 18.3.7(@types/react@18.3.27)
+      react:
+        specifier: 19.0.0
+        version: 19.0.0
+      react-dom:
+        specifier: 19.0.0
+        version: 19.0.0(react@19.0.0)
+      typescript:
+        specifier: ^5.3.3
+        version: 5.9.3
+
   packages/config:
     devDependencies:
+      typescript:
+        specifier: ^5.3.3
+        version: 5.9.3
+
+  packages/formulaire:
+    dependencies:
+      '@immoassist/ui':
+        specifier: workspace:*
+        version: link:../ui
+      axios:
+        specifier: ^1.6.2
+        version: 1.13.2
+    devDependencies:
+      '@types/react':
+        specifier: ^18.2.46
+        version: 18.3.27
+      '@types/react-dom':
+        specifier: ^18.2.18
+        version: 18.3.7(@types/react@18.3.27)
+      react:
+        specifier: 19.0.0
+        version: 19.0.0
+      react-dom:
+        specifier: 19.0.0
+        version: 19.0.0(react@19.0.0)
+      typescript:
+        specifier: ^5.3.3
+        version: 5.9.3
+
+  packages/profil:
+    dependencies:
+      '@immoassist/ui':
+        specifier: workspace:*
+        version: link:../ui
+      axios:
+        specifier: ^1.6.2
+        version: 1.13.2
+    devDependencies:
+      '@types/react':
+        specifier: ^18.2.46
+        version: 18.3.27
+      '@types/react-dom':
+        specifier: ^18.2.18
+        version: 18.3.7(@types/react@18.3.27)
+      react:
+        specifier: 19.0.0
+        version: 19.0.0
+      react-dom:
+        specifier: 19.0.0
+        version: 19.0.0(react@19.0.0)
       typescript:
         specifier: ^5.3.3
         version: 5.9.3

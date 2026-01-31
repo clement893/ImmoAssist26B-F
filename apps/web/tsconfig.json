@@ -30,7 +30,13 @@
       "@immoassist/ui": ["../../packages/ui/src"],
       "@immoassist/ui/*": ["../../packages/ui/src/*"],
       "@immoassist/config": ["../../packages/config/src"],
-      "@immoassist/config/*": ["../../packages/config/src/*"]
+      "@immoassist/config/*": ["../../packages/config/src/*"],
+      "@immoassist/admin": ["../../packages/admin/src"],
+      "@immoassist/admin/*": ["../../packages/admin/src/*"],
+      "@immoassist/profil": ["../../packages/profil/src"],
+      "@immoassist/profil/*": ["../../packages/profil/src/*"],
+      "@immoassist/formulaire": ["../../packages/formulaire/src"],
+      "@immoassist/formulaire/*": ["../../packages/formulaire/src/*"]
     },
 
     // Next.js 16 specific
