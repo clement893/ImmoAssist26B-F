@@ -62,12 +62,13 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
       if (lastMessage && lastMessage.role === 'assistant' && lastMessage.content && !isSpeaking) {
         // Small delay to ensure UI is updated
         setTimeout(() => {
-          // Improved voice settings: slower rate, higher pitch, softer volume for a gentle, pleasant voice
+          // Improved voice settings: optimized rate for smooth, natural speech
+          // Text cleaning is handled in useVoiceSynthesis hook
           speak(lastMessage.content, { 
             lang: 'fr-FR', 
-            rate: 0.85,      // Slower rate for clearer, more pleasant diction
-            pitch: 1.15,     // Slightly higher pitch for a softer, more feminine voice
-            volume: 0.9      // Slightly softer volume for a gentler tone
+            rate: 0.9,       // Smooth rate for natural, fluid speech
+            pitch: 1.1,      // Pleasant pitch for a soft, feminine voice
+            volume: 0.95     // Comfortable volume level
           });
         }, 300);
       }

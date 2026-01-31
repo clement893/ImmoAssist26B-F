@@ -24,6 +24,58 @@ export interface SpeechOptions {
   lang?: string; // Language code, default 'fr-FR'
 }
 
+/**
+ * Clean and prepare text for speech synthesis
+ * Removes HTML tags, URLs, special characters, and formats text for natural reading
+ */
+function cleanTextForSpeech(text: string): string {
+  if (!text) return '';
+  
+  let cleaned = text;
+  
+  // Remove HTML tags
+  cleaned = cleaned.replace(/<[^>]*>/g, '');
+  
+  // Remove markdown formatting
+  cleaned = cleaned.replace(/\*\*(.*?)\*\*/g, '$1'); // Bold
+  cleaned = cleaned.replace(/\*(.*?)\*/g, '$1'); // Italic
+  cleaned = cleaned.replace(/`(.*?)`/g, '$1'); // Code
+  cleaned = cleaned.replace(/\[(.*?)\]\(.*?\)/g, '$1'); // Links
+  
+  // Remove URLs but keep the text
+  cleaned = cleaned.replace(/https?:\/\/[^\s]+/g, '');
+  cleaned = cleaned.replace(/www\.[^\s]+/g, '');
+  
+  // Replace special characters with their spoken equivalents
+  cleaned = cleaned.replace(/&nbsp;/g, ' ');
+  cleaned = cleaned.replace(/&amp;/g, ' et ');
+  cleaned = cleaned.replace(/&lt;/g, ' moins que ');
+  cleaned = cleaned.replace(/&gt;/g, ' plus que ');
+  cleaned = cleaned.replace(/&quot;/g, '"');
+  cleaned = cleaned.replace(/&#39;/g, "'");
+  
+  // Remove excessive whitespace
+  cleaned = cleaned.replace(/\s+/g, ' ');
+  
+  // Remove special characters that cause stuttering
+  cleaned = cleaned.replace(/[^\w\s.,!?;:()\-'"]/g, ' ');
+  
+  // Clean up multiple spaces
+  cleaned = cleaned.replace(/\s+/g, ' ').trim();
+  
+  // Add pauses for punctuation
+  cleaned = cleaned.replace(/\./g, '. ');
+  cleaned = cleaned.replace(/!/g, '! ');
+  cleaned = cleaned.replace(/\?/g, '? ');
+  cleaned = cleaned.replace(/;/g, '; ');
+  cleaned = cleaned.replace(/:/g, ': ');
+  
+  // Clean up multiple spaces again
+  cleaned = cleaned.replace(/\s+/g, ' ').trim();
+  
+  return cleaned;
+}
+
 export function useVoiceSynthesis(): UseVoiceSynthesisReturn {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [supported, setSupported] = useState(false);
@@ -91,12 +143,17 @@ export function useVoiceSynthesis(): UseVoiceSynthesisReturn {
       // Stop any ongoing speech
       window.speechSynthesis.cancel();
 
-      const utterance = new SpeechSynthesisUtterance(text);
+      // Clean text for better speech synthesis
+      const cleanedText = cleanTextForSpeech(text);
       
-      // Set options
-      utterance.rate = options.rate ?? 1;
-      utterance.pitch = options.pitch ?? 1;
-      utterance.volume = options.volume ?? 1;
+      if (!cleanedText.trim()) return;
+
+      const utterance = new SpeechSynthesisUtterance(cleanedText);
+      
+      // Set options with improved defaults for smoother, more natural speech
+      utterance.rate = options.rate ?? 0.9; // Slightly slower for better clarity
+      utterance.pitch = options.pitch ?? 1.1; // Slightly higher for a more pleasant voice
+      utterance.volume = options.volume ?? 0.95; // Slightly softer for comfort
       utterance.lang = options.lang ?? 'fr-FR';
       
       // Set voice if selected
