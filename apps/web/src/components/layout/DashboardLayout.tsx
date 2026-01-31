@@ -30,6 +30,7 @@ import {
   Building2,
   MessageSquare,
   UserCheck,
+  FileText,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -49,6 +50,11 @@ const createSidebarItems = (isAdmin: boolean) => [
     label: 'Agent',
     href: '/dashboard/agents',
     icon: <UserCheck className="w-5 h-5" />,
+  },
+  {
+    label: 'Transactions immobilières',
+    href: '/dashboard/transactions',
+    icon: <FileText className="w-5 h-5" />,
   },
   {
     label: 'Profile',
