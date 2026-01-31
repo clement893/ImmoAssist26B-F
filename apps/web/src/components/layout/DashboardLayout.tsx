@@ -179,11 +179,6 @@ const createSidebarItems = (isAdmin: boolean) => [
     ],
   },
   {
-    label: 'Projets',
-    href: '/dashboard/projects',
-    icon: <FolderKanban className="w-5 h-5" />,
-  },
-  {
     label: 'Super Admin',
     href: '/dashboard/become-superadmin',
     icon: <Shield className="w-5 h-5" />,
