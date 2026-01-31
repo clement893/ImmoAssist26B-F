@@ -228,8 +228,13 @@ function TransactionsContent() {
                   <div className="flex items-start justify-between">
                     <div>
                       <h3 className="text-lg font-semibold mb-1">
-                        {transaction.dossier_number}
+                        {transaction.name}
                       </h3>
+                      {transaction.dossier_number && (
+                        <p className="text-sm text-muted-foreground mb-1">
+                          Dossier: {transaction.dossier_number}
+                        </p>
+                      )}
                       <Badge variant={getStatusColor(transaction.status) as any}>
                         {transaction.status}
                       </Badge>
