@@ -43,6 +43,12 @@ class LeaContextResponse(BaseModel):
     messages: list
 
 
+class LeaSynthesizeRequest(BaseModel):
+    """Léa text-to-speech synthesis request"""
+    text: str = Field(..., min_length=1, description="Text to synthesize")
+    voice: Optional[str] = Field("alloy", description="Voice to use")
+
+
 @router.post("/chat", response_model=LeaChatResponse)
 async def lea_chat(
     request: LeaChatRequest,
@@ -170,8 +176,7 @@ async def transcribe_audio(
 
 @router.post("/voice/synthesize")
 async def synthesize_speech(
-    text: str = Field(..., min_length=1),
-    voice: Optional[str] = Field("alloy", description="Voice to use"),
+    request: LeaSynthesizeRequest,
     current_user: User = Depends(get_current_user),
 ):
     """
