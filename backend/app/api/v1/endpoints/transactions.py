@@ -288,3 +288,129 @@ async def delete_transaction(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error deleting transaction: {str(e)}",
         )
+
+
+@router.get("/{transaction_id}/progression", response_model=dict)
+async def get_transaction_progression(
+    transaction_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get transaction progression status and steps
+    Calculates the current progression status based on transaction data
+    """
+    try:
+        query = select(RealEstateTransaction).where(
+            and_(
+                RealEstateTransaction.id == transaction_id,
+                RealEstateTransaction.user_id == current_user.id,
+            )
+        )
+        
+        result = await db.execute(query)
+        transaction = result.scalar_one_or_none()
+        
+        if not transaction:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Transaction not found",
+            )
+        
+        # Calculate progression
+        from datetime import datetime
+        
+        now = datetime.now()
+        progression_status = "draft"
+        current_step = "creation"
+        overall_progress = 0
+        
+        # Determine current status
+        if not transaction.promise_to_purchase_date:
+            progression_status = "draft"
+            current_step = "creation"
+            overall_progress = 5
+        elif transaction.promise_to_purchase_date and not transaction.promise_acceptance_date:
+            progression_status = "active"
+            current_step = "promise"
+            overall_progress = 15
+        else:
+            inspection_lifted = bool(transaction.inspection_condition_lifted_date)
+            financing_lifted = bool(transaction.financing_condition_lifted_date)
+            all_conditions_met = inspection_lifted and financing_lifted
+            
+            if not all_conditions_met:
+                progression_status = "pending_conditions"
+                current_step = "conditions"
+                overall_progress = 30
+            elif not transaction.sale_act_signing_date:
+                progression_status = "firm"
+                current_step = "firm"
+                overall_progress = 60
+            elif transaction.sale_act_signing_date and not transaction.actual_closing_date:
+                progression_status = "closing"
+                current_step = "closing"
+                overall_progress = 85
+            elif transaction.actual_closing_date and transaction.seller_quittance_confirmed:
+                progression_status = "closed"
+                current_step = "finalization"
+                overall_progress = 100
+        
+        if transaction.status == "Annulée":
+            progression_status = "cancelled"
+            overall_progress = 0
+        
+        return {
+            "transaction_id": transaction.id,
+            "current_step": current_step,
+            "overall_progress": overall_progress,
+            "status": progression_status,
+            "steps": {
+                "creation": {
+                    "completed": True,
+                    "date": transaction.created_at.isoformat() if transaction.created_at else None,
+                },
+                "promise": {
+                    "completed": bool(transaction.promise_acceptance_date),
+                    "date": transaction.promise_acceptance_date.isoformat() if transaction.promise_acceptance_date else None,
+                },
+                "inspection": {
+                    "completed": bool(transaction.inspection_condition_lifted_date),
+                    "deadline": transaction.inspection_deadline.isoformat() if transaction.inspection_deadline else None,
+                },
+                "financing": {
+                    "completed": bool(transaction.financing_condition_lifted_date),
+                    "deadline": transaction.financing_deadline.isoformat() if transaction.financing_deadline else None,
+                },
+                "firm": {
+                    "completed": bool(transaction.inspection_condition_lifted_date and transaction.financing_condition_lifted_date),
+                },
+                "documents": {
+                    "completed": bool(
+                        transaction.location_certificate_received and
+                        transaction.location_certificate_conform and
+                        transaction.seller_declaration_signed and
+                        transaction.home_insurance_proof_received
+                    ),
+                },
+                "signing": {
+                    "completed": bool(transaction.sale_act_signing_date),
+                    "date": transaction.sale_act_signing_date.isoformat() if transaction.sale_act_signing_date else None,
+                },
+                "possession": {
+                    "completed": bool(transaction.possession_date and transaction.possession_date <= now.date()) if transaction.possession_date else False,
+                },
+                "finalization": {
+                    "completed": bool(transaction.seller_quittance_confirmed and transaction.sale_act_signing_date),
+                },
+            },
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting transaction progression: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error getting transaction progression: {str(e)}",
+        )
