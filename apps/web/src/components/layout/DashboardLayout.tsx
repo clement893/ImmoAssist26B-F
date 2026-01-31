@@ -41,6 +41,8 @@ import {
   Sliders,
   UserCog,
   Users,
+  Calendar,
+  Clock,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -119,6 +121,28 @@ const createSidebarItems = (isAdmin: boolean) => [
         label: 'Mes Clauses',
         href: '/dashboard/modules/formulaire/mes-clauses',
         icon: <ClipboardList className="w-5 h-5" />,
+      },
+    ],
+  },
+  // Module Calendrier
+  {
+    label: 'Calendrier',
+    icon: <Calendar className="w-5 h-5" />,
+    children: [
+      {
+        label: 'Vue d\'ensemble',
+        href: '/dashboard/modules/calendrier',
+        icon: <LayoutDashboard className="w-5 h-5" />,
+      },
+      {
+        label: 'Agenda',
+        href: '/dashboard/modules/calendrier/agenda',
+        icon: <Calendar className="w-5 h-5" />,
+      },
+      {
+        label: 'Événements',
+        href: '/dashboard/modules/calendrier/evenements',
+        icon: <Clock className="w-5 h-5" />,
       },
     ],
   },
