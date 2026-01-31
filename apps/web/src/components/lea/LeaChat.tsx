@@ -9,8 +9,9 @@ import Input from '@/components/ui/Input';
 import Card from '@/components/ui/Card';
 import Loading from '@/components/ui/Loading';
 import Alert from '@/components/ui/Alert';
-import { Send, Mic, MicOff, Volume2, VolumeX, X, Trash2 } from 'lucide-react';
+import { Send, Mic, MicOff, Volume2, VolumeX, X, Trash2, Paperclip, ArrowUp } from 'lucide-react';
 import { clsx } from 'clsx';
+import AudioWaveform from './AudioWaveform';
 
 interface LeaChatProps {
   onClose?: () => void;
@@ -100,16 +101,16 @@ export default function LeaChat({ onClose, className = '' }: LeaChatProps) {
   };
 
   return (
-    <Card className={clsx('flex flex-col h-full max-h-[600px]', className)}>
+    <div className={clsx('flex flex-col h-full max-h-[600px] bg-[#1A1A2E] rounded-lg overflow-hidden', className)}>
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
+      <div className="flex items-center justify-between p-4 border-b border-gray-800">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-            <span className="text-primary font-bold text-lg">L</span>
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center shadow-lg">
+            <span className="text-white font-bold text-lg">L</span>
           </div>
           <div>
-            <h3 className="font-semibold">Léa</h3>
-            <p className="text-xs text-muted-foreground">Assistante AI Immobilière</p>
+            <h3 className="font-semibold text-white">Léa</h3>
+            <p className="text-xs text-gray-400">Assistante AI Immobilière</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -122,6 +123,7 @@ export default function LeaChat({ onClose, className = '' }: LeaChatProps) {
                 if (isSpeaking) stopSpeaking();
               }}
               title={autoSpeak ? 'Désactiver la lecture automatique' : 'Activer la lecture automatique'}
+              className="text-gray-400 hover:text-white"
             >
               {autoSpeak ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
             </Button>
@@ -131,6 +133,7 @@ export default function LeaChat({ onClose, className = '' }: LeaChatProps) {
             size="sm"
             onClick={handleClear}
             title="Effacer l'historique"
+            className="text-gray-400 hover:text-white"
           >
             <Trash2 className="w-4 h-4" />
           </Button>
@@ -140,6 +143,7 @@ export default function LeaChat({ onClose, className = '' }: LeaChatProps) {
               size="sm"
               onClick={onClose}
               title="Fermer"
+              className="text-gray-400 hover:text-white"
             >
               <X className="w-4 h-4" />
             </Button>
@@ -148,16 +152,27 @@ export default function LeaChat({ onClose, className = '' }: LeaChatProps) {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#1A1A2E]">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center py-8">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <span className="text-primary font-bold text-2xl">L</span>
+            {/* Audio Waveform Visualization */}
+            <div className="w-full max-w-md h-32 mb-8 relative">
+              <AudioWaveform isActive={isListening} className="w-full h-full" />
             </div>
-            <h4 className="font-semibold mb-2">Bonjour ! Je suis Léa</h4>
-            <p className="text-sm text-muted-foreground max-w-sm">
-              Votre assistante AI spécialisée dans l'immobilier. Je peux vous aider à rechercher des agents,
-              des contacts, des entreprises et bien plus encore. Posez-moi une question !
+            
+            {/* Gradient Text */}
+            <h4 
+              className="font-semibold mb-4 text-2xl bg-gradient-to-r from-purple-400 via-blue-400 to-purple-400 bg-clip-text text-transparent animate-gradient"
+              style={{
+                backgroundSize: '200% auto',
+                animation: 'gradient 3s ease infinite',
+              }}
+            >
+              Parlez à votre assistante AI maintenant
+            </h4>
+            <p className="text-sm text-gray-400 max-w-sm">
+              Votre assistante AI spécialisée dans l&apos;immobilier. Je peux vous aider à rechercher des agents,
+              des contacts, des entreprises et bien plus encore.
             </p>
           </div>
         )}
@@ -174,8 +189,8 @@ export default function LeaChat({ onClose, className = '' }: LeaChatProps) {
               className={clsx(
                 'max-w-[80%] rounded-lg px-4 py-2',
                 message.role === 'user'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted'
+                  ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
+                  : 'bg-gray-800 text-gray-100'
               )}
             >
               <p className="text-sm whitespace-pre-wrap">{message.content}</p>
@@ -193,7 +208,7 @@ export default function LeaChat({ onClose, className = '' }: LeaChatProps) {
 
         {isLoading && (
           <div className="flex justify-start">
-            <div className="bg-muted rounded-lg px-4 py-2">
+            <div className="bg-gray-800 rounded-lg px-4 py-2">
               <Loading size="sm" />
             </div>
           </div>
@@ -211,48 +226,92 @@ export default function LeaChat({ onClose, className = '' }: LeaChatProps) {
         </div>
       )}
 
-      {/* Input Area */}
-      <div className="p-4 border-t space-y-2">
+      {/* Audio Waveform when listening */}
+      {isListening && messages.length === 0 && (
+        <div className="px-4 pb-2">
+          <div className="w-full h-24">
+            <AudioWaveform isActive={true} className="w-full h-full" />
+          </div>
+        </div>
+      )}
+
+      {/* Input Area - Modern Design */}
+      <div className="p-4 bg-gray-900/50 border-t border-gray-800">
         {isListening && (
-          <div className="flex items-center gap-2 text-sm text-primary">
-            <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+          <div className="flex items-center gap-2 text-sm text-purple-400 mb-2">
+            <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" />
             <span>Écoute en cours...</span>
-            {transcript && <span className="text-muted-foreground">({transcript})</span>}
+            {transcript && <span className="text-gray-400">({transcript})</span>}
           </div>
         )}
-        <div className="flex items-center gap-2">
-          {voiceSupported && (
-            <Button
-              variant={isListening ? 'error' : 'outline'}
-              size="sm"
-              onClick={toggleListening}
-              disabled={isLoading}
-              title={isListening ? 'Arrêter l\'écoute' : 'Démarrer l\'écoute vocale'}
-            >
-              {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-            </Button>
-          )}
-          <Input
+        <div className="flex items-center gap-2 bg-gray-800/80 rounded-full px-2 py-2">
+          {/* Add/Attachment Button */}
+          <button
+            type="button"
+            className="w-10 h-10 rounded-full bg-gray-700 hover:bg-gray-600 flex items-center justify-center transition-colors"
+            title="Ajouter une pièce jointe"
+          >
+            <Paperclip className="w-5 h-5 text-gray-300" />
+          </button>
+          
+          {/* Text Input */}
+          <input
             ref={inputRef}
+            type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Tapez votre message ou utilisez le microphone..."
+            placeholder="Écrivez votre message ici..."
             disabled={isLoading || isListening}
-            className="flex-1"
+            className="flex-1 bg-transparent text-white placeholder-gray-500 outline-none px-2 text-sm"
           />
-          <Button
-            onClick={handleSend}
-            disabled={!input.trim() || isLoading || isListening}
-            title="Envoyer"
-          >
-            {isLoading ? <Loading size="sm" /> : <Send className="w-4 h-4" />}
-          </Button>
+          
+          {/* Send/Voice Button */}
+          {voiceSupported ? (
+            <button
+              type="button"
+              onClick={isListening ? toggleListening : handleSend}
+              disabled={(!input.trim() && !isListening) || isLoading}
+              className={clsx(
+                'w-10 h-10 rounded-full flex items-center justify-center transition-all',
+                isListening
+                  ? 'bg-red-500 hover:bg-red-600'
+                  : input.trim()
+                  ? 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600'
+                  : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 opacity-50 cursor-not-allowed'
+              )}
+              title={isListening ? 'Arrêter l\'écoute' : input.trim() ? 'Envoyer' : 'Parler à Léa'}
+            >
+              {isListening ? (
+                <MicOff className="w-5 h-5 text-white" />
+              ) : input.trim() ? (
+                <ArrowUp className="w-5 h-5 text-white" />
+              ) : (
+                <Mic className="w-5 h-5 text-white" />
+              )}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSend}
+              disabled={!input.trim() || isLoading}
+              className={clsx(
+                'w-10 h-10 rounded-full flex items-center justify-center transition-all',
+                input.trim()
+                  ? 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600'
+                  : 'bg-gradient-to-r from-purple-500 to-blue-500 opacity-50 cursor-not-allowed'
+              )}
+              title="Envoyer"
+            >
+              {isLoading ? (
+                <Loading size="sm" className="text-white" />
+              ) : (
+                <ArrowUp className="w-5 h-5 text-white" />
+              )}
+            </button>
+          )}
         </div>
-        <p className="text-xs text-muted-foreground text-center">
-          {voiceSupported && '💡 Utilisez le microphone pour parler à Léa'}
-        </p>
       </div>
-    </Card>
+    </div>
   );
 }

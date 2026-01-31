@@ -20,7 +20,6 @@ import {
   Clock,
   Upload,
   Trash2,
-  Download,
   Eye,
 } from 'lucide-react';
 

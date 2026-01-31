@@ -3,7 +3,6 @@
 import { useState, useRef } from 'react';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
 import Loading from '@/components/ui/Loading';
 import Alert from '@/components/ui/Alert';
 import { transactionsAPI } from '@/lib/api';
