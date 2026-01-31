@@ -19,10 +19,22 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Add documents column as JSON
-    op.add_column('real_estate_transactions', sa.Column('documents', postgresql.JSON(astext_type=sa.Text()), nullable=True))
+    # Add documents column as JSON (only if it doesn't exist)
+    from sqlalchemy import inspect
+    bind = op.get_bind()
+    inspector = inspect(bind)
+    existing_columns = {col['name'] for col in inspector.get_columns('real_estate_transactions')}
+    
+    if 'documents' not in existing_columns:
+        op.add_column('real_estate_transactions', sa.Column('documents', postgresql.JSON(astext_type=sa.Text()), nullable=True))
 
 
 def downgrade() -> None:
-    # Remove documents column
-    op.drop_column('real_estate_transactions', 'documents')
+    # Remove documents column (only if it exists)
+    from sqlalchemy import inspect
+    bind = op.get_bind()
+    inspector = inspect(bind)
+    existing_columns = {col['name'] for col in inspector.get_columns('real_estate_transactions')}
+    
+    if 'documents' in existing_columns:
+        op.drop_column('real_estate_transactions', 'documents')

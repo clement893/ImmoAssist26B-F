@@ -43,17 +43,22 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   asChild?: boolean;
 }
 
-// Base styles
+// Base styles - Modern and clean
 const baseStyles = [
   'font-medium',
   'rounded-lg',
   'transition-all',
-  'duration-200',
+  'duration-300',
+  'ease-out',
   'focus:outline-none',
   'focus:ring-2',
   'focus:ring-offset-2',
   'disabled:opacity-50',
   'disabled:cursor-not-allowed',
+  'shadow-sm',
+  'hover:shadow-md',
+  'active:scale-[0.98]',
+  'backdrop-blur-sm',
 ].join(' ');
 
 // Variant styles - Split into arrays for better readability
@@ -63,46 +68,56 @@ const createVariantStyles = (base: string[], hover: string[], focus: string[], c
 
 const variants = {
   primary: createVariantStyles(
-    ['bg-primary-600', 'dark:bg-primary-500', 'text-background'],
-    ['hover:bg-primary-700', 'dark:hover:bg-primary-600'],
-    ['focus:ring-primary-500', 'dark:focus:ring-primary-400'],
+    ['bg-gradient-to-r', 'from-primary-600', 'to-primary-500', 'dark:from-primary-500', 'dark:to-primary-400', 'text-background', 'shadow-lg', 'shadow-primary-500/25'],
+    ['hover:from-primary-700', 'hover:to-primary-600', 'dark:hover:from-primary-600', 'dark:hover:to-primary-500', 'hover:shadow-xl', 'hover:shadow-primary-500/30'],
+    ['focus:ring-primary-500', 'dark:focus:ring-primary-400', 'focus:ring-offset-2'],
     'color-primary-500'
   ),
   secondary: createVariantStyles(
-    ['bg-secondary-600', 'dark:bg-secondary-500', 'text-background'],
-    ['hover:bg-secondary-700', 'dark:hover:bg-secondary-600'],
-    ['focus:ring-secondary-500', 'dark:focus:ring-secondary-400'],
+    ['bg-gradient-to-r', 'from-secondary-600', 'to-secondary-500', 'dark:from-secondary-500', 'dark:to-secondary-400', 'text-background', 'shadow-lg', 'shadow-secondary-500/25'],
+    ['hover:from-secondary-700', 'hover:to-secondary-600', 'dark:hover:from-secondary-600', 'dark:hover:to-secondary-500', 'hover:shadow-xl', 'hover:shadow-secondary-500/30'],
+    ['focus:ring-secondary-500', 'dark:focus:ring-secondary-400', 'focus:ring-offset-2'],
     'color-secondary-500'
   ),
   outline: [
     'border-2',
-    'border-primary-600',
-    'dark:border-primary-500',
+    'border-primary-600/60',
+    'dark:border-primary-400/60',
     'text-primary-600',
     'dark:text-primary-400',
-    'hover:bg-primary-50',
+    'bg-transparent',
+    'backdrop-blur-sm',
+    'hover:bg-primary-50/80',
     'dark:hover:bg-primary-900/20',
+    'hover:border-primary-600',
+    'dark:hover:border-primary-400',
     'focus:ring-primary-500',
     'dark:focus:ring-primary-400',
+    'focus:ring-offset-2',
+    'shadow-sm',
+    'hover:shadow-md',
     '[border-color:var(--color-primary-500)]',
     '[color:var(--color-primary-500)]',
   ].join(' '),
   ghost: [
     'text-foreground',
-    'hover:bg-muted',
+    'bg-transparent',
+    'hover:bg-muted/80',
+    'hover:shadow-sm',
     'focus:ring-primary-500',
     'dark:focus:ring-primary-400',
+    'focus:ring-offset-2',
   ].join(' '),
   danger: createVariantStyles(
-    ['bg-error-600', 'dark:bg-error-500', 'text-background'],
-    ['hover:bg-error-700', 'dark:hover:bg-error-600'],
-    ['focus:ring-error-500', 'dark:focus:ring-error-400'],
+    ['bg-gradient-to-r', 'from-error-600', 'to-error-500', 'dark:from-error-500', 'dark:to-error-400', 'text-background', 'shadow-lg', 'shadow-error-500/25'],
+    ['hover:from-error-700', 'hover:to-error-600', 'dark:hover:from-error-600', 'dark:hover:to-error-500', 'hover:shadow-xl', 'hover:shadow-error-500/30'],
+    ['focus:ring-error-500', 'dark:focus:ring-error-400', 'focus:ring-offset-2'],
     'color-error-500'
   ),
   error: createVariantStyles(
-    ['bg-error-600', 'dark:bg-error-500', 'text-background'],
-    ['hover:bg-error-700', 'dark:hover:bg-error-600'],
-    ['focus:ring-error-500', 'dark:focus:ring-error-400'],
+    ['bg-gradient-to-r', 'from-error-600', 'to-error-500', 'dark:from-error-500', 'dark:to-error-400', 'text-background', 'shadow-lg', 'shadow-error-500/25'],
+    ['hover:from-error-700', 'hover:to-error-600', 'dark:hover:from-error-600', 'dark:hover:to-error-500', 'hover:shadow-xl', 'hover:shadow-error-500/30'],
+    ['focus:ring-error-500', 'dark:focus:ring-error-400', 'focus:ring-offset-2'],
     'color-error-500'
   ),
 };
