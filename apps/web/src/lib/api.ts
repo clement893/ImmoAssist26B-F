@@ -304,12 +304,6 @@ export const authAPI = {
   },
 };
 
-export const usersAPI = {
-  getMe: () => {
-    return apiClient.get('/v1/auth/me');
-  }
-};
-
 export const leaAPI = {
   chat: (message: string, sessionId?: string, provider: string = 'auto') => {
     return apiClient.post('/v1/lea/chat', {
@@ -327,7 +321,13 @@ export const leaAPI = {
     return apiClient.delete('/v1/lea/context', {
       params: { session_id: sessionId },
     });
-  },,
+  },
+};
+
+export const usersAPI = {
+  getMe: () => {
+    return apiClient.get('/v1/auth/me');
+  },
   updateMe: (data: {
     name?: string;
     email?: string;
