@@ -30,7 +30,7 @@ class SEOSettings(BaseModel):
     twitter_title: Optional[str] = None
     twitter_description: Optional[str] = None
     twitter_image: Optional[str] = None
-    schema: Optional[str] = None
+    schema_data: Optional[str] = Field(None, alias='schema')
 
 
 class SEOSettingsResponse(BaseModel):
