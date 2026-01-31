@@ -59,7 +59,7 @@ const createSidebarItems = (isAdmin: boolean) => [
     icon: <LayoutDashboard className="w-5 h-5" />,
   },
   {
-    label: 'Agent',
+    label: 'Léa',
     href: '/dashboard/agents',
     icon: <UserCheck className="w-5 h-5" />,
   },

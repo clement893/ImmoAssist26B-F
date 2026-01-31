@@ -60,9 +60,9 @@ export function getNavigationConfig(isAdmin: boolean): NavigationConfig {
         href: '/dashboard',
         icon: <LayoutDashboard className="w-5 h-5" />,
       },
-      // Agent (non-grouped)
+      // Léa (non-grouped)
       {
-        name: 'Agent',
+        name: 'Léa',
         href: '/dashboard/agents',
         icon: <UserCheck className="w-5 h-5" />,
       },
