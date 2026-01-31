@@ -75,12 +75,21 @@ export default function LeaChat({ onClose, className = '' }: LeaChatProps) {
     }
   };
 
-  const toggleListening = () => {
+  const toggleListening = async () => {
     if (isListening) {
       stopListening();
     } else {
-      startListening();
-      setInput(''); // Clear input when starting to listen
+      // Request microphone permission if needed
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        startListening();
+        setInput(''); // Clear input when starting to listen
+      } catch (err) {
+        console.error('Microphone permission denied:', err);
+        // Still try to start - browser might have already granted permission
+        startListening();
+        setInput('');
+      }
     }
   };
 
@@ -194,10 +203,10 @@ export default function LeaChat({ onClose, className = '' }: LeaChatProps) {
       </div>
 
       {/* Error Alert */}
-      {error && (
+      {(error || voiceError) && (
         <div className="px-4 pb-2">
           <Alert variant="error" title="Erreur">
-            {error}
+            {error || voiceError}
           </Alert>
         </div>
       )}
