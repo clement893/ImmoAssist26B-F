@@ -40,6 +40,10 @@
   },
   "dependencies": {
     "@axe-core/react": "^4.11.0",
+    "@immoassist/config": "workspace:*",
+    "@immoassist/reseau": "workspace:*",
+    "@immoassist/transactions": "workspace:*",
+    "@immoassist/ui": "workspace:*",
     "@modele/types": "workspace:*",
     "@sentry/nextjs": "^10.32.1",
     "@stripe/react-stripe-js": "^5.4.1",

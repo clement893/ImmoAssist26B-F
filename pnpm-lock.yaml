@@ -17,6 +17,18 @@ importers:
       '@axe-core/react':
         specifier: ^4.11.0
         version: 4.11.0
+      '@immoassist/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@immoassist/reseau':
+        specifier: workspace:*
+        version: link:../../packages/reseau
+      '@immoassist/transactions':
+        specifier: workspace:*
+        version: link:../../packages/transactions
+      '@immoassist/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       '@modele/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -204,8 +216,92 @@ importers:
 
   backend: {}
 
+  packages/config:
+    devDependencies:
+      typescript:
+        specifier: ^5.3.3
+        version: 5.9.3
+
+  packages/reseau:
+    dependencies:
+      axios:
+        specifier: ^1.6.2
+        version: 1.13.2
+    devDependencies:
+      '@types/react':
+        specifier: ^18.2.46
+        version: 18.3.27
+      '@types/react-dom':
+        specifier: ^18.2.18
+        version: 18.3.7(@types/react@18.3.27)
+      react:
+        specifier: 19.0.0
+        version: 19.0.0
+      react-dom:
+        specifier: 19.0.0
+        version: 19.0.0(react@19.0.0)
+      typescript:
+        specifier: ^5.3.3
+        version: 5.9.3
+
+  packages/transactions:
+    dependencies:
+      '@immoassist/reseau':
+        specifier: workspace:*
+        version: link:../reseau
+      axios:
+        specifier: ^1.6.2
+        version: 1.13.2
+    devDependencies:
+      '@types/react':
+        specifier: ^18.2.46
+        version: 18.3.27
+      '@types/react-dom':
+        specifier: ^18.2.18
+        version: 18.3.7(@types/react@18.3.27)
+      react:
+        specifier: 19.0.0
+        version: 19.0.0
+      react-dom:
+        specifier: 19.0.0
+        version: 19.0.0(react@19.0.0)
+      typescript:
+        specifier: ^5.3.3
+        version: 5.9.3
+
   packages/types:
     devDependencies:
+      typescript:
+        specifier: ^5.3.3
+        version: 5.9.3
+
+  packages/ui:
+    dependencies:
+      clsx:
+        specifier: ^2.0.0
+        version: 2.1.1
+      lucide-react:
+        specifier: ^0.344.0
+        version: 0.344.0(react@19.0.0)
+      tailwindcss:
+        specifier: ^3.0.0
+        version: 3.4.19(yaml@2.8.2)
+      zod:
+        specifier: ^3.22.4
+        version: 3.25.76
+    devDependencies:
+      '@types/react':
+        specifier: ^18.2.46
+        version: 18.3.27
+      '@types/react-dom':
+        specifier: ^18.2.18
+        version: 18.3.7(@types/react@18.3.27)
+      react:
+        specifier: 19.0.0
+        version: 19.0.0
+      react-dom:
+        specifier: 19.0.0
+        version: 19.0.0(react@19.0.0)
       typescript:
         specifier: ^5.3.3
         version: 5.9.3

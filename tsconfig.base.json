@@ -41,7 +41,15 @@
     // Paths - Configuration partagée pour les packages
     "paths": {
       "@modele/types": ["./packages/types/src"],
-      "@modele/types/*": ["./packages/types/src/*"]
+      "@modele/types/*": ["./packages/types/src/*"],
+      "@immoassist/reseau": ["./packages/reseau/src"],
+      "@immoassist/reseau/*": ["./packages/reseau/src/*"],
+      "@immoassist/transactions": ["./packages/transactions/src"],
+      "@immoassist/transactions/*": ["./packages/transactions/src/*"],
+      "@immoassist/ui": ["./packages/ui/src"],
+      "@immoassist/ui/*": ["./packages/ui/src/*"],
+      "@immoassist/config": ["./packages/config/src"],
+      "@immoassist/config/*": ["./packages/config/src/*"]
     }
   },
   "exclude": ["node_modules", "dist", "build", ".next", "out"]

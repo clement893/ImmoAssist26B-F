@@ -324,23 +324,9 @@ export const leaAPI = {
   },
 };
 
-export const transactionsAPI = {
-  list: (params?: { skip?: number; limit?: number; status?: string; search?: string }) => {
-    return apiClient.get('/v1/transactions', { params });
-  },
-  get: (transactionId: number) => {
-    return apiClient.get(`/v1/transactions/${transactionId}`);
-  },
-  create: (data: any) => {
-    return apiClient.post('/v1/transactions', data);
-  },
-  update: (transactionId: number, data: any) => {
-    return apiClient.put(`/v1/transactions/${transactionId}`, data);
-  },
-  delete: (transactionId: number) => {
-    return apiClient.delete(`/v1/transactions/${transactionId}`);
-  },
-};
+// transactionsAPI est maintenant exporté depuis les adaptateurs du module Transactions
+// Cette exportation est maintenue pour compatibilité mais devrait être importée depuis './api/transactions-adapters'
+export { transactionsAPI } from './api/transactions-adapters';
 
 export const usersAPI = {
   getMe: () => {

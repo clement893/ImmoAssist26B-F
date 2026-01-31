@@ -1,0 +1,39 @@
+{
+  "name": "@immoassist/config",
+  "version": "1.0.0",
+  "description": "Shared configuration for ImmoAssist monorepo",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "default": "./src/index.js"
+    },
+    "./eslint": {
+      "types": "./src/eslint/index.d.ts",
+      "default": "./src/eslint/index.js"
+    },
+    "./typescript": {
+      "types": "./src/typescript/index.d.ts",
+      "default": "./src/typescript/index.js"
+    },
+    "./tailwind": {
+      "types": "./src/tailwind/index.d.ts",
+      "default": "./src/tailwind/index.js"
+    }
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit",
+    "lint": "echo 'No linting for config package'",
+    "test": "echo 'No tests for config package'"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  },
+  "files": [
+    "src"
+  ],
+  "publishConfig": {
+    "access": "restricted"
+  }
+}

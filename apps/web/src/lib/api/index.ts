@@ -82,5 +82,21 @@ export type {
 // Re-export API utilities
 export { extractApiData } from './utils';
 
-// Re-export real estate contacts API
-export { realEstateContactsAPI } from './real-estate-contacts';
+// Re-export module adapters
+export { reseauContactsAPI } from './reseau-adapters';
+export type { Contact, ContactCreate, ContactUpdate } from './reseau-adapters';
+
+export { transactionsAPI, realEstateContactsAPI } from './transactions-adapters';
+export type {
+  Transaction,
+  TransactionCreate,
+  TransactionUpdate,
+  RealEstateContact,
+  RealEstateContactCreate,
+  RealEstateContactUpdate,
+  TransactionContact,
+  TransactionContactCreate,
+  ContactType,
+  TransactionRole,
+  TRANSACTION_ROLES,
+} from './transactions-adapters';
