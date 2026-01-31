@@ -126,11 +126,13 @@ export default function Sidebar({
             >
               {item.icon && (
                 <span className={clsx(
-                  'flex-shrink-0 flex items-center justify-center transition-all',
+                  'flex-shrink-0 flex items-center justify-center transition-all rounded-full',
                   collapsed 
-                    ? 'w-10 h-10 rounded-full' 
-                    : 'w-8 h-8 rounded-full',
-                  isActive && !collapsed && 'bg-gray-700'
+                    ? 'w-10 h-10' 
+                    : 'w-9 h-9',
+                  isActive 
+                    ? 'bg-gray-700 text-white' 
+                    : 'text-gray-400 hover:text-white'
                 )}>
                   {item.icon}
                 </span>
@@ -149,11 +151,13 @@ export default function Sidebar({
             >
               {item.icon && (
                 <span className={clsx(
-                  'flex-shrink-0 flex items-center justify-center transition-all',
+                  'flex-shrink-0 flex items-center justify-center transition-all rounded-full',
                   collapsed 
-                    ? 'w-10 h-10 rounded-full' 
-                    : 'w-8 h-8 rounded-full',
-                  isActive && !collapsed && 'bg-gray-700'
+                    ? 'w-10 h-10' 
+                    : 'w-9 h-9',
+                  isActive 
+                    ? 'bg-gray-700 text-white' 
+                    : 'text-gray-400 hover:text-white'
                 )}>
                   {item.icon}
                 </span>
