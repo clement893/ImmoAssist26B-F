@@ -78,11 +78,11 @@ function DashboardContent() {
       <MotionDiv variant="slideUp" delay={150}>
         <Card className="bg-gradient-to-br from-[#1A1A2E] to-[#16213E] border-gray-800 hover:shadow-xl transition-all duration-300">
           <div className="flex items-center gap-3 mb-3">
-            <div className="p-3 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg">
+            <div className="p-3 bg-gradient-to-br from-green-500 to-blue-500 rounded-lg">
               <Sparkles className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h3 className="text-xl font-semibold bg-gradient-to-r from-purple-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
+              <h3 className="text-xl font-semibold bg-gradient-to-r from-green-400 via-blue-400 to-green-400 bg-clip-text text-transparent">
                 Léa - Assistante AI
               </h3>
               <p className="text-sm text-gray-400">Votre assistante intelligente spécialisée dans l'immobilier</p>

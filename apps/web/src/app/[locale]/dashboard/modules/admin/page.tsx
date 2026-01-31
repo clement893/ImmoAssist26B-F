@@ -42,7 +42,7 @@ export default function AdminModulePage() {
       description: 'Configurer les rôles et les permissions du système',
       icon: <Shield className="w-6 h-6" />,
       href: `/${locale}/dashboard/modules/admin/rbac`,
-      color: 'bg-purple-500',
+      color: 'bg-green-500',
     },
     {
       title: 'Organisations',

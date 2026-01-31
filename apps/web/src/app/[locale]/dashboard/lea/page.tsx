@@ -12,7 +12,7 @@ export default function LeaPage() {
     <div className="min-h-screen bg-[#1A1A2E]">
       <Container className="py-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-purple-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-green-400 via-blue-400 to-green-400 bg-clip-text text-transparent">
             Léa - Assistante AI
           </h1>
           <p className="text-gray-400">

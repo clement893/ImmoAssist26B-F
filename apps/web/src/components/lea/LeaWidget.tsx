@@ -21,7 +21,7 @@ export default function LeaWidget({ className = '' }: LeaWidgetProps) {
       ) : (
         <button
           onClick={() => setIsOpen(true)}
-          className="rounded-full w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 shadow-lg hover:shadow-xl transition-all flex items-center justify-center text-white"
+          className="rounded-full w-16 h-16 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 shadow-lg hover:shadow-xl transition-all flex items-center justify-center text-white"
           title="Ouvrir Léa - Assistante AI"
         >
           <MessageCircle className="w-6 h-6" />

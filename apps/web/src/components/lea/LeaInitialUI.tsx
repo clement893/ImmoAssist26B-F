@@ -73,12 +73,12 @@ export default function LeaInitialUI({
 
   return (
     <div className="flex flex-col items-center justify-center px-6 pb-12 max-w-4xl mx-auto w-full">
-      {/* Large Purple Sphere Icon */}
+      {/* Large Green Sphere Icon */}
       <div className="mb-8 relative">
-        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 via-purple-600 to-blue-600 flex items-center justify-center shadow-2xl shadow-purple-500/50 animate-pulse">
+        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-green-500 via-green-600 to-blue-600 flex items-center justify-center shadow-2xl shadow-green-500/50 animate-pulse">
           <Sparkles className="w-12 h-12 text-white" />
         </div>
-        <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 opacity-20 blur-2xl animate-pulse" />
+        <div className="absolute inset-0 rounded-full bg-gradient-to-br from-green-400 to-blue-500 opacity-20 blur-2xl animate-pulse" />
       </div>
 
       {/* Greeting */}
@@ -89,7 +89,7 @@ export default function LeaInitialUI({
       {/* Question with gradient */}
       <h2 className="text-2xl md:text-3xl font-semibold mb-12">
         Qu'est-ce qui vous préoccupe{' '}
-        <span className="bg-gradient-to-r from-purple-500 to-blue-500 bg-clip-text text-transparent">
+        <span className="bg-gradient-to-r from-green-500 to-blue-500 bg-clip-text text-transparent">
           aujourd'hui ?
         </span>
       </h2>
@@ -137,7 +137,7 @@ export default function LeaInitialUI({
                 className={clsx(
                   'p-2 rounded-lg transition-colors',
                   inputValue.trim() && !isLoading && !isListening
-                    ? 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white'
+                    ? 'bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white'
                     : 'bg-muted opacity-50 cursor-not-allowed'
                 )}
                 title="Envoyer"
@@ -153,7 +153,7 @@ export default function LeaInitialUI({
               className="p-2 rounded-lg hover:bg-muted transition-colors"
               title="Citation"
             >
-              <Quote className="w-5 h-5 text-purple-500" />
+              <Quote className="w-5 h-5 text-green-500" />
             </button>
             <button
               className="p-2 rounded-lg hover:bg-muted transition-colors"
@@ -177,7 +177,7 @@ export default function LeaInitialUI({
             </Button>
           </div>
           <Button variant="ghost" size="sm" className="text-muted-foreground">
-            <Quote className="w-4 h-4 mr-2 text-purple-500" />
+            <Quote className="w-4 h-4 mr-2 text-green-500" />
             Citation
           </Button>
         </div>

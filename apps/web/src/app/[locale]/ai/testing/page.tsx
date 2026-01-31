@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import { aiAPI } from '@/lib/api';
@@ -133,7 +133,7 @@ function AITestContent() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100 dark:from-muted dark:to-muted py-8 px-4">
+    <main className="min-h-screen bg-gradient-to-br from-green-50 to-blue-100 dark:from-muted dark:to-muted py-8 px-4">
       <div className="max-w-4xl mx-auto space-y-6">
         <Card title="AI Test Interface">
           {/* Health Check */}

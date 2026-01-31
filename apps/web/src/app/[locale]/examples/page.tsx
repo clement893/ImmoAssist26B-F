@@ -38,7 +38,7 @@ export default function ExamplesPage() {
       description: 'Une page de paramètres complète avec différents types de configurations',
       href: '/examples/settings',
       icon: '⚙️',
-      color: 'purple',
+      color: 'green',
     },
     {
       id: 'auth',
