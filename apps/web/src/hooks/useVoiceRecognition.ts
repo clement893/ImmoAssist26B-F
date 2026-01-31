@@ -109,26 +109,20 @@ export function useVoiceRecognition(language: string = 'fr-FR'): UseVoiceRecogni
       return;
     }
 
-    try {
-      // Stop any existing recognition first
-      if (isListening) {
+    // If already listening, stop first
+    if (isListening && recognitionRef.current) {
+      try {
         recognitionRef.current.stop();
-        // Wait a bit before restarting
-        setTimeout(() => {
-          try {
-            setTranscript('');
-            setError(null);
-            recognitionRef.current?.start();
-          } catch (err) {
-            console.error('Error restarting recognition:', err);
-            setError('Impossible de redémarrer la reconnaissance vocale');
-          }
-        }, 100);
-      } else {
-        setTranscript('');
-        setError(null);
-        recognitionRef.current.start();
+      } catch (err) {
+        console.error('Error stopping recognition:', err);
       }
+      return;
+    }
+
+    try {
+      setTranscript('');
+      setError(null);
+      recognitionRef.current.start();
     } catch (err: any) {
       console.error('Error starting recognition:', err);
       // Handle specific error cases
@@ -138,12 +132,16 @@ export function useVoiceRecognition(language: string = 'fr-FR'): UseVoiceRecogni
           recognitionRef.current.stop();
           setTimeout(() => {
             try {
+              setTranscript('');
+              setError(null);
               recognitionRef.current?.start();
             } catch (retryErr) {
+              console.error('Error restarting recognition:', retryErr);
               setError('Impossible de démarrer la reconnaissance vocale');
             }
-          }, 100);
+          }, 200);
         } catch (stopErr) {
+          console.error('Error stopping recognition:', stopErr);
           setError('Erreur lors du démarrage du microphone');
         }
       } else {

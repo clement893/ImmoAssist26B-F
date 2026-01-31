@@ -258,38 +258,37 @@ export default function LeaChat({ onClose, className = '' }: LeaChatProps) {
             className="flex-1 bg-transparent text-white placeholder-gray-500 outline-none px-2 text-sm"
           />
           
-          {/* Send/Voice Button */}
-          {voiceSupported ? (
+          {/* Voice Button - Always visible if supported */}
+          {voiceSupported && (
             <button
               type="button"
-              onClick={isListening ? toggleListening : handleSend}
-              disabled={(!input.trim() && !isListening) || isLoading}
+              onClick={toggleListening}
+              disabled={isLoading}
               className={clsx(
                 'w-10 h-10 rounded-full flex items-center justify-center transition-all',
                 isListening
                   ? 'bg-red-500 hover:bg-red-600'
-                  : input.trim()
-                  ? 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600'
-                  : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 opacity-50 cursor-not-allowed'
+                  : 'bg-gray-700 hover:bg-gray-600'
               )}
-              title={isListening ? 'Arrêter l\'écoute' : input.trim() ? 'Envoyer' : 'Parler à Léa'}
+              title={isListening ? 'Arrêter l\'écoute' : 'Parler à Léa'}
             >
               {isListening ? (
                 <MicOff className="w-5 h-5 text-white" />
-              ) : input.trim() ? (
-                <ArrowUp className="w-5 h-5 text-white" />
               ) : (
                 <Mic className="w-5 h-5 text-white" />
               )}
             </button>
-          ) : (
+          )}
+          
+          {/* Send Button - Shows when there's text or when voice is not supported */}
+          {(input.trim() || !voiceSupported) && (
             <button
               type="button"
               onClick={handleSend}
-              disabled={!input.trim() || isLoading}
+              disabled={!input.trim() || isLoading || isListening}
               className={clsx(
                 'w-10 h-10 rounded-full flex items-center justify-center transition-all',
-                input.trim()
+                input.trim() && !isLoading && !isListening
                   ? 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600'
                   : 'bg-gradient-to-r from-purple-500 to-blue-500 opacity-50 cursor-not-allowed'
               )}
