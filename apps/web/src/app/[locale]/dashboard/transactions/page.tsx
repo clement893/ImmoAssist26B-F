@@ -15,7 +15,7 @@ import Loading from '@/components/ui/Loading';
 import Alert from '@/components/ui/Alert';
 import TransactionForm from '@/components/transactions/TransactionForm';
 import { transactionsAPI } from '@/lib/api';
-import { FileText, Plus, Search, Filter, MapPin, Calendar, DollarSign, Users, Edit, Trash2, Eye } from 'lucide-react';
+import { FileText, Plus, Search, MapPin, Calendar, DollarSign, Users, Trash2, Eye } from 'lucide-react';
 // Simple date formatting function
 const formatDate = (dateString?: string) => {
   if (!dateString) return '-';
@@ -32,8 +32,6 @@ interface Transaction {
   dossier_number: string;
   status: string;
   created_at: string;
-  expected_closing_date?: string;
-  actual_closing_date?: string;
   property_address: string;
   property_city: string;
   property_postal_code: string;
@@ -266,14 +264,14 @@ function TransactionsContent() {
 
                   {/* Parties */}
                   <div className="space-y-1 text-sm">
-                    {transaction.sellers && transaction.sellers.length > 0 && (
+                    {transaction.sellers && transaction.sellers.length > 0 && transaction.sellers[0]?.name && (
                       <div className="flex items-center gap-2">
                         <Users className="w-4 h-4 text-muted-foreground" />
                         <span className="text-muted-foreground">Vendeur:</span>
                         <span className="font-medium">{transaction.sellers[0].name}</span>
                       </div>
                     )}
-                    {transaction.buyers && transaction.buyers.length > 0 && (
+                    {transaction.buyers && transaction.buyers.length > 0 && transaction.buyers[0]?.name && (
                       <div className="flex items-center gap-2">
                         <Users className="w-4 h-4 text-muted-foreground" />
                         <span className="text-muted-foreground">Acheteur:</span>

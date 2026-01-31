@@ -205,7 +205,12 @@ export default function TransactionForm({ onSubmit, onCancel, initialData, isLoa
 
   const updateSeller = (index: number, field: keyof Person, value: string) => {
     const updatedSellers = [...formData.sellers];
-    updatedSellers[index] = { ...updatedSellers[index], [field]: value };
+    const currentSeller = updatedSellers[index] || { name: '' };
+    updatedSellers[index] = { 
+      ...currentSeller, 
+      [field]: value,
+      name: field === 'name' ? value : (currentSeller.name || '')
+    } as Person;
     setFormData({ ...formData, sellers: updatedSellers });
   };
 
@@ -225,7 +230,12 @@ export default function TransactionForm({ onSubmit, onCancel, initialData, isLoa
 
   const updateBuyer = (index: number, field: keyof Person, value: string) => {
     const updatedBuyers = [...formData.buyers];
-    updatedBuyers[index] = { ...updatedBuyers[index], [field]: value };
+    const currentBuyer = updatedBuyers[index] || { name: '' };
+    updatedBuyers[index] = { 
+      ...currentBuyer, 
+      [field]: value,
+      name: field === 'name' ? value : (currentBuyer.name || '')
+    } as Person;
     setFormData({ ...formData, buyers: updatedBuyers });
   };
 

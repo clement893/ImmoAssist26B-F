@@ -55,6 +55,18 @@ const createSidebarItems = (isAdmin: boolean) => [
     label: 'Transactions immobilières',
     href: '/dashboard/transactions',
     icon: <FileText className="w-5 h-5" />,
+    children: [
+      {
+        label: 'Liste des transactions',
+        href: '/dashboard/transactions',
+        icon: <FileText className="w-5 h-5" />,
+      },
+      {
+        label: 'Étapes des transactions',
+        href: '/dashboard/transactions/steps',
+        icon: <FileText className="w-5 h-5" />,
+      },
+    ],
   },
   {
     label: 'Profile',
