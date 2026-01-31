@@ -250,9 +250,9 @@ function AgentsContent() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Agents Immobiliers</h1>
+            <h1 className="text-3xl font-bold">Agent - Léa</h1>
             <p className="text-muted-foreground mt-1">
-              Gérez vos agents immobiliers et leurs informations
+              Gérez vos agents immobiliers avec l'assistance de Léa
             </p>
           </div>
           <Button
