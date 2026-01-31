@@ -103,7 +103,9 @@ export default function Sidebar({
           className={clsx(
             'flex items-center justify-between px-lg py-md rounded-lg transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] min-h-[44px]',
             // Improved spacing and touch target (UX/UI improvements - Batch 8, 17)
-            isActive ? 'bg-primary-100 dark:bg-primary-900/40 text-primary-900 dark:text-primary-100 font-medium' : 'text-foreground hover:bg-muted',
+            isActive 
+              ? 'bg-gradient-to-r from-primary/10 via-primary/5 to-transparent text-primary border-l-4 border-primary font-semibold shadow-sm shadow-primary/5' 
+              : 'text-foreground hover:bg-muted/50 hover:text-foreground border-l-4 border-transparent',
             level > 0 && 'ml-lg' // Increased indentation for nested items
           )}
         >
@@ -130,8 +132,8 @@ export default function Sidebar({
                 <span className={clsx(
                   "px-2 py-0.5 text-xs font-medium rounded-full",
                   isActive 
-                    ? "bg-blue-500 text-white" 
-                    : "bg-slate-700 text-slate-300"
+                    ? "bg-primary text-primary-foreground shadow-sm" 
+                    : "bg-muted text-muted-foreground"
                 )}>
                   {item.badge}
                 </span>
@@ -140,12 +142,12 @@ export default function Sidebar({
                 (isExpanded ? (
                   <ChevronDown className={clsx(
                     "w-4 h-4 transition-transform",
-                    isActive ? "text-white" : "text-slate-400"
+                    isActive ? "text-primary" : "text-muted-foreground"
                   )} />
                 ) : (
                   <ChevronRight className={clsx(
                     "w-4 h-4 transition-transform",
-                    isActive ? "text-white" : "text-slate-400"
+                    isActive ? "text-primary" : "text-muted-foreground"
                   )} />
                 ))}
             </div>
@@ -153,7 +155,7 @@ export default function Sidebar({
         </div>
 
         {hasChildren && isExpanded && !collapsed && (
-          <div className="mt-1 space-y-1 ml-2 border-l-2 border-slate-700 pl-2">
+          <div className="mt-1 space-y-1 ml-2 border-l-2 border-border/30 pl-2">
             {item.children!.map((child) => renderItem(child, level + 1))}
           </div>
         )}
@@ -178,25 +180,25 @@ export default function Sidebar({
   return (
     <aside
       className={clsx(
-        'bg-slate-800 dark:bg-slate-900 border-r border-slate-700 h-full transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col',
+        'bg-gradient-to-b from-background via-background to-muted/30 border-r border-border/50 h-full transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col backdrop-blur-sm',
         collapsed ? 'w-16' : 'w-64 md:w-72 lg:w-80',
         className
       )}
     >
       {/* Header: User info + Notifications (top left) */}
       {user && (
-        <div className="p-lg border-b border-slate-700 flex-shrink-0">
+        <div className="p-lg border-b border-border/50 flex-shrink-0 bg-background/50 backdrop-blur-sm">
           <div className={clsx('flex items-center gap-3', collapsed && 'justify-center')}>
-            <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 min-w-[44px] min-h-[44px]">
-              <span className="text-sm font-medium text-white">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center flex-shrink-0 min-w-[44px] min-h-[44px] shadow-lg shadow-primary/20">
+              <span className="text-sm font-medium text-primary-foreground">
                 {user.name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
               </span>
             </div>
             {!collapsed && (
               <div className="flex-1 min-w-0 flex items-center gap-2">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-100 truncate">{user.name || 'Utilisateur'}</p>
-                  <p className="text-xs text-slate-400 truncate">{user.email}</p>
+                  <p className="text-sm font-semibold text-foreground truncate">{user.name || 'Utilisateur'}</p>
+                  <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                 </div>
                 {notificationsComponent && <div className="flex-shrink-0">{notificationsComponent}</div>}
               </div>
@@ -208,21 +210,21 @@ export default function Sidebar({
 
       {/* Search Bar (UX/UI improvements - Batch 8) */}
       {showSearch && !collapsed && (
-        <div className="px-lg py-md border-b border-slate-700 flex-shrink-0">
+        <div className="px-lg py-md border-b border-border/50 flex-shrink-0 bg-background/30 backdrop-blur-sm">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               type="text"
               placeholder="Rechercher..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-10 h-10 text-sm bg-slate-700 border-slate-600 text-slate-100 placeholder:text-slate-400 focus:border-blue-500"
+              className="pl-10 pr-10 h-10 text-sm bg-background/50 border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
               aria-label="Rechercher dans la navigation"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-100 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors"
                 aria-label="Effacer la recherche"
               >
                 <X className="w-4 h-4" />
@@ -242,12 +244,12 @@ export default function Sidebar({
 
       {/* Footer: Collapse, Close button (mobile), Home, Theme Toggle, Logout (bottom) */}
       {(onToggleCollapse || onClose || onHomeClick || themeToggleComponent || onLogoutClick) && (
-        <div className="p-lg border-t border-slate-700 flex-shrink-0">
+        <div className="p-lg border-t border-border/50 flex-shrink-0 bg-background/50 backdrop-blur-sm">
           <div className={clsx('flex items-center gap-2', collapsed || isMobile ? 'justify-center flex-wrap' : 'justify-start')}>
             {onToggleCollapse && (
               <button
                 onClick={onToggleCollapse}
-                className="p-2 rounded-lg hover:bg-slate-700 text-slate-300 hover:text-slate-100 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] min-h-[44px] min-w-[44px] flex items-center justify-center"
                 aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                 title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               >
@@ -262,7 +264,7 @@ export default function Sidebar({
             {onClose && (
               <button
                 onClick={onClose}
-                className="p-2 rounded-lg hover:bg-slate-700 text-slate-300 hover:text-slate-100 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] min-h-[44px] min-w-[44px] flex items-center justify-center"
                 aria-label="Fermer le menu"
                 title="Fermer le menu"
               >
@@ -272,7 +274,7 @@ export default function Sidebar({
             {onHomeClick && (
               <button
                 onClick={onHomeClick}
-                className="p-2 rounded-lg hover:bg-slate-700 text-slate-300 hover:text-slate-100 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] min-h-[44px] min-w-[44px] flex items-center justify-center"
                 aria-label="Retour à l'accueil"
                 title="Retour à l'accueil"
               >
@@ -285,7 +287,7 @@ export default function Sidebar({
             {onLogoutClick && (
               <button
                 onClick={onLogoutClick}
-                className="p-2 rounded-lg hover:bg-red-600/20 text-red-400 hover:text-red-300 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="p-2 rounded-lg hover:bg-destructive/10 text-destructive hover:text-destructive transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] min-h-[44px] min-w-[44px] flex items-center justify-center"
                 aria-label="Déconnexion"
                 title="Déconnexion"
               >
