@@ -150,6 +150,9 @@ class RealEstateTransaction(Base):
     registry_publication_number = Column(String, nullable=True, comment="Numéro de publication (Registre foncier)")
     seller_quittance_confirmed = Column(Boolean, default=False, comment="Confirmation de la quittance")
     notes = Column(Text, nullable=True, comment="Notes et commentaires")
+    
+    # 11. Documents associés
+    documents = Column(JSON, nullable=True, comment="Liste des documents associés (PDF, images, etc.)")
 
     # Relations
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)

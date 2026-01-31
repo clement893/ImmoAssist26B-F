@@ -138,6 +138,9 @@ class RealEstateTransactionCreate(BaseModel):
     registry_publication_number: Optional[str] = None
     seller_quittance_confirmed: bool = False
     notes: Optional[str] = None
+    
+    # 11. Documents associés
+    documents: Optional[List[Dict[str, Any]]] = None
 
 
 class RealEstateTransactionUpdate(BaseModel):
@@ -225,6 +228,7 @@ class RealEstateTransactionUpdate(BaseModel):
     registry_publication_number: Optional[str] = None
     seller_quittance_confirmed: Optional[bool] = None
     notes: Optional[str] = None
+    documents: Optional[List[Dict[str, Any]]] = None
 
 
 class RealEstateTransactionResponse(BaseModel):
@@ -267,6 +271,9 @@ class RealEstateTransactionResponse(BaseModel):
     
     # Notes
     notes: Optional[str] = None
+    
+    # Documents
+    documents: Optional[List[Dict[str, Any]]] = None
     
     user_id: int
     
