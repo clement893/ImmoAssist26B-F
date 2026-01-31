@@ -1,6 +1,6 @@
 'use client';
 
-import { Container, Card, Button, Grid } from '@immoassist/ui';
+import { Container, Card, Button } from '@immoassist/ui';
 import { useRouter, useParams } from 'next/navigation';
 import {
   Users,
@@ -15,7 +15,6 @@ import {
   Lock,
   Sliders,
   Cog,
-  LayoutDashboard,
 } from 'lucide-react';
 
 export default function AdminModulePage() {
@@ -119,7 +118,7 @@ export default function AdminModulePage() {
         </p>
       </div>
 
-      <Grid columns={{ mobile: 1, tablet: 2, desktop: 3 }} gap="normal">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {adminSections.map((section) => (
           <Card
             key={section.title}
@@ -147,7 +146,7 @@ export default function AdminModulePage() {
             </div>
           </Card>
         ))}
-      </Grid>
+      </div>
     </Container>
   );
 }
