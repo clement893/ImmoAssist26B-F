@@ -121,9 +121,19 @@ export function getNavigationConfig(isAdmin: boolean): NavigationConfig {
         icon: <ClipboardList className="w-5 h-5" />,
         items: [
           {
-            name: 'Gestion des formulaires',
+            name: 'Vue d\'ensemble',
             href: '/dashboard/modules/formulaire',
+            icon: <LayoutDashboard className="w-5 h-5" />,
+          },
+          {
+            name: 'Formulaires OACIQ',
+            href: '/dashboard/modules/formulaire/oaciq',
             icon: <FileText className="w-5 h-5" />,
+          },
+          {
+            name: 'Mes Clauses',
+            href: '/dashboard/modules/formulaire/mes-clauses',
+            icon: <ClipboardList className="w-5 h-5" />,
           },
         ],
         collapsible: true,
