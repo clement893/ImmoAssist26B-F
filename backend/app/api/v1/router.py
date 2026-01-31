@@ -426,3 +426,9 @@ api_router.include_router(
     lea.router,
     tags=["lea"]
 )
+
+# Register real estate transactions endpoints
+api_router.include_router(
+    transactions.router,
+    tags=["transactions"]
+)
