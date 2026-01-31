@@ -24,10 +24,10 @@ class RealEstateTransaction(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
     # 2. Informations sur la propriété
-    property_address = Column(String, nullable=False, comment="Adresse complète")
-    property_city = Column(String, nullable=False)
-    property_postal_code = Column(String, nullable=False)
-    property_province = Column(String, default="QC", nullable=False)
+    property_address = Column(String, nullable=True, comment="Adresse complète")
+    property_city = Column(String, nullable=True)
+    property_postal_code = Column(String, nullable=True)
+    property_province = Column(String, default="QC", nullable=True)
     lot_number = Column(String, nullable=True, comment="Numéro de lot (cadastre)")
     matricule_number = Column(String, nullable=True, comment="Numéro de matricule")
     property_type = Column(String, nullable=True, comment="Unifamiliale, condo, plex, terrain, etc.")

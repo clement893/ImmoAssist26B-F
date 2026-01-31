@@ -141,9 +141,10 @@ export function calculateTransactionSteps(transaction: TransactionData): Transac
     status: 'completed',
     date: transaction.created_at,
     details: [
-      `Numéro de dossier: ${transaction.dossier_number}`,
+      `Nom: ${transaction.name}`,
+      transaction.dossier_number && `Numéro de dossier: ${transaction.dossier_number}`,
       `Statut initial: ${transaction.status}`,
-    ],
+    ].filter(Boolean) as string[],
     progress: 100,
   });
 
