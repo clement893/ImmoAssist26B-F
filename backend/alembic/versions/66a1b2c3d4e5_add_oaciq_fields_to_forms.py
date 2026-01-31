@@ -29,7 +29,12 @@ def upgrade() -> None:
     # Add OACIQ fields to forms table
     if 'code' not in existing_columns:
         op.add_column('forms', sa.Column('code', sa.String(20), nullable=True))
-        op.create_index('idx_forms_code', 'forms', ['code'], unique=True)
+        # Create unique index only for non-null values to avoid conflicts
+        op.execute("""
+            CREATE UNIQUE INDEX idx_forms_code 
+            ON forms (code) 
+            WHERE code IS NOT NULL
+        """)
     
     if 'category' not in existing_columns:
         op.add_column('forms', sa.Column('category', sa.String(50), nullable=True))
