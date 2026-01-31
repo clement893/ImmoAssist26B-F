@@ -105,17 +105,52 @@ export function useVoiceRecognition(language: string = 'fr-FR'): UseVoiceRecogni
   const startListening = useCallback(() => {
     if (!supported || !recognitionRef.current) {
       setError('Reconnaissance vocale non disponible');
+      console.error('Voice recognition not supported or not initialized');
       return;
     }
 
     try {
-      setTranscript('');
-      setError(null);
-      recognitionRef.current.start();
-    } catch (err) {
-      setError('Impossible de démarrer la reconnaissance vocale');
+      // Stop any existing recognition first
+      if (isListening) {
+        recognitionRef.current.stop();
+        // Wait a bit before restarting
+        setTimeout(() => {
+          try {
+            setTranscript('');
+            setError(null);
+            recognitionRef.current?.start();
+          } catch (err) {
+            console.error('Error restarting recognition:', err);
+            setError('Impossible de redémarrer la reconnaissance vocale');
+          }
+        }, 100);
+      } else {
+        setTranscript('');
+        setError(null);
+        recognitionRef.current.start();
+      }
+    } catch (err: any) {
+      console.error('Error starting recognition:', err);
+      // Handle specific error cases
+      if (err?.message?.includes('already started') || err?.name === 'InvalidStateError') {
+        // Recognition is already running, try to stop and restart
+        try {
+          recognitionRef.current.stop();
+          setTimeout(() => {
+            try {
+              recognitionRef.current?.start();
+            } catch (retryErr) {
+              setError('Impossible de démarrer la reconnaissance vocale');
+            }
+          }, 100);
+        } catch (stopErr) {
+          setError('Erreur lors du démarrage du microphone');
+        }
+      } else {
+        setError('Impossible de démarrer la reconnaissance vocale. Vérifiez les permissions du microphone.');
+      }
     }
-  }, [supported]);
+  }, [supported, isListening]);
 
   const stopListening = useCallback(() => {
     if (recognitionRef.current && isListening) {

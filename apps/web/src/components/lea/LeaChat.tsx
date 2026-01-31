@@ -25,6 +25,7 @@ export default function LeaChat({ onClose, className = '' }: LeaChatProps) {
     startListening,
     stopListening,
     supported: voiceSupported,
+    error: voiceError,
   } = useVoiceRecognition('fr-FR');
   const { speak, stop: stopSpeaking, isSpeaking, supported: ttsSupported } = useVoiceSynthesis();
   
