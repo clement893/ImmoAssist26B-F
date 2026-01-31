@@ -156,7 +156,7 @@ function AgentsContent() {
     {
       key: 'name',
       label: 'Nom',
-      render: (agent: Agent) => (
+      render: (_value: unknown, agent: Agent) => (
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
             <User className="w-4 h-4 text-primary" />
@@ -170,7 +170,7 @@ function AgentsContent() {
     {
       key: 'email',
       label: 'Email',
-      render: (agent: Agent) => (
+      render: (_value: unknown, agent: Agent) => (
         <div className="flex items-center gap-2 text-muted-foreground">
           <Mail className="w-4 h-4" />
           {agent.email}
@@ -180,7 +180,7 @@ function AgentsContent() {
     {
       key: 'phone',
       label: 'Téléphone',
-      render: (agent: Agent) => agent.phone ? (
+      render: (_value: unknown, agent: Agent) => agent.phone ? (
         <div className="flex items-center gap-2 text-muted-foreground">
           <Phone className="w-4 h-4" />
           {agent.phone}
@@ -192,7 +192,7 @@ function AgentsContent() {
     {
       key: 'agency',
       label: 'Agence',
-      render: (agent: Agent) => agent.agency ? (
+      render: (_value: unknown, agent: Agent) => agent.agency ? (
         <div className="flex items-center gap-2 text-muted-foreground">
           <Building className="w-4 h-4" />
           {agent.agency}
@@ -204,14 +204,14 @@ function AgentsContent() {
     {
       key: 'license_number',
       label: 'N° de licence',
-      render: (agent: Agent) => agent.license_number || (
+      render: (_value: unknown, agent: Agent) => agent.license_number || (
         <span className="text-muted-foreground">-</span>
       ),
     },
     {
       key: 'is_active',
       label: 'Statut',
-      render: (agent: Agent) => (
+      render: (_value: unknown, agent: Agent) => (
         <Badge variant={agent.is_active ? 'success' : 'default'}>
           {agent.is_active ? 'Actif' : 'Inactif'}
         </Badge>
@@ -220,7 +220,7 @@ function AgentsContent() {
     {
       key: 'actions',
       label: 'Actions',
-      render: (agent: Agent) => (
+      render: (_value: unknown, agent: Agent) => (
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
