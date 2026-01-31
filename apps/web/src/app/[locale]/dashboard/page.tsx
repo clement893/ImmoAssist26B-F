@@ -14,17 +14,21 @@ import dynamicImport from 'next/dynamic';
 import { ErrorBoundary } from '@/components/errors/ErrorBoundary';
 import MotionDiv from '@/components/motion/MotionDiv';
 import LeaChat from '@/components/lea/LeaChat';
+import { getBrokerDashboardStats, BrokerDashboardStats } from '@/lib/api/dashboard';
 import {
   User,
-  CheckCircle2,
-  Settings,
-  Activity,
-  Database,
-  Shield,
+  Receipt,
+  Building2,
+  Users,
+  Calendar,
+  FileText,
+  DollarSign,
+  TrendingUp,
   Sparkles,
   Zap,
-  TrendingUp,
-  FileText,
+  ClipboardList,
+  AlertCircle,
+  CheckCircle2,
 } from 'lucide-react';
 
 // Lazy load TemplateAIChat to avoid circular dependency issues during build
@@ -36,14 +40,33 @@ const TemplateAIChat = dynamicImport(
 function DashboardContent() {
   const { user } = useAuthStore();
   const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState<BrokerDashboardStats | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Simulate initial data loading
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
+    const loadStats = async () => {
+      try {
+        const data = await getBrokerDashboardStats();
+        setStats(data);
+      } catch (err) {
+        console.error('Error loading dashboard stats:', err);
+        setError(err instanceof Error ? err.message : 'Erreur lors du chargement des statistiques');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadStats();
   }, []);
+
+  const formatCurrency = (value: string | number) => {
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    return new Intl.NumberFormat('fr-CA', {
+      style: 'currency',
+      currency: 'CAD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(num);
+  };
 
   if (isLoading) {
     return (
@@ -68,9 +91,9 @@ function DashboardContent() {
       {/* Welcome Header */}
       <MotionDiv variant="fade" delay={100}>
         <PageHeader
-          title={`Welcome back, ${user?.name || 'User'}!`}
-          description="Here's what's happening with your account today"
-          breadcrumbs={[{ label: 'Home', href: '/' }, { label: 'Dashboard' }]}
+          title={`Bienvenue, ${user?.name || 'Courtier'} !`}
+          description="Vue d'ensemble de votre activité immobilière"
+          breadcrumbs={[{ label: 'Accueil', href: '/' }, { label: 'Dashboard' }]}
         />
       </MotionDiv>
 
@@ -94,65 +117,115 @@ function DashboardContent() {
         </Card>
       </MotionDiv>
 
-      {/* Quick Stats Grid - Using new StatsCard components */}
+      {/* Statistiques principales - Transactions */}
+      {error && (
+        <MotionDiv variant="slideUp" delay={150}>
+          <Card variant="elevated" className="border-warning-200 dark:border-warning-800 bg-warning-50 dark:bg-warning-950/20">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-warning-600 dark:text-warning-400" />
+              <p className="text-sm text-warning-800 dark:text-warning-200">{error}</p>
+            </div>
+          </Card>
+        </MotionDiv>
+      )}
+
       <MotionDiv variant="slideUp" delay={200}>
         <WidgetGrid columns={{ sm: 1, md: 2, lg: 4 }} gap={6}>
           <WidgetGrid.Item size="md">
-            <StatsCard
-              title="Resources"
-              value="0"
-              icon={<Sparkles className="w-5 h-5" />}
-              variant="primary"
-            />
+            <Link href="/dashboard/transactions">
+              <StatsCard
+                title="Transactions totales"
+                value={stats?.total_transactions.toString() || '0'}
+                icon={<Receipt className="w-5 h-5" />}
+                variant="primary"
+                className="cursor-pointer hover:shadow-lg transition-shadow"
+              />
+            </Link>
+          </WidgetGrid.Item>
+          <WidgetGrid.Item size="md">
+            <Link href="/dashboard/transactions?status=En cours">
+              <StatsCard
+                title="Transactions actives"
+                value={stats?.active_transactions.toString() || '0'}
+                icon={<TrendingUp className="w-5 h-5" />}
+                variant="success"
+                className="cursor-pointer hover:shadow-lg transition-shadow"
+              />
+            </Link>
+          </WidgetGrid.Item>
+          <WidgetGrid.Item size="md">
+            <Link href="/dashboard/transactions?status=Conditionnelle">
+              <StatsCard
+                title="Transactions conditionnelles"
+                value={stats?.conditional_transactions.toString() || '0'}
+                icon={<AlertCircle className="w-5 h-5" />}
+                variant="warning"
+                className="cursor-pointer hover:shadow-lg transition-shadow"
+              />
+            </Link>
+          </WidgetGrid.Item>
+          <WidgetGrid.Item size="md">
+            <Link href="/dashboard/transactions?status=Conclue">
+              <StatsCard
+                title="Transactions conclues"
+                value={stats?.closed_transactions.toString() || '0'}
+                icon={<CheckCircle2 className="w-5 h-5" />}
+                variant="default"
+                className="cursor-pointer hover:shadow-lg transition-shadow"
+              />
+            </Link>
+          </WidgetGrid.Item>
+        </WidgetGrid>
+      </MotionDiv>
+
+      {/* Statistiques secondaires - Contacts, Entreprises, Commissions */}
+      <MotionDiv variant="slideUp" delay={250}>
+        <WidgetGrid columns={{ sm: 1, md: 2, lg: 4 }} gap={6}>
+          <WidgetGrid.Item size="md">
+            <Link href="/dashboard/reseau/contacts">
+              <StatsCard
+                title="Contacts"
+                value={stats?.total_contacts.toString() || '0'}
+                icon={<Users className="w-5 h-5" />}
+                variant="default"
+                className="cursor-pointer hover:shadow-lg transition-shadow"
+              />
+            </Link>
+          </WidgetGrid.Item>
+          <WidgetGrid.Item size="md">
+            <Link href="/dashboard/reseau/entreprises">
+              <StatsCard
+                title="Entreprises"
+                value={stats?.total_companies.toString() || '0'}
+                icon={<Building2 className="w-5 h-5" />}
+                variant="default"
+                className="cursor-pointer hover:shadow-lg transition-shadow"
+              />
+            </Link>
           </WidgetGrid.Item>
           <WidgetGrid.Item size="md">
             <StatsCard
-              title="Files"
-              value="0"
-              icon={<FileText className="w-5 h-5" />}
-              variant="default"
-            />
-          </WidgetGrid.Item>
-          <WidgetGrid.Item size="md">
-            <StatsCard
-              title="Activities"
-              value="0"
-              icon={<Activity className="w-4 h-4" />}
-              variant="default"
-            />
-          </WidgetGrid.Item>
-          <WidgetGrid.Item size="md">
-            <StatsCard
-              title="Growth"
-              value="+12%"
-              trend="+12%"
-              trendDirection="up"
-              icon={<TrendingUp className="w-4 h-4" />}
+              title="Commissions totales"
+              value={stats ? formatCurrency(stats.total_commission) : '$0'}
+              icon={<DollarSign className="w-5 h-5" />}
               variant="success"
+            />
+          </WidgetGrid.Item>
+          <WidgetGrid.Item size="md">
+            <StatsCard
+              title="Commissions en attente"
+              value={stats ? formatCurrency(stats.pending_commission) : '$0'}
+              icon={<TrendingUp className="w-5 h-5" />}
+              variant="warning"
             />
           </WidgetGrid.Item>
         </WidgetGrid>
       </MotionDiv>
 
+      {/* Actions rapides et informations */}
       <MotionDiv variant="slideUp" delay={300}>
         <WidgetGrid columns={{ sm: 1, md: 2 }} gap={4}>
-          {/* User Profile Metric Card */}
-          <WidgetGrid.Item size="md">
-            <MetricCard
-              title="Your Profile"
-              subtitle="Account information"
-              value={user?.name || 'N/A'}
-              icon={<User className="w-5 h-5" />}
-              subMetrics={[
-                { label: 'Email', value: user?.email || 'N/A' },
-                { label: 'Status', value: user?.is_active ? 'Active' : 'Inactive', trend: user?.is_active ? 'up' : 'neutral' },
-                { label: 'Verified', value: user?.is_verified ? 'Yes' : 'No', trend: user?.is_verified ? 'up' : 'neutral' },
-              ]}
-              variant="default"
-            />
-          </WidgetGrid.Item>
-
-          {/* Quick Actions Card */}
+          {/* Actions rapides */}
           <WidgetGrid.Item size="md">
             <Card variant="gradient" className="hover:shadow-xl transition-all duration-300">
               <div className="flex items-center gap-3 mb-4">
@@ -160,74 +233,119 @@ function DashboardContent() {
                   <Zap className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">Quick Actions</h3>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-400">Access frequently used features</p>
+                  <h3 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">Actions rapides</h3>
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400">Accès rapide aux fonctionnalités principales</p>
                 </div>
               </div>
               <Stack gap="normal">
-                <Link href="/admin">
+                <Link href="/dashboard/transactions">
                   <Button
                     variant="primary"
                     className="w-full justify-start gap-3 h-auto py-3 hover:scale-[1.02] transition-transform"
                   >
-                    <Settings className="w-5 h-5" />
+                    <Receipt className="w-5 h-5" />
                     <div className="text-left">
-                      <div className="font-semibold">Espace Admin</div>
-                      <div className="text-xs opacity-90">Manage system settings</div>
+                      <div className="font-semibold">Nouvelle transaction</div>
+                      <div className="text-xs opacity-90">Créer une nouvelle transaction immobilière</div>
+                    </div>
+                  </Button>
+                </Link>
+                <Link href="/dashboard/reseau/contacts">
+                  <Button
+                    variant="default"
+                    className="w-full justify-start gap-3 h-auto py-3 hover:scale-[1.02] transition-transform"
+                  >
+                    <Users className="w-5 h-5" />
+                    <div className="text-left">
+                      <div className="font-semibold">Gérer les contacts</div>
+                      <div className="text-xs opacity-90">Voir et gérer vos contacts</div>
+                    </div>
+                  </Button>
+                </Link>
+                <Link href="/dashboard/modules/calendrier">
+                  <Button
+                    variant="default"
+                    className="w-full justify-start gap-3 h-auto py-3 hover:scale-[1.02] transition-transform"
+                  >
+                    <Calendar className="w-5 h-5" />
+                    <div className="text-left">
+                      <div className="font-semibold">Calendrier</div>
+                      <div className="text-xs opacity-90">Voir vos rendez-vous et événements</div>
                     </div>
                   </Button>
                 </Link>
               </Stack>
             </Card>
           </WidgetGrid.Item>
+
+          {/* Statistiques financières */}
+          <WidgetGrid.Item size="md">
+            <Card variant="elevated" className="hover:shadow-xl transition-all duration-300">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="p-3 bg-success-100 dark:bg-success-900/30 rounded-lg">
+                  <DollarSign className="w-6 h-6 text-success-600 dark:text-success-400" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">Résumé financier</h3>
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400">Vos commissions et revenus</p>
+                </div>
+              </div>
+              <WidgetGrid columns={{ sm: 1 }} gap={4}>
+                <WidgetGrid.Item size="md">
+                  <MetricCard
+                    title="Commissions conclues"
+                    value={stats ? formatCurrency(stats.closed_commission) : '$0'}
+                    subtitle="Commissions des transactions finalisées"
+                    icon={<CheckCircle2 className="w-5 h-5" />}
+                    trend="up"
+                    variant="success"
+                  />
+                </WidgetGrid.Item>
+              </WidgetGrid>
+            </Card>
+          </WidgetGrid.Item>
         </WidgetGrid>
       </MotionDiv>
 
-      {/* System Status - Using MetricCard */}
+      {/* Calendrier et Formulaires */}
       <MotionDiv variant="slideUp" delay={400}>
-        <Card variant="elevated" className="hover:shadow-xl transition-all duration-300">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="p-3 bg-success-100 dark:bg-success-900/30 rounded-lg">
-              <Shield className="w-6 h-6 text-success-600 dark:text-success-400" />
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">System Status</h3>
-              <p className="text-sm text-neutral-600 dark:text-neutral-400">All systems operational</p>
-            </div>
-          </div>
-          <WidgetGrid columns={{ sm: 1, md: 3 }} gap={6}>
-            <WidgetGrid.Item size="md">
-              <MetricCard
-                title="Backend"
-                value="Connected"
-                subtitle="API is running"
-                icon={<CheckCircle2 className="w-5 h-5" />}
-                trend="up"
-                variant="success"
-              />
-            </WidgetGrid.Item>
-            <WidgetGrid.Item size="md">
-              <MetricCard
-                title="Database"
-                value="Connected"
-                subtitle="PostgreSQL is running"
-                icon={<Database className="w-5 h-5" />}
-                trend="up"
-                variant="success"
-              />
-            </WidgetGrid.Item>
-            <WidgetGrid.Item size="md">
-              <MetricCard
-                title="Authentication"
-                value="Working"
-                subtitle="JWT is working"
-                icon={<Shield className="w-5 h-5" />}
-                trend="up"
-                variant="success"
-              />
-            </WidgetGrid.Item>
-          </WidgetGrid>
-        </Card>
+        <WidgetGrid columns={{ sm: 1, md: 2 }} gap={4}>
+          <WidgetGrid.Item size="md">
+            <Link href="/dashboard/modules/calendrier">
+              <Card variant="elevated" className="hover:shadow-xl transition-all duration-300 cursor-pointer">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="p-3 bg-primary-100 dark:bg-primary-900/30 rounded-lg">
+                    <Calendar className="w-6 h-6 text-primary-600 dark:text-primary-400" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">Rendez-vous à venir</h3>
+                    <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                      {stats?.upcoming_events || 0} événement{stats?.upcoming_events !== 1 ? 's' : ''} prévu{stats?.upcoming_events !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            </Link>
+          </WidgetGrid.Item>
+          <WidgetGrid.Item size="md">
+            <Link href="/dashboard/modules/formulaire/oaciq">
+              <Card variant="elevated" className="hover:shadow-xl transition-all duration-300 cursor-pointer">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="p-3 bg-secondary-100 dark:bg-secondary-900/30 rounded-lg">
+                    <ClipboardList className="w-6 h-6 text-secondary-600 dark:text-secondary-400" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">Formulaires OACIQ</h3>
+                    <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                      {stats?.total_forms || 0} formulaire{stats?.total_forms !== 1 ? 's' : ''} disponible{stats?.total_forms !== 1 ? 's' : ''}
+                      {stats?.pending_submissions ? ` • ${stats.pending_submissions} en attente` : ''}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            </Link>
+          </WidgetGrid.Item>
+        </WidgetGrid>
       </MotionDiv>
 
       {/* AI Chat Assistant */}
