@@ -2,7 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Container, Card, Loading, Alert, Badge, Button } from '@/components/ui';
+import Container from '@/components/ui/Container';
+import Card from '@/components/ui/Card';
+import Loading from '@/components/ui/Loading';
+import Alert from '@/components/ui/Alert';
+import Badge from '@/components/ui/Badge';
+import Button from '@/components/ui/Button';
 import { transactionsAPI } from '@/lib/api';
 import InlineEditableField from '@/components/transactions/InlineEditableField';
 import { 

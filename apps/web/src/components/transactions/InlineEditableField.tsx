@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Input, Textarea, Select } from '@/components/ui';
+import Input from '@/components/ui/Input';
+import Textarea from '@/components/ui/Textarea';
+import Select from '@/components/ui/Select';
+import Button from '@/components/ui/Button';
 import { Check, X, Edit2 } from 'lucide-react';
-import { Button } from '@/components/ui';
 
 interface InlineEditableFieldProps {
   label: string;
