@@ -8,9 +8,7 @@ import {
   OACIQForm,
   OACIQFormSubmission,
   OACIQFormCategory,
-  FormSubmissionStatus,
   CreateOACIQFormSubmission,
-  ExtractFieldsRequest,
   ExtractFieldsResponse,
 } from '../types';
 

@@ -14,12 +14,16 @@ export const oaciqFormsAPI = createOACIQFormsAPI(apiClient as any, extractApiDat
 export type {
   OACIQForm,
   OACIQFormSubmission,
-  OACIQFormCategory,
-  FormSubmissionStatus,
   FormFieldConfig,
   FormSection,
   OACIQFormFields,
   CreateOACIQFormSubmission,
   ExtractFieldsRequest,
   ExtractFieldsResponse,
+} from '@immoassist/formulaire/types';
+
+// Réexporter les enums comme valeurs (pas comme types)
+export {
+  OACIQFormCategory,
+  FormSubmissionStatus,
 } from '@immoassist/formulaire/types';

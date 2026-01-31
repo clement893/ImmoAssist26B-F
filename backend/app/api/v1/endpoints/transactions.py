@@ -3,12 +3,13 @@ Real Estate Transactions Endpoints
 API endpoints for real estate transaction management
 """
 
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from typing import List, Optional, Dict, Any
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, or_, func
 from sqlalchemy.orm import selectinload
 from decimal import Decimal
+from datetime import datetime
 
 from app.core.database import get_db
 from app.dependencies import get_current_user
@@ -25,6 +26,8 @@ from app.schemas.real_estate_contact import (
     TransactionContactListResponse,
     RealEstateContactResponse,
 )
+from app.services.pdf_analyzer_service import PDFAnalyzerService
+from app.services.s3_service import S3Service
 from app.core.logging import logger
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])

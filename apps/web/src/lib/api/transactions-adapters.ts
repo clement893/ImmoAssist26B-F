@@ -51,6 +51,39 @@ export const transactionsAPI = {
   delete: async (transactionId: number) => {
     await _transactionsAPI.delete(transactionId);
   },
+  analyzePDF: async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await apiClient.post('/api/v1/transactions/analyze-pdf', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return {
+      data: response.data,
+    } as any;
+  },
+  addDocument: async (transactionId: number, file: File, description?: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (description) {
+      formData.append('description', description);
+    }
+    const response = await apiClient.post(`/api/v1/transactions/${transactionId}/documents`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return {
+      data: response.data,
+    } as any;
+  },
+  removeDocument: async (transactionId: number, documentId: number) => {
+    const response = await apiClient.delete(`/api/v1/transactions/${transactionId}/documents/${documentId}`);
+    return {
+      data: response.data,
+    } as any;
+  },
 };
 
 export const realEstateContactsAPI = createRealEstateContactsAPI({

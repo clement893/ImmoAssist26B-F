@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Container, Card, Button, Input, Loading, Alert } from '@immoassist/ui';
 import { oaciqFormsAPI, OACIQForm, OACIQFormCategory } from '@/lib/api/oaciq-adapters';
-import { FileText, Download, Upload, Search } from 'lucide-react';
+import { FileText, Download, Search } from 'lucide-react';
 
 export default function OACIQPage() {
   const router = useRouter();
