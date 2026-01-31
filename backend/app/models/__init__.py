@@ -43,6 +43,7 @@ from app.models.company import Company
 from app.models.booking import Booking, Attendee, BookingPayment, BookingStatus, PaymentStatus, TicketType
 from app.models.city_event import CityEvent, EventStatus
 from app.models.lea_conversation import LeaConversation, LeaToolUsage
+from app.models.real_estate_transaction import RealEstateTransaction
 from app.core.security_audit import SecurityAuditLog
 
 __all__ = [
@@ -130,6 +131,7 @@ __all__ = [
     "EventStatus",
     "LeaConversation",
     "LeaToolUsage",
+    "RealEstateTransaction",
     "SecurityAuditLog",
 ]
 
