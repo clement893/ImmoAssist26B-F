@@ -67,7 +67,7 @@
     "zustand": "^4.4.1"
   },
   "devDependencies": {
-    "@next/bundle-analyzer": "^14.2.0",
+    "@next/bundle-analyzer": "^16.1.6",
     "@playwright/test": "^1.40.0",
     "@storybook/addon-a11y": "^7.6.0",
     "@storybook/addon-docs": "^7.6.0",
