@@ -17,10 +17,8 @@ import { calculateTransactionSteps, getTransactionProgressionStatus } from '@/li
 import { 
   FileText, 
   Search, 
-  Calendar,
   MapPin,
   Users,
-  DollarSign,
 } from 'lucide-react';
 
 interface Transaction {
@@ -122,16 +120,6 @@ function TransactionStepsContent() {
   // Utilise la nouvelle logique de progression centralisée
   const getTransactionSteps = (transaction: Transaction) => {
     return calculateTransactionSteps(transaction);
-  };
-
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return '-';
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('fr-CA', { year: 'numeric', month: 'short', day: 'numeric' });
-    } catch {
-      return dateString;
-    }
   };
 
   const formatCurrency = (amount?: number) => {

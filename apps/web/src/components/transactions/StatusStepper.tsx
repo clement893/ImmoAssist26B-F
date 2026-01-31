@@ -1,7 +1,6 @@
 'use client';
 
 import { CheckCircle2, Circle, Clock, XCircle, AlertCircle } from 'lucide-react';
-import Card from '@/components/ui/Card';
 
 export type StepStatus = 'completed' | 'current' | 'pending' | 'blocked' | 'warning';
 
@@ -30,7 +29,7 @@ export default function StatusStepper({
   showProgress = true,
   className = '',
 }: StatusStepperProps) {
-  const getStepIcon = (step: TransactionStep, index: number) => {
+  const getStepIcon = (step: TransactionStep) => {
     const iconClass = 'w-6 h-6';
     
     switch (step.status) {
@@ -118,14 +117,13 @@ export default function StatusStepper({
           {steps.map((step, index) => {
             const isLast = index === steps.length - 1;
             const isCompleted = step.status === 'completed';
-            const isCurrent = step.status === 'current';
             
             return (
               <div key={step.id} className="flex-shrink-0 flex items-start gap-3 min-w-[200px]">
                 {/* Step Circle */}
                 <div className="flex flex-col items-center">
                   <div className={`flex-shrink-0 w-12 h-12 rounded-full border-2 flex items-center justify-center ${getStepColor(step)}`}>
-                    {step.icon || getStepIcon(step, index)}
+                    {step.icon || getStepIcon(step)}
                   </div>
                   {!isLast && (
                     <div
@@ -187,9 +185,6 @@ export default function StatusStepper({
         {steps.map((step, index) => {
           const isLast = index === steps.length - 1;
           const isCompleted = step.status === 'completed';
-          const isCurrent = step.status === 'current';
-          const isBlocked = step.status === 'blocked';
-          const isWarning = step.status === 'warning';
 
           return (
             <div key={step.id} className="relative">

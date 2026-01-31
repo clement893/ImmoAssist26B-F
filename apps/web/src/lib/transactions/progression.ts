@@ -39,6 +39,7 @@ export interface TransactionData {
   seller_quittance_received?: boolean;
   seller_quittance_confirmed?: boolean;
   registry_publication_number?: string;
+  mortgage_institution?: string;
 }
 
 /**
