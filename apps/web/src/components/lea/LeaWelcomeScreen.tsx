@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuthStore } from '@/lib/store';
-import { Sparkles, Quote, Plus, Paperclip, ChevronDown, ListTodo, Mail, FileText, Code, Mic, MicOff, ArrowUp } from 'lucide-react';
+import { Sparkles, Quote, Plus, Paperclip, ChevronDown, ListTodo, Mail, FileText, Code, Mic, MicOff, ArrowUp, Receipt, Building2, Calculator, ClipboardList, Home } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { Card } from '@/components/ui';
 import { clsx } from 'clsx';
@@ -21,24 +21,34 @@ interface LeaWelcomeScreenProps {
 
 const exampleCards = [
   {
-    title: "Écrire une liste de tâches pour un projet personnel",
+    title: "Créer une liste de tâches pour une transaction",
     icon: <ListTodo className="w-6 h-6" />,
-    prompt: "Crée une liste de tâches pour mon projet immobilier"
+    prompt: "Crée une liste de tâches complète pour une transaction immobilière au Québec, de la promesse d'achat jusqu'à la clôture"
   },
   {
-    title: "Générer un email pour répondre à une offre d'emploi",
+    title: "Rédiger un email professionnel pour un client",
     icon: <Mail className="w-6 h-6" />,
-    prompt: "Rédige un email professionnel pour répondre à une offre d'emploi"
+    prompt: "Rédige un email professionnel et chaleureux pour informer un client de l'acceptation de son offre d'achat"
   },
   {
-    title: "Résumer cet article en un paragraphe",
-    icon: <FileText className="w-6 h-6" />,
-    prompt: "Résume cet article en un paragraphe"
+    title: "Expliquer les étapes d'une transaction immobilière",
+    icon: <Receipt className="w-6 h-6" />,
+    prompt: "Explique-moi les étapes principales d'une transaction immobilière au Québec et les délais typiques pour chacune"
   },
   {
-    title: "Comment fonctionne l'IA de manière technique",
-    icon: <Code className="w-6 h-6" />,
-    prompt: "Explique-moi comment fonctionne l'IA de manière technique"
+    title: "Aide avec les formulaires OACIQ",
+    icon: <ClipboardList className="w-6 h-6" />,
+    prompt: "Quels formulaires OACIQ sont obligatoires pour une transaction de vente résidentielle au Québec ?"
+  },
+  {
+    title: "Calculer les commissions",
+    icon: <Calculator className="w-6 h-6" />,
+    prompt: "Comment calculer les commissions pour une transaction de 500 000$ avec un taux de commission de 5% ?"
+  },
+  {
+    title: "Rédiger une description de propriété",
+    icon: <Home className="w-6 h-6" />,
+    prompt: "Aide-moi à rédiger une description attrayante pour une propriété unifamiliale de 3 chambres à vendre"
   }
 ];
 
@@ -93,9 +103,9 @@ export default function LeaWelcomeScreen({
       
       {/* Question with gradient */}
       <h2 className="text-2xl md:text-3xl font-semibold mb-12">
-        Qu'est-ce qui vous préoccupe{' '}
+        Comment puis-je vous aider avec{' '}
         <span className="bg-gradient-to-r from-green-500 to-blue-500 bg-clip-text text-transparent">
-          aujourd'hui ?
+          votre activité immobilière ?
         </span>
       </h2>
 
@@ -107,7 +117,7 @@ export default function LeaWelcomeScreen({
             value={inputValue}
             onChange={(e) => onInputChange(e.target.value)}
             onKeyPress={handleInputKeyPress}
-            placeholder="Posez une question à l'IA ou faites une demande..."
+            placeholder="Posez une question sur l'immobilier, les transactions, les formulaires OACIQ..."
             disabled={isLoading || isListening}
             className="w-full bg-transparent text-foreground placeholder:text-muted-foreground text-lg outline-none pr-24"
           />
@@ -199,7 +209,7 @@ export default function LeaWelcomeScreen({
           Commencez avec un exemple ci-dessous
         </p>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {exampleCards.map((card, index) => (
             <Card
               key={index}
