@@ -31,7 +31,7 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
   const { speak, stop: stopSpeaking, isSpeaking, supported: ttsSupported } = useVoiceSynthesis();
   
   const [input, setInput] = useState('');
-  const [autoSpeak, setAutoSpeak] = useState(true);
+  const [autoSpeak, setAutoSpeak] = useState(false); // Mute par défaut
   const [initialMessageSent, setInitialMessageSent] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -154,23 +154,22 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#1A1A2E]">
-        {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-center py-8">
-            {/* Audio Waveform Visualization */}
-            <div className="w-full max-w-md h-32 mb-8 relative">
-              <AudioWaveform isActive={isListening} className="w-full h-full" />
-            </div>
-            
-            {/* Gradient Text */}
-            <h4 className="font-semibold mb-4 text-2xl bg-gradient-to-r from-purple-400 via-blue-400 to-purple-400 bg-clip-text text-transparent animate-gradient">
-              Parlez à votre assistante AI maintenant
-            </h4>
-            <p className="text-sm text-gray-400 max-w-sm">
-              Votre assistante AI spécialisée dans l&apos;immobilier. Je peux vous aider à rechercher des agents,
-              des contacts, des entreprises et bien plus encore.
-            </p>
+        {/* Interface initiale - toujours visible */}
+        <div className="flex flex-col items-center justify-center text-center py-8">
+          {/* Audio Waveform Visualization */}
+          <div className="w-full max-w-md h-32 mb-8 relative">
+            <AudioWaveform isActive={isListening} className="w-full h-full" />
           </div>
-        )}
+          
+          {/* Gradient Text */}
+          <h4 className="font-semibold mb-4 text-2xl bg-gradient-to-r from-purple-400 via-blue-400 to-purple-400 bg-clip-text text-transparent animate-gradient">
+            Parlez à votre assistante AI maintenant
+          </h4>
+          <p className="text-sm text-gray-400 max-w-sm">
+            Votre assistante AI spécialisée dans l&apos;immobilier. Je peux vous aider à rechercher des agents,
+            des contacts, des entreprises et bien plus encore.
+          </p>
+        </div>
 
         {messages.map((message, index) => (
           <div
