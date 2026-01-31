@@ -237,8 +237,8 @@ function TransactionsContent() {
                   </div>
 
                   {/* Property Info */}
-                  {transaction.property_address && (
-                    <div className="space-y-2">
+                  <div className="space-y-2">
+                    {transaction.property_address && (
                       <div className="flex items-start gap-2 text-sm">
                         <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                         <div>
@@ -250,8 +250,7 @@ function TransactionsContent() {
                           )}
                         </div>
                       </div>
-                    </div>
-                  )}
+                    )}
                     
                     {transaction.property_type && (
                       <p className="text-sm text-muted-foreground">
