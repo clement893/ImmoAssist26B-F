@@ -56,14 +56,20 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
     }
   }, [transcript, isListening]);
 
-  // Auto-speak assistant responses
+  // Auto-speak assistant responses with improved voice settings
   useEffect(() => {
     if (autoSpeak && ttsSupported && messages.length > 0) {
       const lastMessage = messages[messages.length - 1];
       if (lastMessage && lastMessage.role === 'assistant' && lastMessage.content && !isSpeaking) {
         // Small delay to ensure UI is updated
         setTimeout(() => {
-          speak(lastMessage.content, { lang: 'fr-FR', rate: 1.0 });
+          // Improved voice settings: slower rate, higher pitch, softer volume for a gentle, pleasant voice
+          speak(lastMessage.content, { 
+            lang: 'fr-FR', 
+            rate: 0.85,      // Slower rate for clearer, more pleasant diction
+            pitch: 1.15,     // Slightly higher pitch for a softer, more feminine voice
+            volume: 0.9      // Slightly softer volume for a gentler tone
+          });
         }, 300);
       }
     }

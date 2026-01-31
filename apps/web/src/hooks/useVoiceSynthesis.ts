@@ -45,13 +45,27 @@ export function useVoiceSynthesis(): UseVoiceSynthesisReturn {
       const availableVoices = window.speechSynthesis.getVoices();
       setVoices(availableVoices);
       
-      // Select French voice by default
-      const frenchVoice = availableVoices.find(
+      // Prefer French female voice for a soft, gentle voice
+      // Look for French voices first, prioritizing female voices
+      const frenchVoices = availableVoices.filter(
         (voice) => voice.lang.startsWith('fr') || voice.lang.startsWith('FR')
       );
-      if (frenchVoice) {
-        setSelectedVoice(frenchVoice);
+      
+      // Prefer female voices (names often contain keywords like "female", "woman", or specific names)
+      const preferredFemaleKeywords = ['female', 'woman', 'femme', 'zira', 'hazel', 'catherine', 'thomas', 'helen'];
+      const frenchFemaleVoice = frenchVoices.find((voice) =>
+        preferredFemaleKeywords.some((keyword) =>
+          voice.name.toLowerCase().includes(keyword.toLowerCase())
+        )
+      );
+      
+      if (frenchFemaleVoice) {
+        setSelectedVoice(frenchFemaleVoice);
+      } else if (frenchVoices.length > 0) {
+        // Use first French voice if no female voice found
+        setSelectedVoice(frenchVoices[0]);
       } else if (availableVoices.length > 0 && availableVoices[0]) {
+        // Fallback to first available voice
         setSelectedVoice(availableVoices[0]);
       }
     };
