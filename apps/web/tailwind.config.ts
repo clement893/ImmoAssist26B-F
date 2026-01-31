@@ -18,38 +18,52 @@ const config: Config = {
           red: '#E74C3C', // Urgency color
           green: '#27AE60', // Success color
         },
-        // Primary color palette - Uses CSS variables with fallbacks for theme support
+        // Primary color palette - Purple/Blue modern palette
         primary: {
-          50: 'var(--color-primary-50, #eff6ff)',
-          100: 'var(--color-primary-100, #dbeafe)',
-          200: 'var(--color-primary-200, #bfdbfe)',
-          300: 'var(--color-primary-300, #93c5fd)',
-          400: 'var(--color-primary-400, #60a5fa)',
-          500: 'var(--color-primary-500, #3b82f6)',
-          600: 'var(--color-primary-600, #2563eb)',
-          700: 'var(--color-primary-700, #1d4ed8)',
-          800: 'var(--color-primary-800, #1e40af)',
-          900: 'var(--color-primary-900, #1e3a8a)',
-          950: 'var(--color-primary-950, #172554)',
+          50: 'var(--color-primary-50, #f5f3ff)',
+          100: 'var(--color-primary-100, #ede9fe)',
+          200: 'var(--color-primary-200, #ddd6fe)',
+          300: 'var(--color-primary-300, #c4b5fd)',
+          400: 'var(--color-primary-400, #a78bfa)',
+          500: 'var(--color-primary-500, #8b5cf6)',
+          600: 'var(--color-primary-600, #7c3aed)',
+          700: 'var(--color-primary-700, #6d28d9)',
+          800: 'var(--color-primary-800, #5b21b6)',
+          900: 'var(--color-primary-900, #4c1d95)',
+          950: 'var(--color-primary-950, #3b1d6e)',
         },
         // Custom blue light color (#B4D6FF) - darker in dark mode
         blue: {
           light: '#B4D6FF',
           lightDark: '#1e3a8a', // Dark mode version
         },
-        // Secondary color palette - Uses CSS variables with fallbacks for theme support
+        // Secondary color palette - Blue modern palette
         secondary: {
-          50: 'var(--color-secondary-50, #f0fdf4)',
-          100: 'var(--color-secondary-100, #dcfce7)',
-          200: 'var(--color-secondary-200, #bbf7d0)',
-          300: 'var(--color-secondary-300, #86efac)',
-          400: 'var(--color-secondary-400, #4ade80)',
-          500: 'var(--color-secondary-500, #22c55e)',
-          600: 'var(--color-secondary-600, #16a34a)',
-          700: 'var(--color-secondary-700, #15803d)',
-          800: 'var(--color-secondary-800, #166534)',
-          900: 'var(--color-secondary-900, #14532d)',
-          950: 'var(--color-secondary-950, #052e16)',
+          50: 'var(--color-secondary-50, #eff6ff)',
+          100: 'var(--color-secondary-100, #dbeafe)',
+          200: 'var(--color-secondary-200, #bfdbfe)',
+          300: 'var(--color-secondary-300, #93c5fd)',
+          400: 'var(--color-secondary-400, #60a5fa)',
+          500: 'var(--color-secondary-500, #3b82f6)',
+          600: 'var(--color-secondary-600, #2563eb)',
+          700: 'var(--color-secondary-700, #1d4ed8)',
+          800: 'var(--color-secondary-800, #1e40af)',
+          900: 'var(--color-secondary-900, #1e3a8a)',
+          950: 'var(--color-secondary-950, #172554)',
+        },
+        // Neutral colors - Modern slate palette
+        neutral: {
+          50: 'var(--color-neutral-50, #f8fafc)',
+          100: 'var(--color-neutral-100, #f1f5f9)',
+          200: 'var(--color-neutral-200, #e2e8f0)',
+          300: 'var(--color-neutral-300, #cbd5e1)',
+          400: 'var(--color-neutral-400, #94a3b8)',
+          500: 'var(--color-neutral-500, #64748b)',
+          600: 'var(--color-neutral-600, #475569)',
+          700: 'var(--color-neutral-700, #334155)',
+          800: 'var(--color-neutral-800, #1e293b)',
+          900: 'var(--color-neutral-900, #0f172a)',
+          950: '#020617',
         },
         // Danger color palette - Uses CSS variables with fallbacks for theme support
         danger: {
@@ -122,6 +136,7 @@ const config: Config = {
           950: 'var(--color-error-950, #450a0a)',
         },
         // Neutral grays (for text, borders, backgrounds) - Keep hardcoded as they're neutral
+        // Also map to neutral for consistency
         gray: {
           50: '#f9fafb',
           100: '#f3f4f6',
