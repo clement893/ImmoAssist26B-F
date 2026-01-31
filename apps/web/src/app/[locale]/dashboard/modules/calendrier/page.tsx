@@ -5,7 +5,7 @@ import Container from '@/components/ui/Container';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Calendar from '@/components/ui/Calendar';
-import { Calendar as CalendarIcon, Clock, Users, Plus } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, Plus } from 'lucide-react';
 import { useState } from 'react';
 
 export default function CalendrierModulePage() {
