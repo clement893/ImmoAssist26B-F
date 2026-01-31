@@ -7,9 +7,8 @@ import { useVoiceSynthesis } from '@/hooks/useVoiceSynthesis';
 import Button from '@/components/ui/Button';
 import Loading from '@/components/ui/Loading';
 import Alert from '@/components/ui/Alert';
-import { Mic, MicOff, Volume2, VolumeX, X, Trash2, Paperclip, ArrowUp } from 'lucide-react';
+import { Volume2, VolumeX, X, Trash2 } from 'lucide-react';
 import { clsx } from 'clsx';
-import AudioWaveform from './AudioWaveform';
 import LeaInitialUI from './LeaInitialUI';
 
 interface LeaChatProps {
@@ -83,13 +82,6 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
     setInput('');
     await sendMessage(message);
     inputRef.current?.focus();
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
   };
 
   const toggleListening = async () => {
