@@ -23,7 +23,8 @@ import {
 
 interface Transaction {
   id: number;
-  dossier_number: string;
+  name: string;
+  dossier_number?: string;
   status: string;
   created_at: string;
   expected_closing_date?: string;
@@ -168,7 +169,7 @@ function TransactionStepsContent() {
               </div>
               <Select
                 options={transactions.map(t => ({
-                  label: `${t.dossier_number} - ${t.property_address}`,
+                  label: `${t.name}${t.dossier_number ? ` (${t.dossier_number})` : ''}`,
                   value: t.id.toString(),
                 }))}
                 value={selectedTransactionId?.toString() || ''}
@@ -187,12 +188,14 @@ function TransactionStepsContent() {
               <div className="flex items-start justify-between mb-6">
                 <div>
                   <h2 className="text-2xl font-bold mb-2">{selectedTransaction.dossier_number}</h2>
-                  <div className="flex items-center gap-2 mb-4">
-                    <MapPin className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">
-                      {selectedTransaction.property_address}, {selectedTransaction.property_city}
-                    </span>
-                  </div>
+                  {selectedTransaction.property_address && (
+                    <div className="flex items-center gap-2 mb-4">
+                      <MapPin className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">
+                        {selectedTransaction.property_address}{selectedTransaction.property_city ? `, ${selectedTransaction.property_city}` : ''}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex items-center gap-4 text-sm">
                     {selectedTransaction.sellers && selectedTransaction.sellers.length > 0 && selectedTransaction.sellers[0] && (
                       <div className="flex items-center gap-2">

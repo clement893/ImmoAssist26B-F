@@ -29,7 +29,8 @@ const formatDate = (dateString?: string) => {
 
 interface Transaction {
   id: number;
-  dossier_number: string;
+  name: string;
+  dossier_number?: string;
   status: string;
   created_at: string;
   property_address: string;
@@ -236,16 +237,21 @@ function TransactionsContent() {
                   </div>
 
                   {/* Property Info */}
-                  <div className="space-y-2">
-                    <div className="flex items-start gap-2 text-sm">
-                      <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                      <div>
-                        <p className="font-medium">{transaction.property_address}</p>
-                        <p className="text-muted-foreground">
-                          {transaction.property_city}, {transaction.property_postal_code}
-                        </p>
+                  {transaction.property_address && (
+                    <div className="space-y-2">
+                      <div className="flex items-start gap-2 text-sm">
+                        <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="font-medium">{transaction.property_address}</p>
+                          {(transaction.property_city || transaction.property_postal_code) && (
+                            <p className="text-muted-foreground">
+                              {transaction.property_city}{transaction.property_city && transaction.property_postal_code ? ', ' : ''}{transaction.property_postal_code}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
+                  )}
                     
                     {transaction.property_type && (
                       <p className="text-sm text-muted-foreground">
@@ -354,7 +360,7 @@ function TransactionsContent() {
             setShowViewModal(false);
             setSelectedTransaction(null);
           }}
-          title={`Transaction ${selectedTransaction?.dossier_number}`}
+          title={`Transaction ${selectedTransaction?.name}`}
           size="lg"
         >
           {selectedTransaction && (

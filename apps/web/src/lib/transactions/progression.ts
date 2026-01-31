@@ -7,14 +7,15 @@ import { TransactionStep, StepStatus } from '@/components/transactions/StatusSte
 
 export interface TransactionData {
   id: number;
-  dossier_number: string;
+  name: string;
+  dossier_number?: string;
   status: string;
   created_at: string;
   expected_closing_date?: string;
   actual_closing_date?: string;
-  property_address: string;
-  property_city: string;
-  property_postal_code: string;
+  property_address?: string;
+  property_city?: string;
+  property_postal_code?: string;
   sellers: Array<{ name: string; [key: string]: any }>;
   buyers: Array<{ name: string; [key: string]: any }>;
   final_sale_price?: number;

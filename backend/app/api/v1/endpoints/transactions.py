@@ -132,17 +132,18 @@ async def create_transaction(
     Create a new real estate transaction
     """
     try:
-        # Check if dossier number already exists
-        existing = await db.execute(
-            select(RealEstateTransaction).where(
-                RealEstateTransaction.dossier_number == transaction_data.dossier_number
+        # Check if dossier number already exists (only if provided)
+        if transaction_data.dossier_number:
+            existing = await db.execute(
+                select(RealEstateTransaction).where(
+                    RealEstateTransaction.dossier_number == transaction_data.dossier_number
+                )
             )
-        )
-        if existing.scalar_one_or_none():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Transaction with dossier number {transaction_data.dossier_number} already exists",
-            )
+            if existing.scalar_one_or_none():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Transaction with dossier number {transaction_data.dossier_number} already exists",
+                )
         
         # Create transaction object
         transaction_dict = transaction_data.model_dump(exclude={"seller_broker", "buyer_broker", "notary", "inspector", "surveyor", "mortgage_advisor"})

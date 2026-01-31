@@ -15,7 +15,8 @@ class RealEstateTransaction(Base):
 
     # 1. Identification de la transaction
     id = Column(Integer, primary_key=True, index=True)
-    dossier_number = Column(String, unique=True, nullable=False, index=True, comment="Numéro de dossier interne")
+    name = Column(String, nullable=False, comment="Nom de la transaction")
+    dossier_number = Column(String, unique=True, nullable=True, index=True, comment="Numéro de dossier interne")
     status = Column(String, nullable=False, default="En cours", comment="Statut: En cours, Conditionnelle, Ferme, Annulée, Conclue")
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     expected_closing_date = Column(Date, nullable=True, comment="Date de clôture prévue")

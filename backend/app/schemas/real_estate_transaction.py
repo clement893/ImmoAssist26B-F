@@ -31,16 +31,17 @@ class ProfessionalInfo(BaseModel):
 class RealEstateTransactionCreate(BaseModel):
     """Schéma pour créer une transaction immobilière"""
     # 1. Identification
-    dossier_number: str = Field(..., description="Numéro de dossier interne")
+    name: str = Field(..., min_length=1, description="Nom de la transaction")
+    dossier_number: Optional[str] = Field(None, description="Numéro de dossier interne")
     status: str = Field(default="En cours", description="Statut de la transaction")
     expected_closing_date: Optional[date] = None
     actual_closing_date: Optional[date] = None
     
     # 2. Propriété
-    property_address: str = Field(..., description="Adresse complète")
-    property_city: str = Field(..., description="Ville")
-    property_postal_code: str = Field(..., description="Code postal")
-    property_province: str = Field(default="QC", description="Province")
+    property_address: Optional[str] = Field(None, description="Adresse complète")
+    property_city: Optional[str] = Field(None, description="Ville")
+    property_postal_code: Optional[str] = Field(None, description="Code postal")
+    property_province: Optional[str] = Field(default="QC", description="Province")
     lot_number: Optional[str] = None
     matricule_number: Optional[str] = None
     property_type: Optional[str] = None

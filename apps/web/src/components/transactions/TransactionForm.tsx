@@ -26,7 +26,8 @@ interface Professional {
 }
 
 interface TransactionFormData {
-  dossier_number: string;
+  name: string;
+  dossier_number?: string;
   status: string;
   expected_closing_date?: string;
   actual_closing_date?: string;
