@@ -67,7 +67,7 @@ export function useLea(initialSessionId?: string): UseLeaReturn {
         {
           message,
           session_id: sessionId,
-          provider: 'auto',
+          provider: 'openai', // Force OpenAI provider
         },
         {
           signal: abortControllerRef.current.signal,
