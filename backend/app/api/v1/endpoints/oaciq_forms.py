@@ -167,7 +167,7 @@ async def update_oaciq_form(
 
 @router.post("/oaciq/forms/extract-fields", response_model=ExtractFieldsResponse, tags=["oaciq-forms"])
 async def extract_form_fields(
-    request: ExtractFieldsRequest,
+    request_data: ExtractFieldsRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -179,7 +179,7 @@ async def extract_form_fields(
         )
     
     # Récupérer le formulaire
-    query = select(Form).where(Form.code == request.form_code)
+    query = select(Form).where(Form.code == request_data.form_code)
     query = apply_tenant_scope(query, Form)
     result = await db.execute(query)
     form = result.scalar_one_or_none()
@@ -220,8 +220,8 @@ Format attendu:
   ]
 }"""
         
-        user_message = f"""Analyse ce formulaire OACIQ (code: {request.form_code}) et extrais tous les champs.
-URL du PDF: {request.pdf_url}
+        user_message = f"""Analyse ce formulaire OACIQ (code: {request_data.form_code}) et extrais tous les champs.
+URL du PDF: {request_data.pdf_url}
 
 Extrais tous les champs du formulaire avec leur type, label, validation et organise-les en sections logiques."""
         

@@ -76,8 +76,8 @@ export function createOACIQFormsAPI(
       pdfUrl: string
     ): Promise<ExtractFieldsResponse> => {
       const response = await apiClient.post('/v1/oaciq/forms/extract-fields', {
-        form_code: formCode,
-        pdf_url: pdfUrl,
+        formCode,
+        pdfUrl,
       });
       return extractApiData<ExtractFieldsResponse>(response);
     },

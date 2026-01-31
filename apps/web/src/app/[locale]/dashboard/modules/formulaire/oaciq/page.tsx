@@ -1,48 +1,61 @@
 'use client';
 
-import { useState } from 'react';
-import Container from '@/components/ui/Container';
-import Card from '@/components/ui/Card';
-import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
-import Select from '@/components/ui/Select';
-import Loading from '@/components/ui/Loading';
+import { useEffect, useState } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import { Container, Card, Button, Input, Loading, Alert } from '@immoassist/ui';
+import { oaciqFormsAPI, OACIQForm, OACIQFormCategory } from '@/lib/api/oaciq-adapters';
 import { FileText, Download, Upload, Search } from 'lucide-react';
 
 export default function OACIQPage() {
-  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+  const params = useParams();
+  const locale = params.locale as string;
+  
+  const [forms, setForms] = useState<OACIQForm[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedForm, setSelectedForm] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState<OACIQFormCategory | undefined>();
 
-  const oaciqForms = [
-    { id: '1', name: 'Formulaire de déclaration de vente', type: 'Vente', version: '2024.1' },
-    { id: '2', name: 'Formulaire d\'inspection', type: 'Inspection', version: '2024.1' },
-    { id: '3', name: 'Formulaire de mandat de vente', type: 'Mandat', version: '2024.2' },
-    { id: '4', name: 'Formulaire de promesse d\'achat', type: 'Achat', version: '2024.1' },
-  ];
+  useEffect(() => {
+    loadForms();
+  }, [selectedCategory]);
 
-  const filteredForms = oaciqForms.filter(form =>
+  const loadForms = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await oaciqFormsAPI.list(selectedCategory);
+      setForms(data);
+    } catch (err) {
+      console.error('Erreur lors du chargement des formulaires:', err);
+      setError('Erreur lors du chargement des formulaires');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownload = (pdfUrl: string | null) => {
+    if (pdfUrl) {
+      window.open(pdfUrl, '_blank');
+    }
+  };
+
+  const filteredForms = forms.filter(form =>
     form.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    form.type.toLowerCase().includes(searchQuery.toLowerCase())
+    (form.code && form.code.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (form.category && form.category.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const handleDownload = (formId: string) => {
-    setLoading(true);
-    // Simuler le téléchargement
-    setTimeout(() => {
-      setLoading(false);
-      alert(`Téléchargement du formulaire ${formId}...`);
-    }, 1000);
-  };
-
-  const handleUpload = () => {
-    setLoading(true);
-    // Simuler l'upload
-    setTimeout(() => {
-      setLoading(false);
-      alert('Formulaire téléversé avec succès');
-    }, 1000);
-  };
+  if (loading) {
+    return (
+      <Container>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loading />
+        </div>
+      </Container>
+    );
+  }
 
   return (
     <Container>
@@ -54,6 +67,10 @@ export default function OACIQPage() {
             Accédez et gérez les formulaires officiels de l&apos;Organisme d&apos;autorégulation du courtage immobilier du Québec
           </p>
         </div>
+
+        {error && (
+          <Alert variant="error">{error}</Alert>
+        )}
 
         {/* Search and Filters */}
         <Card>
@@ -71,96 +88,91 @@ export default function OACIQPage() {
                   />
                 </div>
               </div>
-              <Select
-                label="Type de formulaire"
-                options={[
-                  { label: 'Tous les types', value: '' },
-                  { label: 'Vente', value: 'Vente' },
-                  { label: 'Achat', value: 'Achat' },
-                  { label: 'Mandat', value: 'Mandat' },
-                  { label: 'Inspection', value: 'Inspection' },
-                ]}
-                value={selectedForm}
-                onChange={(e) => setSelectedForm(e.target.value)}
-              />
+              <div className="flex gap-2">
+                <Button
+                  variant={selectedCategory === undefined ? 'primary' : 'outline'}
+                  onClick={() => setSelectedCategory(undefined)}
+                >
+                  Tous
+                </Button>
+                <Button
+                  variant={selectedCategory === OACIQFormCategory.OBLIGATOIRE ? 'primary' : 'outline'}
+                  onClick={() => setSelectedCategory(OACIQFormCategory.OBLIGATOIRE)}
+                >
+                  Obligatoires
+                </Button>
+                <Button
+                  variant={selectedCategory === OACIQFormCategory.RECOMMANDE ? 'primary' : 'outline'}
+                  onClick={() => setSelectedCategory(OACIQFormCategory.RECOMMANDE)}
+                >
+                  Recommandés
+                </Button>
+                <Button
+                  variant={selectedCategory === OACIQFormCategory.CURATEUR_PUBLIC ? 'primary' : 'outline'}
+                  onClick={() => setSelectedCategory(OACIQFormCategory.CURATEUR_PUBLIC)}
+                >
+                  Curateur Public
+                </Button>
+              </div>
             </div>
           </div>
         </Card>
 
         {/* Forms List */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredForms.map((form) => (
-            <Card key={form.id} hover>
-              <div className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-primary/10 rounded-lg">
-                      <FileText className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg">{form.name}</h3>
-                      <p className="text-sm text-muted-foreground">{form.type}</p>
+        {filteredForms.length === 0 ? (
+          <Card>
+            <div className="p-12 text-center">
+              <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+              <p className="text-muted-foreground">
+                {searchQuery ? 'Aucun formulaire trouvé' : 'Aucun formulaire disponible'}
+              </p>
+            </div>
+          </Card>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {filteredForms.map((form) => (
+              <Card key={form.id} hover>
+                <div className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-primary/10 rounded-lg">
+                        <FileText className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-lg">
+                          {form.code && `[${form.code}] `}
+                          {form.name}
+                        </h3>
+                        {form.category && (
+                          <p className="text-sm text-muted-foreground capitalize">{form.category}</p>
+                        )}
+                      </div>
                     </div>
                   </div>
+                  <div className="flex gap-2">
+                    {form.code && (
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => router.push(`/${locale}/dashboard/modules/formulaire/oaciq/${form.code}/fill`)}
+                        className="flex-1"
+                      >
+                        Remplir
+                      </Button>
+                    )}
+                    {form.pdfUrl && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownload(form.pdfUrl)}
+                      >
+                        <Download className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
-                  <span>Version {form.version}</span>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={() => handleDownload(form.id)}
-                    disabled={loading}
-                    className="flex-1"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Télécharger
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSelectedForm(form.id)}
-                    className="flex-1"
-                  >
-                    <FileText className="w-4 h-4 mr-2" />
-                    Ouvrir
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-
-        {/* Upload Section */}
-        <Card>
-          <div className="p-6">
-            <h2 className="text-xl font-semibold mb-4">Téléverser un formulaire complété</h2>
-            <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
-              <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-muted-foreground mb-4">
-                Glissez-déposez votre formulaire ici ou cliquez pour sélectionner
-              </p>
-              <Button variant="outline" onClick={handleUpload} disabled={loading}>
-                {loading ? (
-                  <>
-                    <Loading />
-                    <span className="ml-2">Téléversement...</span>
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-4 h-4 mr-2" />
-                    Sélectionner un fichier
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </Card>
-
-        {loading && (
-          <div className="fixed inset-0 bg-background/80 flex items-center justify-center z-50">
-            <Loading />
+              </Card>
+            ))}
           </div>
         )}
       </div>
