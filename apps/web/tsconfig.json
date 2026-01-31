@@ -48,8 +48,8 @@
   },
   "include": [
     "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
+    "src/**/*.ts",
+    "src/**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
@@ -68,7 +68,9 @@
     "**/*.stories.ts",
     "tests/**",
     "src/test/**",
-    "playwright.config.ts",
-    "../../packages/**"
-  ]
+    "playwright.config.ts"
+  ],
+  "typeAcquisition": {
+    "enable": false
+  }
 }
