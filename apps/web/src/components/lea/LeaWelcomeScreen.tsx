@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuthStore } from '@/lib/store';
-import { Sparkles, Quote, Plus, Paperclip, ChevronDown, ListTodo, Mail, FileText, Code, Mic, MicOff, ArrowUp, Receipt, Building2, Calculator, ClipboardList, Home } from 'lucide-react';
+import { Sparkles, Quote, Plus, Paperclip, ChevronDown, ListTodo, Mail, Mic, MicOff, ArrowUp, Receipt, Calculator, ClipboardList, Home } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { Card } from '@/components/ui';
 import { clsx } from 'clsx';

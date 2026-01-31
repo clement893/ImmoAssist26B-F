@@ -4,6 +4,7 @@
  */
 
 import { apiClient } from './client';
+import { extractApiData } from './utils';
 
 export interface BrokerDashboardStats {
   total_transactions: number;
@@ -26,5 +27,9 @@ export interface BrokerDashboardStats {
  */
 export async function getBrokerDashboardStats(): Promise<BrokerDashboardStats> {
   const response = await apiClient.get<BrokerDashboardStats>('/v1/dashboard/stats');
-  return response.data;
+  const data = extractApiData(response);
+  if (!data) {
+    throw new Error('Failed to fetch dashboard stats: no data returned');
+  }
+  return data;
 }

@@ -16,12 +16,10 @@ import MotionDiv from '@/components/motion/MotionDiv';
 import LeaChat from '@/components/lea/LeaChat';
 import { getBrokerDashboardStats, BrokerDashboardStats } from '@/lib/api/dashboard';
 import {
-  User,
   Receipt,
   Building2,
   Users,
   Calendar,
-  FileText,
   DollarSign,
   TrendingUp,
   Sparkles,
@@ -252,7 +250,7 @@ function DashboardContent() {
                 </Link>
                 <Link href="/dashboard/reseau/contacts">
                   <Button
-                    variant="default"
+                    variant="outline"
                     className="w-full justify-start gap-3 h-auto py-3 hover:scale-[1.02] transition-transform"
                   >
                     <Users className="w-5 h-5" />
@@ -264,7 +262,7 @@ function DashboardContent() {
                 </Link>
                 <Link href="/dashboard/modules/calendrier">
                   <Button
-                    variant="default"
+                    variant="outline"
                     className="w-full justify-start gap-3 h-auto py-3 hover:scale-[1.02] transition-transform"
                   >
                     <Calendar className="w-5 h-5" />
