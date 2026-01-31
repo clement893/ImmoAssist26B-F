@@ -44,7 +44,7 @@ const exampleCards = [
 
 export default function LeaWelcomeScreen({
   onMessageSend,
-  initialMessage,
+  initialMessage: _initialMessage,
   inputValue,
   onInputChange,
   isListening,

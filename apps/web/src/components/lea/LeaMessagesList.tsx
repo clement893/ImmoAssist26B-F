@@ -38,14 +38,16 @@ export default function LeaMessagesList({
   return (
     <div className={`flex-1 overflow-y-auto px-4 py-6 ${className}`}>
       <div className="max-w-4xl mx-auto space-y-4">
-        {messages.map((message, index) => (
-          <LeaMessageBubble
-            key={index}
-            content={message.content}
-            role={message.role}
-            timestamp={message.timestamp}
-          />
-        ))}
+        {messages
+          .filter((message) => message.role === 'user' || message.role === 'assistant')
+          .map((message, index) => (
+            <LeaMessageBubble
+              key={index}
+              content={message.content}
+              role={message.role as 'user' | 'assistant'}
+              timestamp={message.timestamp}
+            />
+          ))}
 
         {isLoading && (
           <div className="flex justify-start">

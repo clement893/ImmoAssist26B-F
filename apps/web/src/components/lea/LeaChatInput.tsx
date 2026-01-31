@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import { Mic, MicOff, ArrowUp, Paperclip } from 'lucide-react';
 import { clsx } from 'clsx';
 

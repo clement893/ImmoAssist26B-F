@@ -162,6 +162,7 @@ export default function TransactionDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState<Record<string, boolean>>({});
+  const [contactsCount, setContactsCount] = useState<number>(0);
 
   useEffect(() => {
     loadTransaction();

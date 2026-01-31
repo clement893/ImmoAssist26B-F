@@ -38,7 +38,7 @@ export default function LeaConversationView({
   onClear,
   onClose,
   isListening,
-  transcript,
+  transcript: _transcript,
   onVoiceToggle,
   voiceSupported,
   requestPermission,
