@@ -9,9 +9,10 @@ export interface UseVoiceRecognitionReturn {
   isListening: boolean;
   transcript: string;
   error: string | null;
-  startListening: () => void;
+  startListening: () => Promise<void>;
   stopListening: () => void;
   supported: boolean;
+  requestPermission: () => Promise<boolean>;
 }
 
 export function useVoiceRecognition(language: string = 'fr-FR'): UseVoiceRecognitionReturn {
@@ -102,7 +103,53 @@ export function useVoiceRecognition(language: string = 'fr-FR'): UseVoiceRecogni
     };
   }, [language]);
 
-  const startListening = useCallback(() => {
+  const requestPermission = useCallback(async (): Promise<boolean> => {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setError('L\'accès au microphone n\'est pas disponible dans ce navigateur');
+      return false;
+    }
+
+    try {
+      // Check current permission state if available
+      if (navigator.permissions && navigator.permissions.query) {
+        try {
+          const permissionStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+          if (permissionStatus.state === 'denied') {
+            setError('Permission microphone refusée. Veuillez l\'autoriser dans les paramètres de votre navigateur.');
+            return false;
+          }
+        } catch (permErr) {
+          // Permission query might not be supported, continue with getUserMedia
+          console.log('Permission query not supported, trying getUserMedia directly');
+        }
+      }
+
+      // Request microphone access
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Stop the stream immediately - we just needed permission
+      stream.getTracks().forEach(track => track.stop());
+      setError(null);
+      return true;
+    } catch (err: any) {
+      console.error('Microphone permission error:', err);
+      let errorMessage = 'Permission microphone refusée';
+      
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        errorMessage = 'Permission microphone refusée. Veuillez autoriser l\'accès au microphone dans les paramètres de votre navigateur.';
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        errorMessage = 'Aucun microphone trouvé. Veuillez connecter un microphone.';
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        errorMessage = 'Le microphone est déjà utilisé par une autre application.';
+      } else {
+        errorMessage = `Erreur d'accès au microphone: ${err.message || err.name}`;
+      }
+      
+      setError(errorMessage);
+      return false;
+    }
+  }, []);
+
+  const startListening = useCallback(async () => {
     if (!supported || !recognitionRef.current) {
       setError('Reconnaissance vocale non disponible');
       console.error('Voice recognition not supported or not initialized');
@@ -116,6 +163,13 @@ export function useVoiceRecognition(language: string = 'fr-FR'): UseVoiceRecogni
       } catch (err) {
         console.error('Error stopping recognition:', err);
       }
+      return;
+    }
+
+    // Request microphone permission first
+    const hasPermission = await requestPermission();
+    if (!hasPermission) {
+      // Error already set by requestPermission
       return;
     }
 
@@ -144,11 +198,13 @@ export function useVoiceRecognition(language: string = 'fr-FR'): UseVoiceRecogni
           console.error('Error stopping recognition:', stopErr);
           setError('Erreur lors du démarrage du microphone');
         }
+      } else if (err?.error === 'not-allowed') {
+        setError('Permission microphone refusée. Veuillez autoriser l\'accès au microphone.');
       } else {
         setError('Impossible de démarrer la reconnaissance vocale. Vérifiez les permissions du microphone.');
       }
     }
-  }, [supported, isListening]);
+  }, [supported, isListening, requestPermission]);
 
   const stopListening = useCallback(() => {
     if (recognitionRef.current && isListening) {
@@ -163,6 +219,7 @@ export function useVoiceRecognition(language: string = 'fr-FR'): UseVoiceRecogni
     startListening,
     stopListening,
     supported,
+    requestPermission,
   };
 }
 

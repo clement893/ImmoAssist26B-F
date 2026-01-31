@@ -78,17 +78,9 @@ export default function LeaChat({ onClose, className = '' }: LeaChatProps) {
     if (isListening) {
       stopListening();
     } else {
-      // Request microphone permission if needed
-      try {
-        await navigator.mediaDevices.getUserMedia({ audio: true });
-        startListening();
-        setInput(''); // Clear input when starting to listen
-      } catch (err) {
-        console.error('Microphone permission denied:', err);
-        // Still try to start - browser might have already granted permission
-        startListening();
-        setInput('');
-      }
+      // startListening now handles permission request internally
+      await startListening();
+      setInput(''); // Clear input when starting to listen
     }
   };
 
@@ -212,8 +204,20 @@ export default function LeaChat({ onClose, className = '' }: LeaChatProps) {
       {/* Error Alert */}
       {(error || voiceError) && (
         <div className="px-4 pb-2">
-          <Alert variant="error" title="Erreur">
-            {error || voiceError}
+          <Alert variant="error" title={voiceError?.includes('Permission') ? 'Permission microphone requise' : 'Erreur'}>
+            <div className="space-y-2">
+              <p>{error || voiceError}</p>
+              {voiceError?.includes('Permission') && (
+                <div className="text-sm text-gray-300 mt-2">
+                  <p className="font-semibold mb-1">Pour autoriser le microphone :</p>
+                  <ul className="list-disc list-inside space-y-1 text-xs">
+                    <li>Cliquez sur l&apos;icône de cadenas ou l&apos;icône d&apos;information dans la barre d&apos;adresse</li>
+                    <li>Sélectionnez &quot;Autoriser&quot; pour le microphone</li>
+                    <li>Rechargez la page si nécessaire</li>
+                  </ul>
+                </div>
+              )}
+            </div>
           </Alert>
         </div>
       )}
