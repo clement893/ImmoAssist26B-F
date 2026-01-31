@@ -110,21 +110,8 @@ export function useVoiceRecognition(language: string = 'fr-FR'): UseVoiceRecogni
     }
 
     try {
-      // Check current permission state if available
-      if (navigator.permissions && navigator.permissions.query) {
-        try {
-          const permissionStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName });
-          if (permissionStatus.state === 'denied') {
-            setError('Permission microphone refusée. Veuillez l\'autoriser dans les paramètres de votre navigateur.');
-            return false;
-          }
-        } catch (permErr) {
-          // Permission query might not be supported, continue with getUserMedia
-          console.log('Permission query not supported, trying getUserMedia directly');
-        }
-      }
-
-      // Request microphone access
+      // Always try to request permission - getUserMedia will trigger the browser prompt
+      // This is the only reliable way to request permission
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       // Stop the stream immediately - we just needed permission
       stream.getTracks().forEach(track => track.stop());

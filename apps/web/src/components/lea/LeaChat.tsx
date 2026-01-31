@@ -25,6 +25,7 @@ export default function LeaChat({ onClose, className = '' }: LeaChatProps) {
     stopListening,
     supported: voiceSupported,
     error: voiceError,
+    requestPermission,
   } = useVoiceRecognition('fr-FR');
   const { speak, stop: stopSpeaking, isSpeaking, supported: ttsSupported } = useVoiceSynthesis();
   
@@ -209,12 +210,25 @@ export default function LeaChat({ onClose, className = '' }: LeaChatProps) {
               <p>{error || voiceError}</p>
               {voiceError?.includes('Permission') && (
                 <div className="text-sm text-gray-300 mt-2">
-                  <p className="font-semibold mb-1">Pour autoriser le microphone :</p>
-                  <ul className="list-disc list-inside space-y-1 text-xs">
+                  <p className="font-semibold mb-2">Pour autoriser le microphone :</p>
+                  <ul className="list-disc list-inside space-y-1 text-xs mb-3">
                     <li>Cliquez sur l&apos;icône de cadenas ou l&apos;icône d&apos;information dans la barre d&apos;adresse</li>
                     <li>Sélectionnez &quot;Autoriser&quot; pour le microphone</li>
                     <li>Rechargez la page si nécessaire</li>
                   </ul>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      const hasPermission = await requestPermission();
+                      if (hasPermission) {
+                        await startListening();
+                      }
+                    }}
+                    className="w-full"
+                  >
+                    Demander la permission maintenant
+                  </Button>
                 </div>
               )}
             </div>
