@@ -133,7 +133,6 @@ export function getTransactionProgressionStatus(transaction: TransactionData): {
 export function calculateTransactionSteps(transaction: TransactionData): TransactionStep[] {
   const steps: TransactionStep[] = [];
   const now = new Date();
-  const progression = getTransactionProgressionStatus(transaction);
 
   // 1. Création du dossier
   steps.push({
