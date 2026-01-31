@@ -68,6 +68,7 @@
     "**/*.stories.ts",
     "tests/**",
     "src/test/**",
-    "playwright.config.ts"
+    "playwright.config.ts",
+    "../../packages/**"
   ]
 }

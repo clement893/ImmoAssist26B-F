@@ -11,7 +11,6 @@ import {
   Users,
   UserCog,
   Shield,
-  FolderKanban,
   FileText,
   Image,
   Settings,

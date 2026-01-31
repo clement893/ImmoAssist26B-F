@@ -31,7 +31,7 @@ export interface TransactionsAPIConfig {
  * Create transactions API client
  */
 export function createTransactionsAPI(config: TransactionsAPIConfig) {
-  const { apiClient, extractApiData = (data: any) => data } = config;
+  const { apiClient, extractApiData = <T>(data: any): T => data as T } = config;
 
   return {
     /**

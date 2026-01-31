@@ -19,7 +19,7 @@ export interface ReseauContactsAPIConfig {
  * Create reseau contacts API client
  */
 export function createReseauContactsAPI(config: ReseauContactsAPIConfig) {
-  const { apiClient, extractApiData = (data: any) => data } = config;
+  const { apiClient, extractApiData = <T>(data: any): T => data as T } = config;
 
   return {
     /**
