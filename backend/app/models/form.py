@@ -18,6 +18,9 @@ class Form(Base):
         Index("idx_forms_name", "name"),
         Index("idx_forms_user_id", "user_id"),
         Index("idx_forms_created_at", "created_at"),
+        Index("idx_forms_code", "code"),
+        Index("idx_forms_category", "category"),
+        Index("idx_forms_transaction_id", "transaction_id"),
     )
     
     id = Column(Integer, primary_key=True, index=True)
@@ -29,8 +32,14 @@ class Form(Base):
     submit_button_text = Column(String(50), default='Submit', nullable=False)
     success_message = Column(Text, nullable=True)
     
-    # Ownership
+    # OACIQ-specific fields
+    code = Column(String(20), unique=True, nullable=True, index=True)  # OACIQ form code (e.g., "PA", "CCVE")
+    category = Column(String(50), nullable=True, index=True)  # "obligatoire", "recommandé", "curateur_public"
+    pdf_url = Column(Text, nullable=True)  # URL to official OACIQ PDF
+    
+    # Ownership and relationships
     user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    transaction_id = Column(Integer, ForeignKey("real_estate_transactions.id", ondelete="SET NULL"), nullable=True, index=True)
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
@@ -43,10 +52,11 @@ class Form(Base):
     
     # Relationships
     user = relationship("User", backref="forms")
+    transaction = relationship("RealEstateTransaction", backref="forms")
     submissions = relationship("FormSubmission", back_populates="form", cascade="all, delete-orphan")
     
     def __repr__(self) -> str:
-        return f"<Form(id={self.id}, name={self.name})>"
+        return f"<Form(id={self.id}, name={self.name}, code={self.code})>"
 
 
 class FormSubmission(Base):
@@ -56,16 +66,22 @@ class FormSubmission(Base):
     __table_args__ = (
         Index("idx_form_submissions_form_id", "form_id"),
         Index("idx_form_submissions_submitted_at", "submitted_at"),
+        Index("idx_form_submissions_status", "status"),
+        Index("idx_form_submissions_transaction_id", "transaction_id"),
     )
     
     id = Column(Integer, primary_key=True, index=True)
     form_id = Column(Integer, ForeignKey("forms.id", ondelete="CASCADE"), nullable=False, index=True)
     data = Column(JSON, nullable=False)  # Submission data
     
+    # Status for OACIQ forms
+    status = Column(String(20), default='draft', nullable=False, index=True)  # 'draft', 'completed', 'signed'
+    
     # Metadata
     ip_address = Column(String(45), nullable=True)  # IPv4 or IPv6
     user_agent = Column(String(500), nullable=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    transaction_id = Column(Integer, ForeignKey("real_estate_transactions.id", ondelete="SET NULL"), nullable=True, index=True)
     
     # Timestamps
     submitted_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
@@ -73,8 +89,31 @@ class FormSubmission(Base):
     # Relationships
     form = relationship("Form", back_populates="submissions")
     user = relationship("User", backref="form_submissions")
+    transaction = relationship("RealEstateTransaction", backref="form_submissions")
+    versions = relationship("FormSubmissionVersion", back_populates="submission", cascade="all, delete-orphan")
     
     def __repr__(self) -> str:
-        return f"<FormSubmission(id={self.id}, form_id={self.form_id}, submitted_at={self.submitted_at})>"
+        return f"<FormSubmission(id={self.id}, form_id={self.form_id}, status={self.status}, submitted_at={self.submitted_at})>"
+
+
+class FormSubmissionVersion(Base):
+    """Version history for form submissions"""
+    
+    __tablename__ = "form_submission_versions"
+    __table_args__ = (
+        Index("idx_form_submission_versions_submission_id", "submission_id"),
+        Index("idx_form_submission_versions_created_at", "created_at"),
+    )
+    
+    id = Column(Integer, primary_key=True, index=True)
+    submission_id = Column(Integer, ForeignKey("form_submissions.id", ondelete="CASCADE"), nullable=False, index=True)
+    data = Column(JSON, nullable=False)  # Snapshot of submission data
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+    
+    # Relationships
+    submission = relationship("FormSubmission", back_populates="versions")
+    
+    def __repr__(self) -> str:
+        return f"<FormSubmissionVersion(id={self.id}, submission_id={self.submission_id}, created_at={self.created_at})>"
 
 

@@ -29,7 +29,7 @@ from app.models.scheduled_task import ScheduledTask, TaskExecutionLog, TaskStatu
 from app.models.backup import Backup, RestoreOperation, BackupType, BackupStatus
 from app.models.email_template import EmailTemplate, EmailTemplateVersion
 from app.models.page import Page
-from app.models.form import Form, FormSubmission
+from app.models.form import Form, FormSubmission, FormSubmissionVersion
 from app.models.menu import Menu
 from app.models.support_ticket import SupportTicket, TicketMessage, TicketStatus, TicketPriority
 from app.models.theme import Theme

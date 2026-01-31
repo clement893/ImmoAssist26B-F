@@ -31,6 +31,16 @@ import {
   MessageSquare,
   UserCheck,
   FileText,
+  ClipboardList,
+  Receipt,
+  FileCheck,
+  Lock,
+  Image,
+  Palette,
+  Cog,
+  Sliders,
+  UserCog,
+  Users,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -51,10 +61,10 @@ const createSidebarItems = (isAdmin: boolean) => [
     href: '/dashboard/agents',
     icon: <UserCheck className="w-5 h-5" />,
   },
+  // Module Transactions
   {
-    label: 'Transactions immobilières',
-    href: '/dashboard/transactions',
-    icon: <FileText className="w-5 h-5" />,
+    label: 'Transactions',
+    icon: <Receipt className="w-5 h-5" />,
     children: [
       {
         label: 'Liste des transactions',
@@ -64,25 +74,11 @@ const createSidebarItems = (isAdmin: boolean) => [
       {
         label: 'Étapes des transactions',
         href: '/dashboard/transactions/steps',
-        icon: <FileText className="w-5 h-5" />,
+        icon: <FileCheck className="w-5 h-5" />,
       },
     ],
   },
-  {
-    label: 'Profile',
-    href: '/profile',
-    icon: <User className="w-5 h-5" />,
-  },
-  {
-    label: 'Settings',
-    href: '/settings',
-    icon: <Settings className="w-5 h-5" />,
-  },
-  {
-    label: 'Projets',
-    href: '/dashboard/projects',
-    icon: <FolderKanban className="w-5 h-5" />,
-  },
+  // Module Réseau
   {
     label: 'Réseau',
     icon: <Network className="w-5 h-5" />,
@@ -104,18 +100,148 @@ const createSidebarItems = (isAdmin: boolean) => [
       },
     ],
   },
+  // Module Formulaire
+  {
+    label: 'Formulaire',
+    icon: <ClipboardList className="w-5 h-5" />,
+    children: [
+      {
+        label: 'Vue d\'ensemble',
+        href: '/dashboard/modules/formulaire',
+        icon: <LayoutDashboard className="w-5 h-5" />,
+      },
+      {
+        label: 'Formulaires OACIQ',
+        href: '/dashboard/modules/formulaire/oaciq',
+        icon: <FileText className="w-5 h-5" />,
+      },
+      {
+        label: 'Mes Clauses',
+        href: '/dashboard/modules/formulaire/mes-clauses',
+        icon: <ClipboardList className="w-5 h-5" />,
+      },
+    ],
+  },
+  // Module Profil
+  {
+    label: 'Profil',
+    icon: <User className="w-5 h-5" />,
+    children: [
+      {
+        label: 'Mon profil',
+        href: '/dashboard/modules/profil',
+        icon: <User className="w-5 h-5" />,
+      },
+      {
+        label: 'Paramètres',
+        href: '/dashboard/modules/profil/settings',
+        icon: <Settings className="w-5 h-5" />,
+      },
+      {
+        label: 'Sécurité',
+        href: '/dashboard/modules/profil/security',
+        icon: <Lock className="w-5 h-5" />,
+      },
+      {
+        label: 'Activité',
+        href: '/dashboard/modules/profil/activity',
+        icon: <FileCheck className="w-5 h-5" />,
+      },
+      {
+        label: 'Notifications',
+        href: '/dashboard/modules/profil/notifications',
+        icon: <MessageSquare className="w-5 h-5" />,
+      },
+    ],
+  },
+  {
+    label: 'Projets',
+    href: '/dashboard/projects',
+    icon: <FolderKanban className="w-5 h-5" />,
+  },
   {
     label: 'Super Admin',
     href: '/dashboard/become-superadmin',
     icon: <Shield className="w-5 h-5" />,
   },
-  // Admin link - only visible to admins and superadmins
+  // Module Admin - only visible to admins and superadmins
   ...(isAdmin
     ? [
         {
-          label: 'Administration',
-          href: '/admin',
+          label: 'Admin',
           icon: <Shield className="w-5 h-5" />,
+          children: [
+            {
+              label: 'Vue d\'ensemble',
+              href: '/dashboard/modules/admin',
+              icon: <LayoutDashboard className="w-5 h-5" />,
+            },
+            {
+              label: 'Utilisateurs',
+              href: '/dashboard/modules/admin/users',
+              icon: <Users className="w-5 h-5" />,
+            },
+            {
+              label: 'Équipes',
+              href: '/dashboard/modules/admin/teams',
+              icon: <UserCog className="w-5 h-5" />,
+            },
+            {
+              label: 'Rôles et permissions',
+              href: '/dashboard/modules/admin/rbac',
+              icon: <Shield className="w-5 h-5" />,
+            },
+            {
+              label: 'Organisations',
+              href: '/dashboard/modules/admin/organizations',
+              icon: <Building2 className="w-5 h-5" />,
+            },
+            {
+              label: 'Invitations',
+              href: '/dashboard/modules/admin/invitations',
+              icon: <UserCheck className="w-5 h-5" />,
+            },
+            {
+              label: 'Pages',
+              href: '/dashboard/modules/admin/pages',
+              icon: <FileText className="w-5 h-5" />,
+            },
+            {
+              label: 'Articles',
+              href: '/dashboard/modules/admin/articles',
+              icon: <FileCheck className="w-5 h-5" />,
+            },
+            {
+              label: 'Médias',
+              href: '/dashboard/modules/admin/media',
+              icon: <Image className="w-5 h-5" />,
+            },
+            {
+              label: 'Thèmes',
+              href: '/dashboard/modules/admin/themes',
+              icon: <Palette className="w-5 h-5" />,
+            },
+            {
+              label: 'Clés API',
+              href: '/dashboard/modules/admin/api-keys',
+              icon: <Lock className="w-5 h-5" />,
+            },
+            {
+              label: 'Statistiques',
+              href: '/dashboard/modules/admin/statistics',
+              icon: <Sliders className="w-5 h-5" />,
+            },
+            {
+              label: 'Configuration',
+              href: '/dashboard/modules/admin/settings',
+              icon: <Cog className="w-5 h-5" />,
+            },
+            {
+              label: 'Tenancy',
+              href: '/dashboard/modules/admin/tenancy',
+              icon: <Building2 className="w-5 h-5" />,
+            },
+          ],
         },
       ]
     : []),

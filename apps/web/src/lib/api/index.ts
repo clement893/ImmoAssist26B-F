@@ -100,3 +100,15 @@ export type {
   TransactionRole,
   TRANSACTION_ROLES,
 } from './transactions-adapters';
+
+export { oaciqFormsAPI } from './oaciq-adapters';
+export type {
+  OACIQForm,
+  OACIQFormSubmission,
+  OACIQFormCategory,
+  FormSubmissionStatus,
+  FormFieldConfig,
+  FormSection,
+  OACIQFormFields,
+  CreateOACIQFormSubmission,
+} from './oaciq-adapters';
