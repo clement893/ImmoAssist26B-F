@@ -20,6 +20,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import Sidebar from '@/components/ui/Sidebar';
 import { ThemeToggleWithIcon } from '@/components/ui/ThemeToggle';
 import LeaWidget from '@/components/lea/LeaWidget';
+import DashboardHeader from './DashboardHeader';
 import {
   LayoutDashboard,
   Shield,
@@ -312,33 +313,13 @@ function DashboardLayoutContent({ children }: DashboardLayoutProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Mobile/Tablet Header with Menu Button */}
-      <header className="lg:hidden bg-background shadow border-b border-border sticky top-0 z-30">
-        <div className="px-4 py-3 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-foreground">Dashboard</h1>
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 rounded-md hover:bg-muted transition-colors"
-            aria-label="Toggle menu"
-          >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              {mobileMenuOpen ? (
-                <path d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path d="M4 6h16M4 12h16M4 18h16" />
-              )}
-            </svg>
-          </button>
-        </div>
-      </header>
+      {/* Modern Header */}
+      <DashboardHeader
+        user={user}
+        onMobileMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
+        mobileMenuOpen={mobileMenuOpen}
+        showSearch={true}
+      />
 
       {/* Mobile/Tablet Sidebar Overlay */}
       {mobileMenuOpen && (
@@ -388,13 +369,13 @@ function DashboardLayoutContent({ children }: DashboardLayoutProps) {
         </aside>
 
         {/* Main Content - Only this part changes during navigation */}
-        <div className="flex-1 flex flex-col min-w-0 w-full bg-background">
+        <div className="flex-1 flex flex-col min-w-0 w-full bg-neutral-50 dark:bg-neutral-950">
           {/* Page Content - This is the only part that updates on navigation */}
           <main
             key={pathname}
-            className="flex-1 overflow-y-auto px-3 sm:px-4 md:px-6 xl:px-8 2xl:px-10 py-4 sm:py-6 2xl:py-8 bg-background"
+            className="flex-1 overflow-y-auto px-4 sm:px-6 md:px-8 xl:px-10 2xl:px-12 py-6 sm:py-8 2xl:py-10 bg-neutral-50 dark:bg-neutral-950"
             style={{
-              animation: 'fadeInSlideUp 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+              animation: 'fadeInSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
             }}
           >
             {children}

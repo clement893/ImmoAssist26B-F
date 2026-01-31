@@ -29,45 +29,45 @@ export default function Breadcrumb({
     : items;
   return (
     <nav aria-label="Breadcrumb" className={clsx('flex items-center gap-2', className)}>
-      {' '}
       <ol className="flex items-center gap-2" role="list">
-        {' '}
         {allItems.map((item, index) => {
           const isLast = index === allItems.length - 1;
           const isLink = item.href && !isLast;
           return (
             <li key={index} className="flex items-center gap-2">
-              {' '}
               {isLink ? (
                 <Link
                   href={item.href!}
                   className={clsx(
-                    'flex items-center gap-1 text-sm text-muted-foreground',
-                    'hover:text-foreground transition-colors'
+                    'flex items-center gap-1.5 text-sm text-neutral-600 dark:text-neutral-400',
+                    'hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors',
+                    'rounded-md px-2 py-1 hover:bg-neutral-100 dark:hover:bg-neutral-800'
                   )}
                 >
-                  {' '}
-                  {item.icon && <span className="flex-shrink-0">{item.icon}</span>}{' '}
-                  <span>{item.label}</span>{' '}
+                  {item.icon && <span className="flex-shrink-0">{item.icon}</span>}
+                  <span>{item.label}</span>
                 </Link>
               ) : (
                 <span
                   className={clsx(
-                    'flex items-center gap-1 text-sm',
-                    isLast ? 'text-foreground font-medium' : 'text-muted-foreground'
+                    'flex items-center gap-1.5 text-sm',
+                    isLast ? 'text-neutral-900 dark:text-neutral-100 font-semibold' : 'text-neutral-600 dark:text-neutral-400'
                   )}
                   aria-current={isLast ? 'page' : undefined}
                 >
-                  {' '}
-                  {item.icon && <span className="flex-shrink-0">{item.icon}</span>}{' '}
-                  <span>{item.label}</span>{' '}
+                  {item.icon && <span className="flex-shrink-0">{item.icon}</span>}
+                  <span>{item.label}</span>
                 </span>
-              )}{' '}
-              {!isLast && <span className="flex-shrink-0">{displaySeparator}</span>}{' '}
+              )}
+              {!isLast && (
+                <span className="flex-shrink-0 text-neutral-400 dark:text-neutral-600">
+                  {displaySeparator}
+                </span>
+              )}
             </li>
           );
-        })}{' '}
-      </ol>{' '}
+        })}
+      </ol>
     </nav>
   );
 }
