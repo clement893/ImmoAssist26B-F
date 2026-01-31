@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, or_, func
 from sqlalchemy.orm import selectinload
+from sqlalchemy.exc import SQLAlchemyError, OperationalError, ProgrammingError
 from decimal import Decimal
 from datetime import datetime
 
@@ -31,6 +32,49 @@ from app.services.s3_service import S3Service
 from app.core.logging import logger
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
+
+
+async def handle_database_error(e: Exception, operation: str = "operation", db: Optional[AsyncSession] = None):
+    """Handle database errors and provide helpful error messages"""
+    error_msg = str(e).lower()
+    
+    # Check if it's a schema/migration error
+    if isinstance(e, (OperationalError, ProgrammingError)):
+        if 'column' in error_msg and ('does not exist' in error_msg or 'not found' in error_msg):
+            if db:
+                await db.rollback()
+            logger.error(f"Database schema error - migration may not be applied: {e}", exc_info=True)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Database schema is not up to date. Please run database migrations (alembic upgrade head)."
+            )
+        if 'relation' in error_msg and ('does not exist' in error_msg or 'not found' in error_msg):
+            if db:
+                await db.rollback()
+            logger.error(f"Database table error - migration may not be applied: {e}", exc_info=True)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Database schema is not up to date. Please run database migrations (alembic upgrade head)."
+            )
+    
+    # Re-raise if it's a SQLAlchemy error that we haven't handled
+    if isinstance(e, SQLAlchemyError):
+        if db:
+            await db.rollback()
+        logger.error(f"Database error during {operation}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="A database error occurred"
+        )
+    
+    # For other exceptions, log and raise generic error
+    if db:
+        await db.rollback()
+    logger.error(f"Unexpected error during {operation}: {e}", exc_info=True)
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail="An unexpected error occurred"
+    )
 
 
 @router.get("/", response_model=RealEstateTransactionListResponse)
@@ -86,11 +130,7 @@ async def list_transactions(
         )
         
     except Exception as e:
-        logger.error(f"Error listing transactions: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error listing transactions: {str(e)}",
-        )
+        await handle_database_error(e, "listing transactions", db)
 
 
 @router.get("/{transaction_id}", response_model=RealEstateTransactionResponse)
@@ -124,11 +164,7 @@ async def get_transaction(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting transaction: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error getting transaction: {str(e)}",
-        )
+        handle_database_error(e, "getting transaction", db)
 
 
 @router.post("/", response_model=RealEstateTransactionResponse, status_code=status.HTTP_201_CREATED)
