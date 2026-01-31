@@ -161,13 +161,7 @@ export default function LeaChat({ onClose, className = '' }: LeaChatProps) {
             </div>
             
             {/* Gradient Text */}
-            <h4 
-              className="font-semibold mb-4 text-2xl bg-gradient-to-r from-purple-400 via-blue-400 to-purple-400 bg-clip-text text-transparent animate-gradient"
-              style={{
-                backgroundSize: '200% auto',
-                animation: 'gradient 3s ease infinite',
-              }}
-            >
+            <h4 className="font-semibold mb-4 text-2xl bg-gradient-to-r from-purple-400 via-blue-400 to-purple-400 bg-clip-text text-transparent animate-gradient">
               Parlez à votre assistante AI maintenant
             </h4>
             <p className="text-sm text-gray-400 max-w-sm">
@@ -304,7 +298,7 @@ export default function LeaChat({ onClose, className = '' }: LeaChatProps) {
               title="Envoyer"
             >
               {isLoading ? (
-                <Loading size="sm" className="text-white" />
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
                 <ArrowUp className="w-5 h-5 text-white" />
               )}
