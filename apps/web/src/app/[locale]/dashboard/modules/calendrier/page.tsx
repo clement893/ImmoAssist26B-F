@@ -106,7 +106,7 @@ export default function CalendrierModulePage() {
               <p className="text-muted-foreground mb-4">
                 Ajoutez un nouveau rendez-vous, une visite ou un événement à votre calendrier.
               </p>
-              <Button variant="primary" className="w-full">
+              <Button variant="primary" size="sm" className="w-full">
                 Créer un événement
               </Button>
             </div>
@@ -128,7 +128,7 @@ export default function CalendrierModulePage() {
               <p className="text-muted-foreground mb-4">
                 Consultez tous vos événements à venir dans une vue liste organisée.
               </p>
-              <Button variant="primary" className="w-full">
+              <Button variant="primary" size="sm" className="w-full">
                 Voir l'agenda
               </Button>
             </div>
@@ -150,7 +150,7 @@ export default function CalendrierModulePage() {
               <p className="text-muted-foreground mb-4">
                 Gérez tous vos événements : modifier, supprimer ou consulter les détails.
               </p>
-              <Button variant="primary" className="w-full">
+              <Button variant="primary" size="sm" className="w-full">
                 Gérer les événements
               </Button>
             </div>

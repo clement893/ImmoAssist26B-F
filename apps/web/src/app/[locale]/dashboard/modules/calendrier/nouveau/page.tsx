@@ -147,12 +147,13 @@ export default function NouvelEvenementPage() {
               <Button
                 type="button"
                 variant="outline"
+                size="sm"
                 onClick={() => router.push(`/${locale}/dashboard/modules/calendrier`)}
               >
                 Annuler
               </Button>
-              <Button type="submit" variant="primary">
-                <Save className="w-4 h-4 mr-2" />
+              <Button type="submit" variant="primary" size="sm">
+                <Save className="w-3.5 h-3.5 mr-1.5" />
                 Créer l'événement
               </Button>
             </div>

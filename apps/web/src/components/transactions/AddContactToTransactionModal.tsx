@@ -209,10 +209,10 @@ export default function AddContactToTransactionModal({
 
         {/* Form actions */}
         <div className="flex justify-end gap-3 pt-4 border-t">
-          <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={loading}>
             Annuler
           </Button>
-          <Button type="submit" disabled={loading || !selectedContactId || !role}>
+          <Button type="submit" size="sm" disabled={loading || !selectedContactId || !role}>
             {loading ? 'Ajout...' : 'Ajouter'}
           </Button>
         </div>

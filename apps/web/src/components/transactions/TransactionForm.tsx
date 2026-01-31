@@ -1151,10 +1151,10 @@ export default function TransactionForm({ onSubmit, onCancel, initialData, isLoa
 
       {/* Form Actions */}
       <div className="flex justify-end gap-3 pt-4 border-t">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
+        <Button type="button" variant="outline" size="sm" onClick={onCancel} disabled={isLoading}>
           Annuler
         </Button>
-        <Button type="submit" disabled={isLoading || !formData.name || formData.name.trim().length === 0}>
+        <Button type="submit" size="sm" disabled={isLoading || !formData.name || formData.name.trim().length === 0}>
           {isLoading ? 'Création...' : 'Créer la transaction'}
         </Button>
       </div>

@@ -41,7 +41,7 @@ export default function FormulaireModulePage() {
               <p className="text-muted-foreground mb-4">
                 Accédez aux formulaires officiels de l&apos;Organisme d&apos;autorégulation du courtage immobilier du Québec. Téléchargez, complétez et téléversez vos formulaires.
               </p>
-              <Button variant="primary" className="w-full">
+              <Button variant="primary" size="sm" className="w-full">
                 Accéder aux formulaires OACIQ
               </Button>
             </div>
@@ -64,7 +64,7 @@ export default function FormulaireModulePage() {
               <p className="text-muted-foreground mb-4">
                 Gérez votre bibliothèque personnelle de clauses réutilisables. Créez, modifiez et réutilisez vos clauses favorites pour vos transactions.
               </p>
-              <Button variant="primary" className="w-full">
+              <Button variant="primary" size="sm" className="w-full">
                 Gérer mes clauses
               </Button>
             </div>

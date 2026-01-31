@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 404 Not Found Page
  * Shown when a route doesn't exist
  */
@@ -34,8 +34,8 @@ export default function NotFound() {
             </div>
             <div className="flex flex-col sm:flex-row gap-3 justify-center mt-8">
               <Link href="/">
-                <Button variant="primary" className="w-full sm:w-auto">
-                  <Home className="w-4 h-4 mr-2" />
+                <Button variant="primary" size="sm" className="w-full sm:w-auto">
+                  <Home className="w-3.5 h-3.5 mr-1.5" />
                   Retour à l'accueil
                 </Button>
               </Link>
