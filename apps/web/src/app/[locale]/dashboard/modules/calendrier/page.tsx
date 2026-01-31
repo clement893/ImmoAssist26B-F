@@ -77,7 +77,7 @@ export default function CalendrierModulePage() {
             <Calendar
               events={events}
               view={view}
-              onDateClick={(date) => {
+              onDateClick={() => {
                 setView('day');
                 // Vous pouvez naviguer vers la vue jour avec cette date
               }}

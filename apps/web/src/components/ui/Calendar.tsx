@@ -116,7 +116,7 @@ export default function Calendar({
       return time.getHours() + time.getMinutes() / 60;
     }
     const [hours, minutes] = time.split(':').map(Number);
-    return hours + (minutes || 0) / 60;
+    return (hours || 0) + (minutes || 0) / 60;
   };
 
   // Generate timeline hours (6 AM to 11 PM)
@@ -203,7 +203,6 @@ export default function Calendar({
   // Render day view
   const renderDayView = () => {
     const dayEvents = getEventsForSelectedDay();
-    const isSelectedToday = isToday(selectedDate);
 
     return (
       <div className="space-y-4">

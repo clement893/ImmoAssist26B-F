@@ -7,7 +7,6 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Textarea from '@/components/ui/Textarea';
 import Select from '@/components/ui/Select';
-import DatePicker from '@/components/ui/DatePicker';
 import { ArrowLeft, Save } from 'lucide-react';
 import { useState } from 'react';
 

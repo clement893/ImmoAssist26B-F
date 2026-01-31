@@ -32,7 +32,7 @@ export default function EditEvenementPage() {
     setFormData({
       title: 'Réunion client - Transaction 123',
       description: 'Discussion sur les conditions de vente',
-      date: new Date().toISOString().split('T')[0],
+      date: new Date().toISOString().split('T')[0] || new Date().toISOString(),
       time: '10:00',
       location: 'Bureau principal',
       type: 'meeting',
