@@ -7,7 +7,6 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import Loading from '@/components/ui/Loading';
-import Alert from '@/components/ui/Alert';
 import Badge from '@/components/ui/Badge';
 import { FileText, Plus, Edit, Trash2, Copy, Search, Save } from 'lucide-react';
 
@@ -92,19 +91,20 @@ export default function MesClausesPage() {
                 title: clauseTitle,
                 content: clauseContent,
                 category: clauseCategory,
-                updatedAt: new Date().toISOString().split('T')[0],
+                updatedAt: new Date().toISOString().split('T')[0] || c.updatedAt,
               }
             : c
         ));
       } else {
         // Create new clause
+        const now = new Date().toISOString().split('T')[0];
         const newClause: Clause = {
           id: Date.now().toString(),
           title: clauseTitle,
           content: clauseContent,
           category: clauseCategory,
-          createdAt: new Date().toISOString().split('T')[0],
-          updatedAt: new Date().toISOString().split('T')[0],
+          createdAt: now,
+          updatedAt: now,
         };
         setClauses([...clauses, newClause]);
       }

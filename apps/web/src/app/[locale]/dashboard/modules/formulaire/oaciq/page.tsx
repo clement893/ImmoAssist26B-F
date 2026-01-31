@@ -7,8 +7,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import Loading from '@/components/ui/Loading';
-import Alert from '@/components/ui/Alert';
-import { FileText, Download, Upload, Save, Search } from 'lucide-react';
+import { FileText, Download, Upload, Search } from 'lucide-react';
 
 export default function OACIQPage() {
   const [loading, setLoading] = useState(false);
@@ -109,7 +108,7 @@ export default function OACIQPage() {
                 </div>
                 <div className="flex gap-2">
                   <Button
-                    variant="default"
+                    variant="primary"
                     size="sm"
                     onClick={() => handleDownload(form.id)}
                     disabled={loading}
