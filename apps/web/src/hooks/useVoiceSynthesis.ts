@@ -61,7 +61,7 @@ export function useVoiceSynthesis(): UseVoiceSynthesisReturn {
       
       if (frenchFemaleVoice) {
         setSelectedVoice(frenchFemaleVoice);
-      } else if (frenchVoices.length > 0) {
+      } else if (frenchVoices.length > 0 && frenchVoices[0]) {
         // Use first French voice if no female voice found
         setSelectedVoice(frenchVoices[0]);
       } else if (availableVoices.length > 0 && availableVoices[0]) {
