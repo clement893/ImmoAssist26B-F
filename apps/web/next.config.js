@@ -303,8 +303,9 @@ const nextConfig = {
             value: cspDirectives,
           },
           {
+            // Allow microphone for voice features (Léa), but restrict camera and geolocation
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=()',
+            value: 'camera=(), microphone=(self), geolocation=()',
           },
           {
             key: 'Strict-Transport-Security',

@@ -166,6 +166,18 @@ export function useVoiceRecognition(language: string = 'fr-FR'): UseVoiceRecogni
       console.error('Microphone permission error:', err);
       let errorMessage = 'Erreur d\'accès au microphone';
       
+      // Check for Permissions Policy violation (server-side restriction)
+      const isPolicyViolation = 
+        err.message?.includes('Permissions policy violation') ||
+        err.message?.includes('microphone is not allowed') ||
+        err.name === 'NotAllowedError' && err.message?.includes('policy');
+      
+      if (isPolicyViolation) {
+        errorMessage = 'L\'accès au microphone est bloqué par la politique de sécurité du site. Veuillez contacter l\'administrateur.';
+        setError(errorMessage);
+        return null;
+      }
+      
       // Check permission status first if Permissions API is available
       let permissionDenied = false;
       if (navigator.permissions && navigator.permissions.query) {

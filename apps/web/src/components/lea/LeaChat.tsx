@@ -205,10 +205,27 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
       {/* Error Alert */}
       {(error || voiceError) && (
         <div className="px-4 pb-3">
-          <Alert variant="error" title={(error || voiceError)?.includes('Permission') ? 'Permission microphone requise' : 'Erreur'}>
+          <Alert 
+            variant="error" 
+            title={
+              (error || voiceError)?.includes('politique de sécurité') 
+                ? 'Configuration requise' 
+                : (error || voiceError)?.includes('Permission') 
+                ? 'Permission microphone requise' 
+                : 'Erreur'
+            }
+          >
             <div className="space-y-2">
               <p>{error || voiceError}</p>
-              {(error || voiceError)?.includes('Permission') && (
+              {(error || voiceError)?.includes('politique de sécurité') ? (
+                <div className="text-sm mt-2">
+                  <p className="font-semibold mb-2">Le microphone est bloqué par la configuration du serveur.</p>
+                  <p className="text-xs text-muted-foreground">
+                    Cette erreur nécessite une modification de la configuration du serveur. 
+                    Veuillez contacter l&apos;administrateur du site.
+                  </p>
+                </div>
+              ) : (error || voiceError)?.includes('Permission') ? (
                 <div className="text-sm mt-2">
                   <p className="font-semibold mb-2">Pour autoriser le microphone :</p>
                   <ul className="list-disc list-inside space-y-1 text-xs mb-3">
@@ -230,7 +247,7 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
                     Demander la permission maintenant
                   </Button>
                 </div>
-              )}
+              ) : null}
             </div>
           </Alert>
         </div>
