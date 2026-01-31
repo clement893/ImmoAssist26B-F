@@ -27,9 +27,15 @@ export default function OACIQPage() {
       setError(null);
       const data = await oaciqFormsAPI.list(selectedCategory);
       setForms(data);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Erreur lors du chargement des formulaires:', err);
-      setError('Erreur lors du chargement des formulaires');
+      // Check if it's a database schema error
+      const errorMessage = err?.message || err?.toString() || '';
+      if (errorMessage.includes('Database schema is not up to date') || errorMessage.includes('migrations')) {
+        setError('Le schéma de la base de données n\'est pas à jour. Veuillez exécuter les migrations (alembic upgrade head) sur le serveur.');
+      } else {
+        setError(err?.message || 'Erreur lors du chargement des formulaires');
+      }
     } finally {
       setLoading(false);
     }
