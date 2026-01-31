@@ -54,6 +54,7 @@ interface Transaction {
 }
 
 function TransactionsContent() {
+  const router = useRouter();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -321,8 +322,7 @@ function TransactionsContent() {
                     variant="ghost"
                     size="sm"
                     onClick={() => {
-                      setSelectedTransaction(transaction);
-                      setShowViewModal(true);
+                      window.location.href = `/dashboard/transactions/${transaction.id}`;
                     }}
                     className="flex-1"
                   >
