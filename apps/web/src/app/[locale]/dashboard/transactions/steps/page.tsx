@@ -29,9 +29,9 @@ interface Transaction {
   created_at: string;
   expected_closing_date?: string;
   actual_closing_date?: string;
-  property_address: string;
-  property_city: string;
-  property_postal_code: string;
+  property_address?: string;
+  property_city?: string;
+  property_postal_code?: string;
   sellers: Array<{ name: string; [key: string]: any }>;
   buyers: Array<{ name: string; [key: string]: any }>;
   final_sale_price?: number;

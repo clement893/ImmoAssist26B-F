@@ -33,10 +33,10 @@ interface Transaction {
   dossier_number?: string;
   status: string;
   created_at: string;
-  property_address: string;
-  property_city: string;
-  property_postal_code: string;
-  property_province: string;
+  property_address?: string;
+  property_city?: string;
+  property_postal_code?: string;
+  property_province?: string;
   property_type?: string;
   bedrooms?: number;
   bathrooms?: number;

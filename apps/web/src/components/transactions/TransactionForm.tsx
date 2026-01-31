@@ -154,6 +154,7 @@ const MORTGAGE_TYPE_OPTIONS = [
 export default function TransactionForm({ onSubmit, onCancel, initialData, isLoading }: TransactionFormProps) {
   const [activeTab, setActiveTab] = useState('identification');
   const [formData, setFormData] = useState<TransactionFormData>({
+    name: initialData?.name || '',
     dossier_number: initialData?.dossier_number || '',
     status: initialData?.status || 'En cours',
     property_address: initialData?.property_address || '',
