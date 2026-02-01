@@ -47,7 +47,7 @@ export default function Sidebar({
   onToggleCollapse,
   user,
   showSearch = false,
-  variant = 'modern',
+  variant: _variant = 'modern',
   collapsedWidth,
   expandedWidth,
   accentColor: _accentColor,
@@ -233,13 +233,14 @@ export default function Sidebar({
     });
   }, [items, activePath, expandedItems]);
 
+  // Determine widths
+  const finalCollapsedWidth = collapsedWidth || (collapsed ? 80 : 0);
+  const finalExpandedWidth = expandedWidth || (collapsed ? 0 : 320);
+
   // Determine container width
   const containerWidth = collapsed
     ? (finalCollapsedWidth ? `${finalCollapsedWidth}px` : 'w-20')
     : (finalExpandedWidth ? `${finalExpandedWidth}px` : 'w-72 md:w-80');
-
-  const finalCollapsedWidth = collapsedWidth || (collapsed ? 80 : 0);
-  const finalExpandedWidth = expandedWidth || (collapsed ? 0 : 320);
 
   return (
     <aside

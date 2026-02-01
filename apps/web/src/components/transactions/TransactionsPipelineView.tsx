@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from '@/i18n/routing';
-import { Plus, Search, Filter, MoreVertical, MessageSquare, Paperclip, MapPin, DollarSign, Users, Calendar } from 'lucide-react';
+import { Plus, Search, Filter, MoreVertical, MapPin, DollarSign, Users, Calendar } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 

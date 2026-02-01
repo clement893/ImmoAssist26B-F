@@ -181,7 +181,7 @@ function TransactionsContent() {
             {/* View Mode Toggle */}
             <div className="flex items-center gap-2 p-1 bg-muted rounded-lg">
               <Button
-                variant={viewMode === 'pipeline' ? 'default' : 'ghost'}
+                variant={viewMode === 'pipeline' ? 'primary' : 'ghost'}
                 size="sm"
                 onClick={() => setViewMode('pipeline')}
                 className="flex items-center gap-2"
@@ -190,7 +190,7 @@ function TransactionsContent() {
                 Pipeline
               </Button>
               <Button
-                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                variant={viewMode === 'list' ? 'primary' : 'ghost'}
                 size="sm"
                 onClick={() => setViewMode('list')}
                 className="flex items-center gap-2"
