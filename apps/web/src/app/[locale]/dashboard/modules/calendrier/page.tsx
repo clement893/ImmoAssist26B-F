@@ -9,6 +9,7 @@ import type { CalendarEvent } from '@/components/ui/Calendar';
 import { Calendar as CalendarIcon, Clock, Plus, CalendarCheck } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { useAppointmentsList } from '@/hooks/useAppointments';
+import type { AppointmentResponse } from '@/lib/api/appointments';
 
 export default function CalendrierModulePage() {
   const router = useRouter();
@@ -19,7 +20,7 @@ export default function CalendrierModulePage() {
   const { appointments, isLoading } = useAppointmentsList({ limit: 200 });
   const events: CalendarEvent[] = useMemo(
     () =>
-      appointments.map((apt) => ({
+      appointments.map((apt: AppointmentResponse) => ({
         id: String(apt.id),
         title: apt.title,
         date: new Date(apt.start_time),
@@ -70,6 +71,9 @@ export default function CalendrierModulePage() {
         {/* Calendar */}
         <Card>
           <div className="p-6">
+            {isLoading ? (
+              <div className="py-12 text-center text-muted-foreground">Chargement des rendez-vous...</div>
+            ) : (
             <Calendar
               events={events}
               view={view}
@@ -78,6 +82,7 @@ export default function CalendrierModulePage() {
                 router.push(`/${locale}/dashboard/modules/calendrier/rendez-vous/${event.id}`);
               }}
             />
+            )}
           </div>
         </Card>
 

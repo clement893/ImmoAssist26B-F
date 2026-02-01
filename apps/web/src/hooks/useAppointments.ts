@@ -1,6 +1,6 @@
 'use client';
 
-import useSWR from 'swr';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   AppointmentListResponse,
   AppointmentResponse,
@@ -8,50 +8,49 @@ import type {
   AppointmentCreate,
   AppointmentUpdate,
   CalendarConnectionResponse,
+  AppointmentStatus,
 } from '@/lib/api/appointments';
 import { appointmentsAPI } from '@/lib/api/appointments';
-
-const appointmentsListKey = (params?: Record<string, unknown>) =>
-  ['appointments', 'list', params ?? {}] as const;
-const appointmentKey = (id: number | null) => ['appointments', id] as const;
-const availabilityKey = (params: {
-  date_from: string;
-  date_to: string;
-  duration_minutes?: number;
-}) => ['appointments', 'availability', params] as const;
-const calendarConnectionsKey = () => ['calendar', 'connections'] as const;
 
 export function useAppointmentsList(params?: {
   skip?: number;
   limit?: number;
-  status?: string;
+  status?: AppointmentStatus;
   transaction_id?: number;
   date_from?: string;
   date_to?: string;
 }) {
-  const { data, error, mutate } = useSWR<{ data: AppointmentListResponse }>(
-    appointmentsListKey(params),
-    async () => appointmentsAPI.list(params)
-  );
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: ['appointments', 'list', params ?? {}],
+    queryFn: async () => {
+      const res = await appointmentsAPI.list(params);
+      return res.data as AppointmentListResponse;
+    },
+  });
   return {
-    appointments: data?.data?.appointments ?? [],
-    total: data?.data?.total ?? 0,
-    isLoading: !error && !data,
+    appointments: data?.appointments ?? [],
+    total: data?.total ?? 0,
+    isLoading,
     error,
-    mutate,
+    mutate: refetch,
   };
 }
 
 export function useAppointment(id: number | null, enabled = true) {
-  const { data, error, mutate } = useSWR<{ data: AppointmentResponse }>(
-    enabled && id ? appointmentKey(id) : null,
-    () => appointmentsAPI.get(id!)
-  );
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: ['appointments', id],
+    queryFn: async () => {
+      if (!id) return null;
+      const res = await appointmentsAPI.get(id);
+      return res.data as AppointmentResponse;
+    },
+    enabled: enabled && !!id,
+  });
   return {
-    appointment: data?.data ?? null,
-    isLoading: enabled && id ? !error && !data : false,
+    appointment: data ?? null,
+    isLoading: enabled && !!id ? isLoading : false,
     error,
-    mutate,
+    mutate: refetch,
   };
 }
 
@@ -60,41 +59,55 @@ export function useAvailability(params: {
   date_to: string;
   duration_minutes?: number;
 } | null) {
-  const { data, error, mutate } = useSWR<{ data: AvailabilityResponse }>(
-    params ? availabilityKey(params) : null,
-    () => appointmentsAPI.getAvailability(params!)
-  );
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: ['appointments', 'availability', params],
+    queryFn: async () => {
+      if (!params) return { slots: [] };
+      const res = await appointmentsAPI.getAvailability(params);
+      return res.data as AvailabilityResponse;
+    },
+    enabled: !!params,
+  });
   return {
-    slots: data?.data?.slots ?? [],
-    isLoading: !!params && !error && !data,
+    slots: data?.slots ?? [],
+    isLoading: !!params && isLoading,
     error,
-    mutate,
+    mutate: refetch,
   };
 }
 
 export function useCalendarConnections() {
-  const { data, error, mutate } = useSWR<{
-    data: { connections: CalendarConnectionResponse[] };
-  }>(calendarConnectionsKey(), () => appointmentsAPI.listCalendarConnections());
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: ['calendar', 'connections'],
+    queryFn: async () => {
+      const res = await appointmentsAPI.listCalendarConnections();
+      return res.data as { connections: CalendarConnectionResponse[] };
+    },
+  });
   return {
-    connections: data?.data?.connections ?? [],
-    isLoading: !error && !data,
+    connections: data?.connections ?? [],
+    isLoading,
     error,
-    mutate,
+    mutate: refetch,
   };
 }
 
 export function useAppointmentsMutations() {
+  const queryClient = useQueryClient();
+
   const createAppointment = async (data: AppointmentCreate) => {
     const res = await appointmentsAPI.create(data);
+    await queryClient.invalidateQueries({ queryKey: ['appointments'] });
     return res.data;
   };
   const updateAppointment = async (id: number, data: AppointmentUpdate) => {
     const res = await appointmentsAPI.update(id, data);
+    await queryClient.invalidateQueries({ queryKey: ['appointments'] });
     return res.data;
   };
   const deleteAppointment = async (id: number) => {
     await appointmentsAPI.delete(id);
+    await queryClient.invalidateQueries({ queryKey: ['appointments'] });
   };
   return {
     createAppointment,

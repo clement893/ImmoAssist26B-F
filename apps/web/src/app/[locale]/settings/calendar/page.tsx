@@ -13,14 +13,15 @@ import { PageHeader, PageContainer } from '@/components/layout';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { useCalendarConnections } from '@/hooks/useAppointments';
+import type { CalendarConnectionResponse } from '@/lib/api/appointments';
 import { Calendar, Link2, Unlink } from 'lucide-react';
 
 export default function CalendarSettingsPage() {
   const t = useTranslations('settings');
   const { connections, isLoading, error, mutate } = useCalendarConnections();
 
-  const hasGoogle = connections.some((c) => c.provider === 'google');
-  const hasOutlook = connections.some((c) => c.provider === 'outlook');
+  const hasGoogle = connections.some((c: CalendarConnectionResponse) => c.provider === 'google');
+  const hasOutlook = connections.some((c: CalendarConnectionResponse) => c.provider === 'outlook');
 
   const handleDisconnect = async (provider: 'google' | 'outlook') => {
     try {

@@ -6,6 +6,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { Calendar, Edit, Trash2, Mail, User } from 'lucide-react';
 import { useAppointment, useAppointmentsMutations } from '@/hooks/useAppointments';
+import type { AppointmentAttendeeResponse } from '@/lib/api/appointments';
 
 export default function RendezVousDetailPage() {
   const router = useRouter();
@@ -132,7 +133,7 @@ export default function RendezVousDetailPage() {
           <Card className="p-6">
             <h2 className="text-lg font-semibold mb-4">Participants</h2>
             <ul className="space-y-2">
-              {appointment.attendees.map((a) => (
+              {appointment.attendees.map((a: AppointmentAttendeeResponse) => (
                 <li key={a.id} className="flex items-center gap-3">
                   <div className="p-2 rounded-full bg-muted">
                     <User className="w-4 h-4 text-muted-foreground" />

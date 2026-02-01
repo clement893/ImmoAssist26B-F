@@ -6,6 +6,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { Plus, Calendar, ChevronRight } from 'lucide-react';
 import { useAppointmentsList } from '@/hooks/useAppointments';
+import type { AppointmentResponse } from '@/lib/api/appointments';
 
 export default function RendezVousListPage() {
   const router = useRouter();
@@ -69,7 +70,7 @@ export default function RendezVousListPage() {
                   Aucun rendez-vous. Créez-en un depuis le calendrier ou le bouton ci-dessus.
                 </div>
               ) : (
-                appointments.map((apt) => (
+                appointments.map((apt: AppointmentResponse) => (
                   <div
                     key={apt.id}
                     className="p-4 flex items-center justify-between hover:bg-muted/50 cursor-pointer transition-colors"
