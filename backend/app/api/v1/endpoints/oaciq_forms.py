@@ -6,7 +6,7 @@ Formulaires OACIQ spécifiques
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, func, and_, or_
 from sqlalchemy.exc import SQLAlchemyError, OperationalError, ProgrammingError
 
 from app.models.form import Form, FormSubmission, FormSubmissionVersion
@@ -74,21 +74,37 @@ def handle_database_error(e: Exception, operation: str = "operation"):
 @router.get("/oaciq/forms", response_model=List[OACIQFormResponse], tags=["oaciq-forms"])
 async def list_oaciq_forms(
     category: Optional[OACIQFormCategory] = Query(None),
+    search: Optional[str] = Query(None),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Liste tous les formulaires OACIQ"""
     try:
+        # Les formulaires OACIQ sont globaux, pas filtrés par tenant
         query = select(Form).where(Form.code.isnot(None))
         
         if category:
             query = query.where(Form.category == category.value)
         
-        query = apply_tenant_scope(query, Form)
-        query = query.order_by(Form.created_at.desc())
+        # Recherche par code ou nom
+        if search:
+            search_term = f"%{search}%"
+            query = query.where(
+                or_(
+                    Form.code.ilike(search_term),
+                    Form.name.ilike(search_term)
+                )
+            )
+        
+        # Ne pas appliquer le filtrage par tenant pour les formulaires OACIQ (globaux)
+        # query = apply_tenant_scope(query, Form)  # Commenté car les formulaires OACIQ sont globaux
+        
+        query = query.order_by(Form.code.asc())  # Ordre par code plutôt que par date
         
         result = await db.execute(query)
         forms = result.scalars().all()
+        
+        logger.info(f"Found {len(forms)} OACIQ forms (category={category}, search={search})")
         
         return [OACIQFormResponse.model_validate(form) for form in forms]
     except Exception as e:
@@ -102,8 +118,9 @@ async def get_oaciq_form_by_code(
     db: AsyncSession = Depends(get_db),
 ):
     """Obtenir un formulaire OACIQ par code"""
+    # Les formulaires OACIQ sont globaux, pas filtrés par tenant
     query = select(Form).where(Form.code == code)
-    query = apply_tenant_scope(query, Form)
+    # query = apply_tenant_scope(query, Form)  # Commenté car les formulaires OACIQ sont globaux
     result = await db.execute(query)
     form = result.scalar_one_or_none()
     
@@ -539,5 +556,6 @@ async def complete_oaciq_submission(
     response = OACIQFormSubmissionResponse.model_validate(submission)
     response.form_code = form.code
     return response
- 
+
+ 
  
