@@ -195,7 +195,7 @@ export default function MultiSelect({
         <div
           className={clsx(
             'absolute z-50 w-full mt-1 bg-background',
-            'border border-border rounded-lg shadow-lg',
+            'border border-border rounded-lg shadow-standard-lg', // UI Revamp - Nouveau système d'ombres
             'max-h-60 overflow-y-auto'
           )}
           role="listbox"

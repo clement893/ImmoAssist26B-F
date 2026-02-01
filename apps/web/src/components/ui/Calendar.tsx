@@ -226,10 +226,10 @@ export default function Calendar({
                   onDateClick?.(date);
                 }}
                 className={clsx(
-                  'flex flex-col items-center justify-center min-w-[60px] px-4 py-3 rounded-lg transition-all duration-200',
+                  'flex flex-col items-center justify-center min-w-[60px] px-4 py-3 rounded-lg transition-modern', // UI Revamp - Transition moderne
                   'hover:bg-slate-700 dark:hover:bg-slate-700',
                   isSelected
-                    ? 'bg-blue-600 text-white shadow-lg scale-105'
+                    ? 'bg-blue-600 text-white shadow-standard-lg scale-105' // UI Revamp - Nouveau système d'ombres
                     : isCurrentDay
                       ? 'bg-slate-700 text-slate-100'
                       : 'bg-slate-800 text-slate-300'
@@ -286,8 +286,8 @@ export default function Calendar({
                 <div
                   key={event.id}
                   className={clsx(
-                    'absolute left-0 right-0 rounded-lg p-2 cursor-pointer shadow-md',
-                    'hover:shadow-lg transition-shadow border-l-4',
+                    'absolute left-0 right-0 rounded-lg p-2 cursor-pointer shadow-standard-md', // UI Revamp - Nouveau système d'ombres
+                    'hover:shadow-standard-lg transition-modern border-l-4', // UI Revamp - Transition moderne
                     eventColor,
                     eventTextColor
                   )}

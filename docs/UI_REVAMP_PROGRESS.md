@@ -8,7 +8,7 @@
 
 - **Batches complétés** : 2/6 (33%)
 - **Batches en cours** : 1/6 (17%)
-- **Composants migrés** : 18/270+ (6.7%)
+- **Composants migrés** : 27/270+ (10%)
 - **Composants critiques migrés** : 5/5 (100%) ✅
 
 ---

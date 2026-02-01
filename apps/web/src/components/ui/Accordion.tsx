@@ -80,7 +80,7 @@ export default function Accordion({ items, allowMultiple = false, className }: A
                 className={clsx(
                   'px-4 py-3 border-t border-border bg-muted/50',
                   'animate-slide-down', // Accordion slide-down animation (UX/UI improvements - Batch 16)
-                  'transition-all duration-normal ease-smooth'
+                  'transition-modern' // UI Revamp - Transition moderne
                 )}
               >
                 {item.content}

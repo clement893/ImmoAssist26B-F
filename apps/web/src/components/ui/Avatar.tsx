@@ -77,10 +77,10 @@ export default function Avatar({
         'dark:from-primary-900/30 dark:to-secondary-900/30',
         'text-primary-700 dark:text-primary-300',
         'overflow-hidden',
-        'shadow-sm', // Revamp UI - Ombre subtile
-        'border-2 border-white dark:border-neutral-800', // Revamp UI - Bordure pour séparation
+        'shadow-subtle-sm', // UI Revamp - Nouvelle ombre subtile
+        'border-2 border-white dark:border-neutral-800', // UI Revamp - Bordure pour séparation
         sizeClasses[size],
-        onClick && 'cursor-pointer hover:opacity-90 hover:shadow-md transition-all duration-200', // Revamp UI - Hover amélioré
+        onClick && 'cursor-pointer hover:opacity-90 hover:shadow-subtle-md transition-modern', // UI Revamp - Hover amélioré avec nouvelle ombre
         className
       )}
       onClick={onClick}

@@ -30,34 +30,39 @@
 - ✅ Switch.tsx
 - ✅ Textarea.tsx
 - ⏳ DatePicker.tsx
-- ⏳ TimePicker.tsx
+- ✅ TimePicker.tsx
 - ⏳ FileUpload.tsx
 - ⏳ ... (15 autres)
 
-### Batch 4 : Layout Components (17%)
+### Batch 4 : Layout Components (42%)
 - ✅ Modal.tsx
 - ✅ Tabs.tsx
-- ⏳ Container.tsx
-- ⏳ Accordion.tsx
-- ⏳ Drawer.tsx
+- ✅ Container.tsx (pas d'ombres à migrer)
+- ✅ Accordion.tsx
+- ✅ Drawer.tsx
 - ⏳ ... (7 autres)
 
-### Batch 5 : Data Display (25%)
+### Batch 5 : Data Display (40%)
 - ✅ DataTable.tsx
 - ✅ Table.tsx
 - ✅ StatsCard.tsx
 - ✅ MetricCard.tsx
 - ✅ Badge.tsx
 - ⏳ Chart.tsx
-- ⏳ Calendar.tsx
-- ⏳ ... (15 autres)
+- ✅ Calendar.tsx
+- ✅ Timeline.tsx
+- ✅ Avatar.tsx
+- ⏳ ... (12 autres)
 
-### Batch 6 : Feedback & Navigation (20%)
+### Batch 6 : Feedback & Navigation (50%)
 - ✅ Alert.tsx
 - ✅ Toast.tsx
 - ⏳ Loading.tsx
 - ⏳ Pagination.tsx
-- ⏳ ... (8 autres)
+- ✅ Dropdown.tsx
+- ✅ Tooltip.tsx
+- ✅ MultiSelect.tsx
+- ⏳ ... (5 autres)
 
 ---
 
@@ -69,15 +74,15 @@
 |-----------|--------|-------|---|
 | Fondations | 3 | 3 | 100% ✅ |
 | Composants Critiques | 5 | 5 | 100% ✅ |
-| Form Components | 5 | 20 | 25% |
-| Layout Components | 2 | 15 | 13% |
-| Data Display | 5 | 20 | 25% |
-| Feedback | 2 | 10 | 20% |
+| Form Components | 6 | 20 | 30% |
+| Layout Components | 5 | 15 | 33% |
+| Data Display | 8 | 20 | 40% |
+| Feedback | 5 | 10 | 50% |
 | Navigation | 0 | 8 | 0% |
 | Composants Métier | 0 | 156+ | 0% |
 
 ### Total
-- **Composants migrés** : 18/270+ (6.7%)
+- **Composants migrés** : 27/270+ (10%)
 - **Fichiers modifiés** : 18
 - **Erreurs de lint** : 0
 

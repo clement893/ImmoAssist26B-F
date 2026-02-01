@@ -9,8 +9,8 @@
 
 - **Total batches** : 6
 - **Batches complétés** : 2/6 (33%)
-- **Batches en cours** : 3/6 (50%)
-- **Composants migrés** : 18/270+ (6.7%)
+- **Batches en cours** : 4/6 (67%)
+- **Composants migrés** : 27/270+ (10%)
 
 ---
 
@@ -140,7 +140,7 @@
 - [ ] ErrorBoundary.tsx
 
 ### Progression
-- **Composants complétés** : 2/12 (17%)
+- **Composants complétés** : 5/12 (42%) (Modal, Tabs, Drawer, Accordion, Container déjà OK)
 
 ---
 
@@ -167,7 +167,18 @@
 - [ ] ... (autres data display components)
 
 ### Progression
-- **Composants complétés** : 5/20 (25%)
+- **Composants complétés** : 8/20 (40%) (DataTable, Table, StatsCard, MetricCard, Badge, Calendar, Timeline, Avatar)
+
+### Composants Migrés Récemment
+- ✅ TimePicker.tsx - shadow-standard-lg
+- ✅ Calendar.tsx - shadow-standard-lg, shadow-standard-md, transition-modern
+- ✅ Timeline.tsx - shadow-subtle-sm, shadow-colored-primary, transition-modern
+- ✅ Drawer.tsx - shadow-standard-xl, transition-modern
+- ✅ Accordion.tsx - transition-modern
+- ✅ Avatar.tsx - shadow-subtle-sm, shadow-subtle-md, transition-modern
+- ✅ Dropdown.tsx - shadow-standard-lg
+- ✅ Tooltip.tsx - shadow-standard-lg
+- ✅ MultiSelect.tsx - shadow-standard-lg
 
 ---
 
@@ -190,7 +201,7 @@
 - [ ] ... (autres feedback & navigation components)
 
 ### Progression
-- **Composants complétés** : 2/10 (20%) (Alert.tsx, Toast.tsx)
+- **Composants complétés** : 5/10 (50%) (Alert.tsx, Toast.tsx, Dropdown.tsx, Tooltip.tsx, MultiSelect.tsx)
 
 ---
 

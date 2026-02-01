@@ -105,7 +105,7 @@ export default function TimePicker({
         leftIcon={<Clock className="w-5 h-5" />}
       />{' '}
       {isOpen && (
-        <div className="absolute z-50 mt-2 bg-background border border-border rounded-lg shadow-lg p-4">
+        <div className="absolute z-50 mt-2 bg-background border border-border rounded-lg shadow-standard-lg p-4"> {/* UI Revamp - Nouveau système d'ombres */}
           {' '}
           <div className="flex gap-4">
             {' '}

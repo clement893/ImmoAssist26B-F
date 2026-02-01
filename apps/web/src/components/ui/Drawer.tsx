@@ -227,12 +227,12 @@ export default function Drawer({
       <div
         ref={drawerRef}
         className={clsx(
-          'fixed bg-background shadow-strong',
+          'fixed bg-background shadow-standard-xl', // UI Revamp - Nouveau système d'ombres (remplace shadow-strong)
           'flex flex-col',
           positionClasses[position],
           sizeClass,
           isOpen ? animation.enter : animation.exit,
-          'transition-transform duration-300 ease-in-out',
+          'transition-modern', // UI Revamp - Transition moderne
           className
         )}
         onClick={(e) => e.stopPropagation()}

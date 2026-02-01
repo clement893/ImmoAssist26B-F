@@ -49,11 +49,11 @@ export default function Timeline({ items, orientation = 'vertical', className }:
                 )}{' '}
                 <div
                   className={clsx(
-                    'flex items-center justify-center w-10 h-10 rounded-full border-2 shadow-sm transition-all duration-200', // Revamp UI - Taille augmentée, ombre, transitions
+                    'flex items-center justify-center w-10 h-10 rounded-full border-2 shadow-subtle-sm transition-modern', // UI Revamp - Taille augmentée, nouvelle ombre, transition moderne
                     isCompleted
-                      ? 'bg-primary-600 border-primary-600 dark:bg-primary-400 dark:border-primary-400 shadow-primary' // Revamp UI - Ombre colorée
+                      ? 'bg-primary-600 border-primary-600 dark:bg-primary-400 dark:border-primary-400 shadow-colored-primary' // UI Revamp - Ombre colorée
                       : isCurrent
-                        ? 'bg-background border-primary-600 dark:border-primary-400 ring-2 ring-primary-200 dark:ring-primary-800' // Revamp UI - Ring pour état actuel
+                        ? 'bg-background border-primary-600 dark:border-primary-400 ring-2 ring-primary-200 dark:ring-primary-800' // UI Revamp - Ring pour état actuel
                         : 'bg-background border-border',
                     colorClass
                   )}
@@ -114,11 +114,11 @@ export default function Timeline({ items, orientation = 'vertical', className }:
             {/* Icon */}{' '}
             <div
               className={clsx(
-                'relative z-10 flex items-center justify-center w-10 h-10 rounded-full border-2 flex-shrink-0 shadow-sm transition-all duration-200', // Revamp UI - Taille augmentée, ombre, transitions
+                'relative z-10 flex items-center justify-center w-10 h-10 rounded-full border-2 flex-shrink-0 shadow-subtle-sm transition-modern', // UI Revamp - Taille augmentée, nouvelle ombre, transition moderne
                 isCompleted
-                  ? 'bg-primary-600 border-primary-600 dark:bg-primary-400 dark:border-primary-400 shadow-primary' // Revamp UI - Ombre colorée
+                  ? 'bg-primary-600 border-primary-600 dark:bg-primary-400 dark:border-primary-400 shadow-colored-primary' // UI Revamp - Ombre colorée
                   : isCurrent
-                    ? 'bg-background border-primary-600 dark:border-primary-400 ring-2 ring-primary-200 dark:ring-primary-800' // Revamp UI - Ring pour état actuel
+                    ? 'bg-background border-primary-600 dark:border-primary-400 ring-2 ring-primary-200 dark:ring-primary-800' // UI Revamp - Ring pour état actuel
                     : 'bg-background border-border',
                 colorClass
               )}

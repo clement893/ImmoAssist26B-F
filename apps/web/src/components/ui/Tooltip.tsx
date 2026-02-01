@@ -52,7 +52,7 @@ export default function Tooltip({
         <div
           className={clsx(
             'absolute z-50 px-3 py-2 text-sm text-background',
-            'bg-foreground rounded-md shadow-lg',
+            'bg-foreground rounded-md shadow-standard-lg', // UI Revamp - Nouveau système d'ombres
             'whitespace-nowrap pointer-events-none',
             positionClasses[position],
             className

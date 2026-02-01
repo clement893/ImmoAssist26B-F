@@ -161,7 +161,7 @@ export default function Dropdown({ trigger, items, position = 'bottom', classNam
           role="menu"
           aria-orientation="vertical"
           className={clsx(
-            'absolute z-50 rounded-lg shadow-lg border py-1 min-w-[200px]',
+            'absolute z-50 rounded-lg shadow-standard-lg border py-1 min-w-[200px]', // UI Revamp - Nouveau système d'ombres
             // Use glassmorphism background if enabled, otherwise use default
             hasEffect('glassmorphism') ? '' : 'bg-background border-border',
             positions[position]
