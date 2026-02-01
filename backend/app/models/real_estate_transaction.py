@@ -28,6 +28,11 @@ class RealEstateTransaction(Base):
     last_action_at = Column(DateTime(timezone=True), nullable=True, comment="Date de la dernière action")
     action_count = Column(Integer, default=0, nullable=True, comment="Nombre d'actions effectuées")
 
+    # Suivi des étapes guidées (parcours acheteur/vendeur)
+    completed_steps = Column(JSON, nullable=True, default=list, comment="Codes d'étapes complétées")
+    completed_actions = Column(JSON, nullable=True, default=list, comment="Codes d'actions complétées (steps)")
+    transaction_data = Column(JSON, nullable=True, default=dict, comment="Données dynamiques (dates limites, etc.)")
+
     # 2. Informations sur la propriété
     property_address = Column(String, nullable=True, comment="Adresse complète")
     property_city = Column(String, nullable=True)

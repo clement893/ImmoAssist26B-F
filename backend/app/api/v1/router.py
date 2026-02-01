@@ -2,7 +2,7 @@
 API v1 router registration.
 """
 from fastapi import APIRouter
-from app.api.v1.endpoints import themes, theme_fonts, projects, websocket, admin, auth, two_factor, api_keys, users, health, db_health, newsletter, exports, imports, search, tags, activities, comments, favorites, templates, versions, shares, feature_flags, user_preferences, announcements, feedback, onboarding, documentation, scheduled_tasks, backups, email_templates, audit_trail, integrations, api_settings, organization_settings, general_settings, pages, forms, menus, support_tickets, seo, teams, invitations, rbac, notifications, api_connection_check, reports, media, insights, analytics, posts, subscriptions, lea, transactions, dashboard, transaction_actions, calendar_availability
+from app.api.v1.endpoints import themes, theme_fonts, projects, websocket, admin, auth, two_factor, api_keys, users, health, db_health, newsletter, exports, imports, search, tags, activities, comments, favorites, templates, versions, shares, feature_flags, user_preferences, announcements, feedback, onboarding, documentation, scheduled_tasks, backups, email_templates, audit_trail, integrations, api_settings, organization_settings, general_settings, pages, forms, menus, support_tickets, seo, teams, invitations, rbac, notifications, api_connection_check, reports, media, insights, analytics, posts, subscriptions, lea, transactions, dashboard, transaction_actions, transaction_steps, calendar_availability
 from app.api.v1.endpoints import client_invitations, portail_transactions, transaction_documents, transaction_messages, transaction_taches
 from app.api.v1.endpoints import oaciq_forms, oaciq_forms_import
 from app.api.v1.endpoints.reseau import contacts as reseau_contacts
@@ -459,6 +459,12 @@ api_router.include_router(
 api_router.include_router(
     transaction_actions.router,
     tags=["transaction-actions"]
+)
+
+# Register transaction steps (guided steps - acheteur/vendeur)
+api_router.include_router(
+    transaction_steps.router,
+    tags=["transaction-steps"]
 )
 
 # Register calendar availability endpoints

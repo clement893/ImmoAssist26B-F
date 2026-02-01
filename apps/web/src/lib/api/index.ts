@@ -87,6 +87,12 @@ export { reseauContactsAPI } from './reseau-adapters';
 export type { Contact, ContactCreate, ContactUpdate } from './reseau-adapters';
 
 export { transactionsAPI, realEstateContactsAPI } from './transactions-adapters';
+export { transactionStepsAPI } from './transaction-steps-adapters';
+export type {
+  Step,
+  StepAction,
+  TransactionStepsResponse,
+} from './transaction-steps-adapters';
 export type {
   Transaction,
   TransactionCreate,

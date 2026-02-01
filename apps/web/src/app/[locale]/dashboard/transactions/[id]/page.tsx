@@ -283,6 +283,18 @@ export default function TransactionDetailPage() {
 
           {/* StatusStepper with horizontal orientation */}
           <StatusStepper steps={steps} orientation="horizontal" />
+          <div className="mt-4">
+            <button
+              onClick={() =>
+                router.push(
+                  `/${params.locale || 'fr'}/dashboard/transactions/steps?transaction=${transaction.id}`
+                )
+              }
+              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+            >
+              Voir les étapes détaillées (acheteur/vendeur) →
+            </button>
+          </div>
         </div>
 
         {/* Main Content with Tabs */}
