@@ -270,10 +270,11 @@ async def import_oaciq_forms(
                         existing_form.pdf_url = form_item.pdf_url
                     
                     # Préparer les champs avec métadonnées multilingues
-                    fields_data = form_item.fields.copy() if form_item.fields else {"sections": []}
+                    fields_data = dict(form_item.fields) if form_item.fields else {"sections": []}
                     # Ajouter les métadonnées dans fields
                     if form_item.name_en or form_item.name_fr or form_item.web_url or form_item.objective:
-                        fields_data["metadata"] = {}
+                        if "metadata" not in fields_data:
+                            fields_data["metadata"] = {}
                         if form_item.name_en:
                             fields_data["metadata"]["name_en"] = form_item.name_en
                         if form_item.name_fr:
@@ -309,7 +310,7 @@ async def import_oaciq_forms(
             else:
                 # Créer un nouveau formulaire
                 # Les formulaires OACIQ nécessitent au minimum un champ fields vide
-                default_fields = form_item.fields.copy() if form_item.fields else {
+                default_fields = dict(form_item.fields) if form_item.fields else {
                     "sections": []
                 }
                 
