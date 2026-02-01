@@ -239,22 +239,32 @@ Ce document suit la progression de la transformation UI par batches, avec un pus
 
 ---
 
-### Batch 9 : Dashboard Page
-**Statut** : En attente  
+### Batch 9 : Dashboard Page ✅
+**Statut** : Complété  
 **Priorité** : HAUTE  
 **Objectif** : Transformer Dashboard identique à `/demo/dashboard-v2`
 
 **Tâches** :
-- [ ] Layout avec grid 12 colonnes
-- [ ] Cards avec rounded-3xl
-- [ ] Stats cards style dashboard-v2
-- [ ] Typographie adaptée
-- [ ] Tests : Comparer avec `/demo/dashboard-v2`
+- [x] Layout avec grid 12 colonnes
+- [x] Cards avec rounded-3xl (déjà fait Batch 2)
+- [x] Stats cards style dashboard-v2 (déjà fait Batch 7)
+- [x] Typographie adaptée (font-light pour titres)
+- [x] Tests : Comparer avec `/demo/dashboard-v2`
 
-**Fichiers à modifier** :
-- `apps/web/src/app/[locale]/dashboard/page.tsx`
+**Fichiers modifiés** :
+- ✅ `apps/web/src/app/[locale]/dashboard/page.tsx` - Transformation complète style dashboard-v2
 
 **Commit** : `feat(ui): Batch 9 - Dashboard Page`
+
+**Résumé des changements** :
+- Layout : bg-gray-100 p-8 avec max-w-[1400px] mx-auto
+- Grid : grid-cols-12 avec col-span-9 et col-span-3 pour colonnes principales
+- Header : Logo noir bg-black rounded-full w-14 h-14 avec "IA" (déjà fait Batch 5)
+- Typographie : text-2xl font-light pour titres de sections
+- Cards : rounded-3xl (déjà fait Batch 2), shadow-sm avec hover:shadow-md
+- Stats Cards : Style Dashboard V2 (déjà fait Batch 7)
+- Actions rapides et Résumé financier : Grid 2 colonnes avec cards rounded-3xl
+- Right Column : Sections Calendrier/Formulaires et Léa AI avec style Dashboard V2
 
 ---
 
@@ -279,15 +289,15 @@ Ce document suit la progression de la transformation UI par batches, avec un pus
 
 ## Progression Globale
 
-**Batches complétés** : 8/10 ✅  
+**Batches complétés** : 9/10 ✅  
 **Batches en cours** : 0  
-**Batches en attente** : 2
+**Batches en attente** : 1
 
 ### Dernière mise à jour
-- **Batch 8** complété le 2026-02-01
-- Transaction Detail Page transformée identique à `/demo/transaction-detail`
-- Header avec boutons Edit/Send Update, Progress Bar horizontale, Tabs Dashboard V2
-- Overview/Documents/Activity/Photos tabs avec style exact de la démo
+- **Batch 9** complété le 2026-02-01
+- Dashboard Page transformée avec style dashboard-v2
+- Layout grid 12 colonnes, cards rounded-3xl, typographie font-light
+- Stats cards style Dashboard V2, Actions rapides et Résumé financier avec grid 2 colonnes
 
 ## Notes
 
