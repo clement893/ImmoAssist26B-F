@@ -18,6 +18,8 @@ import {
   AlertCircle,
   CheckCircle2,
   Plus,
+  Calendar,
+  FileText,
 } from 'lucide-react';
 
 function DashboardContent() {
@@ -161,14 +163,14 @@ function DashboardContent() {
               </Link>
               <Link href="/dashboard/modules/calendrier">
                 <div className="p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors cursor-pointer">
-                  <CheckCircle2 className="w-6 h-6 text-purple-600 mb-2" />
+                  <Calendar className="w-6 h-6 text-purple-600 mb-2" />
                   <h3 className="font-medium text-gray-900 mb-1">Calendrier</h3>
                   <p className="text-sm text-gray-500">Vos rendez-vous</p>
                 </div>
               </Link>
               <Link href="/dashboard/modules/formulaire/oaciq">
                 <div className="p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors cursor-pointer">
-                  <Receipt className="w-6 h-6 text-orange-600 mb-2" />
+                  <FileText className="w-6 h-6 text-orange-600 mb-2" />
                   <h3 className="font-medium text-gray-900 mb-1">Formulaires</h3>
                   <p className="text-sm text-gray-500">Formulaires OACIQ</p>
                 </div>
