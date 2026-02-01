@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ImmoAssist Importer</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header class="header">
+        <h1 class="title">ImmoAssist Importer</h1>
+      </header>
+
+      <section id="auth-section" class="section">
+        <label for="api-key">Clé API ImmoAssist</label>
+        <input type="password" id="api-key" placeholder="Collez votre clé API" />
+        <button type="button" id="save-key">Enregistrer</button>
+        <p id="auth-status" class="status"></p>
+      </section>
+
+      <section id="data-section" class="section hidden">
+        <h2>Données extraites</h2>
+        <div id="data-preview" class="data-preview"></div>
+        <label for="transaction-id">Lier à la transaction (ID, optionnel)</label>
+        <input type="number" id="transaction-id" placeholder="ID transaction" min="1" />
+        <div class="actions">
+          <button type="button" id="import-btn">Importer dans ImmoAssist</button>
+        </div>
+      </section>
+
+      <section id="message-section" class="section hidden">
+        <p id="message-text" class="message"></p>
+        <a id="message-link" href="#" target="_blank" rel="noopener" class="hidden">Voir dans ImmoAssist</a>
+      </section>
+
+      <section id="error-section" class="section hidden">
+        <p id="error-text" class="error"></p>
+      </section>
+
+      <section id="no-data-section" class="section hidden">
+        <p>Ouvrez une fiche propriété sur Centris puis rouvrez cette popup.</p>
+      </section>
+    </div>
+    <script src="popup.js"></script>
+  </body>
+</html>

@@ -6,7 +6,7 @@ Provides API key-based authentication as an alternative to JWT tokens
 import secrets
 import hashlib
 from typing import Optional
-from fastapi import HTTPException, Security, status
+from fastapi import Depends, HTTPException, Security, status
 from fastapi.security import APIKeyHeader, APIKeyQuery
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -107,7 +107,7 @@ async def get_user_from_api_key(
 
 async def require_api_key(
     api_key: Optional[str] = Security(get_api_key),
-    db: AsyncSession = None,
+    db: AsyncSession = Depends(get_db),
 ) -> User:
     """Require valid API key, raise exception if invalid"""
     user = await get_user_from_api_key(api_key, db)

@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "ImmoAssist Importer",
+  "version": "1.0",
+  "description": "Importez des propriétés depuis Centris vers ImmoAssist.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://www.centris.ca/*",
+    "https://*.centris.ca/*",
+    "https://*/*"
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
+    "default_title": "ImmoAssist Importer"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.centris.ca/*", "https://*.centris.ca/*"],
+      "js": ["content-scripts/centris-scraper.js"]
+    }
+  ]
+}

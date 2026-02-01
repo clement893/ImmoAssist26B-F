@@ -44,6 +44,7 @@ import {
   UserPlus,
   Calendar,
   Clock,
+  Puzzle,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -260,6 +261,11 @@ const createSidebarItems = () => [
         label: 'Clés API',
         href: '/dashboard/modules/admin/api-keys',
         icon: <Lock className="w-5 h-5" />,
+      },
+      {
+        label: 'Extension Chrome',
+        href: '/dashboard/admin/chrome-extension',
+        icon: <Puzzle className="w-5 h-5" />,
       },
       {
         label: 'Statistiques',
