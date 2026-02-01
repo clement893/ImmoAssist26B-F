@@ -101,12 +101,6 @@ export default function ContactDetailPage() {
       <PageContainer>
         <PageHeader
           title="Erreur"
-          breadcrumbs={[
-            { label: 'Dashboard', href: `/${params?.locale || 'fr'}/dashboard` },
-            { label: 'Module Réseau', href: `/${params?.locale || 'fr'}/dashboard/reseau` },
-            { label: 'Contacts', href: `/${params?.locale || 'fr'}/dashboard/reseau/contacts` },
-            { label: 'Détail' },
-          ]}
         />
         <Alert variant="error">{error}</Alert>
         <div className="mt-4">
@@ -130,12 +124,6 @@ export default function ContactDetailPage() {
       <PageContainer>
         <PageHeader
           title="Contact non trouvé"
-          breadcrumbs={[
-            { label: 'Dashboard', href: `/${params?.locale || 'fr'}/dashboard` },
-            { label: 'Module Réseau', href: `/${params?.locale || 'fr'}/dashboard/reseau` },
-            { label: 'Contacts', href: `/${params?.locale || 'fr'}/dashboard/reseau/contacts` },
-            { label: 'Détail' },
-          ]}
         />
         <Alert variant="error">Le contact demandé n'existe pas.</Alert>
         <div className="mt-4">
@@ -163,12 +151,6 @@ export default function ContactDetailPage() {
     <PageContainer>
       <PageHeader
         title={`${contact.first_name} ${contact.last_name}`}
-        breadcrumbs={[
-          { label: 'Dashboard', href: `/${params?.locale || 'fr'}/dashboard` },
-          { label: 'Module Réseau', href: `/${params?.locale || 'fr'}/dashboard/reseau` },
-          { label: 'Contacts', href: `/${params?.locale || 'fr'}/dashboard/reseau/contacts` },
-          { label: `${contact.first_name} ${contact.last_name}` },
-        ]}
         actions={
           <Button variant="outline" size="sm" onClick={handleBack}>
             <ArrowLeft className="w-4 h-4 mr-2" />
