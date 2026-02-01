@@ -18,6 +18,8 @@ import {
   ArrowRight,
   MapPin,
   DollarSign,
+  Mail,
+  Phone,
 } from 'lucide-react';
 
 export default function PortailClientDashboard() {

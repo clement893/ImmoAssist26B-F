@@ -9,7 +9,6 @@ import {
   AlertCircle,
   Clock,
   ArrowLeft,
-  Filter,
 } from 'lucide-react';
 
 interface Tache {

@@ -155,7 +155,7 @@ export default function MessagesPage() {
             {messages.map((msg, index) => {
               const isCourtier = msg.expediteur === 'courtier';
               const showAvatar =
-                index === 0 || messages[index - 1].expediteur !== msg.expediteur;
+                index === 0 || messages[index - 1]?.expediteur !== msg.expediteur;
 
               return (
                 <div
