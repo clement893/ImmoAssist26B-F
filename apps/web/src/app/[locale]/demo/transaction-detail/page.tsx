@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import {
   Home,
-  User,
   FileText,
   DollarSign,
   Calendar,
@@ -20,10 +19,7 @@ import {
   Bed,
   Bath,
   Square,
-  TrendingUp,
-  Users,
   Building2,
-  FileCheck,
   Paperclip,
   Plus,
   Edit,
@@ -167,31 +163,6 @@ export default function TransactionDetail() {
     { id: 4, url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400', title: 'Bathroom' },
   ];
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-100 text-green-700 border-green-200';
-      case 'in_progress':
-        return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'pending':
-        return 'bg-gray-100 text-gray-600 border-gray-200';
-      default:
-        return 'bg-gray-100 text-gray-600 border-gray-200';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircle2 className="w-5 h-5 text-green-600" />;
-      case 'in_progress':
-        return <Clock className="w-5 h-5 text-blue-600" />;
-      case 'pending':
-        return <AlertCircle className="w-5 h-5 text-gray-400" />;
-      default:
-        return <AlertCircle className="w-5 h-5 text-gray-400" />;
-    }
-  };
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: Home },
@@ -248,7 +219,7 @@ export default function TransactionDetail() {
             ></div>
 
             <div className="relative flex justify-between">
-              {steps.map((step, index) => (
+              {steps.map((step) => (
                 <div key={step.id} className="flex flex-col items-center" style={{ width: `${100 / steps.length}%` }}>
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
