@@ -1,15 +1,15 @@
-﻿"""Security and authentication utilities."""
+"""Security and authentication utilities."""
 
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+import bcrypt
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from pydantic import ValidationError
 
-# Password hashing context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Bcrypt max password length (bytes)
+BCRYPT_MAX_PASSWORD_BYTES = 72
 
 
 def get_secret_key() -> str:
@@ -67,14 +67,24 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "120"
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))  # Default: 7 days
 
 
+def _to_bcrypt_bytes(password: str) -> bytes:
+    """Encode password for bcrypt, respecting 72-byte limit."""
+    pw_bytes = password.encode("utf-8")
+    if len(pw_bytes) > BCRYPT_MAX_PASSWORD_BYTES:
+        pw_bytes = pw_bytes[:BCRYPT_MAX_PASSWORD_BYTES]
+    return pw_bytes
+
+
 def hash_password(password: str) -> str:
-    """Hash a password."""
-    return pwd_context.hash(password)
+    """Hash a password using bcrypt."""
+    pw_bytes = _to_bcrypt_bytes(password)
+    return bcrypt.hashpw(pw_bytes, bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against its hash."""
-    return pwd_context.verify(plain_password, hashed_password)
+    pw_bytes = _to_bcrypt_bytes(plain_password)
+    return bcrypt.checkpw(pw_bytes, hashed_password.encode("utf-8"))
 
 
 def create_access_token(
