@@ -6,6 +6,7 @@ import Container from '@/components/ui/Container';
 import Loading from '@/components/ui/Loading';
 import Alert from '@/components/ui/Alert';
 import { transactionsAPI } from '@/lib/api';
+import { realEstateContactsAPI } from '@/lib/api/real-estate-contacts';
 import TransactionTimeline from '@/components/transactions/TransactionTimeline';
 import StatusStepper from '@/components/transactions/StatusStepper';
 import { calculateTransactionSteps } from '@/lib/transactions/progression';
@@ -15,7 +16,6 @@ import {
   FileText,
   Home,
   Upload,
-  Eye,
   Image as ImageIcon,
   ChevronRight,
   Edit,
@@ -118,34 +118,6 @@ interface Transaction {
   }>;
 }
 
-const STATUS_OPTIONS = [
-  { label: 'En cours', value: 'En cours' },
-  { label: 'Conditionnelle', value: 'Conditionnelle' },
-  { label: 'Ferme', value: 'Ferme' },
-  { label: 'Annulée', value: 'Annulée' },
-  { label: 'Conclue', value: 'Conclue' },
-];
-
-const PROPERTY_TYPE_OPTIONS = [
-  { label: 'Unifamiliale', value: 'Unifamiliale' },
-  { label: 'Condo', value: 'Condo' },
-  { label: 'Duplex', value: 'Duplex' },
-  { label: 'Triplex', value: 'Triplex' },
-  { label: 'Quadruplex', value: 'Quadruplex' },
-  { label: 'Terrain', value: 'Terrain' },
-  { label: 'Commercial', value: 'Commercial' },
-  { label: 'Autre', value: 'Autre' },
-];
-
-function formatDate(dateString?: string): string {
-  if (!dateString) return '-';
-  try {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' });
-  } catch {
-    return dateString;
-  }
-}
 
 function formatCurrency(amount?: number): string {
   if (!amount) return '-';
@@ -166,22 +138,10 @@ export default function TransactionDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState<Record<string, boolean>>({});
-  const [contactsCount, setContactsCount] = useState<number>(0);
 
   useEffect(() => {
     loadTransaction();
-    loadContactsCount();
   }, [transactionId]);
-
-  const loadContactsCount = async () => {
-    try {
-      const response = await realEstateContactsAPI.getTransactionContacts(parseInt(transactionId));
-      setContactsCount(response.data.contacts?.length || 0);
-    } catch (err) {
-      // Silently fail - contacts count is optional
-      setContactsCount(0);
-    }
-  };
 
   const loadTransaction = async () => {
     try {
@@ -196,20 +156,6 @@ export default function TransactionDetailPage() {
     }
   };
 
-  const handleFieldUpdate = async (field: string, value: string | number) => {
-    if (!transaction) return;
-    
-    setSaving({ ...saving, [field]: true });
-    try {
-      const updateData: Record<string, any> = { [field]: value };
-      const response = await transactionsAPI.update(parseInt(transactionId), updateData);
-      setTransaction(response.data);
-    } catch (err) {
-      throw new Error(err instanceof Error ? err.message : 'Erreur lors de la mise à jour');
-    } finally {
-      setSaving({ ...saving, [field]: false });
-    }
-  };
 
   if (loading) {
     return (
@@ -232,7 +178,11 @@ export default function TransactionDetailPage() {
   }
 
   // Calculate transaction steps
-  const steps = calculateTransactionSteps(transaction);
+  const steps = calculateTransactionSteps({
+    ...transaction,
+    sellers: transaction.sellers || [],
+    buyers: transaction.buyers || [],
+  });
   const [activeTab, setActiveTab] = useState('overview');
   const [newComment, setNewComment] = useState('');
 
@@ -291,9 +241,7 @@ export default function TransactionDetailPage() {
 
   // Get first buyer and seller
   const firstBuyer = transaction.buyers && transaction.buyers.length > 0 ? transaction.buyers[0] : null;
-  const firstSeller = transaction.sellers && transaction.sellers.length > 0 ? transaction.sellers[0] : null;
   const buyerBroker = transaction.buyer_broker;
-  const sellerBroker = transaction.seller_broker;
 
   // Filter documents
   const documents = transaction.documents?.filter(d => d.type !== 'photo') || [];

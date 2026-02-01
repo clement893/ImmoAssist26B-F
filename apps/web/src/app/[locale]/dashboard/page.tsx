@@ -6,7 +6,7 @@ export const dynamicParams = true;
 
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/lib/store';
-import { Card, Button, LoadingSkeleton, Container } from '@/components/ui';
+import { Card, Button, LoadingSkeleton, Grid } from '@/components/ui';
 import { StatsCard } from '@/components/ui';
 import { Link } from '@/i18n/routing';
 import { ErrorBoundary } from '@/components/errors/ErrorBoundary';
@@ -29,7 +29,6 @@ import {
 } from 'lucide-react';
 
 function DashboardContent() {
-  const { user } = useAuthStore();
   const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState<BrokerDashboardStats | null>(null);
   const [error, setError] = useState<string | null>(null);

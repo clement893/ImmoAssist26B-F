@@ -114,10 +114,9 @@ export default function StatusStepper({
 
           {/* Steps */}
           <div className="relative flex justify-between">
-            {steps.map((step, index) => {
+            {steps.map((step) => {
               const isCompleted = step.status === 'completed';
               const isInProgress = step.status === 'current';
-              const isPending = step.status === 'pending';
               
               return (
                 <div key={step.id} className="flex flex-col items-center" style={{ width: `${100 / steps.length}%` }}>
