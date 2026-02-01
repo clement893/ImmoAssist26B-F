@@ -62,7 +62,7 @@ const nonce = generateNonce();
 - `script-src 'self' 'unsafe-eval' 'unsafe-inline'` - Required for Next.js dev
 - `style-src 'self' 'unsafe-inline'` - Required for Tailwind CSS
 - `connect-src` - Includes localhost and API URLs
-- `frame-src 'none'` - Prevents iframe embedding
+- `frame-src 'self' blob:` - Allows same-origin and blob: iframes (e.g. PDF viewer); prevents arbitrary external iframes
 - `object-src 'none'` - Prevents object/embed tags
 
 **Production** (Backend):

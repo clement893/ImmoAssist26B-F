@@ -268,7 +268,7 @@ const nextConfig = {
       "font-src 'self' https://fonts.gstatic.com data:",
       "img-src 'self' data: https: blob:",
       'connect-src ' + connectSrcUrls.join(' '),
-      "frame-src 'none'",
+      "frame-src 'self' blob:", // blob: required for PDF viewer iframe
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
