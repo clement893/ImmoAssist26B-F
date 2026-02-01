@@ -37,6 +37,18 @@ async def check_columns_exist():
         return columns
 
 
+async def check_table_exists(table_name: str):
+    """Check if a table exists"""
+    async with async_session_maker() as session:
+        result = await session.execute(text("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = :table_name
+            )
+        """), {"table_name": table_name})
+        return result.scalar()
+
+
 async def check_alembic_version():
     """Check current alembic version"""
     async with async_session_maker() as session:
@@ -54,8 +66,18 @@ async def fix_migration():
             current_version = await check_alembic_version()
             print(f"Current alembic version: {current_version}")
             
+            # Check if user_availabilities table exists (migration 035)
+            user_availabilities_exists = await check_table_exists('user_availabilities')
+            print(f"Table user_availabilities exists: {user_availabilities_exists}")
+            
             columns = await check_columns_exist()
             print(f"Existing columns: {columns}")
+            
+            # If user_availabilities exists but version is before 035, update version
+            if user_availabilities_exists and current_version not in ['035_create_user_availabilities', '036_fix_txn_actions']:
+                print("\n⚠ Warning: user_availabilities table exists but version is not 035 or 036")
+                print("This suggests migration 035 was partially applied")
+                # Don't auto-fix this, let migrations handle it
             
             # Check if we need to add missing columns
             missing_columns = {'current_action_code', 'last_action_at', 'action_count'} - columns

@@ -11,6 +11,7 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+from sqlalchemy import inspect
 
 
 # revision identifiers, used by Alembic.
@@ -20,8 +21,28 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
+def table_exists(table_name: str) -> bool:
+    """Check if a table exists"""
+    conn = op.get_bind()
+    inspector = inspect(conn)
+    return table_name in inspector.get_table_names()
+
+
+def index_exists(table_name: str, index_name: str) -> bool:
+    """Check if an index exists"""
+    conn = op.get_bind()
+    inspector = inspect(conn)
+    indexes = [idx['name'] for idx in inspector.get_indexes(table_name)]
+    return index_name in indexes
+
+
 def upgrade() -> None:
     """Create user_availabilities table."""
+    # Check if table already exists
+    if table_exists('user_availabilities'):
+        print("✓ Table user_availabilities already exists, skipping creation")
+        return
+    
     # Create enum type for day_of_week (check if it exists first)
     connection = op.get_bind()
     result = connection.execute(
@@ -60,19 +81,33 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint('id')
     )
     
-    # Create indexes
-    op.create_index('idx_user_availabilities_user_id', 'user_availabilities', ['user_id'])
-    op.create_index('idx_user_availabilities_day_of_week', 'user_availabilities', ['day_of_week'])
-    op.create_index('idx_user_availabilities_is_active', 'user_availabilities', ['is_active'])
-    op.create_index('idx_user_availabilities_user_day', 'user_availabilities', ['user_id', 'day_of_week'])
+    # Create indexes (check if they exist first)
+    if not index_exists('user_availabilities', 'idx_user_availabilities_user_id'):
+        op.create_index('idx_user_availabilities_user_id', 'user_availabilities', ['user_id'])
+    if not index_exists('user_availabilities', 'idx_user_availabilities_day_of_week'):
+        op.create_index('idx_user_availabilities_day_of_week', 'user_availabilities', ['day_of_week'])
+    if not index_exists('user_availabilities', 'idx_user_availabilities_is_active'):
+        op.create_index('idx_user_availabilities_is_active', 'user_availabilities', ['is_active'])
+    if not index_exists('user_availabilities', 'idx_user_availabilities_user_day'):
+        op.create_index('idx_user_availabilities_user_day', 'user_availabilities', ['user_id', 'day_of_week'])
 
 
 def downgrade() -> None:
     """Drop user_availabilities table."""
-    op.drop_index('idx_user_availabilities_user_day', table_name='user_availabilities')
-    op.drop_index('idx_user_availabilities_is_active', table_name='user_availabilities')
-    op.drop_index('idx_user_availabilities_day_of_week', table_name='user_availabilities')
-    op.drop_index('idx_user_availabilities_user_id', table_name='user_availabilities')
+    # Only drop if table exists
+    if not table_exists('user_availabilities'):
+        return
+    
+    # Drop indexes if they exist
+    if index_exists('user_availabilities', 'idx_user_availabilities_user_day'):
+        op.drop_index('idx_user_availabilities_user_day', table_name='user_availabilities')
+    if index_exists('user_availabilities', 'idx_user_availabilities_is_active'):
+        op.drop_index('idx_user_availabilities_is_active', table_name='user_availabilities')
+    if index_exists('user_availabilities', 'idx_user_availabilities_day_of_week'):
+        op.drop_index('idx_user_availabilities_day_of_week', table_name='user_availabilities')
+    if index_exists('user_availabilities', 'idx_user_availabilities_user_id'):
+        op.drop_index('idx_user_availabilities_user_id', table_name='user_availabilities')
+    
     op.drop_table('user_availabilities')
     
     # Drop enum type
