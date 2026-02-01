@@ -263,7 +263,7 @@ async def list_fonts(
             try:
                 font.url = s3_service.generate_presigned_url(
                     font.file_key,
-                    expiration=31536000,  # 1 year
+                    expiration=604800,  # 7 days (S3 maximum)
                 )
             except Exception:
                 pass

@@ -99,6 +99,12 @@ export const transactionsAPI = {
       data: response.data,
     } as any;
   },
+  refreshDocumentUrl: async (transactionId: number, documentId: number) => {
+    const response = await apiClient.post(`/v1/transactions/${transactionId}/documents/${documentId}/refresh-url`);
+    return {
+      data: response.data,
+    } as any;
+  },
 };
 
 export const realEstateContactsAPI = createRealEstateContactsAPI({

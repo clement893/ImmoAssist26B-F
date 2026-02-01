@@ -136,8 +136,9 @@ class S3Service:
                 },
             )
 
-            # Generate presigned URL (valid for 1 year)
-            url = self.generate_presigned_url(file_key, expiration=31536000)  # 1 year
+            # Generate presigned URL (valid for 7 days - S3 maximum)
+            # Note: S3/DigitalOcean Spaces limits presigned URLs to max 7 days (604800 seconds)
+            url = self.generate_presigned_url(file_key, expiration=604800)  # 7 days
 
             return {
                 "file_key": file_key,
@@ -171,20 +172,25 @@ class S3Service:
     def generate_presigned_url(
         self,
         file_key: str,
-        expiration: int = 3600,
+        expiration: int = 604800,
     ) -> str:
         """
         Generate a presigned URL for a file.
         
         Args:
             file_key: S3 object key
-            expiration: URL expiration time in seconds (default: 1 hour)
+            expiration: URL expiration time in seconds (default: 7 days, max: 604800)
+                       S3/DigitalOcean Spaces limits presigned URLs to maximum 7 days
             
         Returns:
             Presigned URL string
         """
         if not AWS_S3_BUCKET:
             raise ValueError("AWS_S3_BUCKET is not configured")
+
+        # Ensure expiration doesn't exceed S3 maximum (7 days = 604800 seconds)
+        max_expiration = 604800  # 7 days in seconds
+        expiration = min(expiration, max_expiration)
 
         try:
             url = s3_client.generate_presigned_url(

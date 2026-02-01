@@ -960,3 +960,85 @@ async def add_photo_to_transaction(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error adding photo: {str(e)}"
         )
+
+
+@router.post("/{transaction_id}/documents/{document_id}/refresh-url", response_model=Dict[str, str], tags=["transactions"])
+async def refresh_document_url(
+    transaction_id: int,
+    document_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Refresh presigned URL for a document/photo.
+    This is useful when URLs expire (after 7 days).
+    """
+    try:
+        # Get transaction
+        result = await db.execute(
+            select(RealEstateTransaction).where(
+                and_(
+                    RealEstateTransaction.id == transaction_id,
+                    RealEstateTransaction.user_id == current_user.id
+                )
+            )
+        )
+        transaction = result.scalar_one_or_none()
+        
+        if not transaction:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Transaction not found"
+            )
+        
+        # Find document
+        if not transaction.documents:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Document not found"
+            )
+        
+        document = next((doc for doc in transaction.documents if doc.get("id") == document_id), None)
+        
+        if not document:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Document not found"
+            )
+        
+        file_key = document.get("file_key")
+        if not file_key:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Document file_key not found"
+            )
+        
+        # Generate new presigned URL
+        if not S3Service.is_configured():
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="File upload service is not configured"
+            )
+        
+        s3_service = S3Service()
+        new_url = s3_service.generate_presigned_url(
+            file_key=file_key,
+            expiration=604800  # 7 days
+        )
+        
+        # Update document URL in transaction
+        document["url"] = new_url
+        await db.commit()
+        await db.refresh(transaction)
+        
+        return {"url": new_url}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error refreshing document URL: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error refreshing URL: {str(e)}"
+        )
