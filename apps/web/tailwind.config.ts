@@ -194,6 +194,8 @@ const config: Config = {
       borderRadius: {
         // Use theme border radius if available, otherwise use default
         DEFAULT: 'var(--border-radius, 0.5rem)',
+        // Dashboard V2 Style - Border radius system
+        '3xl': '1.5rem', // 24px - Cards principales (rounded-3xl)
         // Consistent border radius scale
         '4xl': '2rem',
         '5xl': '2.5rem',
@@ -240,6 +242,14 @@ const config: Config = {
           'Roboto',
           'sans-serif',
         ],
+      },
+      fontWeight: {
+        // Dashboard V2 Style - Font weights system
+        light: '300', // font-light - Pour grands titres et items menu inactifs
+        normal: '400',
+        medium: '500',
+        semibold: '600',
+        bold: '700',
       },
       fontSize: {
         // Standardized typography hierarchy (UX/UI improvements - Batch 2)

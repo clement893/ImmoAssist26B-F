@@ -36,6 +36,7 @@ DEFAULT_THEME_CONFIG = {
             "4xl": "36px"
         },
         "fontWeight": {
+            "light": "300",  # Dashboard V2 Style - Pour grands titres et items menu inactifs
             "normal": "400",
             "medium": "500",
             "semibold": "600",

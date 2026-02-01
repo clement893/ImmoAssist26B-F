@@ -40,6 +40,7 @@ export const DEFAULT_THEME_CONFIG = {
       '4xl': '36px',
     },
     fontWeight: {
+      light: '300', // Dashboard V2 Style - Pour grands titres et items menu inactifs
       normal: '400',
       medium: '500',
       semibold: '600',
@@ -98,6 +99,7 @@ export const DEFAULT_THEME_CONFIG = {
     sm: '2px',
     base: '4px',
     md: '6px',
+    '3xl': '24px', // Dashboard V2 Style - Cards principales
     lg: '8px',
     xl: '12px',
     '2xl': '16px',

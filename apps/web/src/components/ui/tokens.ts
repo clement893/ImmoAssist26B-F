@@ -73,6 +73,7 @@
     '4xl': 'var(--typography-font-size-4xl, 36px)',
   },
   fontWeight: {
+    light: 'var(--typography-font-weight-light, 300)', // Dashboard V2 Style
     normal: 'var(--typography-font-weight-normal, 400)',
     medium: 'var(--typography-font-weight-medium, 500)',
     semibold: 'var(--typography-font-weight-semibold, 600)',
