@@ -115,7 +115,7 @@ export default function DataTableEnhanced<T extends Record<string, unknown>>({
     <div className={clsx('space-y-4', props.className)}>
       {/* Toolbar */}
       {(bulkActions.length > 0 || exportOptions.length > 0 || onColumnVisibilityChange) && (
-        <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center justify-between flex-wrap gap-4 p-4 bg-muted/30 rounded-lg border border-border shadow-subtle-sm transition-modern"> {/* UI Revamp - Ombre subtile et transition moderne */}
           <div className="flex items-center gap-2">
             {selectable && selectedRows.size > 0 && (
               <span className="text-sm text-muted-foreground">{selectedRows.size} selected</span>

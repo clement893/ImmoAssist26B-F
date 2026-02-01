@@ -36,7 +36,7 @@ export default function List({
 }: ListProps) {
   const variantClasses = {
     default: '',
-    bordered: 'border border-border rounded-lg',
+    bordered: 'border border-border rounded-lg shadow-subtle-sm', // UI Revamp - Ombre subtile pour variant bordered
     divided: 'divide-y divide-border',
   };
 

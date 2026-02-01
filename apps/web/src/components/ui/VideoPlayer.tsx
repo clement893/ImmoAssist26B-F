@@ -144,7 +144,7 @@ export default function VideoPlayer({
   };
   return (
     <div
-      className={clsx('relative bg-foreground rounded-lg overflow-hidden group', className)}
+      className={clsx('relative bg-foreground rounded-lg overflow-hidden group shadow-subtle-sm transition-modern', className)} // UI Revamp - Ombre subtile et transition moderne
       onMouseEnter={() => setShowControls(true)}
       onMouseLeave={() => setShowControls(false)}
     >

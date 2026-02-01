@@ -22,7 +22,7 @@ export default function Loading({
   const spinner = (
     <div
       className={clsx(
-        'border-primary-600 dark:border-primary-400 border-t-transparent rounded-full animate-spin',
+        'border-primary-600 dark:border-primary-400 border-t-transparent rounded-full animate-spin transition-modern', // UI Revamp - Transition moderne
         sizes[size],
         className
       )}

@@ -168,7 +168,7 @@ export default function TreeView({
         'tree-view',
         'bg-background',
         'border border-border rounded-lg',
-        'p-2',
+        'p-2 shadow-subtle-sm transition-modern', // UI Revamp - Ombre subtile et transition moderne
         className
       )}
       role="tree"

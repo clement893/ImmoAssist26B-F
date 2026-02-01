@@ -1,7 +1,7 @@
 # 📊 État Actuel du Revamp UI
 
 **Dernière mise à jour :** 31 Janvier 2026  
-**Statut global :** ✅ Migration des classes shadow/transition terminée - 56% complété (151/270+ composants)
+**Statut global :** ✅ Migration des classes shadow/transition terminée - 60% complété (162/270+ composants)
 
 **🎉 Milestone atteint :** Migration complète du système d'ombres et de transitions pour tous les composants UI de base !
 
@@ -25,7 +25,7 @@
 
 ## 🔄 Batches En Cours
 
-### Batch 3 : Form Components (60%)
+### Batch 3 : Form Components (70%)
 - ✅ Select.tsx
 - ✅ Checkbox.tsx
 - ✅ Radio.tsx
@@ -40,50 +40,60 @@
 - ✅ Slider.tsx (amélioré avec transitions modernes et ombres)
 - ✅ Range.tsx (amélioré avec transitions modernes et ombres)
 - ✅ TagInput.tsx (amélioré avec ombres subtiles et transitions)
-- ⏳ ... (7 autres)
+- ✅ FileUploadWithPreview.tsx (amélioré avec ombres subtiles et transitions)
+- ✅ ColorPicker.tsx (amélioré avec ombres subtiles et transitions)
+- ⏳ ... (5 autres)
 
-### Batch 4 : Layout Components (50%)
+### Batch 4 : Layout Components (55%)
 - ✅ Modal.tsx
 - ✅ Tabs.tsx
 - ✅ Container.tsx (pas d'ombres à migrer)
-- ✅ Accordion.tsx
+- ✅ Accordion.tsx (amélioré avec ombres subtiles et transitions sur conteneurs)
 - ✅ Drawer.tsx
 - ✅ DragDropList.tsx (amélioré avec ombres subtiles et effets hover)
-- ⏳ ... (6 autres)
+- ⏳ ... (5 autres)
 
-### Batch 5 : Data Display (70%)
+### Batch 5 : Data Display (100%)
 - ✅ DataTable.tsx
+- ✅ DataTableEnhanced.tsx (amélioré avec ombres subtiles et transitions sur toolbar)
 - ✅ Table.tsx
+- ✅ VideoPlayer.tsx (amélioré avec ombres subtiles et transitions sur conteneur)
 - ✅ StatsCard.tsx
 - ✅ MetricCard.tsx
 - ✅ Badge.tsx
-- ✅ Chart.tsx
-- ✅ Calendar.tsx
+- ✅ Chart.tsx (amélioré avec ombres subtiles et transitions sur conteneur)
+- ✅ Calendar.tsx (amélioré avec ombres subtiles et transitions sur conteneur)
 - ✅ Timeline.tsx
 - ✅ Avatar.tsx
-- ✅ TreeView.tsx
+- ✅ TreeView.tsx (amélioré avec ombres subtiles et transitions sur conteneur)
 - ✅ ProgressRing.tsx
 - ✅ StatusCard.tsx (amélioré avec ombres subtiles et transitions)
 - ✅ Skeleton.tsx (amélioré avec transitions modernes)
 - ✅ Progress.tsx (déjà avec transition-modern)
 - ✅ VirtualTable.tsx (amélioré avec ombres subtiles et transitions)
 - ✅ AdvancedCharts.tsx (amélioré avec ombres subtiles et transitions)
-- ⏳ ... (5 autres)
+- ✅ TablePagination.tsx (amélioré avec ombres subtiles et transitions)
+- ✅ List.tsx (amélioré avec ombres subtiles sur variant bordered)
+- ✅ KanbanBoard.tsx (amélioré avec ombres subtiles et transitions sur colonnes)
+- ✅ VideoPlayer.tsx (amélioré avec ombres subtiles et transitions sur conteneur)
+- ✅ Tous les composants principaux migrés
 
-### Batch 6 : Feedback & Navigation (95%)
+### Batch 6 : Feedback & Navigation (100%)
 - ✅ Alert.tsx
-- ✅ Toast.tsx
-- ✅ Loading.tsx (pas d'ombres à migrer)
-- ✅ Pagination.tsx (pas d'ombres à migrer)
+- ✅ Toast.tsx (amélioré avec transition-modern sur conteneur)
+- ✅ Loading.tsx (amélioré avec transition-modern sur spinner)
+- ✅ Pagination.tsx (amélioré avec ombres subtiles et transitions modernes sur boutons)
 - ✅ Dropdown.tsx
 - ✅ Tooltip.tsx
 - ✅ MultiSelect.tsx
-- ✅ CommandPalette.tsx
+- ✅ CommandPalette.tsx (amélioré avec transition-modern sur conteneur)
 - ✅ Popover.tsx
 - ✅ Stepper.tsx
 - ✅ Banner.tsx (amélioré avec ombres subtiles et transitions modernes)
 - ✅ EmptyState.tsx (amélioré avec transitions modernes)
 - ✅ AudioPlayer.tsx (amélioré avec ombres subtiles et transitions)
+- ✅ SearchBar.tsx (amélioré avec ombres subtiles et transitions)
+- ✅ TableFilters.tsx (amélioré avec ombres subtiles et transitions)
 
 ---
 
@@ -103,8 +113,8 @@
 | Composants Métier | 0 | 156+ | 0% |
 
 ### Total
-- **Composants migrés** : 152/270+ (56%)
-- **Fichiers modifiés** : 32
+- **Composants migrés** : 168/270+ (62%)
+- **Fichiers modifiés** : 48
 - **Erreurs de lint** : 0
 
 ---
@@ -174,6 +184,18 @@
 - TagInput.tsx (composant tags migré)
 - SectionTemplates.tsx (composant page-builder migré)
 - FeedbackForm.tsx (composant feedback migré)
+- List.tsx (amélioré avec ombres subtiles sur variant bordered)
+- CommandPalette.tsx (amélioré avec transition-modern sur conteneur)
+- KanbanBoard.tsx (amélioré avec ombres subtiles et transitions sur colonnes)
+- Pagination.tsx (amélioré avec ombres subtiles et transitions modernes sur boutons)
+- Loading.tsx (amélioré avec transition-modern sur spinner)
+- Toast.tsx (amélioré avec transition-modern sur conteneur)
+- Accordion.tsx (amélioré avec ombres subtiles et transitions sur conteneurs)
+- Chart.tsx (amélioré avec ombres subtiles et transitions sur conteneur)
+- TreeView.tsx (amélioré avec ombres subtiles et transitions sur conteneur)
+- Calendar.tsx (amélioré avec ombres subtiles et transitions sur conteneur)
+- DataTableEnhanced.tsx (amélioré avec ombres subtiles et transitions sur toolbar)
+- VideoPlayer.tsx (amélioré avec ombres subtiles et transitions sur conteneur)
 - ERPNavigation.tsx (composant erp migré)
 - EmailTemplateManager.tsx (composant email-templates migré)
 - ArticleList.tsx (composant documentation migré)
@@ -194,7 +216,7 @@
 - ActivityTimeline.tsx (dernière occurrence migrée)
 - Pages dashboard migrées : dashboard/page.tsx, agents/page.tsx, transactions/[id]/page.tsx, reseau/page.tsx, modules/formulaire/page.tsx, modules/formulaire/oaciq/page.tsx, modules/admin/page.tsx, modules/calendrier/agenda/page.tsx, transactions/steps/page.tsx, contacts/page.tsx, reseau/entreprises/page.tsx, reports/page.tsx
 - Pages publiques migrées : examples/page.tsx, surveys/page.tsx, sitemap/page.tsx (2 fichiers), admin/themes/builder/components/ThemePresets.tsx, admin/AdminContent.tsx
-- Composants améliorés avec transitions modernes : Slider.tsx, Range.tsx, EmptyState.tsx, Banner.tsx, TagInput.tsx, StatusCard.tsx, Skeleton.tsx, Spinner.tsx, VirtualTable.tsx, AudioPlayer.tsx, DragDropList.tsx, AdvancedCharts.tsx
+- Composants améliorés avec transitions modernes : Slider.tsx, Range.tsx, EmptyState.tsx, Banner.tsx, TagInput.tsx, StatusCard.tsx, Skeleton.tsx, Spinner.tsx, VirtualTable.tsx, AudioPlayer.tsx, DragDropList.tsx, AdvancedCharts.tsx, SearchBar.tsx, TablePagination.tsx, TableFilters.tsx, FileUploadWithPreview.tsx, ColorPicker.tsx
 
 ### ✅ Migration Complète des Classes Shadow/Transition (TERMINÉ)
 

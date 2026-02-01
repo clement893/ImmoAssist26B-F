@@ -83,10 +83,10 @@ export default function ColorPicker({
             onClick={() => !disabled && setIsOpen(!isOpen)}
             disabled={disabled}
             className={clsx(
-              'w-10 h-10 rounded border-2 border-border',
-              'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
+              'w-10 h-10 rounded border-2 border-border shadow-subtle-sm transition-modern', // UI Revamp - Ombres subtiles et transition moderne
+              'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:shadow-subtle-md',
               disabled && 'opacity-50 cursor-not-allowed',
-              !disabled && 'cursor-pointer hover:border-border dark:hover:border-border'
+              !disabled && 'cursor-pointer hover:border-border dark:hover:border-border hover:shadow-subtle-md'
             )}
             style={{ backgroundColor: currentValue }}
             aria-label={label || 'Sélectionner une couleur'}
@@ -100,8 +100,8 @@ export default function ColorPicker({
               disabled={disabled}
               className={clsx(
                 'px-3 py-2 border border-border rounded-lg',
-                'bg-background text-foreground',
-                'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent',
+                'bg-background text-foreground shadow-subtle-sm transition-modern', // UI Revamp - Ombres subtiles et transition moderne
+                'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent focus:shadow-subtle-md',
                 disabled && 'opacity-50 cursor-not-allowed',
                 'font-mono text-sm'
               )}

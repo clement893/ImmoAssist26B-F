@@ -75,8 +75,8 @@ export default function KanbanBoard({
           <div
             key={column.id}
             className={clsx(
-              'flex-shrink-0 w-80 bg-muted rounded-lg p-4',
-              dragOverColumn === column.id && 'ring-2 ring-primary-500'
+              'flex-shrink-0 w-80 bg-muted rounded-lg p-4 shadow-subtle-sm transition-modern', // UI Revamp - Ombres subtiles et transition moderne
+              dragOverColumn === column.id && 'ring-2 ring-primary-500 shadow-subtle-md'
             )}
             onDragOver={(e) => handleDragOver(e, column.id)}
             onDragLeave={handleDragLeave}

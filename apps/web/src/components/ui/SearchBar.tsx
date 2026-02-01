@@ -47,7 +47,9 @@ export default function SearchBar({
         placeholder={placeholder}
         className={clsx(
           'w-full pl-10 pr-10 py-2 border border-border rounded-lg',
-          'focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent',
+          'shadow-subtle-sm transition-modern', // UI Revamp - Ombres subtiles et transition moderne
+          'focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent focus:shadow-subtle-md',
+          'hover:shadow-subtle-md', // UI Revamp - Effet hover amélioré
           className
         )}
         {...props}
@@ -55,7 +57,7 @@ export default function SearchBar({
       {showClearButton && value && (
         <button
           onClick={handleClear}
-          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-modern" // UI Revamp - Transition moderne
           aria-label="Clear search"
         >
           {' '}

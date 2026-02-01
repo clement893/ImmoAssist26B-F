@@ -32,7 +32,7 @@ export default function TableFilters<T extends Record<string, unknown>>({
                 key={column.key}
                 value={String(filters[column.key] ?? '')}
                 onChange={(e) => onFilterChange(column.key, e.target.value)}
-                className="px-3 py-2 border border-border rounded-lg bg-background text-foreground text-sm"
+                className="px-3 py-2 border border-border rounded-lg bg-background text-foreground text-sm shadow-subtle-sm transition-modern focus:shadow-subtle-md" // UI Revamp - Ombres subtiles et transition moderne
               >
                 {' '}
                 <option value="">Tous {column.label}</option>{' '}

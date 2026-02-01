@@ -57,7 +57,7 @@ export default function Toast({
   return (
     <div
       className={clsx(
-        'rounded-lg border p-lg shadow-standard-lg min-w-[300px] max-w-md', // UI Revamp - Nouveau système d'ombres
+        'rounded-lg border p-lg shadow-standard-lg min-w-[300px] max-w-md transition-modern', // UI Revamp - Nouveau système d'ombres et transition moderne
         'animate-slide-in-right',
         styles.bg,
         styles.border

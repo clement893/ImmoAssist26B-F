@@ -60,11 +60,11 @@ export default function Pagination({
           onClick={() => onPageChange(1)}
           disabled={currentPage === 1}
           className={clsx(
-            'px-3 py-2 rounded-md text-sm font-medium',
-            'focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400',
+            'px-3 py-2 rounded-md text-sm font-medium transition-modern shadow-subtle-sm', // UI Revamp - Transition moderne et ombre subtile
+            'focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:shadow-subtle-md',
             currentPage === 1
               ? 'bg-muted text-muted-foreground cursor-not-allowed'
-              : 'bg-background text-foreground hover:bg-muted'
+              : 'bg-background text-foreground hover:bg-muted hover:shadow-subtle-md'
           )}
           aria-label="First page"
         >
@@ -76,11 +76,11 @@ export default function Pagination({
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
         className={clsx(
-          'px-3 py-2 rounded-md text-sm font-medium',
-          'focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400',
+          'px-3 py-2 rounded-md text-sm font-medium transition-modern shadow-subtle-sm', // UI Revamp - Transition moderne et ombre subtile
+          'focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:shadow-subtle-md',
           currentPage === 1
             ? 'bg-muted text-muted-foreground cursor-not-allowed'
-            : 'bg-background text-foreground hover:bg-muted'
+            : 'bg-background text-foreground hover:bg-muted hover:shadow-subtle-md'
         )}
         aria-label="Previous page"
       >
@@ -103,11 +103,11 @@ export default function Pagination({
             key={pageNum}
             onClick={() => onPageChange(pageNum)}
             className={clsx(
-              'px-4 py-2 rounded-md text-sm font-medium',
-              'focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400',
+              'px-4 py-2 rounded-md text-sm font-medium transition-modern shadow-subtle-sm', // UI Revamp - Transition moderne et ombre subtile
+              'focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:shadow-subtle-md',
               isActive
-                ? 'bg-primary-600 dark:bg-primary-500 text-background'
-                : 'bg-background text-foreground hover:bg-muted'
+                ? 'bg-primary-600 dark:bg-primary-500 text-background shadow-standard-sm' // UI Revamp - Ombre standard pour page active
+                : 'bg-background text-foreground hover:bg-muted hover:shadow-subtle-md'
             )}
             aria-label={`Page ${pageNum}`}
             aria-current={isActive ? 'page' : undefined}
@@ -121,11 +121,11 @@ export default function Pagination({
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
         className={clsx(
-          'px-3 py-2 rounded-md text-sm font-medium',
-          'focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400',
+          'px-3 py-2 rounded-md text-sm font-medium transition-modern shadow-subtle-sm', // UI Revamp - Transition moderne et ombre subtile
+          'focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:shadow-subtle-md',
           currentPage === totalPages
             ? 'bg-muted text-muted-foreground cursor-not-allowed'
-            : 'bg-background text-foreground hover:bg-muted'
+            : 'bg-background text-foreground hover:bg-muted hover:shadow-subtle-md'
         )}
         aria-label="Next page"
       >
@@ -137,11 +137,11 @@ export default function Pagination({
           onClick={() => onPageChange(totalPages)}
           disabled={currentPage === totalPages}
           className={clsx(
-            'px-3 py-2 rounded-md text-sm font-medium',
-            'focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400',
+            'px-3 py-2 rounded-md text-sm font-medium transition-modern shadow-subtle-sm', // UI Revamp - Transition moderne et ombre subtile
+            'focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:shadow-subtle-md',
             currentPage === totalPages
               ? 'bg-muted text-muted-foreground cursor-not-allowed'
-              : 'bg-background text-foreground hover:bg-muted'
+              : 'bg-background text-foreground hover:bg-muted hover:shadow-subtle-md'
           )}
           aria-label="Last page"
         >

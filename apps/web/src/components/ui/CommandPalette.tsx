@@ -32,7 +32,7 @@ export default function CommandPalette({
     >
       <div
         className={clsx(
-          'bg-background rounded-lg shadow-standard-xl w-full max-w-2xl', // UI Revamp - Nouveau système d'ombres (shadow-2xl → shadow-standard-xl)
+          'bg-background rounded-lg shadow-standard-xl w-full max-w-2xl transition-modern', // UI Revamp - Nouveau système d'ombres et transition moderne
           'border border-border',
           'max-h-[60vh] flex flex-col overflow-hidden',
           className

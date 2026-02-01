@@ -97,7 +97,7 @@ export default function FileUploadWithPreview({
       {files.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {files.map((file, index) => (
-            <div key={index} className="relative group border border-border rounded-lg overflow-hidden bg-muted">
+            <div key={index} className="relative group border border-border rounded-lg overflow-hidden bg-muted shadow-subtle-sm transition-modern hover:shadow-subtle-md"> {/* UI Revamp - Ombres subtiles et transition moderne */}
               {previews[file.name] ? (
                 <div className="aspect-square relative">
                   <img src={previews[file.name]} alt={file.name} className="w-full h-full object-cover" />

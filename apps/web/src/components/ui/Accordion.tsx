@@ -46,7 +46,7 @@ export default function Accordion({ items, allowMultiple = false, className }: A
       {items.map((item) => {
         const isOpen = openItems.has(item.id);
         return (
-          <div key={item.id} className="border border-border rounded-lg overflow-hidden">
+          <div key={item.id} className="border border-border rounded-lg overflow-hidden shadow-subtle-sm transition-modern"> {/* UI Revamp - Ombre subtile et transition moderne */}
             <button
               id={`accordion-header-${item.id}`}
               onClick={() => toggleItem(item.id)}
