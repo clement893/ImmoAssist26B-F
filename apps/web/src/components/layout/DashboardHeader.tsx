@@ -84,7 +84,7 @@ export default function DashboardHeader({
   return (
     <header
       className={clsx(
-        'sticky top-0 z-30 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 shadow-sm backdrop-blur-sm', // Revamp UI - Backdrop blur
+        'sticky top-0 z-30 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 shadow-subtle-sm backdrop-blur-sm', // UI Revamp - Nouveau système d'ombres
         className
       )}
     >
@@ -96,7 +96,7 @@ export default function DashboardHeader({
             {onMobileMenuToggle && (
               <button
                 onClick={onMobileMenuToggle}
-                className="lg:hidden p-2.5 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all duration-200 hover:shadow-sm" // Revamp UI - Padding et border radius améliorés
+                className="lg:hidden p-2.5 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-modern hover:shadow-subtle-sm" // UI Revamp - Transition moderne
                 aria-label="Toggle menu"
                 aria-expanded={mobileMenuOpen}
               >
@@ -143,7 +143,7 @@ export default function DashboardHeader({
 
             {/* Notifications */}
             <button
-              className="relative p-2.5 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all duration-200 hover:shadow-sm" // Revamp UI - Padding et border radius améliorés
+              className="relative p-2.5 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-modern hover:shadow-subtle-sm" // UI Revamp - Transition moderne
               aria-label="Notifications"
             >
               <Bell className="w-5 h-5 text-neutral-700 dark:text-neutral-300" />
@@ -156,7 +156,7 @@ export default function DashboardHeader({
             {user && (
               <Dropdown
                 trigger={
-                  <button className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
+                  <button className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-modern"> {/* UI Revamp - Transition moderne */}
                     {user.avatar ? (
                       <Avatar src={user.avatar} alt={user.name || user.email || 'User'} className="w-8 h-8" />
                     ) : (

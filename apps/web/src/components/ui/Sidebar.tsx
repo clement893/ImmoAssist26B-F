@@ -51,8 +51,8 @@ export default function Sidebar({
   variant = 'modern', // UI Revamp - Variant par défaut
   collapsedWidth,
   expandedWidth,
-  accentColor,
-  showNotifications = false,
+  accentColor: _accentColor,
+  showNotifications: _showNotifications = false,
   notificationsComponent: _notificationsComponent,
   onHomeClick,
   themeToggleComponent,
@@ -328,7 +328,7 @@ export default function Sidebar({
       {/* Header: AI Model Selector (like ChatGPT AI in image) */}
       {!collapsed && (
         <div className="p-3 border-b border-neutral-700/50 flex-shrink-0">
-          <div className="flex items-center gap-2 cursor-pointer hover:bg-gray-800/50 rounded-lg p-1.5 transition-colors">
+          <div className="flex items-center gap-2 cursor-pointer hover:bg-gray-800/50 rounded-lg p-1.5 transition-modern"> {/* UI Revamp - Transition moderne */}
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-blue-500 flex items-center justify-center flex-shrink-0">
               <Sparkles className="w-4 h-4 text-white" />
             </div>
@@ -365,7 +365,7 @@ export default function Sidebar({
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground min-h-[44px] min-w-[44px] flex items-center justify-center transition-modern" // UI Revamp - Transition moderne
                 aria-label="Effacer la recherche"
               >
                 <X className="w-4 h-4" />

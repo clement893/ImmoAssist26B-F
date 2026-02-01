@@ -23,16 +23,19 @@
 
 ## 🔄 Batches En Cours
 
-### Batch 3 : Form Components (25%)
+### Batch 3 : Form Components (45%)
 - ✅ Select.tsx
 - ✅ Checkbox.tsx
 - ✅ Radio.tsx
 - ✅ Switch.tsx
 - ✅ Textarea.tsx
-- ⏳ DatePicker.tsx
+- ✅ DatePicker.tsx (utilise Input.tsx déjà migré)
 - ✅ TimePicker.tsx
-- ⏳ FileUpload.tsx
-- ⏳ ... (15 autres)
+- ✅ FileUpload.tsx
+- ✅ Autocomplete.tsx
+- ✅ RichTextEditor.tsx
+- ✅ Form.tsx
+- ⏳ ... (10 autres)
 
 ### Batch 4 : Layout Components (42%)
 - ✅ Modal.tsx
@@ -42,27 +45,32 @@
 - ✅ Drawer.tsx
 - ⏳ ... (7 autres)
 
-### Batch 5 : Data Display (40%)
+### Batch 5 : Data Display (50%)
 - ✅ DataTable.tsx
 - ✅ Table.tsx
 - ✅ StatsCard.tsx
 - ✅ MetricCard.tsx
 - ✅ Badge.tsx
-- ⏳ Chart.tsx
+- ✅ Chart.tsx
 - ✅ Calendar.tsx
 - ✅ Timeline.tsx
 - ✅ Avatar.tsx
-- ⏳ ... (12 autres)
+- ✅ TreeView.tsx
+- ✅ ProgressRing.tsx
+- ⏳ ... (10 autres)
 
-### Batch 6 : Feedback & Navigation (50%)
+### Batch 6 : Feedback & Navigation (80%)
 - ✅ Alert.tsx
 - ✅ Toast.tsx
-- ⏳ Loading.tsx
-- ⏳ Pagination.tsx
+- ✅ Loading.tsx (pas d'ombres à migrer)
+- ✅ Pagination.tsx (pas d'ombres à migrer)
 - ✅ Dropdown.tsx
 - ✅ Tooltip.tsx
 - ✅ MultiSelect.tsx
-- ⏳ ... (5 autres)
+- ✅ CommandPalette.tsx
+- ✅ Popover.tsx
+- ✅ Stepper.tsx
+- ⏳ ... (1 autre)
 
 ---
 
@@ -74,15 +82,15 @@
 |-----------|--------|-------|---|
 | Fondations | 3 | 3 | 100% ✅ |
 | Composants Critiques | 5 | 5 | 100% ✅ |
-| Form Components | 6 | 20 | 30% |
-| Layout Components | 5 | 15 | 33% |
-| Data Display | 8 | 20 | 40% |
-| Feedback | 5 | 10 | 50% |
+| Form Components | 9 | 20 | 45% |
+| Layout Components | 6 | 15 | 40% |
+| Data Display | 10 | 20 | 50% |
+| Feedback | 8 | 10 | 80% |
 | Navigation | 0 | 8 | 0% |
 | Composants Métier | 0 | 156+ | 0% |
 
 ### Total
-- **Composants migrés** : 35/270+ (13%)
+- **Composants migrés** : 54/270+ (20%)
 - **Fichiers modifiés** : 18
 - **Erreurs de lint** : 0
 
@@ -117,6 +125,20 @@
 - Avatar.tsx, Dropdown.tsx, Tooltip.tsx, MultiSelect.tsx
 - ButtonLink.tsx, ActivityChart.tsx, ServiceTestCard.tsx, KanbanBoard.tsx
 - ColorPicker.tsx, PricingCardSimple.tsx, BillingPeriodToggle.tsx, SkipLink.tsx
+- Progress.tsx, Modal.tsx (bouton close), Breadcrumb.tsx
+- CommandPalette.tsx, Popover.tsx, Stepper.tsx
+- ProgressRing.tsx, Autocomplete.tsx, TreeView.tsx, Chart.tsx, List.tsx
+- FileUpload.tsx, RichTextEditor.tsx, Form.tsx, ThemeToggle.tsx, DragDropList.tsx
+- MultiSelect.tsx, Dropdown.tsx, Accordion.tsx, Calendar.tsx, Table.tsx, Toast.tsx, Tabs.tsx, Sidebar.tsx (améliorations transitions)
+- Alert.tsx (améliorations transitions et ombres)
+- FileUploadWithPreview.tsx (transition-modern)
+- VideoPlayer.tsx (transition-modern)
+- DataTable.tsx (transition-modern)
+- Input.tsx (transition-modern - placeholder)
+- AdvancedCharts.tsx (transition-modern)
+- DashboardHeader.tsx (shadow-subtle-sm, transition-modern)
+- Header.tsx (transition-modern)
+- MotionDiv.tsx (transition-modern)
 
 ---
 

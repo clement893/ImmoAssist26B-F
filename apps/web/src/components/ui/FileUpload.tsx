@@ -228,7 +228,7 @@ const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
               'border-2 border-border border-dashed rounded-lg',
               'cursor-pointer bg-muted',
               'hover:bg-muted dark:hover:bg-muted',
-              'transition-colors',
+              'transition-modern', // UI Revamp - Transition moderne
               error && 'border-error-500 dark:border-error-400',
               className
             )}

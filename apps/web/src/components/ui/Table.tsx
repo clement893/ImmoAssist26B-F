@@ -70,7 +70,7 @@ export function TableRow({ children, className, onClick, style }: TableRowProps)
   return (
     <tr 
       className={clsx(
-        'transition-colors duration-150',
+        'transition-modern', // UI Revamp - Transition moderne
         onClick && 'cursor-pointer',
         className
       )} 
@@ -103,7 +103,7 @@ export function TableHeader({
     <th
       className={clsx(
         'px-6 py-4 text-left text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider', // Revamp UI - Padding augmenté
-        sortable && 'cursor-pointer select-none hover:text-primary-600 dark:hover:text-primary-400 transition-colors',
+        sortable && 'cursor-pointer select-none hover:text-primary-600 dark:hover:text-primary-400 transition-modern', // UI Revamp - Transition moderne
         className
       )}
       onClick={sortable ? onSort : undefined}
@@ -115,7 +115,7 @@ export function TableHeader({
           <div className="flex flex-col -space-y-1">
             <svg
               className={clsx(
-                'w-3 h-3 transition-colors',
+                'w-3 h-3 transition-modern', // UI Revamp - Transition moderne
                 sortDirection === 'asc'
                   ? 'text-primary-600 dark:text-primary-400'
                   : 'text-neutral-400 dark:text-neutral-500'
@@ -127,7 +127,7 @@ export function TableHeader({
             </svg>
             <svg
               className={clsx(
-                'w-3 h-3 transition-colors',
+                'w-3 h-3 transition-modern', // UI Revamp - Transition moderne
                 sortDirection === 'desc'
                   ? 'text-primary-600 dark:text-primary-400'
                   : 'text-neutral-400 dark:text-neutral-500'

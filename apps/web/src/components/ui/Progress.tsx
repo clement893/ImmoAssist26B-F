@@ -48,7 +48,7 @@ export default function Progress({
       )}
       <div className={clsx('w-full bg-muted rounded-full overflow-hidden', sizes[size])}>
         <div
-          className={clsx('h-full rounded-full transition-all duration-300', variants[variant])}
+          className={clsx('h-full rounded-full transition-modern', variants[variant])} // UI Revamp - Transition moderne
           style={{ width: `${percentage}%` }}
           role="progressbar"
           aria-valuenow={value}

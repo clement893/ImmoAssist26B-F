@@ -63,7 +63,7 @@ export default function List({
             className={clsx(
               'flex items-center gap-3 px-4',
               sizeClasses[size],
-              isClickable && 'cursor-pointer hover:bg-muted transition-colors',
+              isClickable && 'cursor-pointer hover:bg-muted transition-modern', // UI Revamp - Transition moderne
               item.disabled && 'opacity-50 cursor-not-allowed',
               variant === 'bordered' && index > 0 && 'border-t border-border',
               variant === 'divided' && index < items.length - 1 && 'border-b border-border'

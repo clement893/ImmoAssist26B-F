@@ -161,13 +161,13 @@ export default function VideoPlayer({
       {title && (
         <div className="absolute top-4 left-4 right-4">
           {' '}
-          <h3 className="text-background text-lg font-semibold drop-shadow-lg">{title}</h3>{' '}
+          <h3 className="text-background text-lg font-semibold drop-shadow-lg">{title}</h3> {/* drop-shadow-lg est OK, pas dans notre système d'ombres */}{' '}
         </div>
       )}{' '}
       {controls && (
         <div
           className={clsx(
-            'absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 transition-opacity',
+            'absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 transition-modern', // UI Revamp - Transition moderne
             showControls ? 'opacity-100' : 'opacity-0'
           )}
         >

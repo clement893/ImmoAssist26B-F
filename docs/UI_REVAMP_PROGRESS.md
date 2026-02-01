@@ -8,7 +8,7 @@
 
 - **Batches complétés** : 2/6 (33%)
 - **Batches en cours** : 1/6 (17%)
-- **Composants migrés** : 35/270+ (13%)
+- **Composants migrés** : 54/270+ (20%) (Composants layout et motion migrés)
 - **Composants critiques migrés** : 5/5 (100%) ✅
 
 ---
@@ -160,10 +160,10 @@
 |-----------|--------|-------|---|
 | Fondations | 3 | 3 | 100% |
 | Composants Critiques | 5 | 5 | 100% ✅ |
-| Form Components | 6 | 20 | 30% |
-| Layout Components | 5 | 15 | 33% |
-| Data Display | 8 | 20 | 40% |
-| Feedback | 5 | 10 | 50% |
+| Form Components | 9 | 20 | 45% |
+| Layout Components | 6 | 15 | 40% |
+| Data Display | 10 | 20 | 50% |
+| Feedback | 8 | 10 | 80% |
 | Navigation | 0 | 8 | 0% |
 | Composants Métier | 0 | 156+ | 0% |
 

@@ -181,7 +181,7 @@ export default function RichTextEditor({
     <button
       type="button"
       onClick={() => execCommand(command, value)}
-      className="p-2 hover:bg-muted dark:hover:bg-muted rounded transition-colors"
+      className="p-2 hover:bg-muted dark:hover:bg-muted rounded transition-modern" // UI Revamp - Transition moderne
       aria-label={label}
       disabled={disabled}
     >
@@ -360,7 +360,7 @@ export default function RichTextEditor({
             <button
               type="button"
               onClick={handleLinkClick}
-              className="p-2 hover:bg-muted dark:hover:bg-muted rounded transition-colors"
+              className="p-2 hover:bg-muted dark:hover:bg-muted rounded transition-modern" // UI Revamp - Transition moderne
               aria-label="Insérer un lien"
               disabled={disabled}
             >

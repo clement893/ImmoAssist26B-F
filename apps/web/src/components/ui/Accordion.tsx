@@ -56,7 +56,7 @@ export default function Accordion({ items, allowMultiple = false, className }: A
                 'w-full px-4 py-3 flex items-center justify-between',
                 'text-left font-medium text-foreground',
                 'hover:bg-muted',
-                'transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400'
+                'transition-modern focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400' // UI Revamp - Transition moderne
               )}
             >
               <div className="flex items-center gap-3">

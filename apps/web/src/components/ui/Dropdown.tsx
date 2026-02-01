@@ -195,7 +195,7 @@ export default function Dropdown({ trigger, items, position = 'bottom', classNam
                 disabled={dropdownItem.disabled}
                 className={clsx(
                   'w-full px-4 py-2 text-left text-sm flex items-center space-x-2',
-                  'transition-colors focus:outline-none',
+                  'transition-modern focus:outline-none', // UI Revamp - Transition moderne
                   dropdownItem.variant === 'danger'
                     ? 'text-error-600 dark:text-error-400 hover:bg-error-50 dark:hover:bg-error-900/20 hover:text-error-700 dark:hover:text-error-300 focus:bg-error-50 dark:focus:bg-error-900/20 focus:ring-2 focus:ring-error-500 dark:focus:ring-error-400'
                     : 'text-foreground hover:bg-muted dark:hover:bg-muted focus:bg-muted dark:focus:bg-muted focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400',

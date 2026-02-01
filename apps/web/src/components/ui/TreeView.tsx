@@ -97,7 +97,7 @@ export default function TreeView({
         {' '}
         <div
           className={clsx(
-            'flex items-center py-1 px-2 rounded-md cursor-pointer transition-colors',
+            'flex items-center py-1 px-2 rounded-md cursor-pointer transition-modern', // UI Revamp - Transition moderne
             'hover:bg-muted',
             selected &&
               (selectedClassName ||

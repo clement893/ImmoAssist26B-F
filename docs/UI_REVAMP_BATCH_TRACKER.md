@@ -10,7 +10,26 @@
 - **Total batches** : 6
 - **Batches complétés** : 2/6 (33%)
 - **Batches en cours** : 4/6 (67%)
-- **Composants migrés** : 35/270+ (13%)
+- **Composants migrés** : 54/270+ (20%) (tous les transition-opacity migrés, composants layout migrés)
+
+### Dernières Migrations
+- ✅ MultiSelect.tsx - transition-modern
+- ✅ Dropdown.tsx - transition-modern
+- ✅ Accordion.tsx - transition-modern
+- ✅ Calendar.tsx - transition-modern
+- ✅ Table.tsx - transition-modern (3 occurrences)
+- ✅ Toast.tsx - transition-modern
+- ✅ Tabs.tsx - transition-modern
+- ✅ Sidebar.tsx - transition-modern (2 occurrences)
+- ✅ Alert.tsx - transition-modern, shadow-subtle-sm (2 occurrences)
+- ✅ FileUploadWithPreview.tsx - transition-modern (2 occurrences)
+- ✅ VideoPlayer.tsx - transition-modern
+- ✅ DataTable.tsx - transition-modern
+- ✅ Input.tsx - transition-modern (placeholder)
+- ✅ AdvancedCharts.tsx - transition-modern (2 occurrences)
+- ✅ DashboardHeader.tsx - shadow-subtle-sm, transition-modern (4 occurrences)
+- ✅ Header.tsx - transition-modern (4 occurrences)
+- ✅ MotionDiv.tsx - transition-modern
 
 ---
 
@@ -167,7 +186,7 @@
 - [ ] ... (autres data display components)
 
 ### Progression
-- **Composants complétés** : 8/20 (40%) (DataTable, Table, StatsCard, MetricCard, Badge, Calendar, Timeline, Avatar)
+- **Composants complétés** : 10/20 (50%) (DataTable, Table, StatsCard, MetricCard, Badge, Calendar, Timeline, Avatar, Chart, TreeView)
 
 ### Composants Migrés Récemment
 - ✅ TimePicker.tsx - shadow-standard-lg
@@ -187,6 +206,22 @@
 - ✅ PricingCardSimple.tsx - shadow-standard-xl
 - ✅ BillingPeriodToggle.tsx - shadow-standard-md
 - ✅ SkipLink.tsx - shadow-standard-lg, transition-modern
+- ✅ Progress.tsx - transition-modern
+- ✅ Modal.tsx (bouton close) - transition-modern
+- ✅ Breadcrumb.tsx - transition-modern
+- ✅ CommandPalette.tsx - shadow-standard-xl, transition-modern
+- ✅ Popover.tsx - shadow-standard-xl
+- ✅ ProgressRing.tsx - transition-modern
+- ✅ Autocomplete.tsx - shadow-standard-xl, transition-modern
+- ✅ Stepper.tsx - transition-modern
+- ✅ TreeView.tsx - transition-modern
+- ✅ Chart.tsx - transition-modern
+- ✅ List.tsx - transition-modern
+- ✅ FileUpload.tsx - transition-modern
+- ✅ RichTextEditor.tsx - transition-modern
+- ✅ Form.tsx - transition-modern
+- ✅ ThemeToggle.tsx - transition-modern
+- ✅ DragDropList.tsx - transition-modern
 
 ---
 
@@ -209,7 +244,7 @@
 - [ ] ... (autres feedback & navigation components)
 
 ### Progression
-- **Composants complétés** : 5/10 (50%) (Alert.tsx, Toast.tsx, Dropdown.tsx, Tooltip.tsx, MultiSelect.tsx)
+- **Composants complétés** : 8/10 (80%) (Alert.tsx, Toast.tsx, Dropdown.tsx, Tooltip.tsx, MultiSelect.tsx, CommandPalette.tsx, Popover.tsx, Stepper.tsx)
 
 ---
 

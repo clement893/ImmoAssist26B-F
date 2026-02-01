@@ -242,12 +242,12 @@ export default function DisponibilitesPage() {
                               </span>
                             </div>
                             {availability.label && (
-                              <Badge variant="default" size="sm">
+                              <Badge variant="default">
                                 {availability.label}
                               </Badge>
                             )}
                             {!availability.is_active && (
-                              <Badge variant="default" size="sm">
+                              <Badge variant="default">
                                 Inactif
                               </Badge>
                             )}

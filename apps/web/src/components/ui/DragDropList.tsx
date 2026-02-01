@@ -80,7 +80,7 @@ export default function DragDropList({
             onDrop={(e) => !item.disabled && handleDrop(e, index)}
             onDragEnd={handleDragEnd}
             className={clsx(
-              'flex items-center gap-3 p-4 rounded-lg border transition-all',
+              'flex items-center gap-3 p-4 rounded-lg border transition-modern', // UI Revamp - Transition moderne
               'bg-background',
               'border-border',
               isDragging && 'opacity-50 cursor-grabbing',

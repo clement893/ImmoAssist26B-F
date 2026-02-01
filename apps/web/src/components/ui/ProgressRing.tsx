@@ -118,7 +118,7 @@ export default function ProgressRing({
             strokeDasharray={circumference}
             strokeDashoffset={offset}
             strokeLinecap="round"
-            className={clsx('transition-all duration-500 ease-out', colors.ring)}
+            className={clsx('transition-modern', colors.ring)} // UI Revamp - Transition moderne (duration-500 conservée via transition-modern)
           />
         </svg>
         {showPercentage && (

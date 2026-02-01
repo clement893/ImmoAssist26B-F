@@ -227,7 +227,7 @@ function DataTable<T extends Record<string, unknown>>({
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="min-w-[44px] min-h-[44px] p-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="min-w-[44px] min-h-[44px] p-2 opacity-0 group-hover:opacity-100 transition-modern" // UI Revamp - Transition moderne
                               aria-label="Row actions"
                             >
                               ⋯

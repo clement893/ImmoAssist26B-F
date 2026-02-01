@@ -101,12 +101,12 @@ export default function FileUploadWithPreview({
               {previews[file.name] ? (
                 <div className="aspect-square relative">
                   <img src={previews[file.name]} alt={file.name} className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-foreground bg-opacity-0 group-hover:bg-opacity-50 transition-opacity flex items-center justify-center">
+                  <div className="absolute inset-0 bg-foreground bg-opacity-0 group-hover:bg-opacity-50 transition-modern flex items-center justify-center"> {/* UI Revamp - Transition moderne */}
                     <Button
                       variant="danger"
                       size="sm"
                       onClick={() => removeFile(index)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="opacity-0 group-hover:opacity-100 transition-modern" // UI Revamp - Transition moderne
                     >
                       Supprimer
                     </Button>

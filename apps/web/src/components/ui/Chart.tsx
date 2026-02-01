@@ -24,7 +24,7 @@ export default function Chart({ data, type = 'bar', title, height = 300, classNa
             {' '}
             <div
               className={clsx(
-                'w-full rounded-t transition-all hover:opacity-80',
+                'w-full rounded-t transition-modern hover:opacity-80', // UI Revamp - Transition moderne
                 point.color || 'bg-primary-500 dark:bg-primary-400'
               )}
               style={{ height: `${(point.value / maxValue) * 100}%`, backgroundColor: point.color }}

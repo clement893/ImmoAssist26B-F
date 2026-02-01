@@ -113,7 +113,7 @@ export default function Tabs({
         container: 'border-b border-border',
         tab: (isActive: boolean) =>
           clsx(
-            'px-4 py-2 text-sm font-medium transition-colors relative',
+            'px-4 py-2 text-sm font-medium transition-modern relative', // UI Revamp - Transition moderne
             isActive
               ? 'text-primary-600 dark:text-primary-400'
               : 'text-muted-foreground hover:text-foreground',

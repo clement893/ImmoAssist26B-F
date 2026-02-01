@@ -60,7 +60,7 @@ export default function AdvancedCharts({
           const x = (point.x / maxX) * 100;
           const y = 100 - (point.y / maxY) * 100;
           return (
-            <circle key={index} cx={x} cy={y} r="3" fill={point.color || chartColors.default()} className="hover:opacity-80 transition-opacity">
+            <circle key={index} cx={x} cy={y} r="3" fill={point.color || chartColors.default()} className="hover:opacity-80 transition-modern"> {/* UI Revamp - Transition moderne */}
               {point.label && <title>{point.label}</title>}
             </circle>
           );
@@ -169,7 +169,7 @@ export default function AdvancedCharts({
           const pathData = [`M ${x1} ${y1}`, `A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 1 ${x2} ${y2}`, `L ${innerX2} ${innerY2}`, `A ${innerRadiusValue} ${innerRadiusValue} 0 ${largeArcFlag} 0 ${innerX1} ${innerY1}`, 'Z'].join('');
           currentAngle += angle;
           return (
-            <path key={index} d={pathData} fill={point.color || `hsl(${(index * 360) / donutData.length}, 70%, 50%)`} className="hover:opacity-80 transition-opacity">
+            <path key={index} d={pathData} fill={point.color || `hsl(${(index * 360) / donutData.length}, 70%, 50%)`} className="hover:opacity-80 transition-modern"> {/* UI Revamp - Transition moderne */}
               <title>{`${point.label}: ${point.value}`}</title>
             </path>
           );

@@ -199,15 +199,6 @@ export default function Card({
     none: '',
   };
 
-  // Accent border styles
-  const accentBorderStyles: Record<AccentBorderPosition, string> = {
-    left: 'border-l-4',
-    top: 'border-t-4',
-    right: 'border-r-4',
-    bottom: 'border-b-4',
-    none: '',
-  };
-
   // Accent colors mapping
   const accentColorMap: Record<string, string> = {
     primary: 'primary-500',
@@ -227,10 +218,6 @@ export default function Card({
     const borderClass = `border-${borderSide}-4 border-${borderSide}-${accentColorClass}`;
     accentBorderClass = borderClass;
   }
-
-  // Backward compatibility: if leftBorder is provided, use it
-  const effectiveAccentBorder = leftBorder ? 'left' : accentBorder;
-  const effectiveAccentColor = leftBorder || accentColor;
 
   // Left border color mapping (backward compatibility)
   const leftBorderColors: Record<string, string> = {

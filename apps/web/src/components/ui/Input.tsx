@@ -115,7 +115,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
               'focus:border-primary-500 dark:focus:border-primary-400',
               'focus:shadow-colored-primary', // UI Revamp - Ombre colorée au focus
               'disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-muted/50',
-              'placeholder:text-muted-foreground placeholder:transition-opacity placeholder:duration-200',
+              'placeholder:text-muted-foreground placeholder:transition-modern', // UI Revamp - Transition moderne (placeholder)
               'hover:border-primary-300 dark:hover:border-primary-600 hover:shadow-subtle-md', // UI Revamp - Hover avec ombre subtile
               error
                 ? 'border-error-500 dark:border-error-400 focus:ring-error-500/50 dark:focus:ring-error-400/50 focus:shadow-colored-error' // UI Revamp - Ombre colorée error au focus

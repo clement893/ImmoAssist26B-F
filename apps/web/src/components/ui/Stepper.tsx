@@ -70,7 +70,7 @@ export default function Stepper({
                 onClick={() => handleStepClick(index)}
                 disabled={!isClickable}
                 className={clsx(
-                  'flex items-center justify-center rounded-full transition-all',
+                  'flex items-center justify-center rounded-full transition-modern', // UI Revamp - Transition moderne
                   'focus:outline-none focus:ring-2 focus:ring-offset-2',
                   showStepNumbers ? 'w-10 h-10 text-sm font-medium' : 'w-8 h-8',
                   status === 'completed' && 'bg-primary-600 dark:bg-primary-500 text-background',

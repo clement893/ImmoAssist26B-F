@@ -185,7 +185,7 @@ const Autocomplete = forwardRef<HTMLInputElement, AutocompleteProps>(
             ref={dropdownRef}
             className={clsx(
               'absolute z-50 w-full mt-1 bg-background',
-              'border border-border rounded-lg shadow-strong',
+              'border border-border rounded-lg shadow-standard-xl', // UI Revamp - Nouveau système d'ombres (shadow-strong → shadow-standard-xl)
               'overflow-y-auto',
               maxHeight,
               dropdownClassName
@@ -200,7 +200,7 @@ const Autocomplete = forwardRef<HTMLInputElement, AutocompleteProps>(
                   key={option.value}
                   onClick={() => handleSelect(option)}
                   className={clsx(
-                    'px-4 py-2 cursor-pointer transition-colors',
+                    'px-4 py-2 cursor-pointer transition-modern', // UI Revamp - Transition moderne
                     isHighlighted && !isDisabled
                       ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-900 dark:text-primary-100'
                       : 'text-foreground',
@@ -231,7 +231,7 @@ const Autocomplete = forwardRef<HTMLInputElement, AutocompleteProps>(
           <div
             className={clsx(
               'absolute z-50 w-full mt-1 bg-background',
-              'border border-border rounded-lg shadow-strong',
+              'border border-border rounded-lg shadow-standard-xl', // UI Revamp - Nouveau système d'ombres (shadow-strong → shadow-standard-xl)
               'px-4 py-2 text-muted-foreground text-sm'
             )}
           >

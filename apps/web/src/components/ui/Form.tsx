@@ -186,7 +186,7 @@ export default function Form({
               'hover:bg-primary-700 dark:hover:bg-primary-600',
               'focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400',
               'disabled:opacity-50 disabled:cursor-not-allowed',
-              'transition-colors'
+              'transition-modern' // UI Revamp - Transition moderne
             )}
           >
             {loading ? 'Loading...' : submitLabel}

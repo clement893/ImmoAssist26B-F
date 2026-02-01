@@ -160,7 +160,7 @@ export default function Calendar({
         <div
           key={day}
           className={clsx(
-            'aspect-square border border-border p-2 cursor-pointer hover:bg-muted dark:hover:bg-muted transition-colors',
+            'aspect-square border border-border p-2 cursor-pointer hover:bg-muted dark:hover:bg-muted transition-modern', // UI Revamp - Transition moderne
             isCurrentDay && 'bg-primary-50 dark:bg-primary-900/40 border-primary-500 dark:border-primary-400'
           )}
           onClick={() => onDateClick?.(date)}

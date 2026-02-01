@@ -40,7 +40,7 @@ export default function Breadcrumb({
                   href={item.href!}
                   className={clsx(
                     'flex items-center gap-1.5 text-sm text-neutral-600 dark:text-neutral-400',
-                    'hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors',
+                    'hover:text-neutral-900 dark:hover:text-neutral-100 transition-modern', // UI Revamp - Transition moderne
                     'rounded-md px-2 py-1 hover:bg-neutral-100 dark:hover:bg-neutral-800'
                   )}
                 >

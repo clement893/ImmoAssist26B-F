@@ -122,7 +122,7 @@ export default function Popover({
               'absolute z-50',
               'bg-background',
               'border border-border',
-              'rounded-lg shadow-strong',
+              'rounded-lg shadow-standard-xl', // UI Revamp - Nouveau système d'ombres (shadow-strong → shadow-standard-xl)
               'min-w-[200px]',
               placementClasses[placement],
               contentClassName

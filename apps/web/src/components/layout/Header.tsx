@@ -93,7 +93,7 @@ export default function Header() {
             <button
               ref={menuButtonRef}
               type="button"
-              className="inline-flex items-center justify-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 text-foreground hover:bg-muted focus:ring-primary min-h-[44px]"
+              className="inline-flex items-center justify-center px-3 py-2 text-sm font-medium rounded-lg transition-modern focus:outline-none focus:ring-2 focus:ring-offset-2 text-foreground hover:bg-muted focus:ring-primary min-h-[44px]" // UI Revamp - Transition moderne
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label={mobileMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
               aria-expanded={mobileMenuOpen}
@@ -109,7 +109,7 @@ export default function Header() {
           ref={mobileMenuRef}
           id="mobile-menu"
           className={clsx(
-            'md:hidden border-t border-border overflow-hidden transition-all duration-300 ease-in-out',
+            'md:hidden border-t border-border overflow-hidden transition-modern', // UI Revamp - Transition moderne
             mobileMenuOpen ? 'max-h-[800px] opacity-100 py-4' : 'max-h-0 opacity-0 py-0'
           )}
           role="menu"
@@ -120,7 +120,7 @@ export default function Header() {
             <Link
               href="/"
               onClick={() => setMobileMenuOpen(false)}
-              className="text-foreground hover:text-primary transition-colors px-4 py-3 min-h-[44px] flex items-center rounded-lg hover:bg-muted/50"
+              className="text-foreground hover:text-primary transition-modern px-4 py-3 min-h-[44px] flex items-center rounded-lg hover:bg-muted/50" // UI Revamp - Transition moderne
             >
               Accueil
             </Link>

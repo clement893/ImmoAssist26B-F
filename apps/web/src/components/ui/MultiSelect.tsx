@@ -222,7 +222,7 @@ export default function MultiSelect({
                         onClick={() => !isDisabled && handleToggle(option.value)}
                         disabled={isDisabled}
                         className={clsx(
-                          'w-full text-left px-3 py-2 text-sm transition-colors',
+                          'w-full text-left px-3 py-2 text-sm transition-modern', // UI Revamp - Transition moderne
                           isSelected
                             ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-900 dark:text-primary-100'
                             : 'text-foreground hover:bg-muted dark:hover:bg-muted',

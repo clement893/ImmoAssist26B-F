@@ -7,7 +7,7 @@ export default function ThemeToggle() {
     <button
       onClick={toggle}
       className={clsx(
-        'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
+        'relative inline-flex h-6 w-11 items-center rounded-full transition-modern', // UI Revamp - Transition moderne
         'focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:ring-offset-2',
         '',
         isDark ? 'bg-primary-600 dark:bg-primary-500' : 'bg-muted'
@@ -33,7 +33,7 @@ export function ThemeToggleWithIcon() {
     <button
       onClick={toggle}
       className={clsx(
-        'p-2 rounded-lg transition-colors',
+        'p-2 rounded-lg transition-modern', // UI Revamp - Transition moderne
         'text-foreground',
         'hover:bg-muted',
         'focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:ring-offset-2',

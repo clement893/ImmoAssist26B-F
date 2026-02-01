@@ -74,7 +74,7 @@ export default function Toast({
         <button
           onClick={() => onClose(id)}
           className={clsx(
-            'ml-4 flex-shrink-0 p-1 rounded-md hover:bg-opacity-20 transition-colors',
+            'ml-4 flex-shrink-0 p-1 rounded-md hover:bg-opacity-20 transition-modern', // UI Revamp - Transition moderne
             styles.text
           )}
           aria-label="Close toast"

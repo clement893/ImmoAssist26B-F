@@ -249,7 +249,7 @@ function Modal({
             {showCloseButton && (
               <button
                 onClick={onClose}
-                className="ml-auto text-muted-foreground hover:text-foreground transition-all duration-200 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 min-w-[44px] min-h-[44px] flex items-center justify-center p-2 -mr-2"
+                className="ml-auto text-muted-foreground hover:text-foreground transition-modern rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 min-w-[44px] min-h-[44px] flex items-center justify-center p-2 -mr-2" // UI Revamp - Transition moderne
                 aria-label="Close"
               >
                 <svg className="w-6 h-6 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

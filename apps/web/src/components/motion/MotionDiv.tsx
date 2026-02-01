@@ -84,7 +84,7 @@ export default function MotionDiv({
     <Component
       className={clsx(
         animationClasses,
-        'transition-all duration-normal ease-smooth',
+        'transition-modern', // UI Revamp - Transition moderne
         className
       )}
       {...props}

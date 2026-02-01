@@ -32,7 +32,7 @@ export default function CommandPalette({
     >
       <div
         className={clsx(
-          'bg-background rounded-lg shadow-2xl w-full max-w-2xl',
+          'bg-background rounded-lg shadow-standard-xl w-full max-w-2xl', // UI Revamp - Nouveau système d'ombres (shadow-2xl → shadow-standard-xl)
           'border border-border',
           'max-h-[60vh] flex flex-col overflow-hidden',
           className
@@ -100,7 +100,7 @@ export default function CommandPalette({
                           onClose();
                         }}
                         className={clsx(
-                          'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors',
+                          'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-modern', // UI Revamp - Transition moderne
                           isSelected
                             ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-900 dark:text-primary-100'
                             : 'text-foreground hover:bg-muted'
