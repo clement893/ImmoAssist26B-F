@@ -9,7 +9,7 @@ import Alert from '@/components/ui/Alert';
 import { transactionsAPI } from '@/lib/api/transactions-adapters';
 import { realEstateContactsAPI } from '@/lib/api/real-estate-contacts';
 import { TRANSACTION_ROLES } from '@/types/real-estate-contact';
-import { Search, Link2 } from 'lucide-react';
+import { Search } from 'lucide-react';
 import Input from '@/components/ui/Input';
 
 interface LinkContactToTransactionModalProps {
