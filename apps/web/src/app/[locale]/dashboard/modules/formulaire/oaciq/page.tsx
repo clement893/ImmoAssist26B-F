@@ -11,7 +11,8 @@ import { Card } from '@/components/ui';
 import { Button } from '@/components/ui';
 import { Input } from '@/components/ui';
 import Tabs, { TabList, Tab, TabPanels, TabPanel } from '@/components/ui/Tabs';
-import { FileText, Download, CheckCircle2 } from 'lucide-react';
+import { FileText, Download, CheckCircle2, Upload, ExternalLink } from 'lucide-react';
+import Link from '@/i18n/routing';
 import { useQuery } from '@tanstack/react-query';
 import { oaciqFormsAPI, type OACIQForm } from '@/lib/api/oaciq-forms';
 
@@ -55,6 +56,13 @@ export default function OACIQFormsPage() {
             {allForms ? `${allForms.length} formulaire${allForms.length > 1 ? 's' : ''} officiel${allForms.length > 1 ? 's' : ''} de l'OACIQ` : 'Formulaires officiels de l\'OACIQ'}
           </p>
         </div>
+        <Link href="/dashboard/modules/formulaire/oaciq/import">
+          <Button variant="white" className="flex items-center gap-2">
+            <Upload className="w-4 h-4" />
+            Guide d'import API
+            <ExternalLink className="w-4 h-4" />
+          </Button>
+        </Link>
       </div>
 
       {/* Barre de recherche */}
