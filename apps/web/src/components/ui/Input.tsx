@@ -54,9 +54,9 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     const helperId = helperText && !error ? `${inputId}-helper` : undefined;
     const describedBy = [errorId, helperId].filter(Boolean).join('') || undefined;
 
-    // Build input style - use theme config if available
+    // Build input style - use theme config if available (Revamp UI - Padding augmenté)
     const inputStyle: React.CSSProperties = {};
-    let paddingClasses = 'px-3 py-1.5'; // Reduced padding for better density (-25%)
+    let paddingClasses = 'px-4 py-3'; // Generous padding for modern look (Revamp UI - augmenté de px-3 py-1.5)
 
     if (sizeConfig) {
       if (sizeConfig.paddingX || sizeConfig.paddingY) {
@@ -94,7 +94,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         <div className="relative">
           {leftIcon && (
             <div
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground pointer-events-none"
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground pointer-events-none z-10" // Revamp UI - Position ajustée
               aria-hidden="true"
             >
               {leftIcon}
@@ -105,24 +105,30 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             id={inputId}
             className={clsx(
-              'w-full border rounded-lg transition-all duration-300 ease-out',
+              'w-full border rounded-xl transition-all duration-200 ease-natural', // Revamp UI - Border radius 12px
               paddingClasses,
               'bg-[var(--color-input)] text-foreground',
+              'min-h-[48px]', // Revamp UI - Height augmentée pour md
               'backdrop-blur-sm',
               'shadow-sm',
-              'focus:outline-none focus:ring-2 focus:ring-primary-500/50 dark:focus:ring-primary-400/50 focus:border-primary-500 dark:focus:border-primary-400',
-              'focus:shadow-md focus:shadow-primary-500/10',
+              'focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:ring-offset-2',
+              'focus:border-primary-500 dark:focus:border-primary-400',
+              'focus:shadow-primary', // Revamp UI - Ombre colorée au focus
               'disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-muted/50',
               'placeholder:text-muted-foreground placeholder:transition-opacity placeholder:duration-200',
-              'hover:border-primary-300 dark:hover:border-primary-600',
+              'hover:border-primary-300 dark:hover:border-primary-600 hover:shadow-md', // Revamp UI - Hover amélioré
               error
                 ? 'border-error-500 dark:border-error-400 focus:ring-error-500/50 dark:focus:ring-error-400/50 focus:shadow-error-500/10'
                 : 'border-border/60',
-              leftIcon && 'pl-10',
-              rightIcon && 'pr-10',
+              leftIcon && 'pl-12', // Revamp UI - Plus d'espace pour icône
+              rightIcon && 'pr-12', // Revamp UI - Plus d'espace pour icône
               className
             )}
-            style={{ ...inputStyle, ...props.style }}
+            style={{ 
+              ...inputStyle, 
+              minHeight: sizeConfig?.minHeight || '48px', // Revamp UI - Height par défaut
+              ...props.style 
+            }}
             aria-invalid={error ? 'true' : undefined}
             aria-describedby={describedBy}
             aria-required={props.required}
@@ -131,7 +137,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
 
           {rightIcon && (
             <div
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground pointer-events-none"
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-muted-foreground pointer-events-none z-10" // Revamp UI - Position ajustée
               aria-hidden="true"
             >
               {rightIcon}

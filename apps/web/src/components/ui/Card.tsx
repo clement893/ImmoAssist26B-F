@@ -81,7 +81,7 @@ import { type ReactNode, type HTMLAttributes } from 'react';
 import { clsx } from 'clsx';
 import { useGlobalTheme } from '@/lib/theme/global-theme-provider';
 
-export type CardVariant = 'default' | 'elevated' | 'outlined' | 'gradient';
+export type CardVariant = 'default' | 'elevated' | 'outlined' | 'gradient' | 'glass' | 'minimal';
 
 export interface CardProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onClick'> {
   /** Card content */
@@ -104,6 +104,8 @@ export interface CardProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onClick
   onClick?: () => void;
   /** Add padding to card content */
   padding?: boolean;
+  /** Left border color (for accent border) */
+  leftBorder?: 'primary' | 'secondary' | 'purple' | 'teal' | 'orange' | 'pink' | 'cyan' | 'success' | 'warning' | 'error';
 }
 
 export default function Card({
@@ -118,6 +120,7 @@ export default function Card({
   hover = false,
   onClick,
   padding = true,
+  leftBorder,
   ...props
 }: CardProps) {
   const { theme } = useGlobalTheme();
@@ -132,10 +135,10 @@ export default function Card({
   // Generate aria-label for clickable cards without title
   const ariaLabel = onClick && !title ? 'Clickable card' : undefined;
 
-  // Get card padding - use theme config if available, otherwise use defaults
+  // Get card padding - use theme config if available, otherwise use defaults (Revamp UI - Padding augmenté)
   const getCardPadding = () => {
     if (!cardPaddingConfig) {
-      return 'p-4'; // Default padding: 16px - Reduced from 24px (-33%) for better density
+      return 'p-6'; // Default padding: 24px - Augmenté pour plus d'espace (Revamp UI)
     }
 
     // Use theme padding (sm, md, lg)
@@ -147,26 +150,45 @@ export default function Card({
   const cardPadding = getCardPadding();
   const useThemePadding = typeof cardPadding === 'string' && cardPadding !== 'p-6';
 
-  // Variant styles
+  // Variant styles (Revamp UI - Styles améliorés)
   const variantStyles = {
     default: 'bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-sm',
     elevated: 'bg-white dark:bg-neutral-900 border-0 shadow-md hover:shadow-lg',
     outlined: 'bg-transparent border-2 border-neutral-300 dark:border-neutral-700 shadow-none',
     gradient: 'bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-primary-950 dark:to-secondary-950 border border-primary-200 dark:border-primary-800 shadow-sm',
+    glass: 'bg-white/80 dark:bg-neutral-900/80 backdrop-blur-md border border-white/20 dark:border-neutral-800/50 shadow-lg',
+    minimal: 'bg-transparent border border-neutral-200 dark:border-neutral-800 shadow-none',
+  };
+
+  // Left border color mapping (Revamp UI - Nouvelle fonctionnalité)
+  const leftBorderColors = {
+    primary: 'border-l-4 border-l-primary-500',
+    secondary: 'border-l-4 border-l-secondary-500',
+    purple: 'border-l-4 border-l-[#a855f7]',
+    teal: 'border-l-4 border-l-[#14b8a6]',
+    orange: 'border-l-4 border-l-[#fb923c]',
+    pink: 'border-l-4 border-l-[#f472b6]',
+    cyan: 'border-l-4 border-l-[#06b6d4]',
+    success: 'border-l-4 border-l-success-500',
+    warning: 'border-l-4 border-l-warning-500',
+    error: 'border-l-4 border-l-error-500',
   };
 
   return (
     <div
       className={clsx(
-        'rounded-lg', // Reduced rounded corners (8px) - Reduced from 12px (-33%) for more compact look
+        'rounded-2xl', // Modern rounded corners (16px) - Revamp UI
         variantStyles[variant],
-        'backdrop-blur-sm',
+        variant === 'glass' && 'backdrop-blur-md',
+        variant !== 'glass' && 'backdrop-blur-sm',
         'transition-all duration-200 ease-out',
-        // Enhanced hover effects (desktop only)
-        (hover || onClick) && 'hover:shadow-lg hover:-translate-y-1',
+        // Enhanced hover effects (desktop only) - Revamp UI
+        (hover || onClick) && 'hover:shadow-xl hover:-translate-y-1',
         // Touch-friendly on mobile
         onClick && 'active:scale-[0.98]',
         onClick && 'cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:ring-offset-2',
+        // Left border accent (Revamp UI - Nouvelle fonctionnalité)
+        leftBorder && leftBorderColors[leftBorder],
         // Responsive padding
         'w-full',
         className

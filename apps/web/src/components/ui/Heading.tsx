@@ -73,7 +73,20 @@ export default function Heading({ level, children, className, as, ...props }: He
   const typographyClass = levelToClass[level];
 
   return (
-    <Tag className={clsx(typographyClass, className)} {...props}>
+    <Tag 
+      className={clsx(
+        typographyClass, 
+        'font-semibold tracking-tight', // Revamp UI - Font weight et tracking améliorés
+        level === 1 && 'text-4xl md:text-5xl lg:text-6xl font-bold', // Revamp UI - Tailles augmentées
+        level === 2 && 'text-3xl md:text-4xl lg:text-5xl',
+        level === 3 && 'text-2xl md:text-3xl lg:text-4xl',
+        level === 4 && 'text-xl md:text-2xl',
+        level === 5 && 'text-lg md:text-xl',
+        level === 6 && 'text-base md:text-lg',
+        className
+      )} 
+      {...props}
+    >
       {children}
     </Tag>
   );

@@ -43,21 +43,23 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   asChild?: boolean;
 }
 
-// Base styles - Modern, compact and clean design
+// Base styles - Modern, spacious and elegant design (Revamp UI)
 const baseStyles = [
   'font-medium',
-  'rounded-lg', // Moderate rounded (8px) for clean look
+  'rounded-xl', // Modern rounded (12px) for elegant look
   'transition-all',
-  'duration-150', // Faster transitions
-  'ease-out',
+  'duration-200', // Smooth transitions
+  'ease-natural', // Natural easing
   'focus:outline-none',
   'focus:ring-2',
-  'focus:ring-offset-1',
+  'focus:ring-offset-2',
   'disabled:opacity-50',
   'disabled:cursor-not-allowed',
   'shadow-sm',
-  'hover:shadow',
+  'hover:shadow-md',
+  'hover:-translate-y-0.5', // Subtle lift on hover
   'active:scale-[0.98]',
+  'active:translate-y-0', // Reset lift on active
 ].join(' ');
 
 // Variant styles - Split into arrays for better readability
@@ -66,12 +68,18 @@ const createVariantStyles = (base: string[], hover: string[], focus: string[], c
   [...base, ...hover, ...focus, '[background-color:var(--' + cssVar + ')]'].join(' ');
 
 const variants = {
-  primary: createVariantStyles(
-    ['bg-primary-600', 'dark:bg-primary-500', 'text-white', 'shadow-sm'],
-    ['hover:bg-primary-700', 'dark:hover:bg-primary-600', 'hover:shadow'],
-    ['focus:ring-primary-500', 'dark:focus:ring-primary-400', 'focus:ring-offset-1'],
-    'color-primary-500'
-  ),
+  primary: [
+    'bg-gradient-to-r from-primary-500 to-primary-600',
+    'dark:from-primary-500 dark:to-primary-600',
+    'text-white',
+    'shadow-sm',
+    'hover:from-primary-600 hover:to-primary-700',
+    'dark:hover:from-primary-600 dark:hover:to-primary-700',
+    'hover:shadow-primary',
+    'focus:ring-primary-500',
+    'dark:focus:ring-primary-400',
+    'focus:ring-offset-2',
+  ].join(' '),
   secondary: createVariantStyles(
     ['bg-secondary-600', 'dark:bg-secondary-500', 'text-white', 'shadow-sm'],
     ['hover:bg-secondary-700', 'dark:hover:bg-secondary-600', 'hover:shadow'],
@@ -149,11 +157,13 @@ const variants = {
   ),
 };
 
-// Default sizes (fallback if theme config not available) - Compact and elegant design
+// Default sizes (fallback if theme config not available) - Spacious and modern design (Revamp UI)
 const defaultSizes = {
-  sm: 'px-2.5 py-1 text-xs min-h-[28px]', // Compact small - Minimal padding for density
-  md: 'px-3 py-1.5 text-sm min-h-[32px]', // Standard size - Balanced and elegant
-  lg: 'px-4 py-2 text-sm min-h-[36px]', // Large size - Slightly larger but still compact
+  xs: 'px-3 py-1.5 text-xs min-h-[28px]', // Extra small - Compact but comfortable
+  sm: 'px-4 py-2 text-sm min-h-[32px]',    // Small - Comfortable padding
+  md: 'px-6 py-3 text-sm min-h-[40px]',   // Medium - Generous padding (augmenté de 32px)
+  lg: 'px-8 py-4 text-base min-h-[48px]',  // Large - Very generous padding
+  xl: 'px-10 py-5 text-lg min-h-[56px]',  // Extra large - Hero CTAs
 };
 
 function Button({

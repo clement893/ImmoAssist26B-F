@@ -23,9 +23,9 @@ export type AlertVariant = 'info' | 'success' | 'warning' | 'error';
 export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'error';
 
 /**
- * Tailles communes pour les composants
+ * Tailles communes pour les composants (Revamp UI - Tailles étendues)
  */
-export type Size = 'sm' | 'md' | 'lg';
+export type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
 /**
  * Props de base communes à tous les composants
@@ -181,7 +181,7 @@ export const colorVariantMap: Record<
 };
 
 /**
- * Mapping des tailles pour les composants
+ * Mapping des tailles pour les composants (Revamp UI)
  */
 export const sizeMap: Record<
   Size,
@@ -190,16 +190,24 @@ export const sizeMap: Record<
     text: string;
   }
 > = {
-  sm: {
+  xs: {
     padding: 'px-3 py-1.5',
+    text: 'text-xs',
+  },
+  sm: {
+    padding: 'px-4 py-2',
     text: 'text-sm',
   },
   md: {
-    padding: 'px-4 py-2',
-    text: 'text-base',
+    padding: 'px-6 py-3',
+    text: 'text-sm',
   },
   lg: {
-    padding: 'px-6 py-3',
+    padding: 'px-8 py-4',
+    text: 'text-base',
+  },
+  xl: {
+    padding: 'px-10 py-5',
     text: 'text-lg',
   },
 };

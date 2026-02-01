@@ -46,23 +46,28 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
           ref={ref}
           id={selectId}
           className={clsx(
-            'block w-full',
+            'block w-full rounded-xl transition-all duration-200 ease-natural', // Revamp UI - Border radius moderne
             'bg-[var(--color-input)]',
             'text-foreground',
-            'border-border',
-            'shadow-sm focus:border-primary-500 dark:focus:border-primary-400 focus:ring-primary-500 dark:focus:ring-primary-400',
+            'border border-border/60',
+            'min-h-[48px]', // Revamp UI - Height augmentée
+            'shadow-sm hover:shadow-md', // Revamp UI - Hover effect
+            'focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:ring-offset-2',
+            'focus:border-primary-500 dark:focus:border-primary-400',
+            'focus:shadow-primary', // Revamp UI - Ombre colorée au focus
             'disabled:opacity-50 disabled:cursor-not-allowed',
             error &&
               'border-error-500 dark:border-error-400 focus:border-error-500 dark:focus:border-error-400 focus:ring-error-500 dark:focus:ring-error-400',
             className
           )}
           style={{
-            paddingLeft: paddingX,
-            paddingRight: paddingX,
-            paddingTop: paddingY,
-            paddingBottom: paddingY,
-            fontSize,
-            borderRadius,
+            paddingLeft: '1rem', // Revamp UI - Padding généreux
+            paddingRight: '1rem',
+            paddingTop: '0.75rem', // Revamp UI - Padding généreux
+            paddingBottom: '0.75rem',
+            fontSize: fontSize,
+            borderRadius: '0.75rem', // Revamp UI - Border radius 12px
+            minHeight: '48px', // Revamp UI - Height par défaut
           }}
           {...props}
         >

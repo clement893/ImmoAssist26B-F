@@ -84,19 +84,19 @@ export default function DashboardHeader({
   return (
     <header
       className={clsx(
-        'sticky top-0 z-30 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 shadow-sm',
+        'sticky top-0 z-30 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 shadow-sm backdrop-blur-sm', // Revamp UI - Backdrop blur
         className
       )}
     >
-      <div className="px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-14 sm:h-16 gap-2 sm:gap-4">
+      <div className="px-6 sm:px-8 lg:px-10"> {/* Revamp UI - Padding augmenté */}
+        <div className="flex items-center justify-between h-16 sm:h-20 gap-3 sm:gap-6"> {/* Revamp UI - Height et gap augmentés */}
           {/* Left Section: Mobile Menu + Title/Breadcrumbs */}
           <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
             {/* Mobile Menu Button */}
             {onMobileMenuToggle && (
               <button
                 onClick={onMobileMenuToggle}
-                className="lg:hidden p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                className="lg:hidden p-2.5 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all duration-200 hover:shadow-sm" // Revamp UI - Padding et border radius améliorés
                 aria-label="Toggle menu"
                 aria-expanded={mobileMenuOpen}
               >
@@ -113,7 +113,7 @@ export default function DashboardHeader({
               {breadcrumbs && breadcrumbs.length > 0 ? (
                 <Breadcrumb items={breadcrumbs} className="text-xs sm:text-sm" />
               ) : title ? (
-                <h1 className="text-lg sm:text-xl font-bold text-neutral-900 dark:text-neutral-100 truncate">
+                <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 dark:text-neutral-100 truncate"> {/* Revamp UI - Taille augmentée */}
                   {title}
                 </h1>
               ) : null}
@@ -143,7 +143,7 @@ export default function DashboardHeader({
 
             {/* Notifications */}
             <button
-              className="relative p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+              className="relative p-2.5 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all duration-200 hover:shadow-sm" // Revamp UI - Padding et border radius améliorés
               aria-label="Notifications"
             >
               <Bell className="w-5 h-5 text-neutral-700 dark:text-neutral-300" />

@@ -127,20 +127,20 @@
  * These variables provide fallbacks and can be overridden by theme system
  */
 
-/* Primary Colors - Green/Blue Gradient */
+/* Primary Colors - Indigo Moderne (Revamp UI) */
 :root {
-  --color-primary-50: #f0fdf4;
-  --color-primary-100: #dcfce7;
-  --color-primary-200: #bbf7d0;
-  --color-primary-300: #86efac;
-  --color-primary-400: #4ade80;
-  --color-primary-500: #22c55e;
-  --color-primary-600: #16a34a;
-  --color-primary-700: #15803d;
-  --color-primary-800: #166534;
-  --color-primary-900: #14532d;
+  --color-primary-50: #f0f4ff;
+  --color-primary-100: #e0e9ff;
+  --color-primary-200: #c7d7fe;
+  --color-primary-300: #a5b8fc;
+  --color-primary-400: #8192f8;
+  --color-primary-500: #6366f1;  /* Nouvelle couleur principale - Indigo moderne */
+  --color-primary-600: #4f46e5;
+  --color-primary-700: #4338ca;
+  --color-primary-800: #3730a3;
+  --color-primary-900: #312e81;
 
-  /* Secondary Colors - Blue */
+  /* Secondary Colors - Blue (conservé mais ajusté) */
   --color-secondary-50: #eff6ff;
   --color-secondary-100: #dbeafe;
   --color-secondary-200: #bfdbfe;
@@ -152,34 +152,54 @@
   --color-secondary-800: #1e40af;
   --color-secondary-900: #1e3a8a;
 
-  /* Neutral Colors - Slate/Gray */
-  --color-neutral-50: #f8fafc;
-  --color-neutral-100: #f1f5f9;
-  --color-neutral-200: #e2e8f0;
-  --color-neutral-300: #cbd5e1;
-  --color-neutral-400: #94a3b8;
-  --color-neutral-500: #64748b;
-  --color-neutral-600: #475569;
-  --color-neutral-700: #334155;
-  --color-neutral-800: #1e293b;
-  --color-neutral-900: #0f172a;
+  /* Accent Colors - Nouvelles couleurs pastel */
+  --color-accent-purple: #a855f7;
+  --color-accent-purple-light: #f3e8ff;
+  --color-accent-teal: #14b8a6;
+  --color-accent-teal-light: #ccfbf1;
+  --color-accent-orange: #fb923c;
+  --color-accent-orange-light: #fed7aa;
+  --color-accent-pink: #f472b6;
+  --color-accent-pink-light: #fce7f3;
+  --color-accent-cyan: #06b6d4;
+  --color-accent-cyan-light: #cffafe;
 
-  /* Semantic Colors */
+  /* Neutral Colors - Refonte complète pour plus de contraste */
+  --color-neutral-50: #fafafa;
+  --color-neutral-100: #f5f5f5;
+  --color-neutral-200: #e5e5e5;
+  --color-neutral-300: #d4d4d4;
+  --color-neutral-400: #a3a3a3;
+  --color-neutral-500: #737373;
+  --color-neutral-600: #525252;
+  --color-neutral-700: #404040;
+  --color-neutral-800: #262626;
+  --color-neutral-900: #171717;
+
+  /* Semantic Colors - Améliorées */
   --color-success-50: #f0fdf4;
+  --color-success-100: #dcfce7;
   --color-success-500: #10b981;
   --color-success-600: #059669;
+  --color-success-light: #d1fae5;
 
   --color-warning-50: #fffbeb;
+  --color-warning-100: #fef3c7;
   --color-warning-500: #f59e0b;
   --color-warning-600: #d97706;
+  --color-warning-light: #fef3c7;
 
   --color-error-50: #fef2f2;
+  --color-error-100: #fee2e2;
   --color-error-500: #ef4444;
   --color-error-600: #dc2626;
+  --color-error-light: #fee2e2;
 
   --color-info-50: #ecfeff;
-  --color-info-500: #06b6d4;
-  --color-info-600: #0891b2;
+  --color-info-100: #cffafe;
+  --color-info-500: #3b82f6;
+  --color-info-600: #2563eb;
+  --color-info-light: #dbeafe;
 
   /* Typography */
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
@@ -201,21 +221,67 @@
   --spacing-20: 5rem;     /* 80px */
   --spacing-24: 6rem;     /* 96px */
 
-  /* Border Radius */
+  /* Border Radius - Plus généreux pour look moderne */
   --radius-none: 0;
-  --radius-sm: 0.25rem;   /* 4px */
-  --radius-md: 0.5rem;    /* 8px */
-  --radius-lg: 0.75rem;   /* 12px */
-  --radius-xl: 1rem;      /* 16px */
-  --radius-2xl: 1.5rem;   /* 24px */
-  --radius-full: 9999px;
+  --radius-sm: 0.375rem;   /* 6px - Badges, tags */
+  --radius-md: 0.5rem;      /* 8px - Boutons, inputs */
+  --radius-lg: 0.75rem;     /* 12px - Cards standard */
+  --radius-xl: 1rem;        /* 16px - Cards importantes */
+  --radius-2xl: 1.5rem;     /* 24px - Modals, grandes cards */
+  --radius-3xl: 2rem;       /* 32px - Hero sections */
+  --radius-full: 9999px;    /* Pills, avatars */
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  /* Shadows - Système d'élévation à 5 niveaux */
+  --shadow-0: none;
+  --shadow-1: 0 1px 2px 0 rgba(0, 0, 0, 0.05);  /* Niveau 1 - Subtile */
+  --shadow-2: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);  /* Niveau 2 - Légère */
+  --shadow-3: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);  /* Niveau 3 - Modérée */
+  --shadow-4: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);  /* Niveau 4 - Élevée */
+  --shadow-5: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);  /* Niveau 5 - Très élevée */
+  
+  /* Ombres colorées pour accents */
+  --shadow-primary: 0 4px 14px 0 rgba(99, 102, 241, 0.15);
+  --shadow-accent-purple: 0 4px 14px 0 rgba(168, 85, 247, 0.15);
+  --shadow-accent-teal: 0 4px 14px 0 rgba(20, 184, 166, 0.15);
+  
+  /* Compatibilité avec anciennes variables */
+  --shadow-sm: var(--shadow-1);
+  --shadow-md: var(--shadow-3);
+  --shadow-lg: var(--shadow-4);
+  --shadow-xl: var(--shadow-5);
+  --shadow-2xl: var(--shadow-5);
+
+  /* Spacing Contextuel - Pour composants spécifiques */
+  --spacing-section: 6rem;      /* 96px - Entre sections principales */
+  --spacing-card: 1.5rem;       /* 24px - Padding interne des cartes */
+  --spacing-card-gap: 1.5rem;   /* 24px - Espace entre cartes */
+  --spacing-content: 2rem;      /* 32px - Padding contenu principal */
+
+  /* Animations - Durées standardisées */
+  --duration-fast: 150ms;       /* Micro-interactions */
+  --duration-base: 200ms;       /* Transitions standard */
+  --duration-slow: 300ms;        /* Animations complexes */
+  --duration-slower: 500ms;     /* Animations de page */
+
+  /* Easing Functions - Pour animations naturelles */
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-natural: cubic-bezier(0.16, 1, 0.3, 1);  /* Pour animations fluides */
+
+  /* Container Max Widths - Revamp UI */
+  --container-xs: 20rem;      /* 320px */
+  --container-sm: 24rem;      /* 384px */
+  --container-md: 28rem;      /* 448px */
+  --container-lg: 32rem;      /* 512px */
+  --container-xl: 36rem;      /* 576px */
+  --container-2xl: 42rem;     /* 672px */
+  --container-3xl: 48rem;     /* 768px */
+  --container-4xl: 56rem;     /* 896px */
+  --container-5xl: 64rem;     /* 1024px */
+  --container-6xl: 72rem;     /* 1152px */
+  --container-7xl: 80rem;     /* 1280px */
+  --container-full: 100%;     /* Full width */
 }
 
 /* Ensure body uses theme variables (will be set by theme system) */

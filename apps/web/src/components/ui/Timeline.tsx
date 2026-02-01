@@ -49,11 +49,11 @@ export default function Timeline({ items, orientation = 'vertical', className }:
                 )}{' '}
                 <div
                   className={clsx(
-                    'flex items-center justify-center w-8 h-8 rounded-full border-2',
+                    'flex items-center justify-center w-10 h-10 rounded-full border-2 shadow-sm transition-all duration-200', // Revamp UI - Taille augmentée, ombre, transitions
                     isCompleted
-                      ? 'bg-primary-600 border-primary-600 dark:bg-primary-400 dark:border-primary-400'
+                      ? 'bg-primary-600 border-primary-600 dark:bg-primary-400 dark:border-primary-400 shadow-primary' // Revamp UI - Ombre colorée
                       : isCurrent
-                        ? 'bg-background border-primary-600 dark:border-primary-400'
+                        ? 'bg-background border-primary-600 dark:border-primary-400 ring-2 ring-primary-200 dark:ring-primary-800' // Revamp UI - Ring pour état actuel
                         : 'bg-background border-border',
                     colorClass
                   )}
@@ -114,11 +114,11 @@ export default function Timeline({ items, orientation = 'vertical', className }:
             {/* Icon */}{' '}
             <div
               className={clsx(
-                'relative z-10 flex items-center justify-center w-8 h-8 rounded-full border-2 flex-shrink-0',
+                'relative z-10 flex items-center justify-center w-10 h-10 rounded-full border-2 flex-shrink-0 shadow-sm transition-all duration-200', // Revamp UI - Taille augmentée, ombre, transitions
                 isCompleted
-                  ? 'bg-primary-600 border-primary-600 dark:bg-primary-400 dark:border-primary-400'
+                  ? 'bg-primary-600 border-primary-600 dark:bg-primary-400 dark:border-primary-400 shadow-primary' // Revamp UI - Ombre colorée
                   : isCurrent
-                    ? 'bg-background border-primary-600 dark:border-primary-400'
+                    ? 'bg-background border-primary-600 dark:border-primary-400 ring-2 ring-primary-200 dark:ring-primary-800' // Revamp UI - Ring pour état actuel
                     : 'bg-background border-border',
                 colorClass
               )}

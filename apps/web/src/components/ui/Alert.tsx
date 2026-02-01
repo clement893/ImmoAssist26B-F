@@ -114,20 +114,20 @@ function Alert({ variant = 'info', title, children, onClose, className, icon }: 
   const variantStyles = variantConfig ? applyVariantConfigAsStyles(variantConfig) : {};
 
   return (
-    <div className={clsx('rounded-lg border p-3 transition-all duration-300', classes.container, className)} style={variantStyles}>
-      <div className="flex">
+    <div className={clsx('rounded-xl border-2 p-4 transition-all duration-200 ease-natural shadow-sm', classes.container, className)} style={variantStyles}> {/* Revamp UI - Border radius moderne, padding augmenté */}
+      <div className="flex gap-3"> {/* Revamp UI - Gap augmenté */}
         <div className="flex-shrink-0">{displayIcon}</div>
-        <div className="ml-3 flex-1">
-          {title && <h3 className={clsx('text-xs font-semibold mb-1.5 tracking-tight', classes.title)}>{title}</h3>}
+        <div className="ml-0 flex-1"> {/* Revamp UI - Margin supprimée (gap gère l'espace) */}
+          {title && <h3 className={clsx('text-sm font-semibold mb-2 tracking-tight', classes.title)}>{title}</h3>} {/* Revamp UI - Taille texte augmentée */}
           <Text variant="small" className={clsx(classes.text, 'leading-relaxed')}>
             {children}
           </Text>
         </div>
         {onClose && (
-          <div className="ml-auto pl-3">
+          <div className="ml-auto pl-2">
             <button
               onClick={onClose}
-              className={clsx('inline-flex rounded-lg p-1 hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200', classes.text)}
+              className={clsx('inline-flex rounded-xl p-1.5 hover:bg-black/10 dark:hover:bg-white/10 transition-all duration-200 hover:shadow-sm', classes.text)} // Revamp UI - Padding et border radius améliorés
               aria-label="Close alert"
             >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">

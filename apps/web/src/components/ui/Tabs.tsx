@@ -93,20 +93,20 @@ export default function Tabs({
         container: 'border-b border-border',
         tab: (isActive: boolean) =>
           clsx(
-            'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
+            'px-5 py-3 text-sm font-medium border-b-2 transition-all duration-200 ease-natural', // Revamp UI - Padding augmenté, transitions fluides
             isActive
               ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-              : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+              : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border/60'
           ),
       },
       pills: {
         container: 'flex gap-2',
         tab: (isActive: boolean) =>
           clsx(
-            'px-4 py-2 text-sm font-medium rounded-full transition-colors',
+            'px-5 py-2.5 text-sm font-medium rounded-full transition-all duration-200 ease-natural shadow-sm', // Revamp UI - Padding augmenté, transitions fluides, ombre
             isActive
-              ? 'bg-primary-600 dark:bg-primary-500 text-background'
-              : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              ? 'bg-primary-600 dark:bg-primary-500 text-background shadow-primary' // Revamp UI - Ombre colorée
+              : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:shadow-md' // Revamp UI - Hover effect amélioré
           ),
       },
       underline: {
@@ -157,7 +157,7 @@ export default function Tabs({
             </button>
           ))}
         </div>
-        <div className="mt-4">{activeTabContent}</div>
+        <div className="mt-6">{activeTabContent}</div> {/* Revamp UI - Margin augmentée */}
       </div>
     );
   }
@@ -188,10 +188,10 @@ export function Tab({ children, value, disabled, className }: TabProps) {
       onClick={() => !disabled && setActiveTab(value)}
       disabled={disabled}
       className={clsx(
-        'px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0',
+        'px-5 py-3 text-sm font-medium border-b-2 transition-all duration-200 ease-natural whitespace-nowrap flex-shrink-0', // Revamp UI - Padding augmenté, transitions fluides
         isActive
           ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-          : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border',
+          : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border/60',
         disabled && 'opacity-50 cursor-not-allowed',
         className
       )}
@@ -203,7 +203,7 @@ export function Tab({ children, value, disabled, className }: TabProps) {
 
 // TabPanels Component
 export function TabPanels({ children, className }: TabPanelsProps) {
-  return <div className={clsx('mt-4', className)}>{children}</div>;
+  return <div className={clsx('mt-6', className)}>{children}</div>; // Revamp UI - Margin augmentée
 }
 
 // TabPanel Component

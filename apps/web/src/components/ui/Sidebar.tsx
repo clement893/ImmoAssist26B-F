@@ -104,8 +104,8 @@ export default function Sidebar({
             'flex items-center justify-between transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]',
             // Modern circular icon design like in the image
             collapsed 
-              ? 'justify-center p-1.5' 
-              : 'px-2.5 py-1.5 rounded-lg', // Reduced padding for better density (-17% horizontal, -25% vertical)
+              ? 'justify-center p-2' 
+              : 'px-4 py-2.5 rounded-xl', // Revamp UI - Padding augmenté, border radius moderne
             isActive 
               ? collapsed
                 ? 'bg-primary-600/20' 
@@ -220,9 +220,9 @@ export default function Sidebar({
   return (
     <aside
       className={clsx(
-        'bg-neutral-800 dark:bg-neutral-900 border-r border-neutral-700/50 h-full transition-all duration-300 ease-out flex flex-col',
-        'shadow-lg',
-        collapsed ? 'w-16' : 'w-64 md:w-72 lg:w-80',
+        'bg-neutral-800 dark:bg-neutral-900 border-r border-neutral-700/50 h-full transition-all duration-300 ease-natural flex flex-col', // Revamp UI - Easing naturel
+        'shadow-lg backdrop-blur-sm', // Revamp UI - Backdrop blur
+        collapsed ? 'w-18' : 'w-72 md:w-80 lg:w-96', // Revamp UI - Largeurs augmentées
         className
       )}
     >

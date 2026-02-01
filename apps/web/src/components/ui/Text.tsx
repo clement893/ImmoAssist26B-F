@@ -74,7 +74,17 @@ export default function Text({
   const typographyClass = variantToClass[variant];
 
   return (
-    <Tag className={clsx(typographyClass, className)} {...props}>
+    <Tag 
+      className={clsx(
+        typographyClass,
+        'leading-relaxed', // Revamp UI - Line height amélioré
+        variant === 'body' && 'text-base md:text-lg', // Revamp UI - Tailles augmentées
+        variant === 'small' && 'text-sm md:text-base',
+        variant === 'caption' && 'text-xs md:text-sm text-muted-foreground',
+        className
+      )} 
+      {...props}
+    >
       {children}
     </Tag>
   );

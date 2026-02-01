@@ -28,18 +28,18 @@ export default function OACIQFormsPage() {
   });
 
   return (
-    <div className="container py-8">
-      <div className="flex items-center justify-between mb-6">
+    <div className="container py-10"> {/* Revamp UI - Padding vertical augmenté */}
+      <div className="flex items-center justify-between mb-8"> {/* Revamp UI - Margin augmentée */}
         <div>
-          <h1 className="text-3xl font-bold">Formulaires OACIQ</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-4xl font-bold">Formulaires OACIQ</h1> {/* Revamp UI - Taille titre augmentée */}
+          <p className="text-muted-foreground mt-2 text-base"> {/* Revamp UI - Margin et taille texte augmentées */}
             49 formulaires officiels de l&apos;OACIQ
           </p>
         </div>
       </div>
 
       {/* Barre de recherche */}
-      <div className="mb-6">
+      <div className="mb-8"> {/* Revamp UI - Margin augmentée */}
         <Input
           placeholder="Rechercher un formulaire par code ou nom..."
           value={search}
@@ -65,19 +65,19 @@ export default function OACIQFormsPage() {
 
         <TabPanels>
           <TabPanel value="all">
-            <div className="mt-4">
+            <div className="mt-6"> {/* Revamp UI - Margin augmentée */}
               <FormsList forms={forms} isLoading={isLoading} router={router} />
             </div>
           </TabPanel>
 
           <TabPanel value="obligatoire">
-            <div className="mt-4">
+            <div className="mt-6"> {/* Revamp UI - Margin augmentée */}
               <FormsList forms={forms} isLoading={isLoading} router={router} />
             </div>
           </TabPanel>
 
           <TabPanel value="recommandé">
-            <div className="mt-4">
+            <div className="mt-6"> {/* Revamp UI - Margin augmentée */}
               <FormsList forms={forms} isLoading={isLoading} router={router} />
             </div>
           </TabPanel>

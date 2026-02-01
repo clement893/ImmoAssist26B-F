@@ -97,9 +97,9 @@ function DashboardContent() {
 
       {/* Léa AI Assistant - En haut du dashboard */}
       <MotionDiv variant="slideUp" delay={150}>
-        <Card className="bg-gradient-to-br from-[#1A1A2E] to-[#16213E] border-gray-800 hover:shadow-xl transition-all duration-300">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-3 bg-gradient-to-br from-green-500 to-blue-500 rounded-lg">
+        <Card className="bg-gradient-to-br from-[#1A1A2E] to-[#16213E] border-gray-800 hover:shadow-xl transition-all duration-200 ease-natural" leftBorder="purple"> {/* Revamp UI - Easing naturel, bordure colorée */}
+          <div className="flex items-center gap-4 mb-4"> {/* Revamp UI - Gap et margin augmentés */}
+            <div className="p-4 bg-gradient-to-br from-green-500 to-blue-500 rounded-xl shadow-sm"> {/* Revamp UI - Padding et border radius améliorés */}
               <Sparkles className="w-6 h-6 text-white" />
             </div>
             <div>
@@ -118,8 +118,8 @@ function DashboardContent() {
       {/* Statistiques principales - Transactions */}
       {error && (
         <MotionDiv variant="slideUp" delay={150}>
-          <Card variant="elevated" className="border-warning-200 dark:border-warning-800 bg-warning-50 dark:bg-warning-950/20">
-            <div className="flex items-center gap-3">
+          <Card variant="elevated" className="border-warning-200 dark:border-warning-800 bg-warning-50 dark:bg-warning-950/20" leftBorder="warning"> {/* Revamp UI - Bordure colorée */}
+            <div className="flex items-center gap-4"> {/* Revamp UI - Gap augmenté */}
               <AlertCircle className="w-5 h-5 text-warning-600 dark:text-warning-400" />
               <p className="text-sm text-warning-800 dark:text-warning-200">{error}</p>
             </div>
@@ -225,9 +225,9 @@ function DashboardContent() {
         <WidgetGrid columns={{ sm: 1, md: 2 }} gap={4}>
           {/* Actions rapides */}
           <WidgetGrid.Item size="md">
-            <Card variant="gradient" className="hover:shadow-xl transition-all duration-300">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-3 bg-primary-600 dark:bg-primary-500 rounded-lg">
+            <Card variant="gradient" className="hover:shadow-xl transition-all duration-200 ease-natural" leftBorder="primary"> {/* Revamp UI - Easing naturel, bordure colorée */}
+              <div className="flex items-center gap-4 mb-6"> {/* Revamp UI - Gap et margin augmentés */}
+                <div className="p-4 bg-primary-600 dark:bg-primary-500 rounded-xl shadow-sm"> {/* Revamp UI - Padding et border radius améliorés */}
                   <Zap className="w-6 h-6 text-white" />
                 </div>
                 <div>

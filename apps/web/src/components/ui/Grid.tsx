@@ -30,8 +30,8 @@ export interface GridProps {
   children: ReactNode;
   /** Number of columns (number or responsive object) */
   columns?: number | { mobile?: number; tablet?: number; desktop?: number };
-  /** Gap size from theme (tight, normal, loose) */
-  gap?: 'tight' | 'normal' | 'loose';
+  /** Gap size from theme (tight, normal, loose, spacious) - Revamp UI */
+  gap?: 'tight' | 'normal' | 'loose' | 'spacious';
   /** Custom gap value (overrides theme gap) */
   gapValue?: string;
   /** Additional CSS classes */
@@ -77,10 +77,17 @@ export default function Grid({ children, columns = 3, gap = 'normal', gapValue, 
 
   return (
     <div
-      className={clsx('grid', typeof columns === 'number' && `grid-cols-${columns}`, responsiveClasses, className)}
+      className={clsx(
+        'grid', 
+        typeof columns === 'number' && `grid-cols-${columns}`, 
+        responsiveClasses,
+        // Revamp UI - Gap par défaut amélioré si non spécifié
+        !gapValueToUse && gap === 'spacious' && 'gap-8', // Nouveau gap spacious
+        className
+      )}
       style={{
         ...(gridColumns && typeof gridColumns === 'object' ? gridColumns : {}),
-        gap: gapValueToUse,
+        gap: gapValueToUse || (gap === 'spacious' ? undefined : gapValueToUse),
       }}
     >
       {children}

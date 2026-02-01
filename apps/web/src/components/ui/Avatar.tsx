@@ -19,11 +19,11 @@ export interface AvatarProps {
 }
 
 const sizeClasses = {
-  xs: 'w-6 h-6 text-[10px]',
-  sm: 'w-8 h-8 text-xs',
-  md: 'w-10 h-10 text-sm',
-  lg: 'w-12 h-12 text-base',
-  xl: 'w-16 h-16 text-lg',
+  xs: 'w-7 h-7 text-[10px]', // Revamp UI - Tailles harmonisées
+  sm: 'w-9 h-9 text-xs',
+  md: 'w-11 h-11 text-sm',
+  lg: 'w-14 h-14 text-base',
+  xl: 'w-20 h-20 text-lg',
 };
 
 const statusClasses = {
@@ -73,11 +73,14 @@ export default function Avatar({
     <div
       className={clsx(
         'relative inline-flex items-center justify-center',
-        'rounded-full bg-muted',
-        'text-muted-foreground',
+        'rounded-full bg-gradient-to-br from-primary-100 to-secondary-100', // Revamp UI - Gradient subtil
+        'dark:from-primary-900/30 dark:to-secondary-900/30',
+        'text-primary-700 dark:text-primary-300',
         'overflow-hidden',
+        'shadow-sm', // Revamp UI - Ombre subtile
+        'border-2 border-white dark:border-neutral-800', // Revamp UI - Bordure pour séparation
         sizeClasses[size],
-        onClick && 'cursor-pointer hover:opacity-80 transition-opacity',
+        onClick && 'cursor-pointer hover:opacity-90 hover:shadow-md transition-all duration-200', // Revamp UI - Hover amélioré
         className
       )}
       onClick={onClick}

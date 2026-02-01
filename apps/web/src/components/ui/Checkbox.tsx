@@ -59,17 +59,19 @@ const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
             type="checkbox"
             checked={checked}
             className={clsx(
-              'text-primary-600 dark:text-primary-400 border-border',
+              'text-primary-600 dark:text-primary-400 border-2 border-border rounded-md', // Revamp UI - Border radius moderne
               'bg-background',
-              'focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:ring-offset-0',
+              'transition-all duration-200 ease-natural', // Revamp UI - Transitions fluides
+              'focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:ring-offset-2', // Revamp UI - Ring offset augmenté
+              'hover:border-primary-400 dark:hover:border-primary-500', // Revamp UI - Hover effect
               'disabled:opacity-50 disabled:cursor-not-allowed',
               error && 'border-error-500 dark:border-error-400',
               className
             )}
             style={{
-              width: size,
-              height: size,
-              borderRadius,
+              width: '1.25rem', // Revamp UI - Taille augmentée
+              height: '1.25rem',
+              borderRadius: '0.375rem', // Revamp UI - Border radius 6px
             }}
             {...props}
           />

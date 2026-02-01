@@ -83,10 +83,10 @@ export default function StatsCard({
   return (
     <div
       className={clsx(
-        'rounded-xl border p-4 sm:p-6 transition-all duration-200',
+        'rounded-2xl border-2 p-6 sm:p-8 transition-all duration-200 ease-natural shadow-sm', // Revamp UI - Border radius moderne, padding augmenté, ombre
         'w-full', // Full width on mobile
         variantStyles[variant],
-        onClick && 'cursor-pointer hover:shadow-lg hover:-translate-y-1 active:scale-[0.98]',
+        onClick && 'cursor-pointer hover:shadow-xl hover:-translate-y-1 active:scale-[0.98]', // Revamp UI - Hover effect amélioré
         className
       )}
       onClick={onClick}
@@ -105,16 +105,16 @@ export default function StatsCard({
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-4 mb-3"> {/* Revamp UI - Gap et margin augmentés */}
             {icon && (
-              <div className={clsx('p-2 rounded-lg', iconStyles[variant])}>
+              <div className={clsx('p-3 rounded-xl shadow-sm', iconStyles[variant])}> {/* Revamp UI - Padding et border radius améliorés */}
                 {icon}
               </div>
             )}
-            <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400">{title}</p>
+            <p className="text-base font-medium text-neutral-600 dark:text-neutral-400">{title}</p> {/* Revamp UI - Taille texte augmentée */}
           </div>
-          <div className="flex items-baseline gap-2 flex-wrap">
-            <p className="text-2xl sm:text-3xl font-bold text-neutral-900 dark:text-neutral-100">{value}</p>
+          <div className="flex items-baseline gap-3 flex-wrap"> {/* Revamp UI - Gap augmenté */}
+            <p className="text-3xl sm:text-4xl font-bold text-neutral-900 dark:text-neutral-100">{value}</p> {/* Revamp UI - Taille valeur augmentée */}
             {trend && (
               <div className={clsx('flex items-center gap-1 text-sm font-semibold', trendColors[trendDirection])}>
                 <TrendIcon className="w-4 h-4" />

@@ -23,7 +23,7 @@ interface TableHeadProps {
 
 export function TableHead({ children, className, style }: TableHeadProps) {
   return (
-    <thead className={clsx('bg-neutral-50 dark:bg-neutral-800/50 border-b border-neutral-200 dark:border-neutral-700', className)} style={style}>
+    <thead className={clsx('bg-neutral-50 dark:bg-neutral-800/50 border-b-2 border-neutral-200 dark:border-neutral-700', className)} style={style}> {/* Revamp UI - Border épaisseur augmentée */}
       {children}
     </thead>
   );
@@ -49,7 +49,7 @@ export function TableBody({
       className={clsx(
         'bg-white dark:bg-neutral-900 divide-y divide-neutral-200 dark:divide-neutral-800',
         striped && '[&>tr:nth-child(even)]:bg-neutral-50 dark:[&>tr:nth-child(even)]:bg-neutral-900/50',
-        hover && '[&>tr:hover]:bg-primary-50/50 dark:[&>tr:hover]:bg-primary-900/10 [&>tr:hover]:transition-colors [&>tr:hover]:duration-150',
+        hover && '[&>tr:hover]:bg-primary-50/50 dark:[&>tr:hover]:bg-primary-900/10 [&>tr:hover]:transition-all [&>tr:hover]:duration-200 [&>tr:hover]:shadow-sm', // Revamp UI - Transitions améliorées, ombre au hover
         className
       )}
       style={style}
@@ -102,7 +102,7 @@ export function TableHeader({
   return (
     <th
       className={clsx(
-        'px-4 py-2.5 text-left text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider', // Reduced padding: px-4 py-2.5 (-33% horizontal, -37.5% vertical)
+        'px-6 py-4 text-left text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider', // Revamp UI - Padding augmenté
         sortable && 'cursor-pointer select-none hover:text-primary-600 dark:hover:text-primary-400 transition-colors',
         className
       )}
@@ -158,7 +158,7 @@ export function TableCell({ children, className, colSpan, onClick, style }: Tabl
       colSpan={colSpan}
       onClick={onClick}
       className={clsx(
-        'px-4 py-2.5 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100', // Reduced padding: px-4 py-2.5 (-33% horizontal, -37.5% vertical)
+        'px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100', // Revamp UI - Padding augmenté
         className
       )}
       style={style}
