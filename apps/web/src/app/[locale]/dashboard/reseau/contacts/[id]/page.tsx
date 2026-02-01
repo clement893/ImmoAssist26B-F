@@ -8,8 +8,9 @@ import { handleApiError } from '@/lib/errors/api';
 import { useToast } from '@/components/ui';
 import { PageHeader, PageContainer } from '@/components/layout';
 import ContactDetail from '@/components/reseau/ContactDetail';
+import LinkContactToTransactionModal from '@/components/reseau/LinkContactToTransactionModal';
 import { Loading, Alert } from '@/components/ui';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Link2 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 
 export default function ContactDetailPage() {
@@ -20,6 +21,7 @@ export default function ContactDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [_deleting, setDeleting] = useState(false);
+  const [showLinkModal, setShowLinkModal] = useState(false);
 
   const contactId = params?.id ? parseInt(String(params.id)) : null;
 
@@ -152,10 +154,16 @@ export default function ContactDetailPage() {
       <PageHeader
         title={`${contact.first_name} ${contact.last_name}`}
         actions={
-          <Button variant="outline" size="sm" onClick={handleBack}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Retour à la liste
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button variant="primary" size="sm" onClick={() => setShowLinkModal(true)}>
+              <Link2 className="w-4 h-4 mr-2" />
+              Lier à une transaction
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleBack}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Retour à la liste
+            </Button>
+          </div>
         }
       />
 
@@ -168,6 +176,19 @@ export default function ContactDetailPage() {
       <div className="mt-6">
         <ContactDetail contact={contact} onEdit={handleEdit} onDelete={handleDelete} />
       </div>
+
+      <LinkContactToTransactionModal
+        isOpen={showLinkModal}
+        onClose={() => setShowLinkModal(false)}
+        contactId={contact.id}
+        onLinked={() => {
+          showToast({
+            message: 'Contact lié à la transaction avec succès',
+            type: 'success',
+          });
+          setShowLinkModal(false);
+        }}
+      />
     </PageContainer>
   );
 }
