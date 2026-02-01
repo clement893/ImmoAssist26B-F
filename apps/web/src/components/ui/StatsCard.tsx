@@ -113,7 +113,7 @@ export default function StatsCard({
         <p className="text-sm font-light text-gray-500 mb-2">{title}</p> {/* UI Revamp - Style démo pages */}
         <p className="text-3xl font-light text-gray-900 mb-1">{value}</p> {/* UI Revamp - Style démo pages */}
         {description && (
-          <p className="text-xs font-light text-gray-400">{description}</p> {/* UI Revamp - Style démo pages */}
+          <p className="text-xs font-light text-gray-400">{description}</p>
         )}
         {trend && (
           <div className={clsx('flex items-center gap-1 text-xs font-light mt-2', trendColors[trendDirection])}>
