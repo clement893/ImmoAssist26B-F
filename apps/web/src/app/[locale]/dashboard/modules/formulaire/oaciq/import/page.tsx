@@ -25,8 +25,12 @@ export default function OACIQImportPage() {
   const exampleSingleForm = `{
   "code": "PA",
   "name": "Promesse d'achat",
+  "name_en": "Promise to Purchase",
+  "name_fr": "Promesse d'achat",
   "category": "obligatoire",
   "pdf_url": "https://www.oaciq.com/formulaires/PA.pdf",
+  "web_url": "https://www.oaciq.com/formulaires/promesse-achat",
+  "objective": "Document utilisé pour formaliser l'intention d'achat d'un bien immobilier. Permet de définir les conditions de la transaction avant la signature de l'acte de vente.",
   "fields": {
     "sections": [
       {
@@ -59,20 +63,32 @@ export default function OACIQImportPage() {
     {
       "code": "PA",
       "name": "Promesse d'achat",
+      "name_en": "Promise to Purchase",
+      "name_fr": "Promesse d'achat",
       "category": "obligatoire",
-      "pdf_url": "https://www.oaciq.com/formulaires/PA.pdf"
+      "pdf_url": "https://www.oaciq.com/formulaires/PA.pdf",
+      "web_url": "https://www.oaciq.com/formulaires/promesse-achat",
+      "objective": "Document utilisé pour formaliser l'intention d'achat d'un bien immobilier."
     },
     {
       "code": "CCVE",
       "name": "Clause de cession de vente d'entreprise",
+      "name_en": "Business Sale Assignment Clause",
+      "name_fr": "Clause de cession de vente d'entreprise",
       "category": "recommandé",
-      "pdf_url": "https://www.oaciq.com/formulaires/CCVE.pdf"
+      "pdf_url": "https://www.oaciq.com/formulaires/CCVE.pdf",
+      "web_url": "https://www.oaciq.com/formulaires/clause-cession-vente-entreprise",
+      "objective": "Clause permettant la cession d'une entreprise dans le cadre d'une transaction immobilière."
     },
     {
       "code": "CP",
       "name": "Contrat de courtage",
+      "name_en": "Brokerage Contract",
+      "name_fr": "Contrat de courtage",
       "category": "obligatoire",
       "pdf_url": "https://www.oaciq.com/formulaires/CP.pdf",
+      "web_url": "https://www.oaciq.com/formulaires/contrat-courtage",
+      "objective": "Contrat établissant les conditions de la relation entre le courtier et son client.",
       "fields": {
         "sections": [
           {
@@ -109,8 +125,12 @@ export default function OACIQImportPage() {
       {
         "code": "PA",
         "name": "Promesse d'\''achat",
+        "name_en": "Promise to Purchase",
+        "name_fr": "Promesse d'\''achat",
         "category": "obligatoire",
-        "pdf_url": "https://www.oaciq.com/formulaires/PA.pdf"
+        "pdf_url": "https://www.oaciq.com/formulaires/PA.pdf",
+        "web_url": "https://www.oaciq.com/formulaires/promesse-achat",
+        "objective": "Document utilisé pour formaliser l'\''intention d'\''achat d'\''un bien immobilier."
       }
     ]
   }'`;
@@ -129,14 +149,22 @@ data = {
         {
             "code": "PA",
             "name": "Promesse d'achat",
+            "name_en": "Promise to Purchase",
+            "name_fr": "Promesse d'achat",
             "category": "obligatoire",
-            "pdf_url": "https://www.oaciq.com/formulaires/PA.pdf"
+            "pdf_url": "https://www.oaciq.com/formulaires/PA.pdf",
+            "web_url": "https://www.oaciq.com/formulaires/promesse-achat",
+            "objective": "Document utilisé pour formaliser l'intention d'achat d'un bien immobilier."
         },
         {
             "code": "CCVE",
             "name": "Clause de cession de vente d'entreprise",
+            "name_en": "Business Sale Assignment Clause",
+            "name_fr": "Clause de cession de vente d'entreprise",
             "category": "recommandé",
-            "pdf_url": "https://www.oaciq.com/formulaires/CCVE.pdf"
+            "pdf_url": "https://www.oaciq.com/formulaires/CCVE.pdf",
+            "web_url": "https://www.oaciq.com/formulaires/clause-cession-vente-entreprise",
+            "objective": "Clause permettant la cession d'une entreprise dans le cadre d'une transaction immobilière."
         }
     ]
 }
@@ -158,14 +186,22 @@ const data = {
     {
       code: 'PA',
       name: 'Promesse d\'achat',
+      name_en: 'Promise to Purchase',
+      name_fr: 'Promesse d\'achat',
       category: 'obligatoire',
-      pdf_url: 'https://www.oaciq.com/formulaires/PA.pdf'
+      pdf_url: 'https://www.oaciq.com/formulaires/PA.pdf',
+      web_url: 'https://www.oaciq.com/formulaires/promesse-achat',
+      objective: 'Document utilisé pour formaliser l\'intention d\'achat d\'un bien immobilier.'
     },
     {
       code: 'CCVE',
       name: 'Clause de cession de vente d\'entreprise',
+      name_en: 'Business Sale Assignment Clause',
+      name_fr: 'Clause de cession de vente d\'entreprise',
       category: 'recommandé',
-      pdf_url: 'https://www.oaciq.com/formulaires/CCVE.pdf'
+      pdf_url: 'https://www.oaciq.com/formulaires/CCVE.pdf',
+      web_url: 'https://www.oaciq.com/formulaires/clause-cession-vente-entreprise',
+      objective: 'Clause permettant la cession d\'une entreprise dans le cadre d\'une transaction immobilière.'
     }
   ]
 };
@@ -262,9 +298,13 @@ axios.post(url, data, { headers })
               <div className="bg-gray-50 rounded-2xl p-4 border border-gray-200">
                 <div className="space-y-2 text-sm">
                   <div><code className="text-blue-600">code</code> <span className="text-gray-600">(string, requis)</span> - Code unique du formulaire (ex: "PA", "CCVE")</div>
-                  <div><code className="text-blue-600">name</code> <span className="text-gray-600">(string, requis)</span> - Nom du formulaire</div>
+                  <div><code className="text-blue-600">name</code> <span className="text-gray-600">(string, requis)</span> - Nom du formulaire (FR par défaut)</div>
+                  <div><code className="text-blue-600">name_en</code> <span className="text-gray-600">(string, optionnel)</span> - Nom du formulaire en anglais</div>
+                  <div><code className="text-blue-600">name_fr</code> <span className="text-gray-600">(string, optionnel)</span> - Nom du formulaire en français</div>
                   <div><code className="text-blue-600">category</code> <span className="text-gray-600">(enum, requis)</span> - Catégorie : "obligatoire", "recommandé", ou "curateur_public"</div>
                   <div><code className="text-blue-600">pdf_url</code> <span className="text-gray-600">(string, optionnel)</span> - URL du PDF officiel OACIQ</div>
+                  <div><code className="text-blue-600">web_url</code> <span className="text-gray-600">(string, optionnel)</span> - Lien web vers la page du formulaire sur le site OACIQ</div>
+                  <div><code className="text-blue-600">objective</code> <span className="text-gray-600">(string, optionnel)</span> - Objectif du formulaire (description de son usage)</div>
                   <div><code className="text-blue-600">fields</code> <span className="text-gray-600">(object, optionnel)</span> - Structure des champs du formulaire</div>
                 </div>
               </div>
@@ -570,25 +610,31 @@ axios.post(url, data, { headers })
           </div>
         </Card>
 
-        {/* Exemple avec image PDF */}
+        {/* Champs multilingues et objectif */}
         <Card variant="default" className="rounded-3xl p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Exemple avec image PDF</h2>
-          <p className="text-gray-600 mb-4">
-            Vous pouvez également inclure une image de prévisualisation du formulaire en utilisant le champ <code className="text-blue-600">image_url</code> dans la structure des champs :
-          </p>
-          <div className="bg-gray-900 rounded-2xl p-4 overflow-x-auto">
-            <pre className="text-sm text-gray-100">
-              <code>{`{
-  "code": "PA",
-  "name": "Promesse d'achat",
-  "category": "obligatoire",
-  "pdf_url": "https://www.oaciq.com/formulaires/PA.pdf",
-  "fields": {
-    "image_url": "https://www.oaciq.com/formulaires/images/PA-preview.jpg",
-    "sections": [...]
-  }
-}`}</code>
-            </pre>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Champs multilingues et objectif</h2>
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Noms multilingues</h3>
+              <p className="text-gray-600 mb-3">
+                Pour supporter plusieurs langues, utilisez les champs <code className="text-blue-600">name_en</code> et <code className="text-blue-600">name_fr</code>.
+                Le champ <code className="text-blue-600">name</code> reste requis et servira de valeur par défaut.
+              </p>
+            </div>
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Lien web</h3>
+              <p className="text-gray-600 mb-3">
+                Le champ <code className="text-blue-600">web_url</code> permet de référencer la page du formulaire sur le site officiel OACIQ.
+                Ce lien peut être utilisé pour rediriger les utilisateurs vers plus d'informations.
+              </p>
+            </div>
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Objectif du formulaire</h3>
+              <p className="text-gray-600 mb-3">
+                Le champ <code className="text-blue-600">objective</code> permet de décrire l'usage et le but du formulaire.
+                Cette information aide les utilisateurs à comprendre quand et comment utiliser chaque formulaire.
+              </p>
+            </div>
           </div>
         </Card>
 

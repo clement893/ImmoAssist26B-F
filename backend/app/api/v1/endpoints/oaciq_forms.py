@@ -268,8 +268,22 @@ async def import_oaciq_forms(
                     existing_form.category = form_item.category.value
                     if form_item.pdf_url:
                         existing_form.pdf_url = form_item.pdf_url
-                    if form_item.fields:
-                        existing_form.fields = form_item.fields
+                    
+                    # Préparer les champs avec métadonnées multilingues
+                    fields_data = form_item.fields.copy() if form_item.fields else {"sections": []}
+                    # Ajouter les métadonnées dans fields
+                    if form_item.name_en or form_item.name_fr or form_item.web_url or form_item.objective:
+                        fields_data["metadata"] = {}
+                        if form_item.name_en:
+                            fields_data["metadata"]["name_en"] = form_item.name_en
+                        if form_item.name_fr:
+                            fields_data["metadata"]["name_fr"] = form_item.name_fr
+                        if form_item.web_url:
+                            fields_data["metadata"]["web_url"] = form_item.web_url
+                        if form_item.objective:
+                            fields_data["metadata"]["objective"] = form_item.objective
+                    
+                    existing_form.fields = fields_data
                     
                     await db.commit()
                     await db.refresh(existing_form)
@@ -295,9 +309,21 @@ async def import_oaciq_forms(
             else:
                 # Créer un nouveau formulaire
                 # Les formulaires OACIQ nécessitent au minimum un champ fields vide
-                default_fields = form_item.fields if form_item.fields else {
+                default_fields = form_item.fields.copy() if form_item.fields else {
                     "sections": []
                 }
+                
+                # Ajouter les métadonnées multilingues dans fields
+                if form_item.name_en or form_item.name_fr or form_item.web_url or form_item.objective:
+                    default_fields["metadata"] = {}
+                    if form_item.name_en:
+                        default_fields["metadata"]["name_en"] = form_item.name_en
+                    if form_item.name_fr:
+                        default_fields["metadata"]["name_fr"] = form_item.name_fr
+                    if form_item.web_url:
+                        default_fields["metadata"]["web_url"] = form_item.web_url
+                    if form_item.objective:
+                        default_fields["metadata"]["objective"] = form_item.objective
                 
                 new_form = Form(
                     code=form_item.code,

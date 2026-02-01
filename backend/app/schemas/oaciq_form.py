@@ -125,9 +125,13 @@ class ExtractFieldsResponse(BaseModel):
 class OACIQFormImportItem(BaseModel):
     """Single form item for bulk import"""
     code: str = Field(..., min_length=1, max_length=20, description="Code unique du formulaire OACIQ")
-    name: str = Field(..., min_length=1, max_length=200, description="Nom du formulaire")
+    name: str = Field(..., min_length=1, max_length=200, description="Nom du formulaire (FR)")
+    name_en: Optional[str] = Field(None, min_length=1, max_length=200, description="Nom du formulaire en anglais")
+    name_fr: Optional[str] = Field(None, min_length=1, max_length=200, description="Nom du formulaire en français")
     category: OACIQFormCategory = Field(..., description="Catégorie du formulaire")
     pdf_url: Optional[str] = Field(None, description="URL du PDF officiel OACIQ")
+    web_url: Optional[str] = Field(None, description="Lien web vers la page du formulaire sur le site OACIQ")
+    objective: Optional[str] = Field(None, description="Objectif du formulaire (description de son usage)")
     fields: Optional[Dict[str, Any]] = Field(None, description="Structure des champs du formulaire (sections et fields)")
 
 
