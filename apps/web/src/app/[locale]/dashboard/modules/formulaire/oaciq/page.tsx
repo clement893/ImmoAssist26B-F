@@ -366,7 +366,7 @@ export default function OACIQFormsPage() {
             {filteredForms.map((form) => (
               <Link
                 key={form.id}
-                href={`/${locale}/dashboard/modules/formulaire/oaciq/${getFormCode(form)}`}
+                href={`/dashboard/modules/formulaire/oaciq/${getFormCode(form)}`}
                 className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden group border border-gray-100"
               >
                 {/* Card Header */}

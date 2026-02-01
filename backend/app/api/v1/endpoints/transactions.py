@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, or_, func
 from sqlalchemy.orm import selectinload
+from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.exc import SQLAlchemyError, OperationalError, ProgrammingError
 from decimal import Decimal
 from datetime import datetime
@@ -778,9 +779,13 @@ async def add_document_to_transaction(
             user_id=str(current_user.id),
         )
         
-        # Create document entry
+        # Create document entry (unique id so SQLAlchemy persists the JSON change)
+        existing_docs = transaction.documents or []
+        doc_id = int(datetime.now().timestamp() * 1000) if existing_docs else 1
+        while any(d.get("id") == doc_id for d in existing_docs):
+            doc_id += 1
         document_entry = {
-            "id": len(transaction.documents or []) + 1,
+            "id": doc_id,
             "filename": file.filename or "document",
             "url": upload_result.get("url") or upload_result.get("file_key", ""),
             "file_key": upload_result.get("file_key", ""),
@@ -791,10 +796,11 @@ async def add_document_to_transaction(
             "uploaded_by": current_user.id,
         }
         
-        # Add to documents list
+        # Add to documents list and mark JSON column as modified for SQLAlchemy
         if transaction.documents is None:
             transaction.documents = []
         transaction.documents.append(document_entry)
+        flag_modified(transaction, "documents")
         
         await db.commit()
         await db.refresh(transaction)
@@ -856,11 +862,12 @@ async def remove_document_from_transaction(
                 except Exception as s3_error:
                     logger.warning(f"Failed to delete file from S3: {s3_error}")
             
-            # Remove document from list
+            # Remove document from list and mark JSON column as modified
             transaction.documents = [
                 doc for doc in transaction.documents
                 if doc.get("id") != document_id
             ]
+            flag_modified(transaction, "documents")
             await db.commit()
             await db.refresh(transaction)
         
@@ -927,9 +934,13 @@ async def add_photo_to_transaction(
             user_id=str(current_user.id),
         )
         
-        # Create photo entry
+        # Create photo entry (unique id so SQLAlchemy persists the JSON change)
+        existing_docs = transaction.documents or []
+        photo_id = int(datetime.now().timestamp() * 1000) if existing_docs else 1
+        while any(d.get("id") == photo_id for d in existing_docs):
+            photo_id += 1
         photo_entry = {
-            "id": len(transaction.documents or []) + 1,
+            "id": photo_id,
             "filename": file.filename or "photo",
             "url": upload_result.get("url") or upload_result.get("file_key", ""),
             "file_key": upload_result.get("file_key", ""),
@@ -941,10 +952,11 @@ async def add_photo_to_transaction(
             "type": "photo",  # Mark as photo
         }
         
-        # Add to documents list
+        # Add to documents list and mark JSON column as modified for SQLAlchemy
         if transaction.documents is None:
             transaction.documents = []
         transaction.documents.append(photo_entry)
+        flag_modified(transaction, "documents")
         
         await db.commit()
         await db.refresh(transaction)

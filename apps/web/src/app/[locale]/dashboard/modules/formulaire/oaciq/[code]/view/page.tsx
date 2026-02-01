@@ -245,7 +245,7 @@ export default function FormViewPage() {
           <h2 className="text-xl font-semibold text-white mb-2">Formulaire introuvable</h2>
           <p className="text-sm text-gray-400 mb-6">Le formulaire demandé n'existe pas.</p>
           <Link
-            href={`/${locale}/dashboard/modules/formulaire/oaciq`}
+            href="/dashboard/modules/formulaire/oaciq"
             className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -265,7 +265,7 @@ export default function FormViewPage() {
             {/* Left - Navigation */}
             <div className="flex items-center gap-4">
               <Link
-                href={`/${locale}/dashboard/modules/formulaire/oaciq/${getFormCode()}`}
+                href={`/dashboard/modules/formulaire/oaciq/${getFormCode()}`}
                 className="flex items-center gap-2 px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />

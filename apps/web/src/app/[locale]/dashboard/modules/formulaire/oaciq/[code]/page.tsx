@@ -44,7 +44,6 @@ interface ExtendedOACIQForm extends OACIQForm {
 
 export default function FormDetailPage() {
   const params = useParams();
-  const locale = (params?.locale as string) || 'fr';
   const code = params.code as string;
 
   const [selectedLanguage, setSelectedLanguage] = useState<'fr' | 'en'>('fr');
@@ -230,7 +229,7 @@ export default function FormDetailPage() {
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Formulaire introuvable</h2>
           <p className="text-sm text-gray-500 mb-6">Le formulaire demandé n'existe pas.</p>
           <Link
-            href={`/${locale}/dashboard/modules/formulaire/oaciq`}
+            href="/dashboard/modules/formulaire/oaciq"
             className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -247,7 +246,7 @@ export default function FormDetailPage() {
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-[1400px] mx-auto px-8 py-6">
           <Link
-            href={`/${locale}/dashboard/modules/formulaire/oaciq`}
+            href="/dashboard/modules/formulaire/oaciq"
             className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 mb-6 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -314,7 +313,7 @@ export default function FormDetailPage() {
 
               <div className="space-y-3">
                 <Link
-                  href={`/${locale}/dashboard/modules/formulaire/oaciq/${getFormCode()}/view`}
+                  href={`/dashboard/modules/formulaire/oaciq/${getFormCode()}/view`}
                   className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors"
                 >
                   <Eye className="w-4 h-4" />
@@ -461,7 +460,7 @@ export default function FormDetailPage() {
                   Document PDF disponible en {selectedLanguage === 'fr' ? 'français' : 'anglais'}
                 </p>
                 <Link
-                  href={`/${locale}/dashboard/modules/formulaire/oaciq/${getFormCode()}/view`}
+                  href={`/dashboard/modules/formulaire/oaciq/${getFormCode()}/view`}
                   className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors"
                 >
                   <Eye className="w-4 h-4" />
