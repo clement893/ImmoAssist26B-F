@@ -63,23 +63,29 @@ Ce document suit la progression de la transformation UI par batches, avec un pus
 
 ---
 
-### Batch 3 : Composants UI de Base - Input, Badge, Tabs
-**Statut** : En attente  
+### Batch 3 : Composants UI de Base - Input, Badge, Tabs ✅
+**Statut** : Complété  
 **Priorité** : HAUTE  
 **Objectif** : Transformer Input, Badge, Tabs
 
 **Tâches** :
-- [ ] Transformer Input avec rounded-2xl, bg-gray-50
-- [ ] Transformer Badge avec rounded-full et variants colorés
-- [ ] Transformer Tabs avec style transaction-detail
-- [ ] Tests : Vérifier tous les composants
+- [x] Transformer Input avec rounded-2xl (16px), bg-gray-50, px-6 py-4, font-medium
+- [x] Transformer Badge avec rounded-full, py-1.5, font-medium
+- [x] Transformer Tabs avec style transaction-detail (rounded-3xl container, ligne bleue en bas)
+- [x] Tests : Vérifier tous les composants (pas d'erreurs linter)
 
-**Fichiers à modifier** :
-- `apps/web/src/components/ui/Input.tsx`
-- `apps/web/src/components/ui/Badge.tsx`
-- `apps/web/src/components/ui/Tabs.tsx`
+**Fichiers modifiés** :
+- ✅ `apps/web/src/components/ui/Input.tsx` - rounded-2xl, bg-gray-50, px-6 py-4, font-medium
+- ✅ `apps/web/src/components/ui/Badge.tsx` - py-1.5, font-medium
+- ✅ `apps/web/src/components/ui/Tabs.tsx` - Style transaction-detail complet (container rounded-3xl, tabs px-6 py-4, ligne bleue active)
 
 **Commit** : `feat(ui): Batch 3 - Input, Badge, Tabs components`
+
+**Résumé des changements** :
+- Input : rounded-2xl (16px), bg-gray-50, px-6 py-4, font-medium (au lieu de font-light)
+- Badge : py-1.5 (au lieu de py-1), font-medium (au lieu de font-light)
+- Tabs : Container rounded-3xl avec shadow-sm, tabs avec flex-1 px-6 py-4, ligne bleue h-0.5 en bas pour actif
+- Tabs : Content avec p-8 (au lieu de mt-6)
 
 ---
 
@@ -225,15 +231,16 @@ Ce document suit la progression de la transformation UI par batches, avec un pus
 
 ## Progression Globale
 
-**Batches complétés** : 2/10 ✅  
+**Batches complétés** : 3/10 ✅  
 **Batches en cours** : 0  
-**Batches en attente** : 8
+**Batches en attente** : 7
 
 ### Dernière mise à jour
-- **Batch 2** complété le 2026-02-01
-- Button et Card transformés avec style Dashboard V2
-- Button : 7 variants disponibles (primary, gradient, white, gray, black, icon, ghost)
-- Card : rounded-3xl (24px) pour toutes les cards principales
+- **Batch 3** complété le 2026-02-01
+- Input, Badge et Tabs transformés avec style Dashboard V2
+- Input : rounded-2xl, bg-gray-50, px-6 py-4, font-medium
+- Badge : py-1.5, font-medium
+- Tabs : Style transaction-detail avec container rounded-3xl et ligne bleue active
 
 ## Notes
 

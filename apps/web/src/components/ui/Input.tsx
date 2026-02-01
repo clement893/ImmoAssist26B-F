@@ -54,9 +54,9 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     const helperId = helperText && !error ? `${inputId}-helper` : undefined;
     const describedBy = [errorId, helperId].filter(Boolean).join('') || undefined;
 
-    // Build input style - use theme config if available (Revamp UI - Padding augmenté)
+    // Build input style - Dashboard V2 Style - Padding et border radius
     const inputStyle: React.CSSProperties = {};
-    let paddingClasses = 'px-4 py-3'; // Generous padding for modern look (Revamp UI - augmenté de px-3 py-1.5)
+    let paddingClasses = 'px-6 py-4'; // Dashboard V2 Style - px-6 py-4 (24px horizontal, 16px vertical)
 
     if (sizeConfig) {
       if (sizeConfig.paddingX || sizeConfig.paddingY) {
@@ -105,20 +105,19 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             id={inputId}
             className={clsx(
-              'w-full border-0 rounded-xl transition-all duration-200', // UI Revamp - Style démo pages (border-0, shadow-sm)
+              'w-full border-0 rounded-2xl transition-all duration-200', // Dashboard V2 Style - rounded-2xl (16px)
               paddingClasses,
-              'bg-white dark:bg-neutral-900 text-gray-900 dark:text-neutral-100',
+              'bg-gray-50 dark:bg-neutral-900 text-gray-900 dark:text-neutral-100', // Dashboard V2 Style - bg-gray-50
               'min-h-[48px]',
-              'shadow-sm', // UI Revamp - Style démo pages
-              'text-sm font-light', // UI Revamp - Typographie légère comme démos
-              'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-0', // UI Revamp - Focus ring bleu
-              'disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-50',
-              'placeholder:text-gray-400 placeholder:font-light', // UI Revamp - Placeholder style démo
+              'text-sm font-medium', // Dashboard V2 Style - font-medium
+              'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-0', // Dashboard V2 Style - Focus ring bleu
+              'disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-100',
+              'placeholder:text-gray-400 placeholder:font-normal', // Dashboard V2 Style - Placeholder normal
               error
                 ? 'border-2 border-error-500 focus:ring-error-500'
                 : '',
-              leftIcon && 'pl-12', // UI Revamp - Espace pour icône gauche
-              rightIcon && 'pr-12', // UI Revamp - Espace pour icône droite
+              leftIcon && 'pl-12', // Espace pour icône gauche
+              rightIcon && 'pr-12', // Espace pour icône droite
               className
             )}
             style={{ 

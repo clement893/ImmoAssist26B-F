@@ -90,13 +90,14 @@ export default function Tabs({
 
     const variantClasses = {
       default: {
-        container: 'border-b border-border',
+        container: 'bg-white rounded-3xl shadow-sm overflow-hidden border-b border-gray-200', // Dashboard V2 Style - Container rounded-3xl
         tab: (isActive: boolean) =>
           clsx(
-            'px-5 py-3 text-sm font-medium border-b-2 transition-modern', // UI Revamp - Padding augmenté, transition moderne
+            'flex-1 px-6 py-4 text-sm font-medium transition-colors relative', // Dashboard V2 Style - flex-1, px-6 py-4
             isActive
-              ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-              : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border/60'
+              ? 'text-blue-600' // Dashboard V2 Style - text-blue-600 pour actif
+              : 'text-gray-500 hover:text-gray-700', // Dashboard V2 Style - text-gray-500 pour inactif
+            isActive && 'after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-500' // Dashboard V2 Style - Ligne bleue en bas
           ),
       },
       pills: {
@@ -137,18 +138,18 @@ export default function Tabs({
               className={clsx(
                 classes.tab(activeTab === tab.id),
                 tab.disabled && 'opacity-50 cursor-not-allowed',
-                'flex items-center gap-2'
+                'flex items-center justify-center gap-2' // Dashboard V2 Style - justify-center
               )}
             >
-              {tab.icon && <span>{tab.icon}</span>}
+              {tab.icon && <span className="w-4 h-4">{tab.icon}</span>} {/* Dashboard V2 Style - w-4 h-4 */}
               <span>{tab.label}</span>
               {tab.badge && (
                 <span
                   className={clsx(
-                    'ml-1 px-2 py-0.5 text-xs rounded-full',
+                    'ml-1 px-2 py-0.5 text-xs rounded-full font-medium',
                     activeTab === tab.id
-                      ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300'
-                      : 'bg-muted text-muted-foreground'
+                      ? 'bg-blue-100 text-blue-700' // Dashboard V2 Style - Couleurs cohérentes
+                      : 'bg-gray-100 text-gray-600'
                   )}
                 >
                   {tab.badge}
@@ -157,7 +158,7 @@ export default function Tabs({
             </button>
           ))}
         </div>
-        <div className="mt-6">{activeTabContent}</div> {/* Revamp UI - Margin augmentée */}
+        <div className="p-8">{activeTabContent}</div> {/* Dashboard V2 Style - p-8 pour content */}
       </div>
     );
   }
@@ -170,14 +171,16 @@ export default function Tabs({
   );
 }
 
-// TabList Component
+// TabList Component - Dashboard V2 Style
 export function TabList({ children, className }: TabListProps) {
   return (
-    <div className={clsx('flex border-b border-border overflow-x-auto', className)}>{children}</div>
+    <div className={clsx('bg-white rounded-3xl shadow-sm overflow-hidden border-b border-gray-200 flex', className)}>
+      {children}
+    </div>
   );
 }
 
-// Tab Component
+// Tab Component - Dashboard V2 Style
 export function Tab({ children, value, disabled, className }: TabProps) {
   const { activeTab, setActiveTab } = useTabsContext();
   const isActive = activeTab === value;
@@ -188,22 +191,25 @@ export function Tab({ children, value, disabled, className }: TabProps) {
       onClick={() => !disabled && setActiveTab(value)}
       disabled={disabled}
       className={clsx(
-        'px-5 py-3 text-sm font-medium border-b-2 transition-modern whitespace-nowrap flex-shrink-0', // UI Revamp - Transition moderne
+        'flex-1 px-6 py-4 text-sm font-medium transition-colors relative whitespace-nowrap flex-shrink-0', // Dashboard V2 Style
         isActive
-          ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-          : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border/60',
+          ? 'text-blue-600' // Dashboard V2 Style - text-blue-600 pour actif
+          : 'text-gray-500 hover:text-gray-700', // Dashboard V2 Style - text-gray-500 pour inactif
+        isActive && 'after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-500', // Dashboard V2 Style - Ligne bleue en bas
         disabled && 'opacity-50 cursor-not-allowed',
         className
       )}
     >
-      {children}
+      <div className="flex items-center justify-center gap-2">
+        {children}
+      </div>
     </button>
   );
 }
 
-// TabPanels Component
+// TabPanels Component - Dashboard V2 Style
 export function TabPanels({ children, className }: TabPanelsProps) {
-  return <div className={clsx('mt-6', className)}>{children}</div>; // Revamp UI - Margin augmentée
+  return <div className={clsx('p-8', className)}>{children}</div>; // Dashboard V2 Style - p-8 pour content
 }
 
 // TabPanel Component

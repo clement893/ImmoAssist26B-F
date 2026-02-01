@@ -32,7 +32,7 @@ function Badge({ children, variant = 'default', className }: BadgeProps) {
   return (
     <span
       className={clsx(
-        'inline-flex items-center px-3 py-1 rounded-full text-xs font-light', // UI Revamp - Style démo pages (font-light)
+        'inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium', // Dashboard V2 Style - py-1.5, font-medium
         variantClasses,
         className
       )}
