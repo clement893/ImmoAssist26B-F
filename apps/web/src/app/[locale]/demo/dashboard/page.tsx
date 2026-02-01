@@ -1,11 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
-  Users,
-  Building2,
-  Receipt,
-  TrendingUp,
   Calendar as CalendarIcon,
   Video,
   Clock,
@@ -343,7 +339,6 @@ import { Card, Button, LoadingSkeleton, Grid, Container } from '@/components/ui'
 import { StatsCard } from '@/components/ui';
 import { PageHeader } from '@/components/layout';
 import { Link } from '@/i18n/routing';
-import { ErrorBoundary } from '@/components/errors/ErrorBoundary';
 import MotionDiv from '@/components/motion/MotionDiv';
 import LeaChat from '@/components/lea/LeaChat';
 import { getBrokerDashboardStats, BrokerDashboardStats } from '@/lib/api/dashboard';
@@ -360,7 +355,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 
-function DashboardContent() {
+export default function BrokerDashboard() {
   const { user } = useAuthStore();
   const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState<BrokerDashboardStats | null>(null);

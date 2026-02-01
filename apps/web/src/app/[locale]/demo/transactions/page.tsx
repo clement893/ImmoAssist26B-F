@@ -1,6 +1,6 @@
 'use client';
 
-import { Plus, Search, Filter, MoreVertical, MessageSquare, Paperclip } from 'lucide-react';
+import { Filter, MoreVertical, MessageSquare, Paperclip } from 'lucide-react';
 
 export default function DemoTransactions() {
   const columns = [
@@ -290,6 +290,7 @@ import Alert from '@/components/ui/Alert';
 import TransactionForm from '@/components/transactions/TransactionForm';
 import PDFImportModal from '@/components/transactions/PDFImportModal';
 import { transactionsAPI } from '@/lib/api';
+import { useState, useEffect } from 'react';
 import { FileText, Plus, Search, MapPin, Calendar, DollarSign, Users, Trash2, Eye, Upload } from 'lucide-react';
 // Simple date formatting function
 const formatDate = (dateString?: string) => {
@@ -328,7 +329,7 @@ interface Transaction {
   notes?: string;
 }
 
-function TransactionsContent() {
+export default function BrokerTransactions() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -508,7 +509,7 @@ function TransactionsContent() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {transactions.map((transaction) => (
+            {transactions.map((transaction: Transaction) => (
               <Card
                 key={transaction.id}
                 hover
