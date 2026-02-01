@@ -55,7 +55,33 @@ export const oaciqFormsAPI = {
     const response = await apiClient.get<OACIQForm[]>('/v1/oaciq/forms', {
       params,
     });
-    return extractApiData(response);
+    
+    // FastAPI returns List[OACIQFormResponse] directly (array), not wrapped
+    // apiClient.get returns response.data from axios, which is already the FastAPI response
+    // Check if response is directly an array (most common case with FastAPI)
+    if (Array.isArray(response)) {
+      return response;
+    }
+    
+    // Otherwise, try to extract using extractApiData
+    const extracted = extractApiData(response);
+    
+    // If extracted is an array, return it
+    if (Array.isArray(extracted)) {
+      return extracted;
+    }
+    
+    // If extracted has a data property that's an array, return it
+    if (extracted && typeof extracted === 'object' && 'data' in extracted) {
+      const data = (extracted as { data?: unknown }).data;
+      if (Array.isArray(data)) {
+        return data;
+      }
+    }
+    
+    // Fallback: return empty array if we can't extract the data
+    console.warn('Unexpected response format from OACIQ forms API:', response);
+    return [];
   },
 
   /**

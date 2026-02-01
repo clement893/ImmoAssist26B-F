@@ -22,9 +22,28 @@ export default function OACIQFormsPage() {
     'obligatoire' | 'recommandé' | 'curateur_public' | undefined
   >();
 
-  const { data: forms, isLoading } = useQuery({
+  // Load all forms for counting (without filters)
+  const { data: allForms } = useQuery({
+    queryKey: ['oaciq-forms', 'all'],
+    queryFn: () => oaciqFormsAPI.list(),
+    retry: 1,
+  });
+
+  // Load filtered forms for display
+  const { data: forms, isLoading, error } = useQuery({
     queryKey: ['oaciq-forms', category, search],
-    queryFn: () => oaciqFormsAPI.list({ category, search }),
+    queryFn: async () => {
+      const result = await oaciqFormsAPI.list({ category, search });
+      console.log('[OACIQ Forms] API response:', {
+        result,
+        isArray: Array.isArray(result),
+        length: Array.isArray(result) ? result.length : 'N/A',
+        category,
+        search,
+      });
+      return result;
+    },
+    retry: 1,
   });
 
   return (
@@ -33,7 +52,7 @@ export default function OACIQFormsPage() {
         <div>
           <h1 className="text-4xl font-bold">Formulaires OACIQ</h1> {/* Revamp UI - Taille titre augmentée */}
           <p className="text-muted-foreground mt-2 text-base"> {/* Revamp UI - Margin et taille texte augmentées */}
-            49 formulaires officiels de l&apos;OACIQ
+            {allForms ? `${allForms.length} formulaire${allForms.length > 1 ? 's' : ''} officiel${allForms.length > 1 ? 's' : ''} de l'OACIQ` : 'Formulaires officiels de l\'OACIQ'}
           </p>
         </div>
       </div>
@@ -57,34 +76,34 @@ export default function OACIQFormsPage() {
         }}
       >
         <TabList>
-          <Tab value="all">Tous (49)</Tab>
-          <Tab value="obligatoire">Obligatoires (28)</Tab>
-          <Tab value="recommandé">Recommandés (15)</Tab>
-          <Tab value="curateur_public">Curateur public (6)</Tab>
+          <Tab value="all">Tous {allForms ? `(${allForms.length})` : ''}</Tab>
+          <Tab value="obligatoire">Obligatoires {allForms ? `(${allForms.filter(f => f.category === 'obligatoire').length})` : ''}</Tab>
+          <Tab value="recommandé">Recommandés {allForms ? `(${allForms.filter(f => f.category === 'recommandé').length})` : ''}</Tab>
+          <Tab value="curateur_public">Curateur public {allForms ? `(${allForms.filter(f => f.category === 'curateur_public').length})` : ''}</Tab>
         </TabList>
 
         <TabPanels>
           <TabPanel value="all">
             <div className="mt-6"> {/* Revamp UI - Margin augmentée */}
-              <FormsList forms={forms} isLoading={isLoading} router={router} />
+              <FormsList forms={forms} isLoading={isLoading} error={error} router={router} />
             </div>
           </TabPanel>
 
           <TabPanel value="obligatoire">
             <div className="mt-6"> {/* Revamp UI - Margin augmentée */}
-              <FormsList forms={forms} isLoading={isLoading} router={router} />
+              <FormsList forms={forms} isLoading={isLoading} error={error} router={router} />
             </div>
           </TabPanel>
 
           <TabPanel value="recommandé">
             <div className="mt-6"> {/* Revamp UI - Margin augmentée */}
-              <FormsList forms={forms} isLoading={isLoading} router={router} />
+              <FormsList forms={forms} isLoading={isLoading} error={error} router={router} />
             </div>
           </TabPanel>
 
           <TabPanel value="curateur_public">
             <div className="mt-4">
-              <FormsList forms={forms} isLoading={isLoading} router={router} />
+              <FormsList forms={forms} isLoading={isLoading} error={error} router={router} />
             </div>
           </TabPanel>
         </TabPanels>
@@ -96,12 +115,23 @@ export default function OACIQFormsPage() {
 function FormsList({
   forms,
   isLoading,
+  error,
   router,
 }: {
   forms?: OACIQForm[];
   isLoading: boolean;
+  error?: Error | null;
   router: any;
 }) {
+  // Debug logging
+  console.log('[FormsList] Render:', {
+    forms,
+    formsLength: forms?.length,
+    isLoading,
+    error: error?.message,
+    isArray: Array.isArray(forms),
+  });
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -110,7 +140,22 @@ function FormsList({
     );
   }
 
+  if (error) {
+    console.error('[FormsList] Error loading OACIQ forms:', error);
+    return (
+      <div className="text-center py-12">
+        <div className="text-error-600 dark:text-error-400 mb-2">
+          Erreur lors du chargement des formulaires
+        </div>
+        <div className="text-sm text-muted-foreground">
+          {error.message || 'Une erreur est survenue'}
+        </div>
+      </div>
+    );
+  }
+
   if (!forms || forms.length === 0) {
+    console.warn('[FormsList] No forms found:', { forms, formsLength: forms?.length });
     return (
       <div className="text-center py-12 text-muted-foreground">
         Aucun formulaire trouvé
