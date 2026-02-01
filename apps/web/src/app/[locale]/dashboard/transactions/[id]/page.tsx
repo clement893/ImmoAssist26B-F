@@ -132,11 +132,29 @@ export default function TransactionDetailPage() {
       setLoading(true);
       setError(null);
       const response = await transactionsAPI.get(parseInt(transactionId));
-      setTransaction(response.data);
+      if (response?.data) {
+        setTransaction(response.data);
+      } else {
+        setError('Transaction introuvable');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors du chargement de la transaction');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fonction pour recharger la transaction sans masquer la page
+  const reloadTransaction = async () => {
+    try {
+      const response = await transactionsAPI.get(parseInt(transactionId));
+      if (response?.data) {
+        setTransaction(response.data);
+      }
+      // Si la réponse est invalide, on garde la transaction actuelle
+    } catch (err) {
+      // En cas d'erreur, on garde la transaction actuelle
+      console.error('Erreur lors du rechargement de la transaction:', err);
     }
   };
 
@@ -319,11 +337,20 @@ export default function TransactionDetailPage() {
                               parseInt(transactionId),
                               selectedFile
                             );
-                            setTransaction(response.data);
-                            showToast({
-                              message: 'Document ajouté avec succès',
-                              type: 'success',
-                            });
+                            if (response?.data) {
+                              setTransaction(response.data);
+                              showToast({
+                                message: 'Document ajouté avec succès',
+                                type: 'success',
+                              });
+                            } else {
+                              // Recharger la transaction silencieusement si la réponse est invalide
+                              await reloadTransaction();
+                              showToast({
+                                message: 'Document ajouté avec succès',
+                                type: 'success',
+                              });
+                            }
                           } catch (err) {
                             showToast({
                               message: err instanceof Error ? err.message : 'Erreur lors de l\'ajout du document',
@@ -446,11 +473,20 @@ export default function TransactionDetailPage() {
                               throw new Error('ID de transaction invalide');
                             }
                             const response = await transactionsAPI.addPhoto(id, selectedFile);
-                            setTransaction(response.data);
-                            showToast({
-                              message: 'Photo ajoutée avec succès',
-                              type: 'success',
-                            });
+                            if (response?.data) {
+                              setTransaction(response.data);
+                              showToast({
+                                message: 'Photo ajoutée avec succès',
+                                type: 'success',
+                              });
+                            } else {
+                              // Recharger la transaction silencieusement si la réponse est invalide
+                              await reloadTransaction();
+                              showToast({
+                                message: 'Photo ajoutée avec succès',
+                                type: 'success',
+                              });
+                            }
                           } catch (err) {
                             showToast({
                               message: err instanceof Error ? err.message : 'Erreur lors de l\'ajout de la photo',
@@ -497,11 +533,20 @@ export default function TransactionDetailPage() {
                                     throw new Error('ID de transaction invalide');
                                   }
                                   const response = await transactionsAPI.removeDocument(id, photo.id);
-                                  setTransaction(response.data);
-                                  showToast({
-                                    message: 'Photo supprimée avec succès',
-                                    type: 'success',
-                                  });
+                                  if (response?.data) {
+                                    setTransaction(response.data);
+                                    showToast({
+                                      message: 'Photo supprimée avec succès',
+                                      type: 'success',
+                                    });
+                                  } else {
+                                    // Recharger la transaction silencieusement si la réponse est invalide
+                                    await reloadTransaction();
+                                    showToast({
+                                      message: 'Photo supprimée avec succès',
+                                      type: 'success',
+                                    });
+                                  }
                                 } catch (err) {
                                   showToast({
                                     message: err instanceof Error ? err.message : 'Erreur lors de la suppression de la photo',
