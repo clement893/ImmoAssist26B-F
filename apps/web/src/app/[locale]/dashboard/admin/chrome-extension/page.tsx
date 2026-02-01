@@ -103,13 +103,13 @@ export default function ChromeExtensionAdminPage() {
         />
 
         {error && (
-          <Alert variant="destructive" className="mb-6">
+          <Alert variant="error" className="mb-6">
             {error}
           </Alert>
         )}
 
         {newKey && (
-          <Alert variant="default" className="mb-6 border-green-500 bg-green-50 dark:bg-green-950/30">
+          <Alert variant="success" className="mb-6 border-green-500 bg-green-50 dark:bg-green-950/30">
             <div className="flex flex-col gap-2">
               <p className="font-medium">Clé créée — copiez-la maintenant (elle ne sera plus affichée).</p>
               <div className="flex items-center gap-2">
