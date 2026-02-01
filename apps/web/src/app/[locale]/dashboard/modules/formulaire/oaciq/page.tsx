@@ -7,7 +7,6 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useParams } from 'next/navigation';
 import { Link } from '@/i18n/routing';
 import {
   Search,
@@ -42,8 +41,6 @@ interface ExtendedOACIQForm extends OACIQForm {
 }
 
 export default function OACIQFormsPage() {
-  const params = useParams();
-
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
