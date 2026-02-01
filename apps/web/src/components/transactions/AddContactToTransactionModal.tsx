@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Modal from '@/components/ui/Modal';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
@@ -9,7 +9,7 @@ import Loading from '@/components/ui/Loading';
 import Alert from '@/components/ui/Alert';
 import { realEstateContactsAPI } from '@/lib/api/real-estate-contacts';
 import { RealEstateContact, TRANSACTION_ROLES } from '@/types/real-estate-contact';
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface AddContactToTransactionModalProps {
@@ -26,40 +26,63 @@ export default function AddContactToTransactionModal({
   onContactAdded,
 }: AddContactToTransactionModalProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [contacts, setContacts] = useState<RealEstateContact[]>([]);
+  const [initialContacts, setInitialContacts] = useState<RealEstateContact[]>([]);
+  const [searchResults, setSearchResults] = useState<RealEstateContact[]>([]);
   const [selectedContactId, setSelectedContactId] = useState<number | null>(null);
   const [role, setRole] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(false);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  // Search contacts when query changes
+  // Load initial contact list when modal opens
   useEffect(() => {
-    const searchContacts = async () => {
-      if (searchQuery.length < 2) {
-        setContacts([]);
-        return;
-      }
+    if (!isOpen) return;
+    setInitialLoading(true);
+    setSearchQuery('');
+    setSelectedContactId(null);
+    setSearchResults([]);
+    realEstateContactsAPI
+      .list({ limit: 100 })
+      .then((res) => setInitialContacts(res.data.contacts))
+      .catch(() => setInitialContacts([]))
+      .finally(() => setInitialLoading(false));
+  }, [isOpen]);
 
+  // Search contacts when query has 2+ chars
+  useEffect(() => {
+    if (searchQuery.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    const timeoutId = setTimeout(async () => {
       setSearching(true);
       try {
         const response = await realEstateContactsAPI.list({
           search: searchQuery,
-          limit: 10,
+          limit: 50,
         });
-        setContacts(response.data.contacts);
+        setSearchResults(response.data.contacts);
       } catch (err) {
         console.error('Error searching contacts:', err);
-        setContacts([]);
+        setSearchResults([]);
       } finally {
         setSearching(false);
       }
-    };
-
-    const timeoutId = setTimeout(searchContacts, 300);
+    }, 300);
     return () => clearTimeout(timeoutId);
   }, [searchQuery]);
+
+  const displayContacts = useMemo(() => {
+    if (searchQuery.trim().length >= 2) return searchResults;
+    return initialContacts;
+  }, [searchQuery, searchResults, initialContacts]);
+
+  const selectedContact = useMemo(
+    () => displayContacts.find((c) => c.id === selectedContactId) ?? initialContacts.find((c) => c.id === selectedContactId),
+    [displayContacts, initialContacts, selectedContactId]
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,7 +101,6 @@ export default function AddContactToTransactionModal({
         role: role,
       });
       onContactAdded();
-      // Reset form
       setSearchQuery('');
       setSelectedContactId(null);
       setRole('');
@@ -112,10 +134,10 @@ export default function AddContactToTransactionModal({
           </Alert>
         )}
 
-        {/* Search contacts */}
+        {/* Search and contact list */}
         <div>
           <label className="block text-sm font-medium mb-2">
-            Rechercher un contact
+            Choisir un contact dans la liste ou rechercher
           </label>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -128,47 +150,66 @@ export default function AddContactToTransactionModal({
             />
           </div>
 
-          {/* Contact results */}
-          {searching && (
-            <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+          {initialLoading && initialContacts.length === 0 ? (
+            <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground py-6">
+              <Loading />
+              <span>Chargement de la liste des contacts...</span>
+            </div>
+          ) : searching && searchQuery.trim().length >= 2 ? (
+            <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground py-4">
               <Loading />
               <span>Recherche en cours...</span>
             </div>
-          )}
-
-          {!searching && searchQuery.length >= 2 && contacts.length > 0 && (
+          ) : displayContacts.length > 0 ? (
             <div className="mt-2 border rounded-lg max-h-48 overflow-y-auto">
-              {contacts.map((contact) => (
+              {displayContacts.map((contact) => (
                 <button
                   key={contact.id}
                   type="button"
                   onClick={() => {
                     setSelectedContactId(contact.id);
-                    setSearchQuery(`${contact.first_name} ${contact.last_name}${contact.company ? ` - ${contact.company}` : ''}`);
-                    setContacts([]);
                   }}
-                  className={`w-full text-left px-4 py-2 hover:bg-muted transition-modern ${ // UI Revamp - Transition moderne
+                  className={`w-full text-left px-4 py-2.5 hover:bg-muted transition-modern flex items-center gap-3 ${
                     selectedContactId === contact.id ? 'bg-primary/10 border-l-2 border-primary' : ''
                   }`}
                 >
-                  <div className="font-medium">
-                    {contact.first_name} {contact.last_name}
+                  <div className="p-1.5 bg-muted rounded-lg shrink-0">
+                    <User className="w-4 h-4 text-muted-foreground" />
                   </div>
-                  {contact.company && (
-                    <div className="text-sm text-muted-foreground">{contact.company}</div>
-                  )}
-                  {contact.email && (
-                    <div className="text-xs text-muted-foreground">{contact.email}</div>
-                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium">
+                      {contact.first_name} {contact.last_name}
+                    </div>
+                    {contact.company && (
+                      <div className="text-sm text-muted-foreground truncate">{contact.company}</div>
+                    )}
+                    {contact.email && (
+                      <div className="text-xs text-muted-foreground truncate">{contact.email}</div>
+                    )}
+                  </div>
                 </button>
               ))}
             </div>
-          )}
-
-          {!searching && searchQuery.length >= 2 && contacts.length === 0 && (
+          ) : searchQuery.trim().length >= 2 ? (
             <div className="mt-2 p-4 border rounded-lg text-center">
               <p className="text-sm text-muted-foreground mb-2">
                 Aucun contact trouvé
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleCreateNewContact}
+                className="flex items-center gap-2 mx-auto"
+              >
+                <Plus className="w-4 h-4" />
+                Créer un nouveau contact
+              </Button>
+            </div>
+          ) : (
+            <div className="mt-2 p-4 border rounded-lg text-center">
+              <p className="text-sm text-muted-foreground mb-2">
+                Aucun contact. Créez-en un dans Contacts.
               </p>
               <Button
                 type="button"
@@ -185,12 +226,12 @@ export default function AddContactToTransactionModal({
         </div>
 
         {/* Selected contact display */}
-        {selectedContactId && (
-          <div className="p-3 bg-muted rounded-lg">
+        {selectedContactId && selectedContact && (
+          <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
             <div className="text-sm font-medium mb-1">Contact sélectionné</div>
             <div className="text-sm text-muted-foreground">
-              {contacts.find(c => c.id === selectedContactId)?.first_name}{' '}
-              {contacts.find(c => c.id === selectedContactId)?.last_name}
+              {selectedContact.first_name} {selectedContact.last_name}
+              {selectedContact.company && ` · ${selectedContact.company}`}
             </div>
           </div>
         )}
