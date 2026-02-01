@@ -37,21 +37,29 @@ Ce document suit la progression de la transformation UI par batches, avec un pus
 
 ---
 
-### Batch 2 : Composants UI de Base - Button & Card
-**Statut** : En attente  
+### Batch 2 : Composants UI de Base - Button & Card ✅
+**Statut** : Complété  
 **Priorité** : HAUTE  
 **Objectif** : Transformer Button et Card avec tous les variants
 
 **Tâches** :
-- [ ] Transformer Button avec 7 variants documentés
-- [ ] Transformer Card avec rounded-3xl, shadow-sm
-- [ ] Tests : Vérifier tous les variants de boutons
+- [x] Transformer Button avec 7 variants documentés (primary, gradient, white, gray, black, icon, ghost)
+- [x] Transformer Card avec rounded-3xl (24px), shadow-sm avec hover:shadow-md
+- [x] Mettre à jour ButtonVariant type avec nouveaux variants
+- [x] Tests : Vérifier tous les variants de boutons (pas d'erreurs linter)
 
-**Fichiers à modifier** :
-- `apps/web/src/components/ui/Button.tsx`
-- `apps/web/src/components/ui/Card.tsx`
+**Fichiers modifiés** :
+- ✅ `apps/web/src/components/ui/Button.tsx` - Ajout variants Dashboard V2, font-medium, border radius adaptés
+- ✅ `apps/web/src/components/ui/Card.tsx` - rounded-3xl (24px) pour tous les variants
+- ✅ `apps/web/src/components/ui/types.ts` - Ajout nouveaux ButtonVariant
 
 **Commit** : `feat(ui): Batch 2 - Button & Card components`
+
+**Résumé des changements** :
+- Button : font-medium (au lieu de font-light), border radius selon variant (rounded-2xl, rounded-xl, rounded-full)
+- Button : Nouveaux variants (gradient, white, gray, black, icon)
+- Card : rounded-3xl (24px) pour toutes les cards principales
+- Card : shadow-sm avec hover:shadow-md maintenu
 
 ---
 
@@ -217,13 +225,15 @@ Ce document suit la progression de la transformation UI par batches, avec un pus
 
 ## Progression Globale
 
-**Batches complétés** : 1/10 ✅  
+**Batches complétés** : 2/10 ✅  
 **Batches en cours** : 0  
-**Batches en attente** : 9
+**Batches en attente** : 8
 
 ### Dernière mise à jour
-- **Batch 1** complété le 2026-02-01
-- Foundation & Design System configuré avec font-light et rounded-3xl
+- **Batch 2** complété le 2026-02-01
+- Button et Card transformés avec style Dashboard V2
+- Button : 7 variants disponibles (primary, gradient, white, gray, black, icon, ghost)
+- Card : rounded-3xl (24px) pour toutes les cards principales
 
 ## Notes
 

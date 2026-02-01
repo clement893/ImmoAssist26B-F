@@ -171,17 +171,17 @@ export default function Card({
   const cardPadding = getCardPadding();
   const useThemePadding = typeof cardPadding === 'string' && cardPadding !== 'p-6';
 
-  // Variant styles (UI Revamp - Nouveau système d'ombres - Updated to match demo pages)
+  // Variant styles - Dashboard V2 Style - rounded-3xl (24px) pour cards principales
   const variantStyles: Record<CardVariant, string> = {
-    default: 'bg-white dark:bg-neutral-900 border-0 shadow-sm hover:shadow-md transition-shadow duration-200',
-    elevated: 'bg-white dark:bg-neutral-900 border-0 shadow-sm hover:shadow-md transition-shadow duration-200',
-    floating: 'bg-white dark:bg-neutral-900 border-0 shadow-md',
-    outlined: 'bg-transparent border-2 border-neutral-300 dark:border-neutral-700 shadow-none',
-    gradient: 'bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-primary-950 dark:to-secondary-950 border border-primary-200 dark:border-primary-800 shadow-standard-md',
-    glass: 'bg-white/70 dark:bg-neutral-900/70 backdrop-blur-glass border border-white/30 dark:border-neutral-800/50 shadow-glass-md',
-    bordered: 'bg-white dark:bg-neutral-900 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-200',
-    image: 'bg-white dark:bg-neutral-900 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden',
-    minimal: 'bg-transparent border border-neutral-200 dark:border-neutral-800 shadow-none',
+    default: 'bg-white dark:bg-neutral-900 border-0 rounded-3xl shadow-sm hover:shadow-md transition-shadow duration-200',
+    elevated: 'bg-white dark:bg-neutral-900 border-0 rounded-3xl shadow-sm hover:shadow-md transition-shadow duration-200',
+    floating: 'bg-white dark:bg-neutral-900 border-0 rounded-3xl shadow-md',
+    outlined: 'bg-transparent border-2 border-neutral-300 dark:border-neutral-700 rounded-3xl shadow-none',
+    gradient: 'bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-primary-950 dark:to-secondary-950 border border-primary-200 dark:border-primary-800 rounded-3xl shadow-standard-md',
+    glass: 'bg-white/70 dark:bg-neutral-900/70 backdrop-blur-glass border border-white/30 dark:border-neutral-800/50 rounded-3xl shadow-glass-md',
+    bordered: 'bg-white dark:bg-neutral-900 rounded-3xl shadow-sm hover:shadow-md transition-shadow duration-200',
+    image: 'bg-white dark:bg-neutral-900 rounded-3xl shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden',
+    minimal: 'bg-transparent border border-neutral-200 dark:border-neutral-800 rounded-3xl shadow-none',
   };
 
   // Glass intensity mapping
@@ -249,8 +249,7 @@ export default function Card({
   return (
     <div
       className={clsx(
-        // Base styles
-        variant === 'floating' ? 'rounded-[20px]' : 'rounded-2xl', // 20px for floating, 16px for others
+        // Base styles - Dashboard V2 Style - rounded-3xl (24px) par défaut dans variantStyles
         variantStyles[variant],
         glassStyle,
         finalAccentBorderClass,

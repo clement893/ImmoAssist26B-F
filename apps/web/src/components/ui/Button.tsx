@@ -43,17 +43,17 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   asChild?: boolean;
 }
 
-// Base styles - UI Revamp - Modern, spacious and elegant design (Updated to match demo pages)
+// Base styles - Dashboard V2 Style - Modern, spacious and elegant design
 const baseStyles = [
-  'font-light', // UI Revamp - Style démo pages (font-light par défaut)
-  'rounded-xl', // Modern rounded (12px) for elegant look
-  'transition-all duration-200', // UI Revamp - Transition fluide comme démos
+  'font-medium', // Dashboard V2 Style - TOUJOURS font-medium pour boutons
+  'rounded-2xl', // Dashboard V2 Style - 16px par défaut (peut être overridé par variant)
+  'transition-all duration-200', // Transition fluide
   'focus:outline-none',
   'focus:ring-2',
   'focus:ring-offset-2',
   'disabled:opacity-50',
   'disabled:cursor-not-allowed',
-  'text-sm', // UI Revamp - Taille de texte comme démos
+  'text-sm', // Dashboard V2 Style - Taille de texte standard
 ].join(' ');
 
 // Variant styles - Split into arrays for better readability
@@ -66,14 +66,15 @@ const variants = {
     'bg-blue-500',
     'dark:bg-blue-500',
     'text-white',
-    'shadow-sm', // UI Revamp - Style démo pages (ultra-minimaliste)
+    'rounded-xl', // Dashboard V2 Style - 12px pour boutons dans cards
+    'shadow-sm',
     'hover:bg-blue-600',
     'dark:hover:bg-blue-600',
-    'hover:shadow-md', // UI Revamp - Ombre au hover
+    'hover:shadow-md',
     'focus:ring-blue-500',
     'dark:focus:ring-blue-400',
     'focus:ring-offset-2',
-    'transition-colors', // UI Revamp - Transition fluide comme démos
+    'transition-colors',
   ].join(' '),
   secondary: createVariantStyles(
     ['bg-secondary-600', 'dark:bg-secondary-500', 'text-white', 'shadow-standard-sm'], // UI Revamp
@@ -83,19 +84,17 @@ const variants = {
   ),
   gradient: [
     'bg-gradient-to-r',
-    'from-primary-600',
-    'to-secondary-500',
-    'dark:from-primary-500',
-    'dark:to-secondary-400',
+    'from-blue-500',
+    'to-blue-600',
+    'dark:from-blue-500',
+    'dark:to-blue-600',
     'text-white',
-    'shadow-standard-sm', // UI Revamp
-    'hover:from-primary-700',
-    'hover:to-secondary-600',
-    'dark:hover:from-primary-600',
-    'dark:hover:to-secondary-500',
-    'hover:shadow-colored-primary', // UI Revamp
-    'focus:ring-primary-500',
-    'dark:focus:ring-primary-400',
+    'rounded-2xl', // Dashboard V2 Style - 16px pour gradients
+    'shadow-sm',
+    'hover:shadow-lg', // Dashboard V2 Style - Grande ombre au hover
+    'focus:ring-blue-500',
+    'dark:focus:ring-blue-400',
+    'transition-shadow', // Dashboard V2 Style - Transition shadow
   ].join(' '),
   soft: [
     'bg-primary-50',
@@ -129,15 +128,57 @@ const variants = {
     '[color:var(--color-primary-500)]',
   ].join(' '),
   ghost: [
-    'text-neutral-700',
-    'dark:text-neutral-300',
+    'text-gray-600',
+    'dark:text-gray-300',
     'bg-transparent',
-    'hover:bg-neutral-100',
-    'dark:hover:bg-neutral-800',
-    'focus:ring-primary-500',
-    'dark:focus:ring-primary-400',
+    'rounded-xl', // Dashboard V2 Style - 12px pour ghost
+    'hover:bg-gray-50',
+    'dark:hover:bg-gray-800',
+    'focus:ring-blue-500',
+    'dark:focus:ring-blue-400',
     'focus:ring-offset-1',
-    // UI Revamp - Pas d'ombre pour variant ghost (minimal)
+    // Dashboard V2 Style - Pas d'ombre pour variant ghost (minimal)
+  ].join(' '),
+  // Dashboard V2 Style - Nouveaux variants
+  white: [
+    'bg-white',
+    'text-gray-700',
+    'rounded-2xl', // Dashboard V2 Style - 16px
+    'shadow-sm',
+    'hover:bg-gray-50',
+    'hover:shadow-md',
+    'focus:ring-blue-500',
+    'dark:focus:ring-blue-400',
+    'transition-colors',
+  ].join(' '),
+  gray: [
+    'bg-gray-100',
+    'text-gray-900',
+    'rounded-full', // Dashboard V2 Style - Full pour variant gris
+    'hover:bg-gray-200',
+    'focus:ring-blue-500',
+    'dark:focus:ring-blue-400',
+    'transition-colors',
+  ].join(' '),
+  black: [
+    'bg-black',
+    'text-white',
+    'rounded-full', // Dashboard V2 Style - Full pour variant noir
+    'hover:bg-gray-800',
+    'focus:ring-gray-500',
+    'dark:focus:ring-gray-400',
+    'transition-colors',
+  ].join(' '),
+  icon: [
+    'p-2.5', // Dashboard V2 Style - Padding réduit pour icon
+    'bg-white',
+    'rounded-full', // Dashboard V2 Style - Full pour icon
+    'shadow-sm',
+    'hover:bg-gray-50',
+    'hover:shadow-md',
+    'focus:ring-blue-500',
+    'dark:focus:ring-blue-400',
+    'transition-colors',
   ].join(' '),
   danger: createVariantStyles(
     ['bg-error-600', 'dark:bg-error-500', 'text-background', 'shadow-standard-sm'], // UI Revamp
@@ -216,9 +257,10 @@ function Button({
   }
 
   // Merge theme variant with default variant
+  // Dashboard V2 Style - Fallback vers primary si variant non trouvé
   const variantClasses = variantConfig
-    ? mergeVariantConfig(variants[variant] || variants.primary, variantConfig)
-    : variants[variant] || variants.primary;
+    ? mergeVariantConfig(variants[variant as keyof typeof variants] || variants.primary, variantConfig)
+    : variants[variant as keyof typeof variants] || variants.primary;
 
   // Get variant styles for inline application
   const variantStyles = variantConfig ? applyVariantConfigAsStyles(variantConfig) : {};

@@ -19,8 +19,20 @@ export type AlertVariant = 'info' | 'success' | 'warning' | 'error';
 
 /**
  * Variants de style pour les boutons
+ * Dashboard V2 Style - Ajout de nouveaux variants
  */
-export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'error';
+export type ButtonVariant = 
+  | 'primary' 
+  | 'secondary' 
+  | 'outline' 
+  | 'ghost' 
+  | 'danger' 
+  | 'error'
+  | 'gradient' // Dashboard V2 Style - Gradient blue
+  | 'white'    // Dashboard V2 Style - Blanc avec shadow
+  | 'gray'    // Dashboard V2 Style - Gris avec rounded-full
+  | 'black'   // Dashboard V2 Style - Noir avec rounded-full
+  | 'icon';   // Dashboard V2 Style - Petit bouton icon
 
 /**
  * Tailles communes pour les composants (Revamp UI - Tailles étendues)
