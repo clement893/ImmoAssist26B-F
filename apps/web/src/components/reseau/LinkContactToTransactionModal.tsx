@@ -75,6 +75,7 @@ export default function LinkContactToTransactionModal({
       setError(null);
       setShowDropdown(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   // Search transactions when query changes
@@ -112,6 +113,7 @@ export default function LinkContactToTransactionModal({
 
     const timeoutId = setTimeout(searchTransactions, 300);
     return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery]);
 
   // Close dropdown when clicking outside
