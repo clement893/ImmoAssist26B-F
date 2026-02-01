@@ -762,3 +762,163 @@ async def complete_oaciq_submission(
     response = OACIQFormSubmissionResponse.model_validate(submission)
     response.form_code = form.code
     return response
+
+
+# Endpoints spécifiques pour les transactions
+@router.post("/transactions/{transaction_id}/forms", response_model=OACIQFormSubmissionResponse, status_code=status.HTTP_201_CREATED, tags=["oaciq-forms"])
+async def create_transaction_form_submission(
+    request: Request,
+    transaction_id: int,
+    form_code: str = Query(..., description="Code du formulaire OACIQ"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Créer une nouvelle soumission de formulaire OACIQ pour une transaction"""
+    # Vérifier que la transaction existe et appartient à l'utilisateur
+    transaction_result = await db.execute(
+        select(RealEstateTransaction).where(
+            and_(
+                RealEstateTransaction.id == transaction_id,
+                RealEstateTransaction.user_id == current_user.id
+            )
+        )
+    )
+    transaction = transaction_result.scalar_one_or_none()
+    
+    if not transaction:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Transaction introuvable"
+        )
+    
+    # Récupérer le formulaire par code
+    query = select(Form).where(Form.code == form_code)
+    query = apply_tenant_scope(query, Form)
+    result = await db.execute(query)
+    form = result.scalar_one_or_none()
+    
+    if not form:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Formulaire introuvable"
+        )
+    
+    # Créer la soumission
+    submission = FormSubmission(
+        form_id=form.id,
+        data={},
+        user_id=current_user.id,
+        status='draft',
+        transaction_id=transaction_id,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
+    
+    db.add(submission)
+    await db.commit()
+    await db.refresh(submission)
+    
+    # Créer une version pour l'historique
+    version = FormSubmissionVersion(
+        submission_id=submission.id,
+        data={}
+    )
+    db.add(version)
+    await db.commit()
+    
+    response = OACIQFormSubmissionResponse.model_validate(submission)
+    response.form_code = form.code
+    return response
+
+
+@router.get("/transactions/{transaction_id}/forms", response_model=List[OACIQFormSubmissionResponse], tags=["oaciq-forms"])
+async def list_transaction_form_submissions(
+    transaction_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Lister toutes les soumissions de formulaires OACIQ pour une transaction"""
+    # Vérifier que la transaction existe et appartient à l'utilisateur
+    transaction_result = await db.execute(
+        select(RealEstateTransaction).where(
+            and_(
+                RealEstateTransaction.id == transaction_id,
+                RealEstateTransaction.user_id == current_user.id
+            )
+        )
+    )
+    transaction = transaction_result.scalar_one_or_none()
+    
+    if not transaction:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Transaction introuvable"
+        )
+    
+    # Récupérer les soumissions
+    query = select(FormSubmission).join(Form).where(
+        and_(
+            FormSubmission.transaction_id == transaction_id,
+            Form.code.isnot(None)
+        )
+    ).order_by(FormSubmission.submitted_at.desc())
+    
+    result = await db.execute(query)
+    submissions = result.scalars().all()
+    
+    responses = []
+    for sub in submissions:
+        response = OACIQFormSubmissionResponse.model_validate(sub)
+        # Récupérer le code du formulaire
+        form_result = await db.execute(
+            select(Form).where(Form.id == sub.form_id)
+        )
+        form = form_result.scalar_one()
+        response.form_code = form.code
+        responses.append(response)
+    
+    return responses
+
+
+@router.get("/forms/submissions/me", response_model=List[OACIQFormSubmissionResponse], tags=["oaciq-forms"])
+async def list_my_form_submissions(
+    transaction_id: Optional[int] = Query(None, description="Filtrer par transaction"),
+    status: Optional[str] = Query(None, description="Filtrer par statut"),
+    form_code: Optional[str] = Query(None, description="Filtrer par code de formulaire"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Lister toutes les soumissions de formulaires OACIQ de l'utilisateur connecté"""
+    query = select(FormSubmission).join(Form).where(
+        and_(
+            FormSubmission.user_id == current_user.id,
+            Form.code.isnot(None)
+        )
+    )
+    
+    if transaction_id:
+        query = query.where(FormSubmission.transaction_id == transaction_id)
+    
+    if status:
+        query = query.where(FormSubmission.status == status)
+    
+    if form_code:
+        query = query.where(Form.code == form_code)
+    
+    query = query.order_by(FormSubmission.submitted_at.desc())
+    
+    result = await db.execute(query)
+    submissions = result.scalars().all()
+    
+    responses = []
+    for sub in submissions:
+        response = OACIQFormSubmissionResponse.model_validate(sub)
+        # Récupérer le code du formulaire
+        form_result = await db.execute(
+            select(Form).where(Form.id == sub.form_id)
+        )
+        form = form_result.scalar_one()
+        response.form_code = form.code
+        responses.append(response)
+    
+    return responses

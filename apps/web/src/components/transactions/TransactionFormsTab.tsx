@@ -78,16 +78,13 @@ export default function TransactionFormsTab({ transactionId }: TransactionFormsT
   // Load submissions for this transaction
   const { data: submissions, isLoading: submissionsLoading } = useQuery({
     queryKey: ['oaciq-submissions', transactionId],
-    queryFn: () => oaciqFormsAPI.listSubmissions({ transaction_id: transactionId }),
+    queryFn: () => oaciqFormsAPI.listTransactionSubmissions(transactionId),
   });
 
   // Create new submission mutation
   const createSubmissionMutation = useMutation({
     mutationFn: (formCode: string) =>
-      oaciqFormsAPI.createSubmission({
-        form_code: formCode,
-        transaction_id: transactionId,
-      }),
+      oaciqFormsAPI.createTransactionSubmission(transactionId, formCode),
     onSuccess: (submission) => {
       queryClient.invalidateQueries({ queryKey: ['oaciq-submissions', transactionId] });
       showToast({

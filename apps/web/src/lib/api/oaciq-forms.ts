@@ -180,6 +180,45 @@ export const oaciqFormsAPI = {
   },
 
   /**
+   * Créer une soumission de formulaire pour une transaction
+   */
+  createTransactionSubmission: async (
+    transactionId: number,
+    formCode: string
+  ): Promise<OACIQFormSubmission> => {
+    const response = await apiClient.post<OACIQFormSubmission>(
+      `/v1/oaciq/transactions/${transactionId}/forms?form_code=${encodeURIComponent(formCode)}`
+    );
+    return extractApiData(response);
+  },
+
+  /**
+   * Lister les soumissions d'une transaction
+   */
+  listTransactionSubmissions: async (
+    transactionId: number
+  ): Promise<OACIQFormSubmission[]> => {
+    const response = await apiClient.get<OACIQFormSubmission[]>(
+      `/v1/oaciq/transactions/${transactionId}/forms`
+    );
+    return extractApiData(response);
+  },
+
+  /**
+   * Lister toutes les soumissions de l'utilisateur connecté
+   */
+  listMySubmissions: async (params?: {
+    transaction_id?: number;
+    status?: string;
+    form_code?: string;
+  }): Promise<OACIQFormSubmission[]> => {
+    const response = await apiClient.get<OACIQFormSubmission[]>('/v1/oaciq/forms/submissions/me', {
+      params,
+    });
+    return extractApiData(response);
+  },
+
+  /**
    * Extraire les champs d'un formulaire avec l'IA
    */
   extractFields: async (request: ExtractFieldsRequest): Promise<ExtractFieldsResponse> => {
