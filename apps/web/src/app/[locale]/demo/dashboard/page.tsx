@@ -694,6 +694,6 @@ function DashboardContent() {
           </Card>
         </MotionDiv>
       </div>
-    </div>
+    </Container>
   );
 }

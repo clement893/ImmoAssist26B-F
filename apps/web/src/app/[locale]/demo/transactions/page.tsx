@@ -704,6 +704,6 @@ function TransactionsContent() {
           )}
         </Modal>
       </div>
-    </div>
+    </Container>
   );
 }
