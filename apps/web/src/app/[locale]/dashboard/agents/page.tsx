@@ -41,8 +41,8 @@ const exampleCards = [
     description: "Rédige un email professionnel pour répondre à une offre",
     icon: <Mail className="w-5 h-5" />,
     prompt: "Rédige un email professionnel pour répondre à une offre d'emploi",
-    gradient: "from-purple-500 to-pink-500",
-    bgGradient: "from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30"
+    gradient: "from-indigo-500 to-purple-500",
+    bgGradient: "from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30"
   },
   {
     title: "Résumer un article",
@@ -57,8 +57,8 @@ const exampleCards = [
     description: "Explique-moi comment fonctionne l'IA de manière technique",
     icon: <Code className="w-5 h-5" />,
     prompt: "Explique-moi comment fonctionne l'IA de manière technique",
-    gradient: "from-orange-500 to-red-500",
-    bgGradient: "from-orange-50 to-red-50 dark:from-orange-950/30 dark:to-red-950/30"
+    gradient: "from-teal-500 to-cyan-500",
+    bgGradient: "from-teal-50 to-cyan-50 dark:from-teal-950/30 dark:to-cyan-950/30"
   }
 ];
 
