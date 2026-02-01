@@ -283,3 +283,54 @@ async def complete_step_action(
         "completed": data.completed,
         "completed_actions": completed_actions,
     }
+
+
+class CompleteStepRequest(BaseModel):
+    completed: bool = True
+
+
+@router.post("/{transaction_id}/steps/{step_code}/complete")
+async def complete_step(
+    transaction_id: int,
+    step_code: str,
+    data: CompleteStepRequest = CompleteStepRequest(),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Marque ou démarque une étape complète comme complétée.
+    """
+    result = await db.execute(
+        select(RealEstateTransaction).where(
+            and_(
+                RealEstateTransaction.id == transaction_id,
+                RealEstateTransaction.user_id == current_user.id,
+            )
+        )
+    )
+    transaction = result.scalar_one_or_none()
+    if not transaction:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Transaction introuvable",
+        )
+
+    completed_steps = list(transaction.completed_steps or [])
+
+    if data.completed:
+        if step_code not in completed_steps:
+            completed_steps.append(step_code)
+    else:
+        if step_code in completed_steps:
+            completed_steps.remove(step_code)
+
+    transaction.completed_steps = completed_steps
+    await db.commit()
+    await db.refresh(transaction)
+
+    return {
+        "success": True,
+        "step_code": step_code,
+        "completed": data.completed,
+        "completed_steps": completed_steps,
+    }

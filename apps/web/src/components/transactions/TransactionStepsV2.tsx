@@ -45,6 +45,7 @@ export default function TransactionStepsV2({
     vendor_steps: Step[];
   } | null>(null);
   const [togglingAction, setTogglingAction] = useState<string | null>(null);
+  const [togglingStep, setTogglingStep] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   const fetchSteps = useCallback(async () => {
@@ -86,6 +87,23 @@ export default function TransactionStepsV2({
       onError?.(err instanceof Error ? err.message : 'Erreur lors de la mise à jour');
     } finally {
       setTogglingAction(null);
+    }
+  };
+
+  const handleStepToggle = async (step: Step) => {
+    if (!transactionId || !data) return;
+    setTogglingStep(step.code);
+    try {
+      await transactionStepsAPI.completeStep(
+        transactionId,
+        step.code,
+        step.status !== 'completed'
+      );
+      await fetchSteps();
+    } catch (err) {
+      onError?.(err instanceof Error ? err.message : 'Erreur lors de la mise à jour de l\'étape');
+    } finally {
+      setTogglingStep(null);
     }
   };
 
@@ -314,6 +332,27 @@ export default function TransactionStepsV2({
                             En cours
                           </span>
                         )}
+                        {step.status === 'completed' && (
+                          <span className="px-2.5 py-1 bg-green-50 text-green-700 rounded-lg text-xs font-medium border border-green-200">
+                            Complétée
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-2">
+                        <input
+                          type="checkbox"
+                          checked={step.status === 'completed'}
+                          onChange={() => handleStepToggle(step)}
+                          disabled={togglingStep === step.code}
+                          className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                          title={step.status === 'completed' ? 'Marquer comme non complétée' : 'Marquer comme complétée'}
+                        />
+                        <label 
+                          onClick={() => handleStepToggle(step)}
+                          className="text-sm text-gray-600 cursor-pointer select-none"
+                        >
+                          {step.status === 'completed' ? 'Marquer comme non complétée' : 'Marquer comme complétée'}
+                        </label>
                       </div>
                       <p className="text-gray-600 text-sm">{step.description}</p>
                       {step.due_date && (

@@ -89,4 +89,28 @@ export const transactionStepsAPI = {
       completed_actions: data.completed_actions ?? [],
     };
   },
+
+  completeStep: async (
+    transactionId: number,
+    stepCode: string,
+    completed: boolean = true
+  ): Promise<{ success: boolean; completed_steps: string[] }> => {
+    const response = await apiClient.post<{
+      success: boolean;
+      step_code: string;
+      completed: boolean;
+      completed_steps: string[];
+    }>(`/v1/transactions/${transactionId}/steps/${stepCode}/complete`, {
+      completed,
+    });
+    // Extract data from ApiResponse wrapper
+    const data = extractApiData<{ success: boolean; completed_steps: string[] }>(response);
+    if (!data) {
+      throw new Error('Empty response from complete step API');
+    }
+    return {
+      success: data.success,
+      completed_steps: data.completed_steps ?? [],
+    };
+  },
 };
