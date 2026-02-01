@@ -190,7 +190,7 @@ async def activate_invitation(
 ):
     """Activate invitation and create client user (public with token)."""
     from datetime import datetime, timezone
-    from app.core.security import get_password_hash
+    from app.core.security import hash_password
 
     result = await db.execute(
         select(ClientInvitation).where(ClientInvitation.token == token)
@@ -211,7 +211,7 @@ async def activate_invitation(
 
     user = User(
         email=invitation.email,
-        hashed_password=get_password_hash(data.password),
+        hashed_password=hash_password(data.password),
         first_name=data.first_name or invitation.prenom,
         last_name=data.last_name or invitation.nom,
         client_invitation_id=invitation.id,
