@@ -5,272 +5,240 @@ import { Plus, Search, Filter, MoreVertical, MessageSquare, Paperclip } from 'lu
 export default function DemoTransactions() {
   const columns = [
     {
-      id: 'not-ready',
       title: 'Not Ready',
-      color: 'bg-slate-200',
-      borderColor: 'border-slate-300',
-      count: 4,
-    },
-    {
-      id: 'to-do',
-      title: 'To Do',
-      color: 'bg-blue-200',
-      borderColor: 'border-blue-300',
-      count: 5,
-    },
-    {
-      id: 'in-progress',
-      title: 'In Progress',
-      color: 'bg-amber-200',
-      borderColor: 'border-amber-300',
       count: 3,
+      cards: [
+        {
+          title: 'Property valuation needed',
+          description: 'Waiting for professional assessment',
+          labels: [
+            { text: 'Urgent', color: 'bg-red-100 text-red-600' },
+            { text: 'Valuation', color: 'bg-blue-100 text-blue-600' },
+          ],
+          avatars: ['JD', 'SK'],
+          comments: 3,
+          attachments: 5,
+        },
+        {
+          title: 'Document verification',
+          description: 'Missing title deed',
+          labels: [
+            { text: 'Documents', color: 'bg-amber-100 text-amber-600' },
+          ],
+          avatars: ['AM'],
+          comments: 1,
+          attachments: 2,
+        },
+      ],
     },
     {
-      id: 'completed',
-      title: 'Completed',
-      color: 'bg-green-200',
-      borderColor: 'border-green-300',
-      count: 6,
+      title: 'To Do',
+      count: 5,
+      cards: [
+        {
+          title: 'Schedule property viewing',
+          description: 'Client requested 3 time slots',
+          labels: [
+            { text: 'Viewing', color: 'bg-green-100 text-green-600' },
+            { text: 'High Priority', color: 'bg-orange-100 text-orange-600' },
+          ],
+          avatars: ['LC', 'MR'],
+          comments: 7,
+          attachments: 3,
+        },
+        {
+          title: 'Prepare contract draft',
+          description: 'Standard residential agreement',
+          labels: [
+            { text: 'Legal', color: 'bg-purple-100 text-purple-600' },
+          ],
+          avatars: ['TW', 'BH'],
+          comments: 2,
+          attachments: 1,
+        },
+        {
+          title: 'Market analysis report',
+          description: 'Comparative market analysis for downtown area',
+          labels: [
+            { text: 'Analysis', color: 'bg-indigo-100 text-indigo-600' },
+          ],
+          avatars: ['RP'],
+          comments: 0,
+          attachments: 8,
+        },
+      ],
     },
-  ];
-
-  const cards = {
-    'not-ready': [
-      {
-        title: '123 Maple Street',
-        description: 'Initial documentation needed',
-        image: '/demo/house-1.jpg',
-        labels: ['Label', 'Label', 'Label'],
-        comments: 3,
-        attachments: 1,
-        avatars: ['JD', 'SM'],
-      },
-      {
-        title: '456 Oak Avenue',
-        description: 'Waiting for seller approval',
-        image: '/demo/house-2.jpg',
-        labels: ['Label', 'Label'],
-        comments: 0,
-        attachments: 3,
-        avatars: ['AB'],
-      },
-      {
-        title: '789 Pine Road',
-        description: 'Property inspection pending',
-        image: '/demo/house-3.jpg',
-        labels: ['Label'],
-        comments: 5,
-        attachments: 1,
-        avatars: ['CD', 'EF', 'GH'],
-      },
-    ],
-    'to-do': [
-      {
-        title: '321 Birch Lane',
-        description: 'Schedule property viewing',
-        image: '/demo/house-4.jpg',
-        labels: ['Label', 'Label'],
-        comments: 2,
-        attachments: 0,
-        avatars: ['IJ', 'KL'],
-      },
-      {
-        title: '654 Cedar Court',
-        description: 'Prepare offer documents',
-        image: '/demo/house-5.jpg',
-        labels: ['Label', 'Label', 'Label'],
-        comments: 5,
-        attachments: 2,
-        avatars: ['MN'],
-      },
-    ],
-    'in-progress': [
-      {
-        title: '987 Elm Street',
-        description: 'Negotiating final price',
-        image: '/demo/house-6.jpg',
-        labels: ['Label', 'Label'],
-        comments: 8,
-        attachments: 5,
-        avatars: ['OP', 'QR'],
-      },
-      {
-        title: '147 Willow Way',
-        description: 'Home inspection in progress',
-        image: '/demo/house-7.jpg',
-        labels: ['Label'],
-        comments: 3,
-        attachments: 1,
-        avatars: ['ST', 'UV', 'WX'],
-      },
-    ],
-    completed: [
-      {
-        title: '258 Spruce Drive',
-        description: 'Contract signed and finalized',
-        image: '/demo/house-8.jpg',
-        labels: ['Label', 'Label'],
-        comments: 12,
-        attachments: 8,
-        avatars: ['YZ', 'AB'],
-      },
-      {
-        title: '369 Ash Boulevard',
-        description: 'Keys handed over to buyer',
-        image: '/demo/house-9.jpg',
-        labels: ['Label'],
-        comments: 6,
-        attachments: 3,
-        avatars: ['CD'],
-      },
-    ],
-  };
-
-  const labelColors = [
-    'bg-blue-100 text-blue-700',
-    'bg-green-100 text-green-700',
-    'bg-amber-100 text-amber-700',
-    'bg-purple-100 text-purple-700',
-    'bg-pink-100 text-pink-700',
-  ];
-
-  const avatarColors = [
-    'bg-blue-500',
-    'bg-green-500',
-    'bg-amber-500',
-    'bg-purple-500',
-    'bg-pink-500',
-    'bg-indigo-500',
-    'bg-rose-500',
-    'bg-teal-500',
+    {
+      title: 'In Progress',
+      count: 4,
+      cards: [
+        {
+          title: 'Negotiating offer',
+          description: 'Counter-offer submitted',
+          labels: [
+            { text: 'Negotiation', color: 'bg-blue-100 text-blue-600' },
+            { text: 'Active', color: 'bg-green-100 text-green-600' },
+          ],
+          avatars: ['DS', 'KL', 'NP'],
+          comments: 12,
+          attachments: 4,
+        },
+        {
+          title: 'Home inspection scheduled',
+          description: 'Inspector confirmed for Friday',
+          labels: [
+            { text: 'Inspection', color: 'bg-teal-100 text-teal-600' },
+          ],
+          avatars: ['GF', 'HJ'],
+          comments: 5,
+          attachments: 2,
+        },
+      ],
+    },
+    {
+      title: 'Completed',
+      count: 8,
+      cards: [
+        {
+          title: 'Contract signed',
+          description: 'All parties have signed',
+          labels: [
+            { text: 'Closed', color: 'bg-green-100 text-green-600' },
+          ],
+          avatars: ['XY'],
+          comments: 15,
+          attachments: 10,
+        },
+        {
+          title: 'Keys handed over',
+          description: 'Transaction complete',
+          labels: [
+            { text: 'Done', color: 'bg-gray-100 text-gray-600' },
+          ],
+          avatars: ['QW', 'ER'],
+          comments: 8,
+          attachments: 6,
+        },
+      ],
+    },
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen p-10">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-4xl font-bold text-slate-900">Board</h1>
-          <p className="mt-2 text-lg text-slate-600">Manage your real estate transactions</p>
+      <div className="mb-10">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-light text-gray-900 mb-2">Transactions Board</h1>
+            <p className="text-sm font-light text-gray-500">
+              Manage your real estate transactions
+            </p>
+          </div>
+          <button className="flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors shadow-sm">
+            <Plus className="w-5 h-5" />
+            <span className="text-sm font-light">Add Task</span>
+          </button>
         </div>
-        <button className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-3 font-semibold text-white shadow-lg transition-all hover:shadow-xl">
-          <Plus className="h-5 w-5" />
-          Add Task
-        </button>
-      </div>
 
-      {/* Toolbar */}
-      <div className="flex items-center justify-between rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+        {/* Search and Filters */}
         <div className="flex items-center gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+          <div className="flex-1 relative">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
               placeholder="Search transactions..."
-              className="w-80 rounded-lg border border-slate-300 bg-slate-50 py-2 pl-10 pr-4 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              className="w-full pl-12 pr-4 py-3 bg-white border-0 rounded-xl shadow-sm text-sm font-light text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          <button className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50">
-            <Filter className="h-4 w-4" />
-            Filter
-          </button>
-        </div>
-        <div className="flex items-center gap-3">
-          <button className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50">
-            Sort
-          </button>
-          <button className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50">
-            View
-          </button>
-          <button className="rounded-lg border border-slate-300 bg-white p-2 text-slate-700 transition-colors hover:bg-slate-50">
-            <MoreVertical className="h-5 w-5" />
+          <button className="flex items-center gap-2 px-6 py-3 bg-white rounded-xl hover:bg-gray-50 transition-colors shadow-sm">
+            <Filter className="w-5 h-5 text-gray-600" />
+            <span className="text-sm font-light text-gray-700">Filter</span>
           </button>
         </div>
       </div>
 
       {/* Kanban Board */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {columns.map((column, columnIndex) => (
-          <div key={column.id} className="flex flex-col">
+          <div key={columnIndex} className="flex flex-col">
             {/* Column Header */}
-            <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-slate-900">{column.title}</h3>
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-xs font-medium text-slate-700">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <h2 className="text-base font-normal text-gray-900">{column.title}</h2>
+                <span className="px-2.5 py-1 bg-gray-100 text-gray-600 text-xs font-light rounded-full">
                   {column.count}
                 </span>
               </div>
-              <button className="text-slate-400 hover:text-slate-600">
-                <MoreVertical className="h-5 w-5" />
+              <button className="p-1 hover:bg-gray-100 rounded-lg transition-colors">
+                <MoreVertical className="w-4 h-4 text-gray-400" />
               </button>
             </div>
 
             {/* Cards */}
             <div className="space-y-4">
-              {cards[column.id as keyof typeof cards]?.map((card, cardIndex) => (
+              {column.cards.map((card, cardIndex) => (
                 <div
                   key={cardIndex}
-                  className="group cursor-pointer rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 transition-all hover:shadow-md hover:ring-slate-300"
+                  className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
                 >
-                  {/* Card Image */}
-                  {card.image && (
-                    <div className="mb-3 overflow-hidden rounded-lg">
-                      <div className="h-32 w-full bg-gradient-to-br from-slate-200 to-slate-300" />
-                    </div>
-                  )}
-
                   {/* Card Title */}
-                  <h4 className="mb-2 font-semibold text-slate-900">{card.title}</h4>
+                  <h3 className="text-sm font-normal text-gray-900 mb-2">
+                    {card.title}
+                  </h3>
 
                   {/* Card Description */}
-                  <p className="mb-3 text-sm text-slate-600">{card.description}</p>
+                  <p className="text-xs font-light text-gray-500 mb-4">
+                    {card.description}
+                  </p>
 
                   {/* Labels */}
-                  <div className="mb-3 flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 mb-4">
                     {card.labels.map((label, labelIndex) => (
                       <span
                         key={labelIndex}
-                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${labelColors[labelIndex % labelColors.length]}`}
+                        className={`px-3 py-1 rounded-full text-xs font-light ${label.color}`}
                       >
-                        {label}
+                        {label.text}
                       </span>
                     ))}
                   </div>
 
                   {/* Card Footer */}
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      {card.comments > 0 && (
-                        <div className="flex items-center gap-1 text-slate-500">
-                          <MessageSquare className="h-4 w-4" />
-                          <span className="text-xs font-medium">{card.comments}</span>
-                        </div>
-                      )}
-                      {card.attachments > 0 && (
-                        <div className="flex items-center gap-1 text-slate-500">
-                          <Paperclip className="h-4 w-4" />
-                          <span className="text-xs font-medium">{card.attachments}</span>
-                        </div>
-                      )}
-                    </div>
+                    {/* Avatars */}
                     <div className="flex -space-x-2">
                       {card.avatars.map((avatar, avatarIndex) => (
                         <div
                           key={avatarIndex}
-                          className={`flex h-7 w-7 items-center justify-center rounded-full ${avatarColors[avatarIndex % avatarColors.length]} text-xs font-bold text-white ring-2 ring-white`}
+                          className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-light border-2 border-white"
                         >
                           {avatar}
                         </div>
                       ))}
+                    </div>
+
+                    {/* Comments and Attachments */}
+                    <div className="flex items-center gap-3">
+                      {card.comments > 0 && (
+                        <div className="flex items-center gap-1 text-gray-400">
+                          <MessageSquare className="w-4 h-4" />
+                          <span className="text-xs font-light">{card.comments}</span>
+                        </div>
+                      )}
+                      {card.attachments > 0 && (
+                        <div className="flex items-center gap-1 text-gray-400">
+                          <Paperclip className="w-4 h-4" />
+                          <span className="text-xs font-light">{card.attachments}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
               ))}
 
               {/* Add Card Button */}
-              <button className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 py-3 text-sm font-medium text-slate-600 transition-colors hover:border-slate-400 hover:bg-slate-100">
-                <Plus className="h-4 w-4" />
-                Add new task
+              <button className="w-full py-3 border-2 border-dashed border-gray-200 rounded-2xl text-sm font-light text-gray-400 hover:border-gray-300 hover:text-gray-600 transition-colors">
+                + Add card
               </button>
             </div>
           </div>

@@ -5,87 +5,139 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
-  Receipt,
+  Repeat,
   Calendar,
   FileText,
-  Home,
-  Settings,
+  Menu as MenuIcon,
   LogOut,
-  ChevronRight,
+  Home,
 } from 'lucide-react';
 
 interface DemoLayoutProps {
   children: ReactNode;
 }
 
-const navigation = [
-  { name: 'Dashboard', href: '/demo/dashboard', icon: LayoutDashboard },
-  { name: 'Transactions', href: '/demo/transactions', icon: Receipt },
-  { name: 'Calendar', href: '/demo/calendar', icon: Calendar },
-  { name: 'Documents', href: '/demo/documents', icon: FileText },
-];
-
 export default function DemoLayout({ children }: DemoLayoutProps) {
   const pathname = usePathname();
 
+  const menuItems = [
+    {
+      name: 'Home',
+      href: '/demo/dashboard',
+      icon: Home,
+    },
+    {
+      name: 'Dashboard',
+      href: '/demo/dashboard',
+      icon: LayoutDashboard,
+    },
+    {
+      name: 'Transactions',
+      href: '/demo/transactions',
+      icon: Repeat,
+    },
+    {
+      name: 'Calendar',
+      href: '/demo/calendar',
+      icon: Calendar,
+    },
+    {
+      name: 'Documents',
+      href: '/demo/documents',
+      icon: FileText,
+    },
+    {
+      name: 'Menu Demo',
+      href: '/demo/menu-demo',
+      icon: MenuIcon,
+    },
+  ];
+
+  const isActive = (href: string) => {
+    return pathname?.includes(href);
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      {/* Sidebar Navigation */}
-      <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-slate-200 bg-white shadow-sm">
-        {/* Logo */}
-        <div className="flex h-16 items-center gap-3 border-b border-slate-200 px-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-700 shadow-md">
-            <Home className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold text-slate-900">ImmoAssist</h1>
-            <p className="text-xs text-slate-500">Demo Pages</p>
+    <div className="flex min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+      {/* Sidebar - Ultra Minimalist like Video Buddy */}
+      <aside className="w-64 bg-white shadow-sm flex flex-col fixed h-full">
+        {/* Logo/Brand */}
+        <div className="p-8 pb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md">
+              <Home className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-medium text-gray-900">ImmoAssist</h1>
+              <p className="text-xs font-light text-gray-400">Demo Pages</p>
+            </div>
           </div>
         </div>
 
-        {/* Navigation Links */}
-        <nav className="space-y-1 p-4">
-          {navigation.map((item) => {
-            const isActive = pathname?.includes(item.href);
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
-                  isActive
-                    ? 'bg-indigo-50 text-indigo-700 shadow-sm'
-                    : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
-                }`}
-              >
-                <Icon
-                  className={`h-5 w-5 transition-colors ${
-                    isActive ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'
-                  }`}
-                />
-                <span className="flex-1">{item.name}</span>
-                {isActive && <ChevronRight className="h-4 w-4 text-indigo-600" />}
-              </Link>
-            );
-          })}
+        {/* Navigation */}
+        <nav className="flex-1 px-4 py-2">
+          <ul className="space-y-2">
+            {menuItems.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.href);
+              
+              return (
+                <li key={item.name}>
+                  <Link
+                    href={item.href}
+                    className={`
+                      flex items-center gap-4 px-5 py-3.5 rounded-xl
+                      transition-all duration-200 ease-in-out
+                      ${
+                        active
+                          ? 'bg-blue-500 text-white shadow-md shadow-blue-500/30'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      }
+                    `}
+                  >
+                    <Icon
+                      className={`w-5 h-5 ${active ? 'text-white' : 'text-gray-400'}`}
+                    />
+                    <span className={`text-sm ${active ? 'font-medium' : 'font-light'}`}>
+                      {item.name}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
         </nav>
 
-        {/* Bottom Section */}
-        <div className="absolute bottom-0 left-0 right-0 border-t border-slate-200 bg-slate-50 p-4">
-          <button className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100">
-            <Settings className="h-5 w-5 text-slate-400" />
-            <span>Settings</span>
-          </button>
-          <button className="mt-2 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100">
-            <LogOut className="h-5 w-5 text-slate-400" />
-            <span>Log out</span>
+        {/* Pro Badge - like Video Buddy */}
+        <div className="px-4 py-4">
+          <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl p-4 text-white shadow-lg">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-light opacity-90">Upgrade to</span>
+              <span className="text-xl font-semibold">Pro</span>
+            </div>
+            <p className="text-xs font-light opacity-80 mb-3">
+              Unlock all features and get unlimited access
+            </p>
+            <button className="w-full bg-white text-blue-600 rounded-xl py-2 text-sm font-medium hover:bg-blue-50 transition-colors">
+              Upgrade Now
+            </button>
+          </div>
+        </div>
+
+        {/* Logout */}
+        <div className="p-4 border-t border-gray-100">
+          <button className="flex items-center gap-3 px-5 py-3 rounded-xl text-gray-600 hover:bg-red-50 hover:text-red-600 transition-all duration-200 w-full">
+            <LogOut className="w-5 h-5" />
+            <span className="text-sm font-light">Log out</span>
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="ml-64 min-h-screen">
-        <div className="mx-auto max-w-7xl p-8">{children}</div>
+      <main className="flex-1 ml-64">
+        <div className="min-h-screen">
+          {children}
+        </div>
       </main>
     </div>
   );
