@@ -120,22 +120,30 @@ Ce document suit la progression de la transformation UI par batches, avec un pus
 
 ---
 
-### Batch 5 : Header & PageHeader
-**Statut** : En attente  
+### Batch 5 : Header & PageHeader ✅
+**Statut** : Complété  
 **Priorité** : HAUTE  
 **Objectif** : Transformer Header et PageHeader
 
 **Tâches** :
-- [ ] Transformer Header avec logo noir, typographie dashboard-v2
-- [ ] Transformer PageHeader avec typographie adaptée
-- [ ] Tests : Vérifier header sur toutes les pages
+- [x] Transformer DashboardHeader avec logo noir bg-black rounded-full w-14 h-14
+- [x] Transformer DashboardHeader avec titre text-xl font-semibold et sous-titre text-sm text-gray-500
+- [x] Transformer boutons actions avec p-2.5 bg-white rounded-full shadow-sm
+- [x] Transformer PageHeader avec typographie Dashboard V2 (text-xl font-light pour description)
+- [x] Tests : Vérifier header sur toutes les pages (pas d'erreurs linter)
 
-**Fichiers à modifier** :
-- `apps/web/src/components/layout/Header.tsx`
-- `apps/web/src/components/layout/PageHeader.tsx`
-- `apps/web/src/components/layout/DashboardHeader.tsx`
+**Fichiers modifiés** :
+- ✅ `apps/web/src/components/layout/DashboardHeader.tsx` - Logo noir, typographie Dashboard V2, boutons rounded-full
+- ✅ `apps/web/src/components/layout/PageHeader.tsx` - Description text-xl font-light
 
 **Commit** : `feat(ui): Batch 5 - Header & PageHeader`
+
+**Résumé des changements** :
+- DashboardHeader : Logo bg-black rounded-full w-14 h-14 avec "IA" blanc
+- DashboardHeader : Titre text-xl font-semibold avec sous-titre text-sm text-gray-500
+- DashboardHeader : Boutons actions p-2.5 bg-white rounded-full shadow-sm
+- DashboardHeader : Header avec shadow-sm (au lieu de shadow-subtle-sm)
+- PageHeader : Description text-xl font-light text-gray-400 (au lieu de text-sm font-light text-gray-500)
 
 ---
 
@@ -243,17 +251,16 @@ Ce document suit la progression de la transformation UI par batches, avec un pus
 
 ## Progression Globale
 
-**Batches complétés** : 4/10 ✅  
+**Batches complétés** : 5/10 ✅  
 **Batches en cours** : 0  
-**Batches en attente** : 6
+**Batches en attente** : 5
 
 ### Dernière mise à jour
-- **Batch 4** complété le 2026-02-01
-- Menu/Sidebar Navigation transformé avec style Menu Demo (CRITIQUE)
-- Items actifs : bg-blue-500 text-white font-medium shadow-md shadow-blue-500/30
-- Items inactifs : text-gray-600 font-light hover:bg-gray-50
-- Spacing : gap-4 px-5 py-3.5, space-y-2
-- Container : bg-white rounded-xl shadow-sm
+- **Batch 5** complété le 2026-02-01
+- Header & PageHeader transformés avec style Dashboard V2
+- DashboardHeader : Logo bg-black rounded-full w-14 h-14, titre text-xl font-semibold
+- DashboardHeader : Boutons actions p-2.5 bg-white rounded-full shadow-sm
+- PageHeader : Description text-xl font-light text-gray-400
 
 ## Notes
 

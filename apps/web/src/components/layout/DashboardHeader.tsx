@@ -84,7 +84,7 @@ export default function DashboardHeader({
   return (
     <header
       className={clsx(
-        'sticky top-0 z-30 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 shadow-subtle-sm backdrop-blur-sm', // UI Revamp - Nouveau système d'ombres
+        'sticky top-0 z-30 bg-white dark:bg-neutral-900 border-b border-gray-100 dark:border-neutral-800 shadow-sm', // Dashboard V2 Style - shadow-sm
         className
       )}
     >
@@ -92,30 +92,39 @@ export default function DashboardHeader({
         <div className="flex items-center justify-between h-16 sm:h-20 gap-3 sm:gap-6"> {/* Revamp UI - Height et gap augmentés */}
           {/* Left Section: Mobile Menu + Title/Breadcrumbs */}
           <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
-            {/* Mobile Menu Button */}
+            {/* Mobile Menu Button - Dashboard V2 Style */}
             {onMobileMenuToggle && (
               <button
                 onClick={onMobileMenuToggle}
-                className="lg:hidden p-2.5 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-modern hover:shadow-subtle-sm" // UI Revamp - Transition moderne
+                className="lg:hidden p-2.5 bg-white rounded-full shadow-sm hover:bg-gray-50 transition-colors" // Dashboard V2 Style
                 aria-label="Toggle menu"
                 aria-expanded={mobileMenuOpen}
               >
                 {mobileMenuOpen ? (
-                  <X className="w-5 h-5 text-neutral-700 dark:text-neutral-300" />
+                  <X className="w-4 h-4 text-gray-600" />
                 ) : (
-                  <Menu className="w-5 h-5 text-neutral-700 dark:text-neutral-300" />
+                  <Menu className="w-4 h-4 text-gray-600" />
                 )}
               </button>
             )}
 
-            {/* Title or Breadcrumbs */}
+            {/* Title or Breadcrumbs - Dashboard V2 Style */}
             <div className="flex-1 min-w-0">
               {breadcrumbs && breadcrumbs.length > 0 ? (
                 <Breadcrumb items={breadcrumbs} className="text-xs sm:text-sm" />
               ) : title ? (
-                <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 dark:text-neutral-100 truncate"> {/* Revamp UI - Taille augmentée */}
-                  {title}
-                </h1>
+                <div className="flex items-center gap-4">
+                  {/* Logo - Dashboard V2 Style */}
+                  <div className="bg-black rounded-full w-14 h-14 flex items-center justify-center flex-shrink-0">
+                    <span className="text-white font-bold text-lg">IA</span>
+                  </div>
+                  <div>
+                    <h1 className="text-xl font-semibold text-gray-900 dark:text-neutral-100 truncate"> {/* Dashboard V2 Style */}
+                      {title}
+                    </h1>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Dashboard</p> {/* Dashboard V2 Style - Sous-titre */}
+                  </div>
+                </div>
               ) : null}
             </div>
           </div>
@@ -141,14 +150,14 @@ export default function DashboardHeader({
             {/* Additional Actions */}
             {actions}
 
-            {/* Notifications */}
+            {/* Notifications - Dashboard V2 Style */}
             <button
-              className="relative p-2.5 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-modern hover:shadow-subtle-sm" // UI Revamp - Transition moderne
+              className="relative p-2.5 bg-white rounded-full shadow-sm hover:bg-gray-50 transition-colors" // Dashboard V2 Style
               aria-label="Notifications"
             >
-              <Bell className="w-5 h-5 text-neutral-700 dark:text-neutral-300" />
+              <Bell className="w-4 h-4 text-gray-600" />
               {notificationCount > 0 && (
-                <span className="absolute top-1 right-1 w-2 h-2 bg-primary-500 rounded-full ring-2 ring-white dark:ring-neutral-900" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-blue-500 rounded-full ring-2 ring-white" />
               )}
             </button>
 
