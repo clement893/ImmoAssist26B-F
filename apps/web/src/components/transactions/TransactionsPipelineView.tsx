@@ -25,6 +25,13 @@ interface Transaction {
   final_sale_price?: number;
   expected_closing_date?: string;
   actual_closing_date?: string;
+  documents?: Array<{
+    id: number;
+    url: string;
+    filename: string;
+    type?: string;
+    [key: string]: any;
+  }>;
 }
 
 interface TransactionsPipelineViewProps {
@@ -241,6 +248,9 @@ export default function TransactionsPipelineView({
                     ...(transaction.sellers || []).map((s: any) => s.name),
                     ...(transaction.buyers || []).map((b: any) => b.name),
                   ].filter(Boolean);
+                  
+                  // Get first photo from documents
+                  const firstPhoto = transaction.documents?.find(doc => doc.type === 'photo') || transaction.documents?.[0];
 
                   return (
                     <div
@@ -254,14 +264,30 @@ export default function TransactionsPipelineView({
                           router.push(`/dashboard/transactions/${transaction.id}`);
                         }
                       }}
-                      className={`bg-white dark:bg-neutral-900 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer ${
+                      className={`bg-white dark:bg-neutral-900 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer ${
                         draggedTransaction === transaction.id ? 'opacity-50' : ''
                       }`}
                     >
-                      {/* Transaction Title */}
-                      <h3 className="text-sm font-normal text-gray-900 dark:text-gray-100 mb-2">
-                        {transaction.name}
-                      </h3>
+                      {/* Photo Header */}
+                      {firstPhoto?.url && (
+                        <div className="relative w-full h-32 bg-gray-100 dark:bg-neutral-800 overflow-hidden">
+                          <img
+                            src={firstPhoto.url}
+                            alt={transaction.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              // Hide image on error
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      )}
+                      
+                      <div className="p-6">
+                        {/* Transaction Title */}
+                        <h3 className="text-sm font-normal text-gray-900 dark:text-gray-100 mb-2">
+                          {transaction.name}
+                        </h3>
 
                       {/* Dossier Number */}
                       {transaction.dossier_number && (
@@ -339,6 +365,7 @@ export default function TransactionsPipelineView({
                             <span className="text-xs font-light">{allParties.length}</span>
                           </div>
                         )}
+                      </div>
                       </div>
                     </div>
                   );

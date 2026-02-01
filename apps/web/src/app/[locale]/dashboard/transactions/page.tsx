@@ -53,6 +53,13 @@ interface Transaction {
   actual_closing_date?: string;
   possession_date?: string;
   notes?: string;
+  documents?: Array<{
+    id: number;
+    url: string;
+    filename: string;
+    type?: string;
+    [key: string]: any;
+  }>;
 }
 
 function TransactionsContent() {
@@ -288,12 +295,31 @@ function TransactionsContent() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {transactions.map((transaction) => (
+            {transactions.map((transaction) => {
+              // Get first photo from documents
+              const firstPhoto = transaction.documents?.find(doc => doc.type === 'photo') || transaction.documents?.[0];
+              
+              return (
               <Card
                 key={transaction.id}
                 hover
-                className="flex flex-col"
+                className="flex flex-col overflow-hidden"
               >
+                {/* Photo Header */}
+                {firstPhoto?.url && (
+                  <div className="relative w-full h-48 bg-muted overflow-hidden">
+                    <img
+                      src={firstPhoto.url}
+                      alt={transaction.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        // Hide image on error
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
+                
                 <div className="flex-1 p-6 space-y-4">
                   {/* Header */}
                   <div className="flex items-start justify-between">
@@ -409,7 +435,8 @@ function TransactionsContent() {
                   </Button>
                 </div>
               </Card>
-            ))}
+            );
+            })}
           </div>
         )}
           </>
