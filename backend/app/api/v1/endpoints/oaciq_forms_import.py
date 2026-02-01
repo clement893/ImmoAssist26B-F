@@ -1,17 +1,19 @@
 """
 OACIQ Forms Import Endpoint
 Endpoint pour l'import en masse de formulaires OACIQ depuis Manus
++ schéma d'extraction et extraction PDF
 """
 
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from typing import Any, Dict, List
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError, OperationalError, ProgrammingError
+from pydantic import BaseModel
 
 from app.models.form import Form
 from app.models.user import User
-from app.dependencies import get_db
+from app.dependencies import get_db, get_current_user
 from app.core.api_key import get_user_from_api_key
 from app.api.v1.endpoints.auth import get_current_user as get_current_user_jwt
 from app.schemas.oaciq_form import (
@@ -23,6 +25,52 @@ from app.core.logging import logger
 from app.api.v1.endpoints.oaciq_forms import handle_database_error
 
 router = APIRouter()
+
+
+@router.get(
+    "/oaciq/forms/import/schema/{code}",
+    response_model=ExtractionSchemaResponse,
+    tags=["oaciq-forms"],
+    summary="Schéma d'extraction d'un formulaire OACIQ",
+)
+async def get_oaciq_form_schema(
+    code: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Retourne le extraction_schema du formulaire OACIQ pour le code donné.
+    Utilisé par le frontend pour afficher la structure attendue ou pour l'extraction PDF.
+    """
+    result = await db.execute(select(Form).where(Form.code == code))
+    form = result.scalar_one_or_none()
+    if not form:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Formulaire OACIQ introuvable",
+        )
+    extraction_schema = getattr(form, "extraction_schema", None)
+    return ExtractionSchemaResponse(
+        code=code,
+        extraction_schema=extraction_schema,
+        form_id=form.id,
+    )
+
+
+class ExtractionSchemaResponse(BaseModel):
+    """Réponse contenant le schéma d'extraction d'un formulaire OACIQ."""
+    code: str
+    extraction_schema: Dict[str, Any] | None
+    form_id: int
+
+
+class ExtractPdfResponse(BaseModel):
+    """Réponse après extraction des champs depuis un PDF."""
+    success: bool
+    form_code: str
+    data: Dict[str, Any]
+    confidence: Dict[str, float]
+    raw_text_preview: str | None = None
 
 
 @router.post(
