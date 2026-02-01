@@ -466,6 +466,9 @@ export default function TransactionDetailPage() {
                       onChange={async (e) => {
                         const selectedFile = e.target.files?.[0];
                         if (selectedFile && transaction && transactionId) {
+                          // Capturer le nombre de photos avant l'ajout
+                          const photosBeforeAdd = (transaction.documents || []).filter(d => d.type === 'photo').length;
+                          
                           // Créer une URL d'aperçu immédiate
                           const previewUrl = URL.createObjectURL(selectedFile);
                           
@@ -501,18 +504,59 @@ export default function TransactionDetailPage() {
                             
                             const response = await transactionsAPI.addPhoto(id, selectedFile);
                             
-                            // Nettoyer l'URL d'aperçu
-                            URL.revokeObjectURL(previewUrl);
-                            
                             if (response?.data) {
-                              // Remplacer la transaction avec la vraie réponse du serveur
-                              setTransaction(response.data);
+                              const serverTransaction = response.data;
+                              const serverPhotos = (serverTransaction.documents || []).filter(d => d.type === 'photo') || [];
+                              
+                              // Si le serveur a ajouté une nouvelle photo, remplacer complètement
+                              if (serverPhotos.length > photosBeforeAdd) {
+                                URL.revokeObjectURL(previewUrl);
+                                setTransaction(serverTransaction);
+                              } else {
+                                // Le serveur n'a pas encore la photo dans la réponse, garder l'optimiste
+                                // et fusionner intelligemment
+                                setTransaction((prev) => {
+                                  if (!prev) return serverTransaction;
+                                  
+                                  const optimisticPhoto = (prev.documents || []).find(doc => doc.id === tempPhotoId);
+                                  if (!optimisticPhoto) {
+                                    return serverTransaction;
+                                  }
+                                  
+                                  // Fusionner : garder tous les documents du serveur + la photo optimiste
+                                  const allServerDocs = serverTransaction.documents || [];
+                                  const hasOptimistic = allServerDocs.some(doc => doc.id === tempPhotoId);
+                                  
+                                  return {
+                                    ...serverTransaction,
+                                    documents: hasOptimistic 
+                                      ? allServerDocs 
+                                      : [...allServerDocs, optimisticPhoto],
+                                  };
+                                });
+                                
+                                // Recharger après un délai pour obtenir la vraie photo du serveur
+                                setTimeout(async () => {
+                                  try {
+                                    const finalResponse = await transactionsAPI.get(id);
+                                    if (finalResponse?.data) {
+                                      URL.revokeObjectURL(previewUrl);
+                                      setTransaction(finalResponse.data);
+                                    }
+                                  } catch (err) {
+                                    // En cas d'erreur, garder la photo optimiste
+                                    console.error('Erreur lors du rechargement:', err);
+                                  }
+                                }, 2000);
+                              }
+                              
                               showToast({
                                 message: 'Photo ajoutée avec succès',
                                 type: 'success',
                               });
                             } else {
                               // Recharger la transaction silencieusement si la réponse est invalide
+                              URL.revokeObjectURL(previewUrl);
                               await reloadTransaction();
                               showToast({
                                 message: 'Photo ajoutée avec succès',
