@@ -60,6 +60,10 @@ class User(Base):
     messages_portail = relationship("TransactionMessage", back_populates="expediteur", foreign_keys="TransactionMessage.expediteur_id")
     taches_portail_creees = relationship("TransactionTache", back_populates="cree_par", foreign_keys="TransactionTache.cree_par_id")
 
+    # Rendez-vous et calendriers externes
+    appointments = relationship("Appointment", back_populates="broker", foreign_keys="Appointment.broker_id", cascade="all, delete-orphan")
+    calendar_connections = relationship("CalendarConnection", back_populates="user", cascade="all, delete-orphan")
+
     @property
     def is_superadmin(self) -> bool:
         """

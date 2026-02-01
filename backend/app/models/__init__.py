@@ -54,6 +54,9 @@ from app.models.transaction_document import TransactionDocument
 from app.models.transaction_message import TransactionMessage
 from app.models.transaction_tache import TransactionTache
 from app.models.transaction_etape import TransactionEtape
+from app.models.appointment import Appointment, AppointmentStatus
+from app.models.appointment_attendee import AppointmentAttendee, AttendeeStatus
+from app.models.calendar_connection import CalendarConnection, CalendarProvider
 from app.core.security_audit import SecurityAuditLog
 
 __all__ = [
@@ -155,6 +158,12 @@ __all__ = [
     "TransactionMessage",
     "TransactionTache",
     "TransactionEtape",
+    "Appointment",
+    "AppointmentStatus",
+    "AppointmentAttendee",
+    "AttendeeStatus",
+    "CalendarConnection",
+    "CalendarProvider",
     "SecurityAuditLog",
 ]
 

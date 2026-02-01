@@ -38,6 +38,8 @@ from app.core.request_signing import RequestSigningMiddleware
 from app.api.v1.router import api_router
 from app.api import email as email_router
 from app.api.webhooks import stripe as stripe_webhook_router
+from app.api.webhooks import google_calendar as google_calendar_webhook_router
+from app.api.webhooks import microsoft_calendar as microsoft_calendar_webhook_router
 from app.api import upload as upload_router
 
 
@@ -373,6 +375,8 @@ def create_app() -> FastAPI:
     
     # Include webhooks (no prefix, no auth)
     app.include_router(stripe_webhook_router.router)
+    app.include_router(google_calendar_webhook_router.router)
+    app.include_router(microsoft_calendar_webhook_router.router)
 
     # Register exception handlers
     from fastapi.exceptions import HTTPException as FastAPIHTTPException

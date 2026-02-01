@@ -5,34 +5,30 @@ import Container from '@/components/ui/Container';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Calendar from '@/components/ui/Calendar';
+import type { CalendarEvent } from '@/components/ui/Calendar';
 import { Calendar as CalendarIcon, Clock, Plus, CalendarCheck } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useAppointmentsList } from '@/hooks/useAppointments';
 
 export default function CalendrierModulePage() {
   const router = useRouter();
   const params = useParams();
-  const locale = params.locale as string;
+  const locale = (params?.locale as string) ?? 'fr';
   const [view, setView] = useState<'month' | 'day'>('month');
 
-  // Exemple d'événements pour démonstration
-  const [events] = useState([
-    {
-      id: '1',
-      title: 'Réunion client',
-      date: new Date(),
-      time: '10:00',
-      description: 'Discussion sur la transaction',
-      color: 'bg-blue-500',
-    },
-    {
-      id: '2',
-      title: 'Visite de propriété',
-      date: new Date(Date.now() + 86400000), // Demain
-      time: '14:00',
-      description: 'Visite avec les acheteurs',
-      color: 'bg-green-500',
-    },
-  ]);
+  const { appointments, isLoading } = useAppointmentsList({ limit: 200 });
+  const events: CalendarEvent[] = useMemo(
+    () =>
+      appointments.map((apt) => ({
+        id: String(apt.id),
+        title: apt.title,
+        date: new Date(apt.start_time),
+        time: new Date(apt.start_time).toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' }),
+        description: apt.description ?? undefined,
+        color: apt.status === 'cancelled' ? 'bg-muted' : 'bg-primary',
+      })),
+    [appointments]
+  );
 
   return (
     <Container>
@@ -63,10 +59,10 @@ export default function CalendrierModulePage() {
             <Button
               variant="primary"
               size="sm"
-              onClick={() => router.push(`/${locale}/dashboard/modules/calendrier/nouveau`)}
+              onClick={() => router.push(`/${locale}/dashboard/modules/calendrier/rendez-vous/nouveau`)}
             >
               <Plus className="w-4 h-4 mr-2" />
-              Nouvel événement
+              Nouveau rendez-vous
             </Button>
           </div>
         </div>
@@ -77,12 +73,9 @@ export default function CalendrierModulePage() {
             <Calendar
               events={events}
               view={view}
-              onDateClick={() => {
-                setView('day');
-                // Vous pouvez naviguer vers la vue jour avec cette date
-              }}
+              onDateClick={() => setView('day')}
               onEventClick={(event) => {
-                router.push(`/${locale}/dashboard/modules/calendrier/evenements/${event.id}`);
+                router.push(`/${locale}/dashboard/modules/calendrier/rendez-vous/${event.id}`);
               }}
             />
           </div>
@@ -90,14 +83,14 @@ export default function CalendrierModulePage() {
 
         {/* Quick Actions */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <Card hover onClick={() => router.push(`/${locale}/dashboard/modules/calendrier/nouveau`)}>
+          <Card hover onClick={() => router.push(`/${locale}/dashboard/modules/calendrier/rendez-vous/nouveau`)}>
             <div className="p-6">
               <div className="flex items-center gap-4 mb-4">
                 <div className="p-3 bg-primary/10 rounded-lg">
                   <Plus className="w-8 h-8 text-primary" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold">Nouvel événement</h2>
+                  <h2 className="text-xl font-semibold">Nouveau rendez-vous</h2>
                   <p className="text-sm text-muted-foreground">
                     Créer un rendez-vous
                   </p>
@@ -107,7 +100,29 @@ export default function CalendrierModulePage() {
                 Ajoutez un nouveau rendez-vous, une visite ou un événement à votre calendrier.
               </p>
               <Button variant="primary" size="sm" className="w-full">
-                Créer un événement
+                Créer un rendez-vous
+              </Button>
+            </div>
+          </Card>
+
+          <Card hover onClick={() => router.push(`/${locale}/dashboard/modules/calendrier/rendez-vous`)}>
+            <div className="p-6">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="p-3 bg-info/10 rounded-lg">
+                  <Clock className="w-8 h-8 text-info" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold">Rendez-vous</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Liste des rendez-vous
+                  </p>
+                </div>
+              </div>
+              <p className="text-muted-foreground mb-4">
+                Consultez et gérez tous vos rendez-vous en un coup d&apos;œil.
+              </p>
+              <Button variant="primary" size="sm" className="w-full">
+                Voir les rendez-vous
               </Button>
             </div>
           </Card>

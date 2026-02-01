@@ -14,6 +14,7 @@ import {
   Bell,
   UserCog,
   FileText,
+  Calendar,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 export interface SettingsNavItem {
@@ -70,6 +71,14 @@ export interface SettingsNavigationProps {
       icon: <Puzzle className="w-6 h-6" />,
       description:
         t('navigation.integrationsDescription') || 'Third-party integrations and connections',
+    },
+    {
+      id: 'calendar',
+      label: t('navigation.calendar') || 'Calendrier',
+      href: '/settings/calendar',
+      icon: <Calendar className="w-6 h-6" />,
+      description:
+        t('navigation.calendarDescription') || 'Connecter Google Calendar et Outlook',
     },
     {
       id: 'api',

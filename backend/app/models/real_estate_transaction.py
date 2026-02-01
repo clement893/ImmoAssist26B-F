@@ -168,6 +168,7 @@ class RealEstateTransaction(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     user = relationship("User", backref="real_estate_transactions")
     transaction_contacts = relationship("TransactionContact", back_populates="transaction", cascade="all, delete-orphan")
+    appointments = relationship("Appointment", back_populates="transaction", cascade="all, delete-orphan")
     
     def get_contacts_by_role(self, role: str):
         """Helper method to get contacts by role"""

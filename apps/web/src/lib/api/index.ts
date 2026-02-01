@@ -118,3 +118,16 @@ export type {
   OACIQFormFields,
   CreateOACIQFormSubmission,
 } from './oaciq-adapters';
+
+export { appointmentsAPI } from './appointments';
+export type {
+  AppointmentResponse,
+  AppointmentListResponse,
+  AppointmentCreate,
+  AppointmentUpdate,
+  AppointmentAttendeeCreate,
+  AppointmentAttendeeResponse,
+  AvailabilityResponse,
+  AvailabilitySlot,
+  CalendarConnectionResponse,
+} from './appointments';
