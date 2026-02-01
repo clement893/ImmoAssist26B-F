@@ -784,6 +784,13 @@ export const formsAPI = {
   deleteSubmission: (submissionId: number) => {
     return apiClient.delete(`/v1/forms/submissions/${submissionId}`);
   },
+  /** Valider les données d'un formulaire contre les règles de conformité OACIQ (sans créer de soumission). */
+  validateSubmission: (formId: number, data: Record<string, unknown>) => {
+    return apiClient.post<Array<{ code: string; field: string; severity: string; message: string; description?: string }>>(
+      `/v1/forms/${formId}/submissions/validate`,
+      { data }
+    );
+  },
 };
 
 export const formOcrAPI = {

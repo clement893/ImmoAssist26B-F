@@ -41,6 +41,22 @@ export interface ExtractFieldsResponse {
   form: OACIQForm;
 }
 
+/** Schéma d'extraction (backend GET /oaciq/forms/import/schema/{code}) */
+export interface OACIQExtractionSchemaResponse {
+  code: string;
+  extraction_schema: Record<string, unknown> | null;
+  form_id: number;
+}
+
+/** Réponse extraction PDF (backend POST /oaciq/forms/import/extract) */
+export interface OACIQExtractPdfResponse {
+  success: boolean;
+  form_code: string;
+  data: Record<string, unknown>;
+  confidence: Record<string, number>;
+  raw_text_preview?: string | null;
+}
+
 /**
  * OACIQ Forms API client
  */
@@ -170,6 +186,36 @@ export const oaciqFormsAPI = {
     const response = await apiClient.post<ExtractFieldsResponse>(
       '/v1/oaciq/forms/extract-fields',
       request
+    );
+    return extractApiData(response);
+  },
+
+  /**
+   * Obtenir le schéma d'extraction d'un formulaire OACIQ
+   */
+  getSchema: async (code: string): Promise<OACIQExtractionSchemaResponse> => {
+    const response = await apiClient.get<OACIQExtractionSchemaResponse>(
+      `/v1/oaciq/forms/import/schema/${encodeURIComponent(code)}`
+    );
+    return extractApiData(response);
+  },
+
+  /**
+   * Extraire les champs d'un PDF (upload + form_code)
+   */
+  extractFromPdf: async (
+    file: File,
+    formCode: string
+  ): Promise<OACIQExtractPdfResponse> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('form_code', formCode);
+    const response = await apiClient.post<OACIQExtractPdfResponse>(
+      '/v1/oaciq/forms/import/extract',
+      formData,
+      {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      }
     );
     return extractApiData(response);
   },

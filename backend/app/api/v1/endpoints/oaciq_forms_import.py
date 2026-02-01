@@ -4,8 +4,9 @@ Endpoint pour l'import en masse de formulaires OACIQ depuis Manus
 + schéma d'extraction et extraction PDF
 """
 
+import asyncio
 from typing import Any, Dict, List
-from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError, OperationalError, ProgrammingError
@@ -25,6 +26,22 @@ from app.core.logging import logger
 from app.api.v1.endpoints.oaciq_forms import handle_database_error
 
 router = APIRouter()
+
+
+class ExtractionSchemaResponse(BaseModel):
+    """Réponse contenant le schéma d'extraction d'un formulaire OACIQ."""
+    code: str
+    extraction_schema: Dict[str, Any] | None
+    form_id: int
+
+
+class ExtractPdfResponse(BaseModel):
+    """Réponse après extraction des champs depuis un PDF."""
+    success: bool
+    form_code: str
+    data: Dict[str, Any]
+    confidence: Dict[str, float]
+    raw_text_preview: str | None = None
 
 
 @router.get(
@@ -57,20 +74,81 @@ async def get_oaciq_form_schema(
     )
 
 
-class ExtractionSchemaResponse(BaseModel):
-    """Réponse contenant le schéma d'extraction d'un formulaire OACIQ."""
-    code: str
-    extraction_schema: Dict[str, Any] | None
-    form_id: int
+@router.post(
+    "/oaciq/forms/import/extract",
+    response_model=ExtractPdfResponse,
+    tags=["oaciq-forms"],
+    summary="Extraire les champs d'un PDF (formulaire OACIQ)",
+)
+async def extract_pdf_oaciq_form(
+    file: UploadFile = File(..., description="Fichier PDF du formulaire"),
+    form_code: str = Form(..., description="Code du formulaire OACIQ (ex: PA, DIA)"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Téléverse un PDF de formulaire OACIQ et extrait les champs selon le extraction_schema du formulaire.
+    Retourne les données extraites et un score de confiance par champ (si LLM utilisé).
+    """
+    from app.services.form_ocr_service import (
+        extract_text_from_pdf,
+        extract_structured_data,
+    )
 
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Le fichier doit être un PDF",
+        )
+    content = await file.read()
+    if len(content) > 20 * 1024 * 1024:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Fichier trop volumineux (max 20 Mo)",
+        )
 
-class ExtractPdfResponse(BaseModel):
-    """Réponse après extraction des champs depuis un PDF."""
-    success: bool
-    form_code: str
-    data: Dict[str, Any]
-    confidence: Dict[str, float]
-    raw_text_preview: str | None = None
+    result = await db.execute(select(Form).where(Form.code == form_code))
+    form = result.scalar_one_or_none()
+    if not form:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Formulaire OACIQ introuvable",
+        )
+    extraction_schema = getattr(form, "extraction_schema", None) or {}
+
+    loop = asyncio.get_event_loop()
+    try:
+        raw_text = await loop.run_in_executor(
+            None, extract_text_from_pdf, content
+        )
+    except Exception as e:
+        logger.error("PDF text extraction failed: %s", e, exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Impossible d'extraire le texte du PDF: {str(e)}",
+        )
+
+    data: Dict[str, Any] = {}
+    confidence: Dict[str, float] = {}
+    if extraction_schema and (extraction_schema.get("fields")):
+        try:
+            data, confidence = await loop.run_in_executor(
+                None,
+                lambda: extract_structured_data(raw_text, extraction_schema),
+            )
+        except Exception as e:
+            logger.warning("Structured extraction failed, returning raw: %s", e)
+            data = {"_raw_text": raw_text[:2000]}
+    else:
+        data = {"_raw_text": raw_text[:5000]}
+
+    return ExtractPdfResponse(
+        success=True,
+        form_code=form_code,
+        data=data,
+        confidence=confidence,
+        raw_text_preview=raw_text[:1500] if raw_text else None,
+    )
 
 
 @router.post(

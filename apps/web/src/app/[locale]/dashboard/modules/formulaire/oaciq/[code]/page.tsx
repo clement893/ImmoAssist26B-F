@@ -22,6 +22,8 @@ import {
   Share2,
   Printer,
   BookOpen,
+  Edit3,
+  Upload,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { oaciqFormsAPI, type OACIQForm } from '@/lib/api/oaciq-forms';
@@ -313,8 +315,24 @@ export default function FormDetailPage() {
 
               <div className="space-y-3">
                 <Link
-                  href={`/dashboard/modules/formulaire/oaciq/${getFormCode()}/view`}
+                  href={`/dashboard/modules/formulaire/oaciq/${getFormCode()}/fill`}
                   className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors"
+                >
+                  <Edit3 className="w-4 h-4" />
+                  Compléter le formulaire
+                </Link>
+
+                <Link
+                  href={`/dashboard/modules/formulaire/oaciq/${getFormCode()}/import-pdf`}
+                  className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-medium transition-colors"
+                >
+                  <Upload className="w-4 h-4" />
+                  Importer un PDF
+                </Link>
+
+                <Link
+                  href={`/dashboard/modules/formulaire/oaciq/${getFormCode()}/view`}
+                  className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition-colors"
                 >
                   <Eye className="w-4 h-4" />
                   Visualiser le PDF
