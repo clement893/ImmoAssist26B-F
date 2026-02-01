@@ -47,7 +47,7 @@ export function FormRenderer({ fields, data, onChange }: FormRendererProps) {
                   key={field.id || field.name}
                   field={field}
                   value={data[field.name || field.id]}
-                  onChange={(value) => onChange(field.name || field.id, value)}
+                  onChange={(value: any) => onChange(field.name || field.id, value)}
                 />
               );
             })}

@@ -30,7 +30,6 @@ import {
   Shield,
   History,
   Image as ImageIcon,
-  Zap,
   Bolt,
 } from 'lucide-react';
 
