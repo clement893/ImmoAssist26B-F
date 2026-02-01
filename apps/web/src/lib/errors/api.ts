@@ -168,15 +168,30 @@ export function handleApiError(error: unknown): AppError {
     }
 
     // Generate contextual error message based on status code
-    let message =
+    // FastAPI returns HTTPException errors in format: { "detail": "message" }
+    // Check for both formats: responseData.error.message and responseData.detail
+    let message: string | undefined;
+    
+    if (
       responseData &&
       typeof responseData === 'object' &&
       'error' in responseData &&
       typeof responseData.error === 'object' &&
       responseData.error &&
       'message' in responseData.error
-        ? String(responseData.error.message)
-        : error.message;
+    ) {
+      message = String(responseData.error.message);
+    } else if (
+      responseData &&
+      typeof responseData === 'object' &&
+      'detail' in responseData &&
+      typeof responseData.detail === 'string'
+    ) {
+      // FastAPI HTTPException format
+      message = String(responseData.detail);
+    } else {
+      message = error.message;
+    }
 
     if (!message || message === 'Request failed with status code') {
       // Generate user-friendly messages for common status codes
