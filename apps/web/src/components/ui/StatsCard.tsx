@@ -75,9 +75,9 @@ export default function StatsCard({
   return (
     <div
       className={clsx(
-        'bg-white dark:bg-neutral-900 rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow duration-200', // UI Revamp - Style démo pages (ultra-minimaliste)
-        'w-full', // Full width on mobile
-        onClick && 'cursor-pointer', // UI Revamp - Cursor pointer si cliquable
+        'bg-white dark:bg-neutral-900 rounded-3xl p-6 shadow-sm hover:shadow-md transition-shadow duration-200', // Dashboard V2 Style - rounded-3xl p-6
+        'w-full',
+        onClick && 'cursor-pointer',
         className
       )}
       onClick={onClick}
@@ -94,25 +94,26 @@ export default function StatsCard({
           : undefined
       }
     >
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         {icon && (
-          <div className={clsx('rounded-xl p-3', iconStyles[variant])}> {/* UI Revamp - Style démo pages */}
+          <div className={clsx('rounded-full p-2', iconStyles[variant])}> {/* Dashboard V2 Style - rounded-full p-2 */}
             {icon}
           </div>
         )}
-      </div>
-      <div className="flex-1">
-        <p className="text-sm font-light text-gray-500 mb-2">{title}</p> {/* UI Revamp - Style démo pages */}
-        <p className="text-3xl font-light text-gray-900 mb-1">{value}</p> {/* UI Revamp - Style démo pages */}
-        {description && (
-          <p className="text-xs font-light text-gray-400">{description}</p>
-        )}
         {trend && (
-          <div className={clsx('flex items-center gap-1 text-xs font-light mt-2', trendColors[trendDirection])}>
+          <div className={clsx('flex items-center gap-1 text-xs font-medium', trendColors[trendDirection])}>
             <TrendIcon className="w-4 h-4" />
             <span>{trend}</span>
           </div>
         )}
+      </div>
+      <div className="flex-1">
+        <p className="text-xs text-gray-500 mb-2">{title}</p> {/* Dashboard V2 Style - text-xs */}
+        <p className="text-2xl font-semibold text-gray-900 mb-4">{value}</p> {/* Dashboard V2 Style - text-2xl font-semibold */}
+        {description && (
+          <p className="text-xs text-gray-500">{description}</p>
+        )}
+        {/* Dashboard V2 Style - Support pour séparateur avec border-t */}
       </div>
     </div>
   );

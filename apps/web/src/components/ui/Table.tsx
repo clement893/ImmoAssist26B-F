@@ -9,8 +9,10 @@ interface TableProps {
 
 export function Table({ children, className, style }: TableProps) {
   return (
-    <div className="overflow-x-auto -mx-1 px-1" style={style}>
-      <table className={clsx('min-w-full divide-y divide-border', className)}>{children}</table>
+    <div className="bg-white rounded-3xl shadow-sm overflow-hidden" style={style}>
+      <div className="overflow-x-auto">
+        <table className={clsx('min-w-full divide-y divide-gray-100', className)}>{children}</table>
+      </div>
     </div>
   );
 }
@@ -23,7 +25,7 @@ interface TableHeadProps {
 
 export function TableHead({ children, className, style }: TableHeadProps) {
   return (
-    <thead className={clsx('bg-neutral-50 dark:bg-neutral-800/50 border-b-2 border-neutral-200 dark:border-neutral-700', className)} style={style}> {/* Revamp UI - Border épaisseur augmentée */}
+    <thead className={clsx('bg-gray-50 dark:bg-neutral-800/50', className)} style={style}> {/* Dashboard V2 Style - bg-gray-50 */}
       {children}
     </thead>
   );
@@ -47,9 +49,9 @@ export function TableBody({
   return (
     <tbody
       className={clsx(
-        'bg-white dark:bg-neutral-900 divide-y divide-gray-100 dark:divide-neutral-800', // UI Revamp - Style démo pages (border-gray-100)
+        'bg-white dark:bg-neutral-900 divide-y divide-gray-100 dark:divide-neutral-800', // Dashboard V2 Style
         striped && '[&>tr:nth-child(even)]:bg-gray-50 dark:[&>tr:nth-child(even)]:bg-neutral-900/50',
-        hover && '[&>tr:hover]:bg-gray-50 dark:[&>tr:hover]:bg-neutral-800/50 [&>tr:hover]:transition-all [&>tr:hover]:duration-200', // UI Revamp - Style démo pages
+        hover && '[&>tr:hover]:bg-gray-50 dark:[&>tr:hover]:bg-neutral-800/50 [&>tr:hover]:rounded-2xl [&>tr:hover]:transition-all [&>tr:hover]:duration-200', // Dashboard V2 Style - rounded-2xl au hover
         className
       )}
       style={style}
@@ -102,8 +104,8 @@ export function TableHeader({
   return (
     <th
       className={clsx(
-        'px-6 py-4 text-left text-sm font-normal text-gray-900 dark:text-neutral-100', // UI Revamp - Style démo pages (font-normal au lieu de semibold)
-        sortable && 'cursor-pointer select-none hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200', // UI Revamp - Transition moderne
+        'px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-neutral-100', // Dashboard V2 Style - font-semibold
+        sortable && 'cursor-pointer select-none hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200',
         className
       )}
       onClick={sortable ? onSort : undefined}
@@ -158,7 +160,7 @@ export function TableCell({ children, className, colSpan, onClick, style }: Tabl
       colSpan={colSpan}
       onClick={onClick}
       className={clsx(
-        'px-6 py-4 whitespace-nowrap text-sm font-light text-gray-600 dark:text-neutral-400', // UI Revamp - Style démo pages (font-light)
+        'px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-neutral-100', // Dashboard V2 Style - font-medium text-gray-900
         className
       )}
       style={style}

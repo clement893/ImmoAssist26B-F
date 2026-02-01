@@ -175,21 +175,34 @@ Ce document suit la progression de la transformation UI par batches, avec un pus
 
 ---
 
-### Batch 7 : Table & StatsCard
-**Statut** : En attente  
+### Batch 7 : Table & StatsCard ✅
+**Statut** : Complété  
 **Priorité** : MOYENNE  
 **Objectif** : Transformer Table et StatsCard
 
 **Tâches** :
-- [ ] Transformer Table avec rounded-3xl container
-- [ ] Transformer StatsCard style dashboard-v2
-- [ ] Tests : Vérifier table et stats cards
+- [x] Transformer Table avec rounded-3xl container et shadow-sm
+- [x] Transformer Table header avec bg-gray-50 et font-semibold
+- [x] Transformer Table rows avec hover:bg-gray-50 rounded-2xl
+- [x] Transformer TableCell avec font-medium text-gray-900
+- [x] Transformer StatsCard avec rounded-3xl p-6
+- [x] Transformer StatsCard avec text-xs pour title, text-2xl font-semibold pour value
+- [x] Tests : Vérifier table et stats cards (pas d'erreurs linter)
 
-**Fichiers à modifier** :
-- `apps/web/src/components/ui/Table.tsx`
-- `apps/web/src/components/ui/StatsCard.tsx`
+**Fichiers modifiés** :
+- ✅ `apps/web/src/components/ui/Table.tsx` - Container rounded-3xl, header bg-gray-50, rows hover rounded-2xl
+- ✅ `apps/web/src/components/ui/StatsCard.tsx` - rounded-3xl p-6, typographie Dashboard V2
 
 **Commit** : `feat(ui): Batch 7 - Table & StatsCard`
+
+**Résumé des changements** :
+- Table : Container bg-white rounded-3xl shadow-sm overflow-hidden
+- Table : Header bg-gray-50 avec text-sm font-semibold
+- Table : Rows hover:bg-gray-50 rounded-2xl avec transition
+- Table : Cells px-6 py-4 avec text-sm font-medium text-gray-900
+- StatsCard : rounded-3xl p-6 (au lieu de rounded-2xl p-8)
+- StatsCard : Title text-xs text-gray-500, Value text-2xl font-semibold
+- StatsCard : Icon rounded-full p-2 (au lieu de rounded-xl p-3)
 
 ---
 
@@ -259,16 +272,15 @@ Ce document suit la progression de la transformation UI par batches, avec un pus
 
 ## Progression Globale
 
-**Batches complétés** : 6/10 ✅  
+**Batches complétés** : 7/10 ✅  
 **Batches en cours** : 0  
-**Batches en attente** : 4
+**Batches en attente** : 3
 
 ### Dernière mise à jour
-- **Batch 6** complété le 2026-02-01
-- Progress Bar & Stepper transformés avec style transaction-detail (CRITIQUE)
-- StatusStepper : Progress Bar horizontale avec gradient from-green-500 to-blue-500
-- Steps : Cercles colorés (green completed, blue in_progress avec ring, white pending)
-- Current Step Card : bg-blue-50 rounded-2xl avec boutons rounded-xl
+- **Batch 7** complété le 2026-02-01
+- Table & StatsCard transformés avec style Dashboard V2
+- Table : Container rounded-3xl shadow-sm, header bg-gray-50, rows hover rounded-2xl
+- StatsCard : rounded-3xl p-6, typographie Dashboard V2 (text-xs pour title, text-2xl font-semibold pour value)
 
 ## Notes
 
