@@ -11,21 +11,12 @@ import StatusStepper from '@/components/transactions/StatusStepper';
 import { calculateTransactionSteps } from '@/lib/transactions/progression';
 import { useToast } from '@/components/ui';
 import { 
-  DollarSign, 
   FileText,
-  Home,
   Upload,
   Image as ImageIcon,
   ChevronRight,
   Edit,
   Send,
-  MapPin,
-  Building2,
-  Bed,
-  Bath,
-  Square,
-  Mail,
-  Phone,
   MessageSquare,
   Download,
   Paperclip,
@@ -137,7 +128,7 @@ export default function TransactionDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState<Record<string, boolean>>({});
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('documents');
   const [newComment, setNewComment] = useState('');
 
   useEffect(() => {
@@ -227,20 +218,10 @@ export default function TransactionDetailPage() {
 
   // Tabs configuration
   const tabs = [
-    { id: 'overview', label: 'Overview', icon: Home },
     { id: 'documents', label: 'Documents', icon: FileText },
     { id: 'activity', label: 'Activity', icon: MessageSquare },
     { id: 'photos', label: 'Photos', icon: ImageIcon },
   ];
-
-  // Get property address
-  const propertyAddress = transaction.property_address 
-    ? `${transaction.property_address}${transaction.property_city ? `, ${transaction.property_city}` : ''}${transaction.property_postal_code ? ` ${transaction.property_postal_code}` : ''}`
-    : '-';
-
-  // Get first buyer and seller
-  const firstBuyer = transaction.buyers && transaction.buyers.length > 0 ? transaction.buyers[0] : null;
-  const buyerBroker = transaction.buyer_broker;
 
   // Filter documents
   const documents = transaction.documents?.filter(d => d.type !== 'photo') || [];
@@ -326,145 +307,6 @@ export default function TransactionDetailPage() {
 
           {/* Tab Content */}
           <div className="p-8">
-            {/* Overview Tab */}
-            {activeTab === 'overview' && (
-              <div className="space-y-6">
-                {/* Property Info */}
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Property details</h3>
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-3">
-                          <MapPin className="w-5 h-5 text-gray-400" />
-                          <div>
-                            <p className="text-sm text-gray-500">Address</p>
-                            <p className="text-sm font-medium text-gray-900">{propertyAddress}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <Building2 className="w-5 h-5 text-gray-400" />
-                          <div>
-                            <p className="text-sm text-gray-500">Property type</p>
-                            <p className="text-sm font-medium text-gray-900">{transaction.property_type || '-'}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <DollarSign className="w-5 h-5 text-gray-400" />
-                          <div>
-                            <p className="text-sm text-gray-500">Price</p>
-                            <p className="text-sm font-medium text-gray-900">
-                              {transaction.final_sale_price 
-                                ? formatCurrency(transaction.final_sale_price)
-                                : transaction.offered_price
-                                ? formatCurrency(transaction.offered_price)
-                                : transaction.listing_price
-                                ? formatCurrency(transaction.listing_price)
-                                : '-'}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="bg-gray-50 rounded-2xl p-4">
-                        <Bed className="w-5 h-5 text-gray-600 mb-2" />
-                        <p className="text-2xl font-semibold text-gray-900">{transaction.bedrooms || '-'}</p>
-                        <p className="text-xs text-gray-500">Bedrooms</p>
-                      </div>
-                      <div className="bg-gray-50 rounded-2xl p-4">
-                        <Bath className="w-5 h-5 text-gray-600 mb-2" />
-                        <p className="text-2xl font-semibold text-gray-900">{transaction.bathrooms || '-'}</p>
-                        <p className="text-xs text-gray-500">Bathrooms</p>
-                      </div>
-                      <div className="bg-gray-50 rounded-2xl p-4">
-                        <Square className="w-5 h-5 text-gray-600 mb-2" />
-                        <p className="text-2xl font-semibold text-gray-900">{transaction.living_area_sqft || '-'}</p>
-                        <p className="text-xs text-gray-500">sq ft</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-6">
-                    {/* Client Info */}
-                    {firstBuyer && (
-                      <div className="bg-gray-50 rounded-2xl p-6">
-                        <h3 className="text-sm font-semibold text-gray-900 mb-4">Client</h3>
-                        <div className="flex items-center gap-4 mb-4">
-                          <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
-                            {firstBuyer.name?.charAt(0) || 'C'}
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">{firstBuyer.name}</p>
-                            <p className="text-xs text-gray-500">Buyer</p>
-                          </div>
-                        </div>
-                        {firstBuyer.email && (
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                              <Mail className="w-4 h-4" />
-                              {firstBuyer.email}
-                            </div>
-                            {firstBuyer.phone && (
-                              <div className="flex items-center gap-2 text-sm text-gray-600">
-                                <Phone className="w-4 h-4" />
-                                {firstBuyer.phone}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        <div className="flex gap-2 mt-4">
-                          <button className="flex-1 px-3 py-2 bg-blue-500 text-white rounded-xl text-sm font-medium hover:bg-blue-600 transition-colors">
-                            <MessageSquare className="w-4 h-4 inline mr-1" />
-                            Message
-                          </button>
-                          {firstBuyer.phone && (
-                            <button className="flex-1 px-3 py-2 bg-white text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-100 transition-colors">
-                              <Phone className="w-4 h-4 inline mr-1" />
-                              Call
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Agent Info */}
-                    {buyerBroker && (
-                      <div className="bg-gray-50 rounded-2xl p-6">
-                        <h3 className="text-sm font-semibold text-gray-900 mb-4">Agent</h3>
-                        <div className="flex items-center gap-4 mb-4">
-                          <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white font-semibold">
-                            {buyerBroker.name?.charAt(0) || 'A'}
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">{buyerBroker.name}</p>
-                            <p className="text-xs text-gray-500">Real Estate Agent</p>
-                          </div>
-                        </div>
-                        {buyerBroker.contact && (
-                          <div className="space-y-2">
-                            {buyerBroker.contact.email && (
-                              <div className="flex items-center gap-2 text-sm text-gray-600">
-                                <Mail className="w-4 h-4" />
-                                {buyerBroker.contact.email}
-                              </div>
-                            )}
-                            {buyerBroker.contact.phone && (
-                              <div className="flex items-center gap-2 text-sm text-gray-600">
-                                <Phone className="w-4 h-4" />
-                                {buyerBroker.contact.phone}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Documents Tab */}
             {activeTab === 'documents' && (
               <div className="space-y-4">
