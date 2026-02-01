@@ -137,6 +137,8 @@ export default function TransactionDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState<Record<string, boolean>>({});
+  const [activeTab, setActiveTab] = useState('overview');
+  const [newComment, setNewComment] = useState('');
 
   useEffect(() => {
     loadTransaction();
@@ -176,14 +178,12 @@ export default function TransactionDetailPage() {
     );
   }
 
-  // Calculate transaction steps
-  const steps = calculateTransactionSteps({
+  // Calculate transaction steps (only if transaction exists)
+  const steps = transaction ? calculateTransactionSteps({
     ...transaction,
     sellers: transaction.sellers || [],
     buyers: transaction.buyers || [],
-  });
-  const [activeTab, setActiveTab] = useState('overview');
-  const [newComment, setNewComment] = useState('');
+  }) : [];
 
   // Format expected closing date
   const formatExpectedClosing = (dateString?: string): string => {
