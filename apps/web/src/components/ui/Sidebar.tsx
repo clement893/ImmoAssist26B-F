@@ -245,7 +245,7 @@ export default function Sidebar({
   return (
     <aside
       className={clsx(
-        'h-screen sticky top-0 flex flex-col bg-white shadow-sm', // Clean white background with subtle shadow
+        'h-screen sticky top-0 flex flex-col bg-white rounded-xl shadow-sm', // Dashboard V2 Style - rounded-xl pour container
         containerWidth,
         className
       )}
@@ -310,7 +310,7 @@ export default function Sidebar({
       {/* Navigation */}
       <nav className={clsx(
         'flex-1 overflow-y-auto',
-        collapsed ? 'p-2 space-y-1' : 'px-4 py-2 space-y-2' // space-y-2 between menu items
+        collapsed ? 'p-2 space-y-1' : 'p-6 space-y-2' // Dashboard V2 Style - p-6 pour container, space-y-2 entre items
       )}>
         {filteredItems.length === 0 ? (
           <div className={clsx('text-sm text-gray-400 text-center', collapsed ? 'px-2 py-4' : 'px-4 py-8')}>

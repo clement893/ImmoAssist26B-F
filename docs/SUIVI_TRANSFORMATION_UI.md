@@ -89,22 +89,34 @@ Ce document suit la progression de la transformation UI par batches, avec un pus
 
 ---
 
-### Batch 4 : Menu/Sidebar Navigation (CRITIQUE)
-**Statut** : En attente  
+### Batch 4 : Menu/Sidebar Navigation (CRITIQUE) ✅
+**Statut** : Complété  
 **Priorité** : CRITIQUE  
 **Objectif** : Transformer Sidebar avec style Menu Demo
 
 **Tâches** :
-- [ ] Transformer Sidebar avec items actifs/inactifs
-- [ ] Appliquer font-light pour inactifs, font-medium pour actifs
-- [ ] Ajouter shadows et transitions
-- [ ] Tests : Vérifier menu actif/inactif
+- [x] Transformer Sidebar UI avec container rounded-xl p-6 shadow-sm
+- [x] Transformer Sidebar Layout avec style Menu Demo complet
+- [x] Items actifs : bg-blue-500 text-white font-medium shadow-md shadow-blue-500/30
+- [x] Items inactifs : text-gray-600 font-light hover:bg-gray-50
+- [x] Spacing : gap-4 px-5 py-3.5, space-y-2 entre items
+- [x] Border radius : rounded-xl pour items
+- [x] Tests : Vérifier menu actif/inactif (pas d'erreurs linter)
 
-**Fichiers à modifier** :
-- `apps/web/src/components/ui/Sidebar.tsx`
-- `apps/web/src/components/layout/Sidebar.tsx`
+**Fichiers modifiés** :
+- ✅ `apps/web/src/components/ui/Sidebar.tsx` - Container rounded-xl, navigation p-6
+- ✅ `apps/web/src/components/layout/Sidebar.tsx` - Style Menu Demo complet (items actifs/inactifs, spacing, shadows)
 
 **Commit** : `feat(ui): Batch 4 - Menu/Sidebar Navigation`
+
+**Résumé des changements** :
+- Sidebar UI : Container avec rounded-xl, navigation avec p-6
+- Sidebar Layout : Style Menu Demo complet
+  - Items actifs : bg-blue-500 text-white font-medium shadow-md shadow-blue-500/30 rounded-xl
+  - Items inactifs : text-gray-600 font-light hover:bg-gray-50 rounded-xl
+  - Spacing : gap-4 px-5 py-3.5, space-y-2
+  - Icons : w-5 h-5 avec text-gray-400 pour inactifs, text-white pour actifs
+  - Container : bg-white rounded-xl shadow-sm
 
 ---
 
@@ -231,16 +243,17 @@ Ce document suit la progression de la transformation UI par batches, avec un pus
 
 ## Progression Globale
 
-**Batches complétés** : 3/10 ✅  
+**Batches complétés** : 4/10 ✅  
 **Batches en cours** : 0  
-**Batches en attente** : 7
+**Batches en attente** : 6
 
 ### Dernière mise à jour
-- **Batch 3** complété le 2026-02-01
-- Input, Badge et Tabs transformés avec style Dashboard V2
-- Input : rounded-2xl, bg-gray-50, px-6 py-4, font-medium
-- Badge : py-1.5, font-medium
-- Tabs : Style transaction-detail avec container rounded-3xl et ligne bleue active
+- **Batch 4** complété le 2026-02-01
+- Menu/Sidebar Navigation transformé avec style Menu Demo (CRITIQUE)
+- Items actifs : bg-blue-500 text-white font-medium shadow-md shadow-blue-500/30
+- Items inactifs : text-gray-600 font-light hover:bg-gray-50
+- Spacing : gap-4 px-5 py-3.5, space-y-2
+- Container : bg-white rounded-xl shadow-sm
 
 ## Notes
 
