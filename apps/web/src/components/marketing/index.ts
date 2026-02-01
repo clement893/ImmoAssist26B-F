@@ -1,2 +1,10 @@
 export { NewsletterSignup } from './NewsletterSignup';
 export { LeadCaptureForm } from './LeadCaptureForm';
+export { default as HeroSection } from './HeroSection';
+export { default as LogosSection } from './LogosSection';
+export { default as ProblemSection } from './ProblemSection';
+export { default as FeaturesSection } from './FeaturesSection';
+export { default as BenefitsSection } from './BenefitsSection';
+export { default as TestimonialsSection } from './TestimonialsSection';
+export { default as PricingSection } from './PricingSection';
+export { default as CtaSection } from './CtaSection';
