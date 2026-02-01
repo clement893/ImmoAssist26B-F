@@ -178,12 +178,12 @@ export default function TransactionDetailPage() {
     );
   }
 
-  // Calculate transaction steps (only if transaction exists)
-  const steps = transaction ? calculateTransactionSteps({
+  // Calculate transaction steps (transaction is guaranteed to be non-null here)
+  const steps = calculateTransactionSteps({
     ...transaction,
     sellers: transaction.sellers || [],
     buyers: transaction.buyers || [],
-  }) : [];
+  });
 
   // Format expected closing date
   const formatExpectedClosing = (dateString?: string): string => {
