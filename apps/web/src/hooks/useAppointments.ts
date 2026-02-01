@@ -2,12 +2,8 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
-  AppointmentListResponse,
-  AppointmentResponse,
-  AvailabilityResponse,
   AppointmentCreate,
   AppointmentUpdate,
-  CalendarConnectionResponse,
   AppointmentStatus,
 } from '@/lib/api/appointments';
 import { appointmentsAPI } from '@/lib/api/appointments';

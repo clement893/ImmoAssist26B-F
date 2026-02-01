@@ -4,6 +4,7 @@
  */
 
 import { apiClient } from './client';
+import { extractApiData } from './utils';
 
 export interface StepAction {
   code: string;
@@ -57,8 +58,8 @@ export const transactionStepsAPI = {
     const response = await apiClient.get<TransactionStepsResponse>(
       `/v1/transactions/${transactionId}/steps`
     );
-    // apiClient returns the response body directly (FastAPI returns JSON body, not wrapped in .data)
-    const data = response as TransactionStepsResponse;
+    // Extract data from ApiResponse wrapper
+    const data = extractApiData<TransactionStepsResponse>(response);
     if (!data || typeof data !== 'object' || !('transaction' in data)) {
       throw new Error('Empty response from transaction steps API');
     }
@@ -78,8 +79,8 @@ export const transactionStepsAPI = {
     }>(`/v1/transactions/${transactionId}/step-actions/${actionCode}/complete`, {
       completed,
     });
-    // apiClient returns the response body directly
-    const data = response as { success: boolean; completed_actions: string[] };
+    // Extract data from ApiResponse wrapper
+    const data = extractApiData<{ success: boolean; completed_actions: string[] }>(response);
     if (!data) {
       throw new Error('Empty response from complete action API');
     }
