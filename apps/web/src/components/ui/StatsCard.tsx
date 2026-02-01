@@ -56,14 +56,6 @@ export default function StatsCard({
   className,
   onClick,
 }: StatsCardProps) {
-  const variantStyles = {
-    default: 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800',
-    primary: 'bg-primary-50 dark:bg-primary-950/30 border-primary-200 dark:border-primary-800',
-    success: 'bg-success-50 dark:bg-success-950/30 border-success-200 dark:border-success-800',
-    warning: 'bg-warning-50 dark:bg-warning-950/30 border-warning-200 dark:border-warning-800',
-    error: 'bg-error-50 dark:bg-error-950/30 border-error-200 dark:border-error-800',
-  };
-
   const iconStyles = {
     default: 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400',
     primary: 'bg-primary-100 dark:bg-primary-900/50 text-primary-600 dark:text-primary-400',
