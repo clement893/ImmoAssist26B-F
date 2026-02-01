@@ -10,7 +10,7 @@ import { useParams, useRouter } from '@/i18n/routing';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui';
 import { Card } from '@/components/ui';
-import { Progress } from '@/components/ui';
+import Progress from '@/components/ui/Progress';
 import { Save, Check, ArrowLeft } from 'lucide-react';
 import { oaciqFormsAPI } from '@/lib/api/oaciq-forms';
 import { handleApiError } from '@/lib/errors';
@@ -48,6 +48,10 @@ export default function FormFillPage() {
     onSuccess: () => {
       setHasUnsavedChanges(false);
       queryClient.invalidateQueries({ queryKey: ['oaciq-submission', submissionId] });
+    },
+    onError: (error) => {
+      const appError = handleApiError(error);
+      toast.error(appError.message || 'Erreur lors de la sauvegarde');
     },
   });
 

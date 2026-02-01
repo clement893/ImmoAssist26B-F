@@ -8,7 +8,8 @@
 import { Input } from '@/components/ui';
 import { Textarea } from '@/components/ui';
 import { Checkbox } from '@/components/ui';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui';
+import { Select } from '@/components/ui';
+import type { SelectOption } from '@/components/ui';
 import { Label } from '@/components/ui';
 import { Card } from '@/components/ui';
 
@@ -136,18 +137,17 @@ function FieldRenderer({ field, value, onChange }: any) {
       )}
 
       {field.type === 'select' && (
-        <Select value={value || ''} onValueChange={onChange}>
-          <SelectTrigger>
-            <SelectValue placeholder={field.placeholder} />
-          </SelectTrigger>
-          <SelectContent>
-            {field.options?.map((option: any) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Select
+          options={
+            field.options?.map((option: any) => ({
+              label: option.label,
+              value: option.value,
+            })) || []
+          }
+          value={value || ''}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={field.placeholder}
+        />
       )}
 
       {field.type === 'checkbox' && (

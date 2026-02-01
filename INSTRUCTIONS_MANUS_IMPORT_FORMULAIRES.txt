@@ -1,0 +1,48 @@
+═══════════════════════════════════════════════════════════════════════════════
+  INSTRUCTIONS POUR AGENT AI MANUS - IMPORTATION FORMULAIRES OACIQ
+═══════════════════════════════════════════════════════════════════════════════
+
+🎯 OBJECTIF
+Importer les 49 formulaires OACIQ depuis Railway vers la base de données locale.
+
+📋 ÉTAPES À EXÉCUTER
+
+1. Se placer dans le dossier backend
+   cd backend
+
+2. Vérifier Python (doit être 3.9+)
+   python --version
+
+3. Installer les dépendances si nécessaire
+   pip install sqlalchemy asyncpg psycopg2-binary
+
+4. Exécuter le script d'importation
+   python scripts/import_oaciq_forms_from_railway.py
+
+5. Vérifier le résultat
+   Le script doit afficher :
+   ✅ 49 formulaires trouvés dans Railway
+   ✅ Importation terminée
+   📊 Résumé avec statistiques
+
+✅ RÉSULTAT ATTENDU
+- 49 formulaires importés ou mis à jour
+- Aucune erreur dans les logs
+- Message "✅ Importation terminée"
+
+⚠️ EN CAS D'ERREUR
+- Erreur de connexion → Vérifier RAILWAY_DB_URL
+- Erreur de table → Exécuter: alembic upgrade head
+- Erreur de dépendances → pip install -r requirements.txt
+
+📝 NOTES
+- Le script peut être réexécuté plusieurs fois (idempotent)
+- Les formulaires existants seront mis à jour, pas dupliqués
+- Les erreurs sur un formulaire n'empêchent pas les autres
+
+═══════════════════════════════════════════════════════════════════════════════
+Fichiers de référence:
+- Script: backend/scripts/import_oaciq_forms_from_railway.py
+- Documentation complète: docs/INSTRUCTIONS_IMPORT_FORMULAIRES_MANUS.md
+- Commandes détaillées: docs/COMMANDES_MANUS_IMPORT.md
+═══════════════════════════════════════════════════════════════════════════════

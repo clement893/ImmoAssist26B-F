@@ -95,11 +95,14 @@ export const oaciqFormsAPI = {
       data: Record<string, any>;
       isAutoSave?: boolean;
     }
-  ): Promise<{ success: boolean; completion_percentage?: number }> => {
-    const response = await apiClient.put(`/v1/oaciq/forms/submissions/${submissionId}`, {
-      data: data.data,
-      is_auto_save: data.isAutoSave || false,
-    });
+  ): Promise<OACIQFormSubmission> => {
+    const response = await apiClient.put<OACIQFormSubmission>(
+      `/v1/oaciq/forms/submissions/${submissionId}`,
+      {
+        data: data.data,
+        is_auto_save: data.isAutoSave || false,
+      }
+    );
     return extractApiData(response);
   },
 

@@ -437,3 +437,100 @@ async def get_oaciq_submission(
     response = OACIQFormSubmissionResponse.model_validate(submission)
     response.form_code = form.code
     return response
+
+
+@router.put("/oaciq/forms/submissions/{submission_id}", response_model=OACIQFormSubmissionResponse, tags=["oaciq-forms"])
+async def update_oaciq_submission(
+    request: Request,
+    submission_id: int,
+    submission_data: dict,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Mettre à jour une soumission de formulaire OACIQ"""
+    result = await db.execute(
+        select(FormSubmission).where(FormSubmission.id == submission_id)
+    )
+    submission = result.scalar_one_or_none()
+    
+    if not submission:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Soumission introuvable"
+        )
+    
+    # Vérifier que l'utilisateur est le propriétaire
+    if submission.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Non autorisé à modifier cette soumission"
+        )
+    
+    # Mettre à jour les données
+    if 'data' in submission_data:
+        submission.data = submission_data['data']
+    
+    await db.commit()
+    await db.refresh(submission)
+    
+    # Créer une version si ce n'est pas une sauvegarde automatique
+    is_auto_save = submission_data.get('is_auto_save', False)
+    if not is_auto_save:
+        version = FormSubmissionVersion(
+            submission_id=submission.id,
+            data=submission.data
+        )
+        db.add(version)
+        await db.commit()
+    
+    # Récupérer le code du formulaire
+    form_result = await db.execute(
+        select(Form).where(Form.id == submission.form_id)
+    )
+    form = form_result.scalar_one()
+    
+    response = OACIQFormSubmissionResponse.model_validate(submission)
+    response.form_code = form.code
+    return response
+
+
+@router.patch("/oaciq/forms/submissions/{submission_id}/complete", response_model=OACIQFormSubmissionResponse, tags=["oaciq-forms"])
+async def complete_oaciq_submission(
+    submission_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Compléter une soumission de formulaire OACIQ"""
+    result = await db.execute(
+        select(FormSubmission).where(FormSubmission.id == submission_id)
+    )
+    submission = result.scalar_one_or_none()
+    
+    if not submission:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Soumission introuvable"
+        )
+    
+    # Vérifier que l'utilisateur est le propriétaire
+    if submission.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Non autorisé à compléter cette soumission"
+        )
+    
+    # Mettre à jour le statut
+    submission.status = 'completed'
+    
+    await db.commit()
+    await db.refresh(submission)
+    
+    # Récupérer le code du formulaire
+    form_result = await db.execute(
+        select(Form).where(Form.id == submission.form_id)
+    )
+    form = form_result.scalar_one()
+    
+    response = OACIQFormSubmissionResponse.model_validate(submission)
+    response.form_code = form.code
+    return response
