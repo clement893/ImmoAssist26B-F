@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Container from '@/components/ui/Container';
 import Loading from '@/components/ui/Loading';
 import Alert from '@/components/ui/Alert';
 import { transactionsAPI } from '@/lib/api';
 import TransactionTimeline from '@/components/transactions/TransactionTimeline';
 import StatusStepper from '@/components/transactions/StatusStepper';
+import TransactionStepsV2 from '@/components/transactions/TransactionStepsV2';
 import { calculateTransactionSteps } from '@/lib/transactions/progression';
 import { useToast } from '@/components/ui';
 import { 
@@ -22,6 +23,7 @@ import {
   Paperclip,
   Plus,
   Trash2,
+  ClipboardList,
 } from 'lucide-react';
 
 interface Transaction {
@@ -110,9 +112,13 @@ interface Transaction {
 }
 
 
+const TAB_IDS = ['steps', 'documents', 'activity', 'photos'] as const;
+
 export default function TransactionDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { showToast } = useToast();
   const transactionId = params.id as string;
   
@@ -120,8 +126,16 @@ export default function TransactionDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState<Record<string, boolean>>({});
-  const [activeTab, setActiveTab] = useState('documents');
+  const [activeTab, setActiveTab] = useState('steps');
   const [newComment, setNewComment] = useState('');
+
+  // Sync active tab with URL ?tab=...
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab && TAB_IDS.includes(tab as (typeof TAB_IDS)[number])) {
+      setActiveTab(tab as (typeof TAB_IDS)[number]);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     loadTransaction();
@@ -228,6 +242,7 @@ export default function TransactionDetailPage() {
 
   // Tabs configuration
   const tabs = [
+    { id: 'steps', label: 'Étapes', icon: ClipboardList },
     { id: 'documents', label: 'Documents', icon: FileText },
     { id: 'activity', label: 'Activity', icon: MessageSquare },
     { id: 'photos', label: 'Photos', icon: ImageIcon },
@@ -283,18 +298,6 @@ export default function TransactionDetailPage() {
 
           {/* StatusStepper with horizontal orientation */}
           <StatusStepper steps={steps} orientation="horizontal" />
-          <div className="mt-4">
-            <button
-              onClick={() =>
-                router.push(
-                  `/${params.locale || 'fr'}/dashboard/transactions/steps?transaction=${transaction.id}`
-                )
-              }
-              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-            >
-              Voir les étapes détaillées (acheteur/vendeur) →
-            </button>
-          </div>
         </div>
 
         {/* Main Content with Tabs */}
@@ -307,7 +310,10 @@ export default function TransactionDetailPage() {
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
+                    onClick={() => {
+                      setActiveTab(tab.id);
+                      router.replace(`${pathname}?tab=${tab.id}`);
+                    }}
                     className={`flex-1 px-6 py-4 text-sm font-medium transition-colors relative ${
                       activeTab === tab.id
                         ? 'text-blue-600'
@@ -329,6 +335,17 @@ export default function TransactionDetailPage() {
 
           {/* Tab Content */}
           <div className="p-8">
+            {/* Étapes Tab */}
+            {activeTab === 'steps' && (
+              <div className="min-h-[400px]">
+                <TransactionStepsV2
+                  transactionId={parseInt(transactionId, 10)}
+                  onError={setError}
+                  embedded
+                />
+              </div>
+            )}
+
             {/* Documents Tab */}
             {activeTab === 'documents' && (
               <div className="space-y-4">

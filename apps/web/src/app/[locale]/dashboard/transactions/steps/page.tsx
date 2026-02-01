@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 
 import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useParams, useRouter } from 'next/navigation';
 import Container from '@/components/ui/Container';
 import Card from '@/components/ui/Card';
 import Select from '@/components/ui/Select';
@@ -21,6 +21,9 @@ interface TransactionSummary {
 
 export default function TransactionStepsPage() {
   const searchParams = useSearchParams();
+  const params = useParams();
+  const router = useRouter();
+  const locale = (params?.locale as string) || 'fr';
   const transactionFromUrl = useMemo(
     () => searchParams.get('transaction'),
     [searchParams]
@@ -32,6 +35,16 @@ export default function TransactionStepsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Redirect to transaction detail page with steps tab when ?transaction=id is present
+  useEffect(() => {
+    if (transactionFromUrl) {
+      const id = parseInt(transactionFromUrl, 10);
+      if (!isNaN(id)) {
+        router.replace(`/${locale}/dashboard/transactions/${id}?tab=steps`);
+      }
+    }
+  }, [transactionFromUrl, locale, router]);
 
   useEffect(() => {
     if (transactionFromUrl) {
@@ -49,8 +62,13 @@ export default function TransactionStepsPage() {
       });
       const list = response.data?.transactions || [];
       setTransactions(list);
-      if (list.length > 0 && !selectedTransactionId) {
-        setSelectedTransactionId(list[0].id);
+      if (list.length > 0) {
+        const idInList = list.some((t: TransactionSummary) => t.id === selectedTransactionId);
+        if (!selectedTransactionId || !idInList) {
+          setSelectedTransactionId(list[0].id);
+        }
+      } else if (selectedTransactionId) {
+        setSelectedTransactionId(null);
       }
     } catch (err) {
       setError(

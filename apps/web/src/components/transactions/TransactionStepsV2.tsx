@@ -26,11 +26,14 @@ import type {
 interface TransactionStepsV2Props {
   transactionId: number | null;
   onError?: (message: string) => void;
+  /** When true, hide the page header (for use inside transaction detail tab) */
+  embedded?: boolean;
 }
 
 export default function TransactionStepsV2({
   transactionId,
   onError,
+  embedded = false,
 }: TransactionStepsV2Props) {
   const [selectedView, setSelectedView] = useState<'acheteur' | 'vendeur'>('acheteur');
   const [showLeaPanel, setShowLeaPanel] = useState(false);
@@ -42,18 +45,22 @@ export default function TransactionStepsV2({
     vendor_steps: Step[];
   } | null>(null);
   const [togglingAction, setTogglingAction] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const fetchSteps = useCallback(async () => {
     if (!transactionId) {
       setData(null);
+      setFetchError(null);
       return;
     }
     setLoading(true);
+    setFetchError(null);
     try {
       const result = await transactionStepsAPI.getSteps(transactionId);
       setData(result);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erreur lors du chargement';
+      setFetchError(msg);
       onError?.(msg);
       setData(null);
     } finally {
@@ -140,8 +147,22 @@ export default function TransactionStepsV2({
 
   if (!data) {
     return (
-      <div className="min-h-[400px] flex items-center justify-center bg-gray-50 rounded-2xl">
-        <p className="text-red-600">Impossible de charger les étapes</p>
+      <div className="min-h-[400px] flex flex-col items-center justify-center bg-gray-50 rounded-2xl p-6">
+        <p className="text-red-600 text-center">
+          {fetchError || 'Impossible de charger les étapes'}
+        </p>
+        {fetchError && (
+          <p className="text-sm text-gray-500 mt-2 text-center max-w-md">
+            La transaction n’existe peut-être pas ou vous n’y avez pas accès. Choisissez une transaction dans la liste ci-dessus.
+          </p>
+        )}
+        <button
+          type="button"
+          onClick={() => fetchSteps()}
+          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+        >
+          Réessayer
+        </button>
       </div>
     );
   }
@@ -150,32 +171,34 @@ export default function TransactionStepsV2({
   const steps = selectedView === 'acheteur' ? buyer_steps : vendor_steps;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Étapes de transaction
-              </h1>
-              <p className="text-gray-600 mt-1">
-                Guidé par Léa, votre assistante AI
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setShowLeaPanel(!showLeaPanel)}
-                className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all"
-              >
-                <Sparkles className="w-5 h-5" />
-                Demander à Léa
-              </button>
+    <div className={embedded ? '' : 'min-h-screen bg-gray-50'}>
+      {!embedded && (
+        <div className="bg-white border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">
+                  Étapes de transaction
+                </h1>
+                <p className="text-gray-600 mt-1">
+                  Guidé par Léa, votre assistante AI
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowLeaPanel(!showLeaPanel)}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all"
+                >
+                  <Sparkles className="w-5 h-5" />
+                  Demander à Léa
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className={embedded ? '' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'}>
         {/* Transaction Overview */}
         <div className="bg-white rounded-2xl shadow-sm p-6 mb-6 border border-gray-100">
           <div className="flex items-start justify-between mb-6">
