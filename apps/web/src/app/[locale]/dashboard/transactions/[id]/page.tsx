@@ -9,6 +9,7 @@ import { transactionsAPI } from '@/lib/api';
 import TransactionTimeline from '@/components/transactions/TransactionTimeline';
 import StatusStepper from '@/components/transactions/StatusStepper';
 import TransactionStepsV2 from '@/components/transactions/TransactionStepsV2';
+import TransactionFormsTab from '@/components/transactions/TransactionFormsTab';
 import { calculateTransactionSteps } from '@/lib/transactions/progression';
 import { useToast } from '@/components/ui';
 import { 
@@ -24,6 +25,7 @@ import {
   Plus,
   Trash2,
   ClipboardList,
+  FileCheck,
 } from 'lucide-react';
 
 interface Transaction {
@@ -112,7 +114,7 @@ interface Transaction {
 }
 
 
-const TAB_IDS = ['steps', 'documents', 'activity', 'photos'] as const;
+const TAB_IDS = ['steps', 'documents', 'activity', 'photos', 'forms'] as const;
 
 export default function TransactionDetailPage() {
   const params = useParams();
@@ -246,6 +248,7 @@ export default function TransactionDetailPage() {
     { id: 'documents', label: 'Documents', icon: FileText },
     { id: 'activity', label: 'Activity', icon: MessageSquare },
     { id: 'photos', label: 'Photos', icon: ImageIcon },
+    { id: 'forms', label: 'Formulaire', icon: FileCheck },
   ];
 
   // Filter documents
@@ -477,6 +480,13 @@ export default function TransactionDetailPage() {
                 <div className="space-y-4">
                   <TransactionTimeline transactionId={parseInt(transactionId)} />
                 </div>
+              </div>
+            )}
+
+            {/* Forms Tab */}
+            {activeTab === 'forms' && (
+              <div className="min-h-[400px]">
+                <TransactionFormsTab transactionId={parseInt(transactionId)} />
               </div>
             )}
 
