@@ -73,17 +73,54 @@ export default function TransactionStepsV2({
     fetchSteps();
   }, [fetchSteps]);
 
+  const updateStepInList = (
+    steps: Step[],
+    stepCode: string,
+    completed: boolean
+  ): Step[] =>
+    steps.map((s) =>
+      s.code === stepCode
+        ? {
+            ...s,
+            status: completed ? ('completed' as const) : ('current' as const),
+            completed_date: completed
+              ? new Date().toISOString().slice(0, 10)
+              : undefined,
+          }
+        : s
+    );
+
+  const updateActionInSteps = (
+    steps: Step[],
+    actionCode: string,
+    completed: boolean
+  ): Step[] =>
+    steps.map((s) => ({
+      ...s,
+      actions: s.actions.map((a) =>
+        a.code === actionCode ? { ...a, completed } : a
+      ),
+    }));
+
   const handleActionToggle = async (action: StepAction) => {
     if (!transactionId || !data) return;
+    const newCompleted = !action.completed;
+    const previousData = data;
     setTogglingAction(action.code);
+    setData({
+      ...data,
+      buyer_steps: updateActionInSteps(data.buyer_steps, action.code, newCompleted),
+      vendor_steps: updateActionInSteps(data.vendor_steps, action.code, newCompleted),
+    });
     try {
       await transactionStepsAPI.completeAction(
         transactionId,
         action.code,
-        !action.completed
+        newCompleted
       );
       await fetchSteps();
     } catch (err) {
+      setData(previousData);
       onError?.(err instanceof Error ? err.message : 'Erreur lors de la mise à jour');
     } finally {
       setTogglingAction(null);
@@ -92,15 +129,23 @@ export default function TransactionStepsV2({
 
   const handleStepToggle = async (step: Step) => {
     if (!transactionId || !data) return;
+    const newCompleted = step.status !== 'completed';
+    const previousData = data;
     setTogglingStep(step.code);
+    setData({
+      ...data,
+      buyer_steps: updateStepInList(data.buyer_steps, step.code, newCompleted),
+      vendor_steps: updateStepInList(data.vendor_steps, step.code, newCompleted),
+    });
     try {
       await transactionStepsAPI.completeStep(
         transactionId,
         step.code,
-        step.status !== 'completed'
+        newCompleted
       );
       await fetchSteps();
     } catch (err) {
+      setData(previousData);
       onError?.(err instanceof Error ? err.message : 'Erreur lors de la mise à jour de l\'étape');
     } finally {
       setTogglingStep(null);

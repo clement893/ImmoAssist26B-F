@@ -187,7 +187,7 @@ export const oaciqFormsAPI = {
     formCode: string
   ): Promise<OACIQFormSubmission> => {
     const response = await apiClient.post<OACIQFormSubmission>(
-      `/v1/oaciq/transactions/${transactionId}/forms?form_code=${encodeURIComponent(formCode)}`
+      `/v1/transactions/${transactionId}/forms?form_code=${encodeURIComponent(formCode)}`
     );
     return extractApiData(response);
   },
@@ -199,7 +199,7 @@ export const oaciqFormsAPI = {
     transactionId: number
   ): Promise<OACIQFormSubmission[]> => {
     const response = await apiClient.get<OACIQFormSubmission[]>(
-      `/v1/oaciq/transactions/${transactionId}/forms`
+      `/v1/transactions/${transactionId}/forms`
     );
     return extractApiData(response);
   },
