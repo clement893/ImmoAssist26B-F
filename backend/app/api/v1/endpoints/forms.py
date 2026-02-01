@@ -14,6 +14,7 @@ from app.models.user import User
 from app.dependencies import get_current_user, get_db, is_superadmin
 from app.core.security_audit import SecurityAuditLogger, SecurityEventType
 from app.core.tenancy_helpers import apply_tenant_scope
+from app.services.compliance_service import validate as compliance_validate
 from fastapi import Request
 
 router = APIRouter()
@@ -86,6 +87,20 @@ class FormSubmissionResponse(BaseModel):
 class FormSubmissionUpdate(BaseModel):
     data: Optional[dict] = None
     needs_review: Optional[bool] = None
+
+
+class ValidateSubmissionRequest(BaseModel):
+    """Request body for compliance validation (no submission created)."""
+    data: dict = Field(..., description="Current form field values to validate")
+
+
+class ComplianceIssueResponse(BaseModel):
+    """Single compliance issue returned by the rule engine."""
+    code: str
+    field: str
+    severity: str
+    message: str
+    description: Optional[str] = None
 
 
 @router.get("/forms", response_model=List[FormResponse], tags=["forms"])
@@ -317,6 +332,29 @@ async def create_submission(
     response = FormSubmissionResponse.model_validate(submission)
     response.form_name = form.name
     return response
+
+
+@router.post(
+    "/forms/{form_id}/submissions/validate",
+    response_model=List[ComplianceIssueResponse],
+    tags=["forms"],
+)
+async def validate_submission(
+    form_id: int,
+    body: ValidateSubmissionRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Validate form data against OACIQ compliance rules (no submission created)."""
+    query = select(Form).where(Form.id == form_id)
+    query = apply_tenant_scope(query, Form)
+    result = await db.execute(query)
+    form = result.scalar_one_or_none()
+    if not form:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Form not found")
+    form_rules = form.compliance_rules or {}
+    issues = compliance_validate(form_rules, body.data)
+    return [ComplianceIssueResponse(**i) for i in issues]
 
 
 @router.get("/forms/{form_id}/submissions", response_model=List[FormSubmissionResponse], tags=["forms"])

@@ -37,6 +37,7 @@ class Form(Base):
     category = Column(String(50), nullable=True, index=True)  # "obligatoire", "recommandé", "curateur_public"
     pdf_url = Column(Text, nullable=True)  # URL to official OACIQ PDF
     extraction_schema = Column(JSON, nullable=True)  # Schema for LLM extraction: {"fields": [{"name", "description"}]}
+    compliance_rules = Column(JSON, nullable=True)  # OACIQ compliance rules: {"rules": [{"code", "description", "field", "type", "params", "severity", "message"}]}
     
     # Ownership and relationships
     user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
