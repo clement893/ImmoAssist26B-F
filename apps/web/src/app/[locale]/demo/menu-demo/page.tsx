@@ -1,13 +1,9 @@
 'use client';
 
 import {
-  Home,
   LayoutDashboard,
   Repeat,
   Calendar,
-  FileText,
-  Menu as MenuIcon,
-  LogOut,
   Check,
   Sparkles,
 } from 'lucide-react';
