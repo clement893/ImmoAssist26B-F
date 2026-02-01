@@ -3,29 +3,16 @@
 import { useState } from 'react';
 import {
   TrendingUp,
-  Users,
-  Building2,
-  DollarSign,
-  Target,
-  Award,
-  Zap,
-  CheckCircle2,
   Clock,
   ArrowUpRight,
-  Sparkles,
-  MessageCircle,
-  Bell,
   Search,
   Mic,
-  Send,
   Calendar,
   Plus,
   MoreVertical,
-  TrendingDown,
 } from 'lucide-react';
 
 export default function DashboardV2() {
-  const [showAIChat, setShowAIChat] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [chatMessage, setChatMessage] = useState('');
 
@@ -41,12 +28,6 @@ export default function DashboardV2() {
     xp: 2450,
     nextLevelXp: 3000,
   };
-
-  const recentActivity = [
-    { id: 1, action: 'New deal closed', client: 'Sarah Johnson', amount: '$450,000', time: '2h ago', type: 'success' },
-    { id: 2, action: 'Meeting scheduled', client: 'Michael Chen', time: '4h ago', type: 'info' },
-    { id: 3, action: 'Document signed', client: 'Emma Wilson', time: '1d ago', type: 'success' },
-  ];
 
   const upcomingTasks = [
     { id: 1, title: 'Property viewing', client: 'Alex Morgan', time: 'Today, 2:00 PM' },
