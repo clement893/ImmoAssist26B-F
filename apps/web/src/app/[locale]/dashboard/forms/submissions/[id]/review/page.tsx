@@ -6,7 +6,7 @@ import { Link } from '@/i18n/routing';
 import Container from '@/components/ui/Container';
 import Card from '@/components/ui/Card';
 import Alert from '@/components/ui/Alert';
-import { formsAPI } from '@/lib/api';
+import { formsAPI } from '@/lib/api.ts';
 import { extractApiData } from '@/lib/api/utils';
 import { ArrowLeft, Loader2, Check, ExternalLink } from 'lucide-react';
 

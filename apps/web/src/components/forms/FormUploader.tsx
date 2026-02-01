@@ -3,7 +3,7 @@
 import { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useParams } from 'next/navigation';
-import { formOcrAPI } from '@/lib/api';
+import { formOcrAPI } from '@/lib/api.ts';
 import { extractApiData } from '@/lib/api/utils';
 import { Upload, Loader2, AlertCircle } from 'lucide-react';
 
