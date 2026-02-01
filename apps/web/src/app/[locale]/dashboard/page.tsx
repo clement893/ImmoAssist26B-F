@@ -6,11 +6,10 @@ export const dynamicParams = true;
 
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/lib/store';
-import { Card, Button, LoadingSkeleton, Grid, Stack } from '@/components/ui';
-import { StatsCard, MetricCard, WidgetGrid } from '@/components/ui';
+import { Card, Button, LoadingSkeleton, Grid, Container } from '@/components/ui';
+import { StatsCard } from '@/components/ui';
 import { PageHeader } from '@/components/layout';
 import { Link } from '@/i18n/routing';
-import dynamicImport from 'next/dynamic';
 import { ErrorBoundary } from '@/components/errors/ErrorBoundary';
 import MotionDiv from '@/components/motion/MotionDiv';
 import LeaChat from '@/components/lea/LeaChat';
@@ -27,13 +26,9 @@ import {
   ClipboardList,
   AlertCircle,
   CheckCircle2,
+  ArrowRight,
+  Plus,
 } from 'lucide-react';
-
-// Lazy load TemplateAIChat to avoid circular dependency issues during build
-const TemplateAIChat = dynamicImport(
-  () => import('@/components/ai/TemplateAIChat').then((mod) => ({ default: mod.TemplateAIChat })),
-  { ssr: false }
-);
 
 function DashboardContent() {
   const { user } = useAuthStore();
@@ -68,166 +63,141 @@ function DashboardContent() {
 
   if (isLoading) {
     return (
-      <div className="space-y-2xl">
-        <div>
-          <LoadingSkeleton variant="custom" className="h-10 w-64 mb-2" />
-          <LoadingSkeleton variant="custom" className="h-6 w-96" />
+      <Container className="py-8">
+        <div className="space-y-8">
+          <div>
+            <LoadingSkeleton variant="custom" className="h-12 w-80 mb-3" />
+            <LoadingSkeleton variant="custom" className="h-6 w-96" />
+          </div>
+          <Grid columns={{ mobile: 1, tablet: 2, desktop: 4 }} gap="spacious">
+            <LoadingSkeleton variant="card" className="h-40" />
+            <LoadingSkeleton variant="card" className="h-40" />
+            <LoadingSkeleton variant="card" className="h-40" />
+            <LoadingSkeleton variant="card" className="h-40" />
+          </Grid>
+          <LoadingSkeleton variant="card" count={2} className="h-64" />
         </div>
-        <Grid columns={{ mobile: 1, tablet: 2, desktop: 4 }} gap="normal">
-          <LoadingSkeleton variant="card" className="h-32" />
-          <LoadingSkeleton variant="card" className="h-32" />
-          <LoadingSkeleton variant="card" className="h-32" />
-          <LoadingSkeleton variant="card" className="h-32" />
-        </Grid>
-        <LoadingSkeleton variant="card" count={2} />
-      </div>
+      </Container>
     );
   }
 
   return (
-    <MotionDiv variant="slideUp" duration="normal" className="space-y-2xl">
-      {/* Welcome Header */}
-      <MotionDiv variant="fade" delay={100}>
-        <PageHeader
-          title={`Bienvenue, ${user?.name || 'Courtier'} !`}
-          description="Vue d'ensemble de votre activité immobilière"
-          breadcrumbs={[{ label: 'Accueil', href: '/' }, { label: 'Dashboard' }]}
-        />
-      </MotionDiv>
-
-      {/* Léa AI Assistant - En haut du dashboard */}
-      <MotionDiv variant="slideUp" delay={150}>
-        <Card className="bg-gradient-to-br from-[#1A1A2E] to-[#16213E] border-gray-800 hover:shadow-xl transition-all duration-200 ease-natural" leftBorder="purple"> {/* Revamp UI - Easing naturel, bordure colorée */}
-          <div className="flex items-center gap-4 mb-4"> {/* Revamp UI - Gap et margin augmentés */}
-            <div className="p-4 bg-gradient-to-br from-green-500 to-blue-500 rounded-xl shadow-sm"> {/* Revamp UI - Padding et border radius améliorés */}
-              <Sparkles className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold bg-gradient-to-r from-green-400 via-blue-400 to-green-400 bg-clip-text text-transparent">
-                Léa - Assistante AI
-              </h3>
-              <p className="text-sm text-gray-400">Votre assistante intelligente spécialisée dans l'immobilier</p>
-            </div>
-          </div>
-          <div className="h-[400px]">
-            <LeaChat />
-          </div>
-        </Card>
-      </MotionDiv>
-
-      {/* Statistiques principales - Transactions */}
-      {error && (
-        <MotionDiv variant="slideUp" delay={150}>
-          <Card variant="elevated" className="border-warning-200 dark:border-warning-800 bg-warning-50 dark:bg-warning-950/20" leftBorder="warning"> {/* Revamp UI - Bordure colorée */}
-            <div className="flex items-center gap-4"> {/* Revamp UI - Gap augmenté */}
-              <AlertCircle className="w-5 h-5 text-warning-600 dark:text-warning-400" />
-              <p className="text-sm text-warning-800 dark:text-warning-200">{error}</p>
-            </div>
-          </Card>
+    <Container className="py-8">
+      <div className="space-y-8">
+        {/* Welcome Header */}
+        <MotionDiv variant="fade" delay={100}>
+          <PageHeader
+            title={`Bienvenue, ${user?.name || 'Courtier'} !`}
+            description="Vue d'ensemble de votre activité immobilière"
+            breadcrumbs={[{ label: 'Accueil', href: '/' }, { label: 'Dashboard' }]}
+          />
         </MotionDiv>
-      )}
 
-      <MotionDiv variant="slideUp" delay={200}>
-        <WidgetGrid columns={{ sm: 1, md: 2, lg: 4 }} gap={6}>
-          <WidgetGrid.Item size="md">
-            <Link href="/dashboard/transactions">
+        {/* Error Alert */}
+        {error && (
+          <MotionDiv variant="slideUp" delay={150}>
+            <Card variant="elevated" className="border-warning-200 dark:border-warning-800 bg-warning-50 dark:bg-warning-950/20" leftBorder="warning">
+              <div className="flex items-center gap-4">
+                <AlertCircle className="w-5 h-5 text-warning-600 dark:text-warning-400 flex-shrink-0" />
+                <p className="text-sm text-warning-800 dark:text-warning-200">{error}</p>
+              </div>
+            </Card>
+          </MotionDiv>
+        )}
+
+        {/* Statistiques principales - Transactions */}
+        <MotionDiv variant="slideUp" delay={200}>
+          <div>
+            <h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-6">Statistiques des transactions</h2>
+            <Grid columns={{ mobile: 1, tablet: 2, desktop: 4 }} gap="spacious">
+              <Link href="/dashboard/transactions" className="block">
+                <StatsCard
+                  title="Transactions totales"
+                  value={stats?.total_transactions.toString() || '0'}
+                  icon={<Receipt className="w-5 h-5" />}
+                  variant="primary"
+                  className="h-full"
+                />
+              </Link>
+              <Link href="/dashboard/transactions?status=En cours" className="block">
+                <StatsCard
+                  title="Transactions actives"
+                  value={stats?.active_transactions.toString() || '0'}
+                  icon={<TrendingUp className="w-5 h-5" />}
+                  variant="success"
+                  className="h-full"
+                />
+              </Link>
+              <Link href="/dashboard/transactions?status=Conditionnelle" className="block">
+                <StatsCard
+                  title="Transactions conditionnelles"
+                  value={stats?.conditional_transactions.toString() || '0'}
+                  icon={<AlertCircle className="w-5 h-5" />}
+                  variant="warning"
+                  className="h-full"
+                />
+              </Link>
+              <Link href="/dashboard/transactions?status=Conclue" className="block">
+                <StatsCard
+                  title="Transactions conclues"
+                  value={stats?.closed_transactions.toString() || '0'}
+                  icon={<CheckCircle2 className="w-5 h-5" />}
+                  variant="default"
+                  className="h-full"
+                />
+              </Link>
+            </Grid>
+          </div>
+        </MotionDiv>
+
+        {/* Statistiques secondaires - Réseau et Finances */}
+        <MotionDiv variant="slideUp" delay={250}>
+          <div>
+            <h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-6">Réseau et finances</h2>
+            <Grid columns={{ mobile: 1, tablet: 2, desktop: 4 }} gap="spacious">
+              <Link href="/dashboard/reseau/contacts" className="block">
+                <StatsCard
+                  title="Contacts"
+                  value={stats?.total_contacts.toString() || '0'}
+                  icon={<Users className="w-5 h-5" />}
+                  variant="default"
+                  className="h-full"
+                />
+              </Link>
+              <Link href="/dashboard/reseau/entreprises" className="block">
+                <StatsCard
+                  title="Entreprises"
+                  value={stats?.total_companies.toString() || '0'}
+                  icon={<Building2 className="w-5 h-5" />}
+                  variant="default"
+                  className="h-full"
+                />
+              </Link>
               <StatsCard
-                title="Transactions totales"
-                value={stats?.total_transactions.toString() || '0'}
-                icon={<Receipt className="w-5 h-5" />}
-                variant="primary"
-                className="cursor-pointer hover:shadow-lg transition-shadow"
-              />
-            </Link>
-          </WidgetGrid.Item>
-          <WidgetGrid.Item size="md">
-            <Link href="/dashboard/transactions?status=En cours">
-              <StatsCard
-                title="Transactions actives"
-                value={stats?.active_transactions.toString() || '0'}
-                icon={<TrendingUp className="w-5 h-5" />}
+                title="Commissions totales"
+                value={stats ? formatCurrency(stats.total_commission) : '$0'}
+                icon={<DollarSign className="w-5 h-5" />}
                 variant="success"
-                className="cursor-pointer hover:shadow-lg transition-shadow"
+                className="h-full"
               />
-            </Link>
-          </WidgetGrid.Item>
-          <WidgetGrid.Item size="md">
-            <Link href="/dashboard/transactions?status=Conditionnelle">
               <StatsCard
-                title="Transactions conditionnelles"
-                value={stats?.conditional_transactions.toString() || '0'}
-                icon={<AlertCircle className="w-5 h-5" />}
+                title="Commissions en attente"
+                value={stats ? formatCurrency(stats.pending_commission) : '$0'}
+                icon={<TrendingUp className="w-5 h-5" />}
                 variant="warning"
-                className="cursor-pointer hover:shadow-lg transition-shadow"
+                className="h-full"
               />
-            </Link>
-          </WidgetGrid.Item>
-          <WidgetGrid.Item size="md">
-            <Link href="/dashboard/transactions?status=Conclue">
-              <StatsCard
-                title="Transactions conclues"
-                value={stats?.closed_transactions.toString() || '0'}
-                icon={<CheckCircle2 className="w-5 h-5" />}
-                variant="default"
-                className="cursor-pointer hover:shadow-lg transition-shadow"
-              />
-            </Link>
-          </WidgetGrid.Item>
-        </WidgetGrid>
-      </MotionDiv>
+            </Grid>
+          </div>
+        </MotionDiv>
 
-      {/* Statistiques secondaires - Contacts, Entreprises, Commissions */}
-      <MotionDiv variant="slideUp" delay={250}>
-        <WidgetGrid columns={{ sm: 1, md: 2, lg: 4 }} gap={6}>
-          <WidgetGrid.Item size="md">
-            <Link href="/dashboard/reseau/contacts">
-              <StatsCard
-                title="Contacts"
-                value={stats?.total_contacts.toString() || '0'}
-                icon={<Users className="w-5 h-5" />}
-                variant="default"
-                className="cursor-pointer hover:shadow-lg transition-shadow"
-              />
-            </Link>
-          </WidgetGrid.Item>
-          <WidgetGrid.Item size="md">
-            <Link href="/dashboard/reseau/entreprises">
-              <StatsCard
-                title="Entreprises"
-                value={stats?.total_companies.toString() || '0'}
-                icon={<Building2 className="w-5 h-5" />}
-                variant="default"
-                className="cursor-pointer hover:shadow-lg transition-shadow"
-              />
-            </Link>
-          </WidgetGrid.Item>
-          <WidgetGrid.Item size="md">
-            <StatsCard
-              title="Commissions totales"
-              value={stats ? formatCurrency(stats.total_commission) : '$0'}
-              icon={<DollarSign className="w-5 h-5" />}
-              variant="success"
-            />
-          </WidgetGrid.Item>
-          <WidgetGrid.Item size="md">
-            <StatsCard
-              title="Commissions en attente"
-              value={stats ? formatCurrency(stats.pending_commission) : '$0'}
-              icon={<TrendingUp className="w-5 h-5" />}
-              variant="warning"
-            />
-          </WidgetGrid.Item>
-        </WidgetGrid>
-      </MotionDiv>
-
-      {/* Actions rapides et informations */}
-      <MotionDiv variant="slideUp" delay={300}>
-        <WidgetGrid columns={{ sm: 1, md: 2 }} gap={4}>
-          {/* Actions rapides */}
-          <WidgetGrid.Item size="md">
-            <Card variant="gradient" className="hover:shadow-xl transition-all duration-200 ease-natural" leftBorder="primary"> {/* Revamp UI - Easing naturel, bordure colorée */}
-              <div className="flex items-center gap-4 mb-6"> {/* Revamp UI - Gap et margin augmentés */}
-                <div className="p-4 bg-primary-600 dark:bg-primary-500 rounded-xl shadow-sm"> {/* Revamp UI - Padding et border radius améliorés */}
+        {/* Actions rapides et Informations */}
+        <MotionDiv variant="slideUp" delay={300}>
+          <Grid columns={{ mobile: 1, tablet: 2 }} gap="spacious">
+            {/* Actions rapides */}
+            <Card variant="gradient" leftBorder="primary" className="h-full">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="p-4 bg-primary-600 dark:bg-primary-500 rounded-xl shadow-sm">
                   <Zap className="w-6 h-6 text-white" />
                 </div>
                 <div>
@@ -235,52 +205,70 @@ function DashboardContent() {
                   <p className="text-sm text-neutral-600 dark:text-neutral-400">Accès rapide aux fonctionnalités principales</p>
                 </div>
               </div>
-              <Stack gap="normal">
+              <div className="space-y-3">
                 <Link href="/dashboard/transactions">
                   <Button
                     variant="primary"
-                    className="w-full justify-start gap-3 h-auto py-3 hover:scale-[1.02] transition-transform"
+                    size="lg"
+                    className="w-full justify-start gap-3 h-auto py-4"
                   >
                     <Receipt className="w-5 h-5" />
-                    <div className="text-left">
+                    <div className="text-left flex-1">
                       <div className="font-semibold">Nouvelle transaction</div>
-                      <div className="text-xs opacity-90">Créer une nouvelle transaction immobilière</div>
+                      <div className="text-xs opacity-90 font-normal">Créer une nouvelle transaction immobilière</div>
                     </div>
+                    <ArrowRight className="w-4 h-4 ml-auto" />
                   </Button>
                 </Link>
                 <Link href="/dashboard/reseau/contacts">
                   <Button
                     variant="outline"
-                    className="w-full justify-start gap-3 h-auto py-3 hover:scale-[1.02] transition-transform"
+                    size="lg"
+                    className="w-full justify-start gap-3 h-auto py-4"
                   >
                     <Users className="w-5 h-5" />
-                    <div className="text-left">
+                    <div className="text-left flex-1">
                       <div className="font-semibold">Gérer les contacts</div>
-                      <div className="text-xs opacity-90">Voir et gérer vos contacts</div>
+                      <div className="text-xs opacity-90 font-normal">Voir et gérer vos contacts</div>
                     </div>
+                    <ArrowRight className="w-4 h-4 ml-auto" />
                   </Button>
                 </Link>
                 <Link href="/dashboard/modules/calendrier">
                   <Button
                     variant="outline"
-                    className="w-full justify-start gap-3 h-auto py-3 hover:scale-[1.02] transition-transform"
+                    size="lg"
+                    className="w-full justify-start gap-3 h-auto py-4"
                   >
                     <Calendar className="w-5 h-5" />
-                    <div className="text-left">
+                    <div className="text-left flex-1">
                       <div className="font-semibold">Calendrier</div>
-                      <div className="text-xs opacity-90">Voir vos rendez-vous et événements</div>
+                      <div className="text-xs opacity-90 font-normal">Voir vos rendez-vous et événements</div>
                     </div>
+                    <ArrowRight className="w-4 h-4 ml-auto" />
                   </Button>
                 </Link>
-              </Stack>
+                <Link href="/dashboard/modules/formulaire/oaciq">
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="w-full justify-start gap-3 h-auto py-4"
+                  >
+                    <ClipboardList className="w-5 h-5" />
+                    <div className="text-left flex-1">
+                      <div className="font-semibold">Formulaires OACIQ</div>
+                      <div className="text-xs opacity-90 font-normal">Accéder aux formulaires officiels</div>
+                    </div>
+                    <ArrowRight className="w-4 h-4 ml-auto" />
+                  </Button>
+                </Link>
+              </div>
             </Card>
-          </WidgetGrid.Item>
 
-          {/* Statistiques financières */}
-          <WidgetGrid.Item size="md">
-            <Card variant="elevated" className="hover:shadow-xl transition-all duration-300">
+            {/* Résumé financier */}
+            <Card variant="elevated" className="h-full">
               <div className="flex items-center gap-4 mb-6">
-                <div className="p-3 bg-success-100 dark:bg-success-900/30 rounded-lg">
+                <div className="p-4 bg-success-100 dark:bg-success-900/30 rounded-xl shadow-sm">
                   <DollarSign className="w-6 h-6 text-success-600 dark:text-success-400" />
                 </div>
                 <div>
@@ -288,80 +276,96 @@ function DashboardContent() {
                   <p className="text-sm text-neutral-600 dark:text-neutral-400">Vos commissions et revenus</p>
                 </div>
               </div>
-              <WidgetGrid columns={{ sm: 1 }} gap={4}>
-                <WidgetGrid.Item size="md">
-                  <MetricCard
-                    title="Commissions conclues"
-                    value={stats ? formatCurrency(stats.closed_commission) : '$0'}
-                    subtitle="Commissions des transactions finalisées"
-                    icon={<CheckCircle2 className="w-5 h-5" />}
-                    trend="up"
-                    variant="success"
-                  />
-                </WidgetGrid.Item>
-              </WidgetGrid>
+              <div className="space-y-4">
+                <div className="p-6 bg-success-50 dark:bg-success-950/20 rounded-xl border-2 border-success-200 dark:border-success-800">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-success-700 dark:text-success-300">Commissions conclues</span>
+                    <CheckCircle2 className="w-5 h-5 text-success-600 dark:text-success-400" />
+                  </div>
+                  <p className="text-3xl font-bold text-success-900 dark:text-success-100">
+                    {stats ? formatCurrency(stats.closed_commission) : '$0'}
+                  </p>
+                  <p className="text-xs text-success-600 dark:text-success-400 mt-2">
+                    Commissions des transactions finalisées
+                  </p>
+                </div>
+                <div className="p-6 bg-warning-50 dark:bg-warning-950/20 rounded-xl border-2 border-warning-200 dark:border-warning-800">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-warning-700 dark:text-warning-300">Commissions en attente</span>
+                    <TrendingUp className="w-5 h-5 text-warning-600 dark:text-warning-400" />
+                  </div>
+                  <p className="text-3xl font-bold text-warning-900 dark:text-warning-100">
+                    {stats ? formatCurrency(stats.pending_commission) : '$0'}
+                  </p>
+                  <p className="text-xs text-warning-600 dark:text-warning-400 mt-2">
+                    Commissions en cours de traitement
+                  </p>
+                </div>
+              </div>
             </Card>
-          </WidgetGrid.Item>
-        </WidgetGrid>
-      </MotionDiv>
+          </Grid>
+        </MotionDiv>
 
-      {/* Calendrier et Formulaires */}
-      <MotionDiv variant="slideUp" delay={400}>
-        <WidgetGrid columns={{ sm: 1, md: 2 }} gap={4}>
-          <WidgetGrid.Item size="md">
-            <Link href="/dashboard/modules/calendrier">
-              <Card variant="elevated" className="hover:shadow-xl transition-all duration-300 cursor-pointer">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="p-3 bg-primary-100 dark:bg-primary-900/30 rounded-lg">
+        {/* Calendrier et Formulaires - Section compacte */}
+        <MotionDiv variant="slideUp" delay={350}>
+          <Grid columns={{ mobile: 1, tablet: 2 }} gap="spacious">
+            <Link href="/dashboard/modules/calendrier" className="block">
+              <Card variant="elevated" className="h-full hover:shadow-xl transition-all duration-200">
+                <div className="flex items-center gap-4">
+                  <div className="p-4 bg-primary-100 dark:bg-primary-900/30 rounded-xl">
                     <Calendar className="w-6 h-6 text-primary-600 dark:text-primary-400" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">Rendez-vous à venir</h3>
+                    <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-1">Rendez-vous à venir</h3>
                     <p className="text-sm text-neutral-600 dark:text-neutral-400">
                       {stats?.upcoming_events || 0} événement{stats?.upcoming_events !== 1 ? 's' : ''} prévu{stats?.upcoming_events !== 1 ? 's' : ''}
                     </p>
                   </div>
+                  <ArrowRight className="w-5 h-5 text-neutral-400" />
                 </div>
               </Card>
             </Link>
-          </WidgetGrid.Item>
-          <WidgetGrid.Item size="md">
-            <Link href="/dashboard/modules/formulaire/oaciq">
-              <Card variant="elevated" className="hover:shadow-xl transition-all duration-300 cursor-pointer">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="p-3 bg-secondary-100 dark:bg-secondary-900/30 rounded-lg">
+            <Link href="/dashboard/modules/formulaire/oaciq" className="block">
+              <Card variant="elevated" className="h-full hover:shadow-xl transition-all duration-200">
+                <div className="flex items-center gap-4">
+                  <div className="p-4 bg-secondary-100 dark:bg-secondary-900/30 rounded-xl">
                     <ClipboardList className="w-6 h-6 text-secondary-600 dark:text-secondary-400" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">Formulaires OACIQ</h3>
+                    <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-1">Formulaires OACIQ</h3>
                     <p className="text-sm text-neutral-600 dark:text-neutral-400">
                       {stats?.total_forms || 0} formulaire{stats?.total_forms !== 1 ? 's' : ''} disponible{stats?.total_forms !== 1 ? 's' : ''}
                       {stats?.pending_submissions ? ` • ${stats.pending_submissions} en attente` : ''}
                     </p>
                   </div>
+                  <ArrowRight className="w-5 h-5 text-neutral-400" />
                 </div>
               </Card>
             </Link>
-          </WidgetGrid.Item>
-        </WidgetGrid>
-      </MotionDiv>
+          </Grid>
+        </MotionDiv>
 
-      {/* AI Chat Assistant */}
-      <MotionDiv variant="slideUp" delay={600}>
-        <Card className="hover:shadow-xl transition-all duration-300">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="p-3 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-lg">
-              <Sparkles className="w-6 h-6 text-primary-foreground" />
+        {/* Léa AI Assistant - Section dédiée */}
+        <MotionDiv variant="slideUp" delay={400}>
+          <Card className="bg-gradient-to-br from-[#1A1A2E] to-[#16213E] border-gray-800" leftBorder="purple">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="p-4 bg-gradient-to-br from-green-500 to-blue-500 rounded-xl shadow-sm">
+                <Sparkles className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold bg-gradient-to-r from-green-400 via-blue-400 to-green-400 bg-clip-text text-transparent">
+                  Léa - Assistante AI
+                </h3>
+                <p className="text-sm text-gray-400">Votre assistante intelligente spécialisée dans l'immobilier</p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-xl font-semibold text-foreground">AI Assistant</h3>
-              <p className="text-sm text-muted-foreground">Get help with your questions</p>
+            <div className="h-[500px] rounded-xl overflow-hidden">
+              <LeaChat />
             </div>
-          </div>
-          <TemplateAIChat />
-        </Card>
-      </MotionDiv>
-    </MotionDiv>
+          </Card>
+        </MotionDiv>
+      </div>
+    </Container>
   );
 }
 
