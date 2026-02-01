@@ -19,6 +19,7 @@ import {
   Plus,
   Calendar,
   FileText,
+  BarChart3,
 } from 'lucide-react';
 
 function DashboardContent() {
@@ -140,6 +141,51 @@ function DashboardContent() {
             />
           </Link>
         </div>
+
+        {/* Widget EA */}
+        <Card variant="default" className="rounded-3xl">
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 rounded-xl">
+                  <BarChart3 className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Évaluation d'Actif (EA)</h2>
+                  <p className="text-sm text-gray-500">Vue d'ensemble de vos évaluations</p>
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-blue-600 uppercase">Évaluations actives</span>
+                  <BarChart3 className="w-4 h-4 text-blue-600" />
+                </div>
+                <p className="text-2xl font-semibold text-gray-900">{stats?.active_transactions || 0}</p>
+                <p className="text-xs text-gray-500 mt-1">En cours d'évaluation</p>
+              </div>
+              <div className="p-4 bg-green-50 rounded-2xl border border-green-100">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-green-600 uppercase">Valeur totale</span>
+                  <DollarSign className="w-4 h-4 text-green-600" />
+                </div>
+                <p className="text-2xl font-semibold text-gray-900">
+                  {stats ? formatCurrency(stats.total_commission || 0) : '$0'}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">Valeur estimée</p>
+              </div>
+              <div className="p-4 bg-purple-50 rounded-2xl border border-purple-100">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-purple-600 uppercase">Taux de conversion</span>
+                  <TrendingUp className="w-4 h-4 text-purple-600" />
+                </div>
+                <p className="text-2xl font-semibold text-gray-900">85%</p>
+                <p className="text-xs text-gray-500 mt-1">Évaluations complétées</p>
+              </div>
+            </div>
+          </div>
+        </Card>
 
         {/* Actions rapides */}
         <Card variant="default" className="rounded-3xl">
