@@ -118,6 +118,10 @@ export default function LinkContactToTransactionModal({
 
   // Close dropdown when clicking outside
   useEffect(() => {
+    if (!showDropdown) {
+      return;
+    }
+
     const handleClickOutside = (event: MouseEvent) => {
       if (
         dropdownRef.current &&
@@ -129,10 +133,8 @@ export default function LinkContactToTransactionModal({
       }
     };
 
-    if (showDropdown) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showDropdown]);
 
   const handleSelectTransaction = (transaction: Transaction) => {

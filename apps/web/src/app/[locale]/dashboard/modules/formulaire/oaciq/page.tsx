@@ -12,7 +12,7 @@ import { Button } from '@/components/ui';
 import { Input } from '@/components/ui';
 import Tabs, { TabList, Tab, TabPanels, TabPanel } from '@/components/ui/Tabs';
 import { FileText, Download, CheckCircle2, Upload, ExternalLink } from 'lucide-react';
-import Link from '@/i18n/routing';
+import { Link } from '@/i18n/routing';
 import { useQuery } from '@tanstack/react-query';
 import { oaciqFormsAPI, type OACIQForm } from '@/lib/api/oaciq-forms';
 

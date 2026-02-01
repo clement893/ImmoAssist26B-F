@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Card } from '@/components/ui';
 import { Button } from '@/components/ui';
-import { Code, Copy, Check, ExternalLink, FileText, Image as ImageIcon, Link as LinkIcon } from 'lucide-react';
+import { Code, Copy, Check, ExternalLink, FileText } from 'lucide-react';
 import { useToast } from '@/components/ui';
 
 export default function OACIQImportPage() {
