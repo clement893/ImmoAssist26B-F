@@ -228,10 +228,10 @@ function Modal({
           hasEffect('glassmorphism') ? '' : 'bg-background',
           'shadow-xl',
           'w-full h-full',
-          'md:w-auto md:h-auto md:rounded-2xl', // Revamp UI - Border radius moderne 16px
+          'md:w-auto md:h-auto md:rounded-2xl',
           sizeClasses[size],
           'md:max-h-[90vh] flex flex-col',
-          'animate-scale-in', // Modal scale-in animation (UX/UI improvements - Batch 16)
+          'animate-scale-in',
           className
         )}
         style={glassmorphismStyles}
@@ -244,12 +244,12 @@ function Modal({
       >
         {/* Header */}
         {(title || showCloseButton) && (
-          <div className="flex items-center justify-between p-6 border-b border-border flex-shrink-0"> {/* Revamp UI - Padding augmenté */}
-            {title && <h2 className="text-xl md:text-2xl font-semibold text-foreground pr-2">{title}</h2>} {/* Revamp UI - Taille texte augmentée */}
+          <div className="flex items-center justify-between p-6 border-b border-border flex-shrink-0">
+            {title && <h2 className="text-xl md:text-2xl font-semibold text-foreground pr-2">{title}</h2>}
             {showCloseButton && (
               <button
                 onClick={onClose}
-                className="ml-auto text-muted-foreground hover:text-foreground transition-all duration-200 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 min-w-[44px] min-h-[44px] flex items-center justify-center p-2 -mr-2" // Revamp UI - Hover effect amélioré
+                className="ml-auto text-muted-foreground hover:text-foreground transition-all duration-200 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 min-w-[44px] min-h-[44px] flex items-center justify-center p-2 -mr-2"
                 aria-label="Close"
               >
                 <svg className="w-6 h-6 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -261,11 +261,13 @@ function Modal({
         )}
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">{children}</div> {/* Revamp UI - Padding augmenté */}
+        <div className="flex-1 overflow-y-auto p-6">{children}</div>
 
         {/* Footer */}
         {footer && (
-          <div className="flex items-center justify-end gap-4 p-6 border-t border-border flex-shrink-0">{footer}</div> {/* Revamp UI - Padding et gap augmentés */}
+          <div className="flex items-center justify-end gap-4 p-6 border-t border-border flex-shrink-0">
+            {footer}
+          </div>
         )}
       </div>
     </div>
