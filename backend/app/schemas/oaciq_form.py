@@ -120,3 +120,38 @@ class ExtractFieldsResponse(BaseModel):
     success: bool
     fields: Dict[str, Any]
     form: OACIQFormResponse
+
+
+class OACIQFormImportItem(BaseModel):
+    """Single form item for bulk import"""
+    code: str = Field(..., min_length=1, max_length=20, description="Code unique du formulaire OACIQ")
+    name: str = Field(..., min_length=1, max_length=200, description="Nom du formulaire")
+    category: OACIQFormCategory = Field(..., description="Catégorie du formulaire")
+    pdf_url: Optional[str] = Field(None, description="URL du PDF officiel OACIQ")
+    fields: Optional[Dict[str, Any]] = Field(None, description="Structure des champs du formulaire (sections et fields)")
+
+
+class OACIQFormImportRequest(BaseModel):
+    """Bulk import request for OACIQ forms from Manus"""
+    forms: List[OACIQFormImportItem] = Field(..., min_length=1, max_length=100, description="Liste des formulaires à importer (max 100)")
+    overwrite_existing: bool = Field(False, description="Si True, met à jour les formulaires existants. Si False, ignore les doublons.")
+
+
+class OACIQFormImportResult(BaseModel):
+    """Result for a single imported form"""
+    code: str
+    success: bool
+    action: str = Field(..., description="'created' ou 'updated' ou 'skipped'")
+    form_id: Optional[int] = None
+    error: Optional[str] = None
+
+
+class OACIQFormImportResponse(BaseModel):
+    """Response from bulk import"""
+    success: bool
+    total: int = Field(..., description="Nombre total de formulaires dans la requête")
+    created: int = Field(..., description="Nombre de formulaires créés")
+    updated: int = Field(..., description="Nombre de formulaires mis à jour")
+    skipped: int = Field(..., description="Nombre de formulaires ignorés")
+    failed: int = Field(..., description="Nombre de formulaires ayant échoué")
+    results: List[OACIQFormImportResult] = Field(..., description="Détails pour chaque formulaire")

@@ -13,6 +13,8 @@ from app.models.form import Form, FormSubmission, FormSubmissionVersion
 from app.models.real_estate_transaction import RealEstateTransaction
 from app.models.user import User
 from app.dependencies import get_current_user, get_db
+from app.core.api_key import optional_api_key, get_user_from_api_key
+from app.api.v1.endpoints.auth import get_current_user as get_current_user_jwt
 from app.schemas.oaciq_form import (
     OACIQFormCreate,
     OACIQFormUpdate,
@@ -23,6 +25,9 @@ from app.schemas.oaciq_form import (
     FormSubmissionStatus,
     ExtractFieldsRequest,
     ExtractFieldsResponse,
+    OACIQFormImportRequest,
+    OACIQFormImportResponse,
+    OACIQFormImportResult,
 )
 from app.services.ai_service import AIService, AIProvider
 from app.core.logging import logger
