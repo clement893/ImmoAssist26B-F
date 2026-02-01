@@ -947,3 +947,7 @@ export type {
 
 // Re-export API utilities
 export { extractApiData } from './api/utils';
+
+// Re-export reseau adapters
+export { reseauContactsAPI } from './api/reseau-adapters';
+export type { Contact, ContactCreate, ContactUpdate } from './api/reseau-adapters';

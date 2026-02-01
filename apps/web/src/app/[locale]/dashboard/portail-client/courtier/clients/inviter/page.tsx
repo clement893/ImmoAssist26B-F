@@ -19,9 +19,7 @@ import {
   Search,
   X,
 } from 'lucide-react';
-import { apiClient } from '@/lib/api/client';
-import { reseauContactsAPI } from '@/lib/api/reseau-adapters';
-import type { Contact } from '@/lib/api/reseau-adapters';
+import { apiClient, reseauContactsAPI, type Contact } from '@/lib/api';
 
 export default function InviterClientPage() {
   const router = useRouter();
@@ -44,7 +42,7 @@ export default function InviterClientPage() {
     setContactsLoading(true);
     reseauContactsAPI
       .list(0, 300)
-      .then((list: Contact[]) => {
+      .then((list) => {
         if (!cancelled) setContacts(list);
       })
       .catch(() => {
