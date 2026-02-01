@@ -5,7 +5,6 @@ export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 
 import { useState, useEffect } from 'react';
-import Container from '@/components/ui/Container';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
@@ -174,19 +173,19 @@ function TransactionsContent() {
 
 
   return (
-    <Container>
-      <div className="space-y-6">
+    <div className="min-h-screen bg-gray-100 p-8">
+      <div className="max-w-[1400px] mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Transactions Immobilières</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-2xl font-semibold text-gray-900">Transactions Immobilières</h1>
+            <p className="text-sm text-gray-500 mt-1">
               Gérez vos transactions immobilières et suivez leur progression
             </p>
           </div>
           <div className="flex items-center gap-3">
             {/* View Mode Toggle */}
-            <div className="flex items-center gap-2 p-1 bg-muted rounded-lg">
+            <div className="flex items-center gap-2 p-1 bg-white rounded-2xl shadow-sm">
               <Button
                 variant={viewMode === 'pipeline' ? 'primary' : 'ghost'}
                 size="sm"
@@ -207,7 +206,7 @@ function TransactionsContent() {
               </Button>
             </div>
             <Button
-              variant="outline"
+              variant="white"
               onClick={() => setShowPDFImportModal(true)}
               className="flex items-center gap-2"
             >
@@ -215,6 +214,7 @@ function TransactionsContent() {
               Importer depuis PDF
             </Button>
             <Button
+              variant="gradient"
               onClick={() => setShowCreateModal(true)}
               className="flex items-center gap-2"
             >
@@ -226,29 +226,31 @@ function TransactionsContent() {
 
         {/* Error Alert */}
         {error && (
-          <Alert variant="error" title="Erreur">
-            {error}
-          </Alert>
+          <div className="bg-red-50 border border-red-200 rounded-3xl p-4">
+            <Alert variant="error" title="Erreur">
+              {error}
+            </Alert>
+          </div>
         )}
 
         {/* Filters and Search - Only show in list view */}
         {viewMode === 'list' && (
-          <Card>
-            <div className="flex items-center gap-4 p-4">
+          <Card variant="default" className="rounded-3xl">
+            <div className="flex items-center gap-4 p-6">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <Input
                   type="text"
                   placeholder="Rechercher une transaction..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  className="pl-12"
                 />
               </div>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-4 py-2 border border-border rounded-lg bg-background text-foreground"
+                className="px-6 py-4 border border-gray-200 rounded-2xl bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Tous les statuts</option>
                 <option value="En cours">En cours</option>
@@ -276,18 +278,18 @@ function TransactionsContent() {
           <>
             {/* Transactions Grid - List View */}
             {loading && transactions.length === 0 ? (
-          <div className="flex items-center justify-center py-12">
+          <div className="flex items-center justify-center py-12 bg-white rounded-3xl">
             <Loading />
           </div>
         ) : transactions.length === 0 ? (
-          <Card>
+          <Card variant="default" className="rounded-3xl">
             <div className="text-center py-12">
-              <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Aucune transaction</h3>
-              <p className="text-muted-foreground mb-4">
+              <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2 text-gray-900">Aucune transaction</h3>
+              <p className="text-gray-500 mb-4">
                 Commencez par créer votre première transaction immobilière
               </p>
-              <Button onClick={() => setShowCreateModal(true)}>
+              <Button variant="gradient" onClick={() => setShowCreateModal(true)}>
                 <Plus className="w-4 h-4 mr-2" />
                 Créer une transaction
               </Button>
@@ -302,8 +304,9 @@ function TransactionsContent() {
               return (
               <Card
                 key={transaction.id}
+                variant="default"
                 hover
-                className="flex flex-col overflow-hidden"
+                className="flex flex-col overflow-hidden rounded-3xl"
               >
                 {/* Photo Header */}
                 {firstPhoto?.url && (
@@ -513,7 +516,7 @@ function TransactionsContent() {
           )}
         </Modal>
       </div>
-    </Container>
+    </div>
   );
 }
 

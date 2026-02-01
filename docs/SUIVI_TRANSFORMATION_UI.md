@@ -268,36 +268,50 @@ Ce document suit la progression de la transformation UI par batches, avec un pus
 
 ---
 
-### Batch 10 : Transactions List & Pipeline View
-**Statut** : En attente  
+### Batch 10 : Transactions List & Pipeline View ✅
+**Statut** : Complété  
 **Priorité** : HAUTE  
 **Objectif** : Transformer Transactions List et Pipeline View
 
 **Tâches** :
-- [ ] Header style dashboard-v2
-- [ ] Pipeline View avec colonnes Kanban
-- [ ] Cards de transaction style transactions board
-- [ ] Tests : Vérifier liste et pipeline
+- [x] Header style dashboard-v2
+- [x] Pipeline View avec colonnes Kanban
+- [x] Cards de transaction style transactions board
+- [x] Tests : Vérifier liste et pipeline
 
-**Fichiers à modifier** :
-- `apps/web/src/app/[locale]/dashboard/transactions/page.tsx`
-- `apps/web/src/components/transactions/TransactionsPipelineView.tsx`
+**Fichiers modifiés** :
+- ✅ `apps/web/src/app/[locale]/dashboard/transactions/page.tsx` - Header Dashboard V2, layout bg-gray-100, cards rounded-3xl
+- ✅ `apps/web/src/components/transactions/TransactionsPipelineView.tsx` - Cards rounded-3xl, typographie Dashboard V2
 
 **Commit** : `feat(ui): Batch 10 - Transactions List & Pipeline`
+
+**Résumé des changements** :
+- Header : text-2xl font-semibold avec sous-titre text-sm text-gray-500
+- Layout : bg-gray-100 p-8 avec max-w-[1400px] mx-auto
+- View Mode Toggle : bg-white rounded-2xl shadow-sm
+- Buttons : variant gradient pour Nouvelle transaction, variant white pour Importer PDF
+- Pipeline View : Cards rounded-3xl (au lieu de rounded-2xl), shadow-sm hover:shadow-md
+- Typographie : font-medium pour titres, text-gray-500 pour textes secondaires
+- Search Input : rounded-2xl avec style Dashboard V2
+- Cards : rounded-3xl avec style Dashboard V2 complet
 
 ---
 
 ## Progression Globale
 
-**Batches complétés** : 9/10 ✅  
+**Batches complétés** : 10/10 ✅  
 **Batches en cours** : 0  
-**Batches en attente** : 1
+**Batches en attente** : 0
 
 ### Dernière mise à jour
-- **Batch 9** complété le 2026-02-01
-- Dashboard Page transformée avec style dashboard-v2
-- Layout grid 12 colonnes, cards rounded-3xl, typographie font-light
-- Stats cards style Dashboard V2, Actions rapides et Résumé financier avec grid 2 colonnes
+- **Batch 10** complété le 2026-02-01
+- Transactions List & Pipeline View transformés avec style Dashboard V2
+- Header Dashboard V2, Pipeline View avec cards rounded-3xl, typographie Dashboard V2
+- Layout bg-gray-100 p-8, View Mode Toggle rounded-2xl, Search Input rounded-2xl
+
+## 🎉 TRANSFORMATION UI COMPLÈTE
+
+Tous les batches ont été complétés avec succès ! La transformation UI est maintenant terminée.
 
 ## Notes
 
