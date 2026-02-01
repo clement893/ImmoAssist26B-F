@@ -22,13 +22,27 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Create user_availabilities table."""
-    # Create enum type for day_of_week
+    # Create enum type for day_of_week (check if it exists first)
+    connection = op.get_bind()
+    result = connection.execute(
+        sa.text("SELECT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'dayofweek')")
+    ).scalar()
+    
+    if not result:
+        # Enum doesn't exist, create it
+        day_of_week_enum = postgresql.ENUM(
+            'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+            name='dayofweek',
+            create_type=True
+        )
+        day_of_week_enum.create(connection, checkfirst=False)
+    
+    # Use the enum type (it exists now)
     day_of_week_enum = postgresql.ENUM(
         'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
         name='dayofweek',
-        create_type=True
+        create_type=False
     )
-    day_of_week_enum.create(op.get_bind(), checkfirst=True)
     
     # Create user_availabilities table
     op.create_table(
