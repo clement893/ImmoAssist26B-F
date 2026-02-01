@@ -37,14 +37,14 @@ export default function PageHeader({
 
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6"> {/* Revamp UI - Gap augmenté */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-4 mb-4 flex-wrap"> {/* Revamp UI - Gap et margin augmentés */}
-            <Heading level={1} className="text-foreground font-bold">
+          <div className="flex items-center gap-4 mb-2 flex-wrap"> {/* UI Revamp - Style démo pages */}
+            <Heading level={1} className="text-3xl font-light text-gray-900 dark:text-neutral-100">
               {title}
             </Heading>
             {badge && <div className="flex-shrink-0">{badge}</div>}
           </div>
           {description && (
-            <Text variant="body" className="text-muted-foreground text-base"> {/* Revamp UI - Taille texte augmentée */}
+            <Text variant="body" className="text-sm font-light text-gray-500 dark:text-gray-400"> {/* UI Revamp - Style démo pages */}
               {description}
             </Text>
           )}

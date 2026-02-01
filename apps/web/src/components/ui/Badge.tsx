@@ -14,11 +14,11 @@ function Badge({ children, variant = 'default', className }: BadgeProps) {
   const variantConfig = getVariant(variant);
 
   const defaultVariants = {
-    default: 'bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300', // Revamp UI - Neutres améliorés
-    success: 'bg-success-100 dark:bg-success-900/50 text-success-700 dark:text-success-300 border-success-200 dark:border-success-700', // Revamp UI - Avec bordure
-    warning: 'bg-warning-100 dark:bg-warning-900/50 text-warning-700 dark:text-warning-300 border-warning-200 dark:border-warning-700', // Revamp UI - Avec bordure
-    error: 'bg-error-100 dark:bg-error-900/50 text-error-700 dark:text-error-300 border-error-200 dark:border-error-700', // Revamp UI - Avec bordure
-    info: 'bg-info-100 dark:bg-info-900/50 text-info-700 dark:text-info-300 border-info-200 dark:border-info-700', // Revamp UI - Avec bordure
+    default: 'bg-gray-100 text-gray-600 dark:bg-neutral-800 dark:text-neutral-300', // UI Revamp - Style démo pages
+    success: 'bg-green-100 text-green-600 dark:bg-green-900/50 dark:text-green-300', // UI Revamp - Style démo pages
+    warning: 'bg-amber-100 text-amber-600 dark:bg-amber-900/50 dark:text-amber-300', // UI Revamp - Style démo pages
+    error: 'bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-300', // UI Revamp - Style démo pages
+    info: 'bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-300', // UI Revamp - Style démo pages
   };
 
   // Merge theme variant with default variant
@@ -32,11 +32,7 @@ function Badge({ children, variant = 'default', className }: BadgeProps) {
   return (
     <span
       className={clsx(
-        'inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold', // UI Revamp - Padding et taille augmentés
-        'shadow-subtle-sm backdrop-blur-sm', // UI Revamp - Nouveau système d'ombres
-        'transition-modern', // UI Revamp - Transition moderne
-        'border', // UI Revamp - Bordure visible pour variants colorés
-        'hover:shadow-subtle-md', // UI Revamp - Hover effect avec ombre subtile
+        'inline-flex items-center px-3 py-1 rounded-full text-xs font-light', // UI Revamp - Style démo pages (font-light)
         variantClasses,
         className
       )}

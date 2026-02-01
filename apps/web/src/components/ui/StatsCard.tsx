@@ -83,10 +83,9 @@ export default function StatsCard({
   return (
     <div
       className={clsx(
-        'rounded-2xl border-2 p-6 sm:p-8 transition-modern shadow-standard-sm', // UI Revamp - Border radius moderne, padding augmenté, nouveau système d'ombres
+        'bg-white dark:bg-neutral-900 rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow duration-200', // UI Revamp - Style démo pages (ultra-minimaliste)
         'w-full', // Full width on mobile
-        variantStyles[variant],
-        onClick && 'cursor-pointer hover:shadow-standard-lg hover:-translate-y-1 active:scale-[0.98]', // UI Revamp - Hover effect amélioré avec nouvelle ombre
+        onClick && 'cursor-pointer', // UI Revamp - Cursor pointer si cliquable
         className
       )}
       onClick={onClick}
@@ -103,29 +102,25 @@ export default function StatsCard({
           : undefined
       }
     >
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center gap-4 mb-3"> {/* Revamp UI - Gap et margin augmentés */}
-            {icon && (
-              <div className={clsx('p-3 rounded-xl shadow-subtle-sm', iconStyles[variant])}> {/* UI Revamp - Padding et border radius améliorés, nouvelle ombre */}
-                {icon}
-              </div>
-            )}
-            <p className="text-base font-medium text-neutral-600 dark:text-neutral-400">{title}</p> {/* Revamp UI - Taille texte augmentée */}
+      <div className="flex items-start justify-between mb-6">
+        {icon && (
+          <div className={clsx('rounded-xl p-3', iconStyles[variant])}> {/* UI Revamp - Style démo pages */}
+            {icon}
           </div>
-          <div className="flex items-baseline gap-3 flex-wrap"> {/* Revamp UI - Gap augmenté */}
-            <p className="text-3xl sm:text-4xl font-bold text-neutral-900 dark:text-neutral-100">{value}</p> {/* Revamp UI - Taille valeur augmentée */}
-            {trend && (
-              <div className={clsx('flex items-center gap-1 text-sm font-semibold', trendColors[trendDirection])}>
-                <TrendIcon className="w-4 h-4" />
-                <span>{trend}</span>
-              </div>
-            )}
+        )}
+      </div>
+      <div className="flex-1">
+        <p className="text-sm font-light text-gray-500 mb-2">{title}</p> {/* UI Revamp - Style démo pages */}
+        <p className="text-3xl font-light text-gray-900 mb-1">{value}</p> {/* UI Revamp - Style démo pages */}
+        {description && (
+          <p className="text-xs font-light text-gray-400">{description}</p> {/* UI Revamp - Style démo pages */}
+        )}
+        {trend && (
+          <div className={clsx('flex items-center gap-1 text-xs font-light mt-2', trendColors[trendDirection])}>
+            <TrendIcon className="w-4 h-4" />
+            <span>{trend}</span>
           </div>
-          {description && (
-            <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-500">{description}</p>
-          )}
-        </div>
+        )}
       </div>
     </div>
   );

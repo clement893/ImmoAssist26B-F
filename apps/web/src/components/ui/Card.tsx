@@ -156,10 +156,10 @@ export default function Card({
   // Generate aria-label for clickable cards without title
   const ariaLabel = onClick && !title ? 'Clickable card' : undefined;
 
-  // Get card padding - use theme config if available, otherwise use defaults (Revamp UI - Padding augmenté)
+  // Get card padding - use theme config if available, otherwise use defaults (Revamp UI - Padding augmenté pour style démo)
   const getCardPadding = () => {
     if (!cardPaddingConfig) {
-      return 'p-6'; // Default padding: 24px - Augmenté pour plus d'espace (Revamp UI)
+      return 'p-8'; // Default padding: 32px - Style démo pages (ultra-minimaliste)
     }
 
     // Use theme padding (sm, md, lg)
@@ -171,16 +171,16 @@ export default function Card({
   const cardPadding = getCardPadding();
   const useThemePadding = typeof cardPadding === 'string' && cardPadding !== 'p-6';
 
-  // Variant styles (UI Revamp - Nouveau système d'ombres)
+  // Variant styles (UI Revamp - Nouveau système d'ombres - Updated to match demo pages)
   const variantStyles: Record<CardVariant, string> = {
-    default: 'bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-standard-sm',
-    elevated: 'bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-standard-md',
-    floating: 'bg-white dark:bg-neutral-900 border-0 shadow-standard-lg',
+    default: 'bg-white dark:bg-neutral-900 border-0 shadow-sm hover:shadow-md transition-shadow duration-200',
+    elevated: 'bg-white dark:bg-neutral-900 border-0 shadow-sm hover:shadow-md transition-shadow duration-200',
+    floating: 'bg-white dark:bg-neutral-900 border-0 shadow-md',
     outlined: 'bg-transparent border-2 border-neutral-300 dark:border-neutral-700 shadow-none',
     gradient: 'bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-primary-950 dark:to-secondary-950 border border-primary-200 dark:border-primary-800 shadow-standard-md',
     glass: 'bg-white/70 dark:bg-neutral-900/70 backdrop-blur-glass border border-white/30 dark:border-neutral-800/50 shadow-glass-md',
-    bordered: 'bg-white dark:bg-neutral-900 rounded-2xl shadow-standard-sm',
-    image: 'bg-white dark:bg-neutral-900 rounded-2xl shadow-standard-lg overflow-hidden',
+    bordered: 'bg-white dark:bg-neutral-900 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-200',
+    image: 'bg-white dark:bg-neutral-900 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden',
     minimal: 'bg-transparent border border-neutral-200 dark:border-neutral-800 shadow-none',
   };
 

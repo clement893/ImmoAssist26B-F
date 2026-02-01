@@ -34,7 +34,7 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     return (
       <div className={clsx('flex flex-col', fullWidth && 'w-full')}>
         {label && (
-          <label htmlFor={textareaId} className="block text-sm font-medium text-foreground mb-2">
+          <label htmlFor={textareaId} className="block text-sm font-light text-gray-600 mb-2">
             {label}
             {props.required && (
               <span className="text-error-500 dark:text-error-400 ml-1" aria-label="required">
@@ -53,31 +53,28 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
             ref={ref}
             id={textareaId}
             className={clsx(
-              'block w-full rounded-xl transition-modern', // UI Revamp - Border radius moderne, transition moderne
-              'bg-[var(--color-input)]',
-              'text-[var(--color-foreground)]',
-              'placeholder:text-[var(--color-muted-foreground)]',
-              'border border-border/60',
-              'min-h-[120px]', // UI Revamp - Height minimale augmentée
-              'shadow-subtle-sm hover:shadow-subtle-md', // UI Revamp - Nouveau système d'ombres subtiles
-              'focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:ring-offset-2',
-              'focus:border-primary-500 dark:focus:border-primary-400',
-              'focus:shadow-colored-primary', // UI Revamp - Ombre colorée au focus
-              'disabled:opacity-50 disabled:cursor-not-allowed',
+              'block w-full border-0 rounded-xl transition-all duration-200', // UI Revamp - Style démo pages
+              'bg-white dark:bg-neutral-900 text-gray-900 dark:text-neutral-100',
+              'placeholder:text-gray-400 placeholder:font-light',
+              'min-h-[120px]',
+              'shadow-sm', // UI Revamp - Style démo pages
+              'text-sm font-light', // UI Revamp - Typographie légère
+              'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-0', // UI Revamp - Focus ring bleu
+              'disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-50',
               'resize-y',
               error &&
-                'border-error-500 dark:border-error-400 focus:border-error-500 dark:focus:border-error-400 focus:ring-error-500 dark:focus:ring-error-400 focus:shadow-colored-error', // UI Revamp - Ombre colorée error au focus
-              leftIcon && 'pl-12', // UI Revamp - Espacement icône augmenté
-              rightIcon && 'pr-12', // UI Revamp - Espacement icône augmenté
+                'border-2 border-error-500 focus:ring-error-500',
+              leftIcon && 'pl-12',
+              rightIcon && 'pr-12',
               className
             )}
             style={{
-              paddingLeft: '1rem', // Revamp UI - Padding généreux
+              paddingLeft: '1rem',
               paddingRight: '1rem',
-              paddingTop: '0.75rem', // Revamp UI - Padding généreux
+              paddingTop: '0.75rem',
               paddingBottom: '0.75rem',
               fontSize: fontSize,
-              borderRadius: '0.75rem', // Revamp UI - Border radius 12px
+              borderRadius: '0.75rem',
             }}
             {...props}
           />

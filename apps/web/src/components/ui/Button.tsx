@@ -43,21 +43,17 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   asChild?: boolean;
 }
 
-// Base styles - UI Revamp - Modern, spacious and elegant design
+// Base styles - UI Revamp - Modern, spacious and elegant design (Updated to match demo pages)
 const baseStyles = [
-  'font-medium',
+  'font-light', // UI Revamp - Style démo pages (font-light par défaut)
   'rounded-xl', // Modern rounded (12px) for elegant look
-  'transition-modern', // UI Revamp - Utilise transition-modern
+  'transition-all duration-200', // UI Revamp - Transition fluide comme démos
   'focus:outline-none',
   'focus:ring-2',
   'focus:ring-offset-2',
   'disabled:opacity-50',
   'disabled:cursor-not-allowed',
-  'shadow-standard-sm', // UI Revamp - Nouveau système d'ombres
-  'hover:shadow-standard-md', // UI Revamp - Ombre hover améliorée
-  'hover:-translate-y-0.5', // Subtle lift on hover
-  'active:scale-[0.98]',
-  'active:translate-y-0', // Reset lift on active
+  'text-sm', // UI Revamp - Taille de texte comme démos
 ].join(' ');
 
 // Variant styles - Split into arrays for better readability
@@ -67,16 +63,17 @@ const createVariantStyles = (base: string[], hover: string[], focus: string[], c
 
 const variants = {
   primary: [
-    'bg-gradient-to-r from-primary-500 to-primary-600',
-    'dark:from-primary-500 dark:to-primary-600',
+    'bg-blue-500',
+    'dark:bg-blue-500',
     'text-white',
-    'shadow-standard-sm', // UI Revamp - Nouveau système d'ombres
-    'hover:from-primary-600 hover:to-primary-700',
-    'dark:hover:from-primary-600 dark:hover:to-primary-700',
-    'hover:shadow-colored-primary', // UI Revamp - Ombre colorée au hover
-    'focus:ring-primary-500',
-    'dark:focus:ring-primary-400',
+    'shadow-sm', // UI Revamp - Style démo pages (ultra-minimaliste)
+    'hover:bg-blue-600',
+    'dark:hover:bg-blue-600',
+    'hover:shadow-md', // UI Revamp - Ombre au hover
+    'focus:ring-blue-500',
+    'dark:focus:ring-blue-400',
     'focus:ring-offset-2',
+    'transition-colors', // UI Revamp - Transition fluide comme démos
   ].join(' '),
   secondary: createVariantStyles(
     ['bg-secondary-600', 'dark:bg-secondary-500', 'text-white', 'shadow-standard-sm'], // UI Revamp
@@ -156,11 +153,11 @@ const variants = {
   ),
 };
 
-// Default sizes (fallback if theme config not available) - Spacious and modern design (Revamp UI)
+// Default sizes (fallback if theme config not available) - Spacious and modern design (Revamp UI - Style démo pages)
 const defaultSizes = {
   xs: 'px-3 py-1.5 text-xs min-h-[28px]', // Extra small - Compact but comfortable
   sm: 'px-4 py-2 text-sm min-h-[32px]',    // Small - Comfortable padding
-  md: 'px-6 py-3 text-sm min-h-[40px]',   // Medium - Generous padding (augmenté de 32px)
+  md: 'px-6 py-3 text-sm min-h-[40px]',   // Medium - Style démo pages (px-6 py-3)
   lg: 'px-8 py-4 text-base min-h-[48px]',  // Large - Very generous padding
   xl: 'px-10 py-5 text-lg min-h-[56px]',  // Extra large - Hero CTAs
 };

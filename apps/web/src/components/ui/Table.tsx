@@ -47,9 +47,9 @@ export function TableBody({
   return (
     <tbody
       className={clsx(
-        'bg-white dark:bg-neutral-900 divide-y divide-neutral-200 dark:divide-neutral-800',
-        striped && '[&>tr:nth-child(even)]:bg-neutral-50 dark:[&>tr:nth-child(even)]:bg-neutral-900/50',
-        hover && '[&>tr:hover]:bg-primary-50/50 dark:[&>tr:hover]:bg-primary-900/10 [&>tr:hover]:transition-modern [&>tr:hover]:shadow-subtle-sm', // UI Revamp - Transitions modernes, nouvelle ombre au hover
+        'bg-white dark:bg-neutral-900 divide-y divide-gray-100 dark:divide-neutral-800', // UI Revamp - Style démo pages (border-gray-100)
+        striped && '[&>tr:nth-child(even)]:bg-gray-50 dark:[&>tr:nth-child(even)]:bg-neutral-900/50',
+        hover && '[&>tr:hover]:bg-gray-50 dark:[&>tr:hover]:bg-neutral-800/50 [&>tr:hover]:transition-all [&>tr:hover]:duration-200', // UI Revamp - Style démo pages
         className
       )}
       style={style}
@@ -102,8 +102,8 @@ export function TableHeader({
   return (
     <th
       className={clsx(
-        'px-6 py-4 text-left text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider', // Revamp UI - Padding augmenté
-        sortable && 'cursor-pointer select-none hover:text-primary-600 dark:hover:text-primary-400 transition-modern', // UI Revamp - Transition moderne
+        'px-6 py-4 text-left text-sm font-normal text-gray-900 dark:text-neutral-100', // UI Revamp - Style démo pages (font-normal au lieu de semibold)
+        sortable && 'cursor-pointer select-none hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200', // UI Revamp - Transition moderne
         className
       )}
       onClick={sortable ? onSort : undefined}
@@ -158,7 +158,7 @@ export function TableCell({ children, className, colSpan, onClick, style }: Tabl
       colSpan={colSpan}
       onClick={onClick}
       className={clsx(
-        'px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100', // Revamp UI - Padding augmenté
+        'px-6 py-4 whitespace-nowrap text-sm font-light text-gray-600 dark:text-neutral-400', // UI Revamp - Style démo pages (font-light)
         className
       )}
       style={style}

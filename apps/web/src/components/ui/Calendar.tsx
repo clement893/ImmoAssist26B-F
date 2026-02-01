@@ -147,53 +147,30 @@ export default function Calendar({
 
     // Empty cells for days before the first day of the month
     for (let i = 0; i < startingDayOfWeek; i++) {
-      days.push(<div key={`empty-${i}`} className="aspect-square" />);
+      days.push(<div key={`empty-${i}`} />);
     }
 
-    // Days of the month
+    // Days of the month - Style démo pages (ultra-minimaliste)
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(year, month, day);
       const dayEvents = getEventsForDate(date);
       const isCurrentDay = isToday(date);
 
       days.push(
-        <div
+        <button
           key={day}
-          className={clsx(
-            'aspect-square border border-border p-2 cursor-pointer hover:bg-muted dark:hover:bg-muted transition-modern', // UI Revamp - Transition moderne
-            isCurrentDay && 'bg-primary-50 dark:bg-primary-900/40 border-primary-500 dark:border-primary-400'
-          )}
           onClick={() => onDateClick?.(date)}
+          className={clsx(
+            'aspect-square flex items-center justify-center text-sm font-light rounded-full transition-all duration-200', // UI Revamp - Style démo pages
+            isCurrentDay
+              ? 'bg-blue-500 text-white shadow-md shadow-blue-500/30' // UI Revamp - Jour actuel avec ombre colorée
+              : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800',
+            dayEvents.length > 0 && !isCurrentDay && 'font-medium' // Indiquer les jours avec événements
+          )}
+          title={dayEvents.length > 0 ? `${dayEvents.length} événement(s)` : undefined}
         >
-          <div
-            className={clsx(
-              'text-sm font-medium mb-1',
-              isCurrentDay ? 'text-primary-600 dark:text-primary-400' : 'text-foreground'
-            )}
-          >
-            {day}
-          </div>
-          <div className="space-y-1">
-            {dayEvents.slice(0, 3).map((event) => (
-              <div
-                key={event.id}
-                className={clsx(
-                  'text-xs px-1 py-0.5 rounded truncate cursor-pointer',
-                  event.color || 'bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300'
-                )}
-                style={event.color ? { backgroundColor: event.color } : undefined}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEventClick?.(event);
-                }}
-                title={event.title}
-              >
-                {event.title}
-              </div>
-            ))}
-            {dayEvents.length > 3 && <div className="text-xs text-muted-foreground">+{dayEvents.length - 3} autres</div>}
-          </div>
-        </div>
+          {day}
+        </button>
       );
     }
 
@@ -316,15 +293,15 @@ export default function Calendar({
   };
 
   return (
-    <div className={clsx('bg-background rounded-lg border border-border p-6 shadow-subtle-sm transition-modern', className)}> {/* UI Revamp - Ombre subtile et transition moderne */}
+    <div className={clsx('bg-white dark:bg-neutral-900 rounded-2xl p-8 shadow-sm', className)}> {/* UI Revamp - Style démo pages */}
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         {view === 'day' ? (
-          <h2 className="text-2xl font-bold text-foreground">
+          <h2 className="text-lg font-normal text-gray-900 dark:text-neutral-100">
             {dayNamesFull[selectedDate.getDay()]}, {selectedDate.getDate()} {monthNames[selectedDate.getMonth()]}
           </h2>
         ) : (
-          <h2 className="text-2xl font-bold text-foreground">
+          <h2 className="text-lg font-normal text-gray-900 dark:text-neutral-100">
             {monthNames[month]} {year}
           </h2>
         )}
@@ -381,17 +358,17 @@ export default function Calendar({
         renderDayView()
       ) : (
         <>
-          {/* Day names */}
-          <div className="grid grid-cols-7 gap-1 mb-2">
+          {/* Day names - Style démo pages */}
+          <div className="grid grid-cols-7 gap-2 mb-2">
             {dayNames.map((day) => (
-              <div key={day} className="text-center text-sm font-medium text-muted-foreground py-2">
-                {day}
+              <div key={day} className="text-center text-xs font-light text-gray-500 dark:text-gray-400 pb-2">
+                {day.charAt(0)} {/* UI Revamp - Première lettre seulement comme démo */}
               </div>
             ))}
           </div>
 
-          {/* Calendar grid */}
-          <div className="grid grid-cols-7 gap-1">{renderCalendarDays()}</div>
+          {/* Calendar grid - Style démo pages */}
+          <div className="grid grid-cols-7 gap-2">{renderCalendarDays()}</div>
         </>
       )}
     </div>

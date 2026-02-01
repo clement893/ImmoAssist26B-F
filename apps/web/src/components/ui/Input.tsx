@@ -81,7 +81,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className={clsx('flex flex-col', fullWidth && 'w-full')}>
         {label && (
-          <label htmlFor={inputId} className="block text-xs font-medium text-foreground mb-1.5">
+          <label htmlFor={inputId} className="block text-sm font-light text-gray-600 mb-2">
             {label}
             {props.required && (
               <span className="text-error-500 dark:text-error-400 ml-1" aria-label="required">
@@ -105,23 +105,20 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             id={inputId}
             className={clsx(
-              'w-full border rounded-xl transition-modern', // UI Revamp - Border radius 12px, transition moderne
+              'w-full border-0 rounded-xl transition-all duration-200', // UI Revamp - Style démo pages (border-0, shadow-sm)
               paddingClasses,
-              'bg-[var(--color-input)] text-foreground',
-              'min-h-[48px]', // UI Revamp - Height augmentée pour md
-              'backdrop-blur-sm',
-              'shadow-subtle-sm', // UI Revamp - Nouveau système d'ombres (subtile pour inputs)
-              'focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:ring-offset-2',
-              'focus:border-primary-500 dark:focus:border-primary-400',
-              'focus:shadow-colored-primary', // UI Revamp - Ombre colorée au focus
-              'disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-muted/50',
-              'placeholder:text-muted-foreground placeholder:transition-modern', // UI Revamp - Transition moderne (placeholder)
-              'hover:border-primary-300 dark:hover:border-primary-600 hover:shadow-subtle-md', // UI Revamp - Hover avec ombre subtile
+              'bg-white dark:bg-neutral-900 text-gray-900 dark:text-neutral-100',
+              'min-h-[48px]',
+              'shadow-sm', // UI Revamp - Style démo pages
+              'text-sm font-light', // UI Revamp - Typographie légère comme démos
+              'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-0', // UI Revamp - Focus ring bleu
+              'disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-50',
+              'placeholder:text-gray-400 placeholder:font-light', // UI Revamp - Placeholder style démo
               error
-                ? 'border-error-500 dark:border-error-400 focus:ring-error-500/50 dark:focus:ring-error-400/50 focus:shadow-colored-error' // UI Revamp - Ombre colorée error au focus
-                : 'border-border/60',
-              leftIcon && 'pl-12', // UI Revamp - Plus d'espace pour icône
-              rightIcon && 'pr-12', // UI Revamp - Plus d'espace pour icône
+                ? 'border-2 border-error-500 focus:ring-error-500'
+                : '',
+              leftIcon && 'pl-12', // UI Revamp - Espace pour icône gauche
+              rightIcon && 'pr-12', // UI Revamp - Espace pour icône droite
               className
             )}
             style={{ 
