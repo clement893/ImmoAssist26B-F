@@ -429,10 +429,10 @@ export default function FormViewPage() {
         </div>
       </div>
 
-      {/* PDF Viewer */}
-      <div className="flex-1 bg-gray-900 overflow-hidden">
+      {/* PDF Viewer - pleine largeur, scroll vertical dans l'iframe */}
+      <div className="flex-1 flex flex-col bg-gray-900 min-h-0">
         {error && (
-          <div className="max-w-4xl mx-auto mt-8 px-6">
+          <div className="flex-shrink-0 px-6 py-3">
             <div className="bg-yellow-900/20 border border-yellow-700 rounded-xl p-4">
               <div className="flex items-center gap-3">
                 <AlertCircle className="w-5 h-5 text-yellow-500" />
@@ -444,43 +444,45 @@ export default function FormViewPage() {
           </div>
         )}
 
-        <div className="h-full flex items-center justify-center p-6">
-          <div
-            className="bg-white rounded-lg shadow-2xl overflow-hidden"
-            style={{
-              width: `${zoom}%`,
-              height: '100%',
-              maxWidth: '1200px',
-              transition: 'width 0.3s ease',
-            }}
-          >
-            {pdfLoadError ? (
-              <div className="w-full h-full min-h-[400px] flex flex-col items-center justify-center gap-4 p-8 text-gray-500">
-                <AlertCircle className="w-12 h-12 text-amber-500" />
-                <p className="text-sm">{pdfLoadError}</p>
-                <a
-                  href={getPdfUrl()}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                  Ouvrir le PDF dans un nouvel onglet
-                </a>
-              </div>
-            ) : pdfBlobUrl ? (
+        <div className="flex-1 min-h-0 w-full overflow-hidden flex flex-col">
+          {pdfLoadError ? (
+            <div className="w-full flex-1 min-h-[400px] flex flex-col items-center justify-center gap-4 p-8 text-gray-500 bg-white">
+              <AlertCircle className="w-12 h-12 text-amber-500" />
+              <p className="text-sm">{pdfLoadError}</p>
+              <a
+                href={getPdfUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Ouvrir le PDF dans un nouvel onglet
+              </a>
+            </div>
+          ) : pdfBlobUrl ? (
+            <div
+              className="flex-1 min-h-0 overflow-auto w-full"
+              style={{
+                // Zoom: le conteneur est plus grand que la vue pour permettre le scroll
+                width: `${Math.max(100, zoom)}%`,
+                height: `${Math.max(100, zoom)}%`,
+                minWidth: '100%',
+                minHeight: 'calc(100vh - 180px)',
+              }}
+            >
               <iframe
                 id="pdf-viewer"
                 src={`${pdfBlobUrl}#toolbar=0&navpanes=0&scrollbar=1`}
-                className="w-full h-full"
+                className="w-full border-0 bg-white block"
+                style={{ height: '100%', minHeight: 'calc(100vh - 180px)' }}
                 title={getFormName()}
               />
-            ) : (
-              <div className="w-full h-full min-h-[400px] flex items-center justify-center">
-                <Loader2 className="w-12 h-12 text-blue-500 animate-spin" />
-              </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="w-full flex-1 min-h-[400px] flex items-center justify-center bg-white">
+              <Loader2 className="w-12 h-12 text-blue-500 animate-spin" />
+            </div>
+          )}
         </div>
       </div>
 
