@@ -147,23 +147,31 @@ Ce document suit la progression de la transformation UI par batches, avec un pus
 
 ---
 
-### Batch 6 : Progress Bar & Stepper (CRITIQUE pour Transaction Detail)
-**Statut** : En attente  
+### Batch 6 : Progress Bar & Stepper (CRITIQUE pour Transaction Detail) ✅
+**Statut** : Complété  
 **Priorité** : CRITIQUE  
 **Objectif** : Créer Progress Bar horizontale style transaction-detail
 
 **Tâches** :
-- [ ] Créer Progress Bar horizontale avec gradient
-- [ ] Transformer Stepper avec cercles colorés
-- [ ] Ajouter ring sur step in_progress
-- [ ] Tests : Vérifier progress bar et stepper
+- [x] Transformer StatusStepper avec Progress Bar horizontale style transaction-detail
+- [x] Ligne de progression avec gradient from-green-500 to-blue-500
+- [x] Steps avec cercles w-10 h-10 (green pour completed, blue pour in_progress, white pour pending)
+- [x] Ring ring-4 ring-blue-100 sur step in_progress
+- [x] Current Step Card avec bg-blue-50 rounded-2xl p-6 border border-blue-100
+- [x] Labels avec typographie Dashboard V2 (text-xs font-medium, text-xs text-gray-400, text-xs text-gray-500)
+- [x] Tests : Vérifier progress bar et stepper (pas d'erreurs linter)
 
-**Fichiers à modifier** :
-- `apps/web/src/components/ui/Progress.tsx`
-- `apps/web/src/components/ui/Stepper.tsx`
-- `apps/web/src/components/transactions/StatusStepper.tsx`
+**Fichiers modifiés** :
+- ✅ `apps/web/src/components/transactions/StatusStepper.tsx` - Progress Bar horizontale complète style transaction-detail
 
 **Commit** : `feat(ui): Batch 6 - Progress Bar & Stepper`
+
+**Résumé des changements** :
+- StatusStepper horizontal : Ligne de progression avec gradient from-green-500 to-blue-500
+- Steps : Cercles w-10 h-10 avec états (completed: green, in_progress: blue avec ring, pending: white)
+- Labels : Typographie Dashboard V2 (text-xs font-medium pour titre, text-xs text-gray-400 pour date, text-xs text-gray-500 pour description)
+- Current Step Card : bg-blue-50 rounded-2xl p-6 border border-blue-100 avec boutons rounded-xl
+- Transitions : transition-all duration-300 pour cercles, duration-500 pour progress line
 
 ---
 
@@ -251,16 +259,16 @@ Ce document suit la progression de la transformation UI par batches, avec un pus
 
 ## Progression Globale
 
-**Batches complétés** : 5/10 ✅  
+**Batches complétés** : 6/10 ✅  
 **Batches en cours** : 0  
-**Batches en attente** : 5
+**Batches en attente** : 4
 
 ### Dernière mise à jour
-- **Batch 5** complété le 2026-02-01
-- Header & PageHeader transformés avec style Dashboard V2
-- DashboardHeader : Logo bg-black rounded-full w-14 h-14, titre text-xl font-semibold
-- DashboardHeader : Boutons actions p-2.5 bg-white rounded-full shadow-sm
-- PageHeader : Description text-xl font-light text-gray-400
+- **Batch 6** complété le 2026-02-01
+- Progress Bar & Stepper transformés avec style transaction-detail (CRITIQUE)
+- StatusStepper : Progress Bar horizontale avec gradient from-green-500 to-blue-500
+- Steps : Cercles colorés (green completed, blue in_progress avec ring, white pending)
+- Current Step Card : bg-blue-50 rounded-2xl avec boutons rounded-xl
 
 ## Notes
 

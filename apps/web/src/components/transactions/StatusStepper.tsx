@@ -96,69 +96,110 @@ export default function StatusStepper({
   };
 
   if (orientation === 'horizontal') {
+    // Dashboard V2 Style - Transaction Detail Progress Bar
+    const completedCount = steps.filter(s => s.status === 'completed').length;
+    const progressPercentage = steps.length > 0 ? (completedCount / steps.length) * 100 : 0;
+    
     return (
       <div className={`w-full ${className}`}>
-        {showProgress && (
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium">Progression globale</span>
-              <span className="text-sm text-muted-foreground">{getProgressPercentage()}%</span>
-            </div>
-            <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
-              <div
-                className="h-full bg-primary transition-modern" // UI Revamp - Transition moderne
-                style={{ width: `${getProgressPercentage()}%` }}
-              />
-            </div>
-          </div>
-        )}
-        
-        <div className="flex items-start gap-4 overflow-x-auto pb-4">
-          {steps.map((step, index) => {
-            const isLast = index === steps.length - 1;
-            const isCompleted = step.status === 'completed';
-            
-            return (
-              <div key={step.id} className="flex-shrink-0 flex items-start gap-3 min-w-[200px]">
-                {/* Step Circle */}
-                <div className="flex flex-col items-center">
-                  <div className={`flex-shrink-0 w-12 h-12 rounded-full border-2 flex items-center justify-center ${getStepColor(step)}`}>
-                    {step.icon || getStepIcon(step)}
+        {/* Progress Bar - Dashboard V2 Style */}
+        <div className="relative mb-12">
+          {/* Background line */}
+          <div className="absolute top-5 left-0 right-0 h-0.5 bg-gray-200"></div>
+          {/* Progress line with gradient */}
+          <div
+            className="absolute top-5 left-0 h-0.5 bg-gradient-to-r from-green-500 to-blue-500 transition-all duration-500"
+            style={{ width: `${progressPercentage}%` }}
+          ></div>
+
+          {/* Steps */}
+          <div className="relative flex justify-between">
+            {steps.map((step, index) => {
+              const isCompleted = step.status === 'completed';
+              const isInProgress = step.status === 'current';
+              const isPending = step.status === 'pending';
+              
+              return (
+                <div key={step.id} className="flex flex-col items-center" style={{ width: `${100 / steps.length}%` }}>
+                  {/* Step Circle - Dashboard V2 Style */}
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
+                      isCompleted
+                        ? 'bg-green-500 text-white shadow-lg shadow-green-200'
+                        : isInProgress
+                        ? 'bg-blue-500 text-white shadow-lg shadow-blue-200 ring-4 ring-blue-100'
+                        : 'bg-white border-2 border-gray-200 text-gray-400'
+                    }`}
+                  >
+                    {isCompleted ? (
+                      <CheckCircle2 className="w-5 h-5" />
+                    ) : isInProgress ? (
+                      <Clock className="w-5 h-5" />
+                    ) : (
+                      <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                    )}
                   </div>
-                  {!isLast && (
-                    <div
-                      className={`w-0.5 flex-1 mt-2 ${
-                        isCompleted ? 'bg-success-500' : 'bg-muted'
+                  
+                  {/* Step Labels - Dashboard V2 Style */}
+                  <div className="mt-4 text-center">
+                    <p
+                      className={`text-xs font-medium mb-1 ${
+                        isCompleted || isInProgress
+                          ? 'text-gray-900'
+                          : 'text-gray-400'
                       }`}
-                      style={{ minHeight: '40px' }}
-                    />
-                  )}
-                </div>
-                
-                {/* Step Content */}
-                <div className="flex-1 pt-1">
-                  <h4 className={`text-sm font-semibold mb-1 ${getStepTextColor(step)}`}>
-                    {step.title}
-                  </h4>
-                  <p className="text-xs text-muted-foreground mb-2">{step.description}</p>
-                  {step.date && (
-                    <p className="text-xs text-muted-foreground">
-                      {formatDate(step.date)}
+                    >
+                      {step.title}
                     </p>
-                  )}
-                  {step.progress !== undefined && step.progress > 0 && step.progress < 100 && (
-                    <div className="mt-2 w-full bg-muted rounded-full h-1.5">
-                      <div
-                        className="h-full bg-primary transition-modern" // UI Revamp - Transition moderne
-                        style={{ width: `${step.progress}%` }}
-                      />
+                    {step.date && (
+                      <p className="text-xs text-gray-400">{formatDate(step.date)}</p>
+                    )}
+                    <p className="text-xs text-gray-500 mt-1 max-w-[100px] mx-auto">{step.description}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Current Step Details - Dashboard V2 Style */}
+        {steps.find(s => s.status === 'current') && (() => {
+          const currentStep = steps.find(s => s.status === 'current')!;
+          return (
+            <div className="bg-blue-50 rounded-2xl p-6 border border-blue-100">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-blue-500 rounded-2xl flex items-center justify-center flex-shrink-0">
+                  <Clock className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-base font-semibold text-gray-900 mb-1">
+                    Current step: {currentStep.title}
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-3">
+                    {currentStep.description}
+                  </p>
+                  {currentStep.details && currentStep.details.length > 0 && (
+                    <div className="space-y-2 mb-3">
+                      {currentStep.details.map((detail, idx) => (
+                        <p key={idx} className="text-sm text-gray-600">• {detail}</p>
+                      ))}
                     </div>
                   )}
+                  <div className="flex items-center gap-3">
+                    <button className="px-4 py-2 bg-blue-500 text-white rounded-xl text-sm font-medium hover:bg-blue-600 transition-colors">
+                      View Details
+                    </button>
+                    {currentStep.deadline && (
+                      <button className="px-4 py-2 bg-white text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
+                        Reschedule
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
-            );
-          })}
-        </div>
+            </div>
+          );
+        })()}
       </div>
     );
   }
