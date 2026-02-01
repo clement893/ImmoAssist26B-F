@@ -5,7 +5,6 @@ export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 
 import { useState, useEffect } from 'react';
-import { useAuthStore } from '@/lib/store';
 import { Card, Button, LoadingSkeleton, Grid } from '@/components/ui';
 import { StatsCard } from '@/components/ui';
 import { Link } from '@/i18n/routing';

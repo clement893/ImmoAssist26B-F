@@ -6,7 +6,6 @@ import Container from '@/components/ui/Container';
 import Loading from '@/components/ui/Loading';
 import Alert from '@/components/ui/Alert';
 import { transactionsAPI } from '@/lib/api';
-import { realEstateContactsAPI } from '@/lib/api/real-estate-contacts';
 import TransactionTimeline from '@/components/transactions/TransactionTimeline';
 import StatusStepper from '@/components/transactions/StatusStepper';
 import { calculateTransactionSteps } from '@/lib/transactions/progression';
