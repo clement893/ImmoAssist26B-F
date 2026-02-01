@@ -159,7 +159,7 @@ export function OnboardingWizard({
         <div className="mb-6">
           <div className="h-2 bg-muted rounded-full overflow-hidden">
             <div
-              className="h-full bg-primary-500 transition-all duration-300"
+              className="h-full bg-primary-500 transition-modern" // UI Revamp - Transition moderne
               style={{ width: `${progress}%` }}
             />
           </div>

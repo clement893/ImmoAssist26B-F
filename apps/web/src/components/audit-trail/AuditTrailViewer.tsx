@@ -194,7 +194,7 @@ export function AuditTrailViewer({ className = '' }: AuditTrailViewerProps) {
             return (
               <div
                 key={log.id}
-                className="p-3 border border-border rounded-lg hover:bg-muted dark:hover:bg-muted transition-colors"
+                className="p-3 border border-border rounded-lg hover:bg-muted dark:hover:bg-muted transition-modern" // UI Revamp - Transition moderne
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2 flex-1">

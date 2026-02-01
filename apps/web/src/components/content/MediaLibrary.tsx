@@ -197,7 +197,7 @@ export default function MediaLibrary({
                 {filteredMedia.map((item) => (
                   <div
                     key={item.id}
-                    className="group relative border border-border rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+                    className="group relative border border-border rounded-lg overflow-hidden hover:shadow-standard-lg transition-modern cursor-pointer" // UI Revamp - Nouveau système d'ombres et transition moderne
                     onClick={() => handleSelect(item)}
                   >
                     {item.type === 'image' ? (
@@ -207,7 +207,7 @@ export default function MediaLibrary({
                           alt={item.name}
                           className="w-full h-full object-cover"
                         />
-                        <div className="absolute inset-0 bg-foreground bg-opacity-0 group-hover:bg-opacity-50 transition-opacity flex items-center justify-center gap-2">
+                        <div className="absolute inset-0 bg-foreground bg-opacity-0 group-hover:bg-opacity-50 transition-modern flex items-center justify-center gap-2"> // UI Revamp - Transition moderne
                           <Button
                             variant="ghost"
                             size="sm"
@@ -256,7 +256,7 @@ export default function MediaLibrary({
                   .map((item) => (
                     <div
                       key={item.id}
-                      className="group relative border border-border rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+                      className="group relative border border-border rounded-lg overflow-hidden hover:shadow-standard-lg transition-modern cursor-pointer" // UI Revamp - Nouveau système d'ombres et transition moderne
                       onClick={() => handleSelect(item)}
                     >
                       <div className="aspect-video relative bg-muted">
@@ -265,7 +265,7 @@ export default function MediaLibrary({
                           alt={item.name}
                           className="w-full h-full object-cover"
                         />
-                        <div className="absolute inset-0 bg-foreground bg-opacity-0 group-hover:bg-opacity-50 transition-opacity flex items-center justify-center gap-2">
+                        <div className="absolute inset-0 bg-foreground bg-opacity-0 group-hover:bg-opacity-50 transition-modern flex items-center justify-center gap-2"> // UI Revamp - Transition moderne
                           <Button
                             variant="ghost"
                             size="sm"
@@ -309,7 +309,7 @@ export default function MediaLibrary({
                 {filteredMedia.map((item) => (
                   <div
                     key={item.id}
-                    className="flex items-center gap-4 p-4 border border-border rounded-lg hover:bg-muted transition-colors cursor-pointer"
+                    className="flex items-center gap-4 p-4 border border-border rounded-lg hover:bg-muted transition-modern cursor-pointer" // UI Revamp - Transition moderne
                     onClick={() => handleSelect(item)}
                   >
                     <div className="flex-shrink-0">

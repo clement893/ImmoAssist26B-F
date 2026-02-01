@@ -44,7 +44,7 @@ export default function Footer() {
                 {/* Placeholder social links - can be replaced with actual links */}
                 <a
                   href="#"
-                  className="w-9 h-9 flex items-center justify-center rounded-full bg-primary-800 hover:bg-primary-600 dark:bg-primary-800 dark:hover:bg-primary-600 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-primary-900"
+                  className="w-9 h-9 flex items-center justify-center rounded-full bg-primary-800 hover:bg-primary-600 dark:bg-primary-800 dark:hover:bg-primary-600 transition-modern focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-primary-900" // UI Revamp - Transition moderne
                   aria-label="Twitter (placeholder)"
                   role="listitem"
                 >
@@ -59,7 +59,7 @@ export default function Footer() {
                 </a>
                 <a
                   href="#"
-                  className="w-9 h-9 flex items-center justify-center rounded-full bg-primary-800 hover:bg-primary-600 dark:bg-primary-800 dark:hover:bg-primary-600 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-primary-900"
+                  className="w-9 h-9 flex items-center justify-center rounded-full bg-primary-800 hover:bg-primary-600 dark:bg-primary-800 dark:hover:bg-primary-600 transition-modern focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-primary-900" // UI Revamp - Transition moderne
                   aria-label="GitHub (placeholder)"
                   role="listitem"
                 >
@@ -78,7 +78,7 @@ export default function Footer() {
                 </a>
                 <a
                   href="#"
-                  className="w-9 h-9 flex items-center justify-center rounded-full bg-primary-800 hover:bg-primary-600 dark:bg-primary-800 dark:hover:bg-primary-600 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-primary-900"
+                  className="w-9 h-9 flex items-center justify-center rounded-full bg-primary-800 hover:bg-primary-600 dark:bg-primary-800 dark:hover:bg-primary-600 transition-modern focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-primary-900" // UI Revamp - Transition moderne
                   aria-label="LinkedIn (placeholder)"
                   role="listitem"
                 >
@@ -131,7 +131,7 @@ export default function Footer() {
               <li className="text-primary-200">
                 <a
                   href="mailto:contact@contextpsy.fr"
-                  className="hover:text-primary-300 transition-colors"
+                  className="hover:text-primary-300 transition-modern" // UI Revamp - Transition moderne
                 >
                   contact@contextpsy.fr
                 </a>
@@ -148,7 +148,7 @@ export default function Footer() {
               <li>
                 <Link
                   href="/sitemap"
-                  className="text-primary-200 hover:text-primary-300 dark:hover:text-primary-300 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-primary-900 rounded inline-block"
+                  className="text-primary-200 hover:text-primary-300 dark:hover:text-primary-300 transition-modern focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-primary-900 rounded inline-block" // UI Revamp - Transition moderne
                 >
                   Plan du site
                 </Link>
@@ -156,7 +156,7 @@ export default function Footer() {
               <li>
                 <Link
                   href="/dashboard"
-                  className="text-primary-200 hover:text-primary-300 dark:hover:text-primary-300 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-primary-900 rounded inline-block"
+                  className="text-primary-200 hover:text-primary-300 dark:hover:text-primary-300 transition-modern focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-primary-900 rounded inline-block" // UI Revamp - Transition moderne
                 >
                   Dashboard
                 </Link>
@@ -164,7 +164,7 @@ export default function Footer() {
               <li>
                 <Link
                   href="/docs"
-                  className="text-primary-200 hover:text-primary-300 dark:hover:text-primary-300 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-primary-900 rounded inline-block"
+                  className="text-primary-200 hover:text-primary-300 dark:hover:text-primary-300 transition-modern focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-primary-900 rounded inline-block" // UI Revamp - Transition moderne
                 >
                   Documentation
                 </Link>
@@ -172,7 +172,7 @@ export default function Footer() {
               <li>
                 <Link
                   href="/blog"
-                  className="text-primary-200 hover:text-primary-300 dark:hover:text-primary-300 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-primary-900 rounded inline-block"
+                  className="text-primary-200 hover:text-primary-300 dark:hover:text-primary-300 transition-modern focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-primary-900 rounded inline-block" // UI Revamp - Transition moderne
                 >
                   Blog
                 </Link>
@@ -180,7 +180,7 @@ export default function Footer() {
               <li>
                 <Link
                   href="/components"
-                  className="text-primary-200 hover:text-primary-300 dark:hover:text-primary-300 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-primary-900 rounded inline-block"
+                  className="text-primary-200 hover:text-primary-300 dark:hover:text-primary-300 transition-modern focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-primary-900 rounded inline-block" // UI Revamp - Transition moderne
                 >
                   Composants
                 </Link>
@@ -188,7 +188,7 @@ export default function Footer() {
               <li>
                 <Link
                   href="/theme"
-                  className="text-primary-200 hover:text-primary-300 dark:hover:text-primary-300 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-primary-900 rounded inline-block"
+                  className="text-primary-200 hover:text-primary-300 dark:hover:text-primary-300 transition-modern focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-primary-900 rounded inline-block" // UI Revamp - Transition moderne
                 >
                   Thème
                 </Link>
@@ -205,7 +205,7 @@ export default function Footer() {
                   href="https://github.com/your-username"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-primary-200 hover:text-primary-300 dark:hover:text-primary-300 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-primary-900 rounded inline-block"
+                  className="text-primary-200 hover:text-primary-300 dark:hover:text-primary-300 transition-modern focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-primary-900 rounded inline-block" // UI Revamp - Transition moderne
                   aria-label="GitHub du développeur (ouvre dans un nouvel onglet)"
                 >
                   GitHub
@@ -216,7 +216,7 @@ export default function Footer() {
                   href="https://github.com/your-username/your-repo-name/issues"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-primary-200 hover:text-primary-300 dark:hover:text-primary-300 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-primary-900 rounded inline-block"
+                  className="text-primary-200 hover:text-primary-300 dark:hover:text-primary-300 transition-modern focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-primary-900 rounded inline-block" // UI Revamp - Transition moderne
                   aria-label="Signaler un bug sur GitHub (ouvre dans un nouvel onglet)"
                 >
                   Signaler un bug
@@ -225,7 +225,7 @@ export default function Footer() {
               <li>
                 <Link
                   href="/privacy"
-                  className="text-primary-200 hover:text-primary-300 dark:hover:text-primary-300 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-primary-900 rounded inline-block"
+                  className="text-primary-200 hover:text-primary-300 dark:hover:text-primary-300 transition-modern focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-primary-900 rounded inline-block" // UI Revamp - Transition moderne
                 >
                   Confidentialité
                 </Link>
@@ -233,7 +233,7 @@ export default function Footer() {
               <li>
                 <Link
                   href="/terms"
-                  className="text-primary-200 hover:text-primary-300 dark:hover:text-primary-300 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-primary-900 rounded inline-block"
+                  className="text-primary-200 hover:text-primary-300 dark:hover:text-primary-300 transition-modern focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-primary-900 rounded inline-block" // UI Revamp - Transition moderne
                 >
                   Conditions d'utilisation
                 </Link>

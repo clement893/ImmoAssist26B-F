@@ -198,7 +198,7 @@ export function FontUploader({
                         {showSelection && (
                           <button
                             onClick={() => handleToggleSelection(font.id)}
-                            className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                            className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-modern ${ // UI Revamp - Transition moderne
                               isSelected
                                 ? 'bg-primary border-primary text-background'
                                 : 'border-border hover:border-primary'

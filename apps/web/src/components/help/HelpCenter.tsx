@@ -116,7 +116,7 @@ const defaultCategories: HelpCategory[] = [
           {' '}
           <Link href="/help/faq">
             {' '}
-            <div className="p-4 border border-[var(--color-border)] rounded-lg hover:bg-[var(--color-muted)] transition-colors">
+            <div className="p-4 border border-[var(--color-border)] rounded-lg hover:bg-[var(--color-muted)] transition-modern"> // UI Revamp - Transition moderne
               {' '}
               <h4 className="font-medium text-[var(--color-foreground)]">Common Questions</h4>{' '}
               <p className="text-sm text-[var(--color-muted-foreground)] mt-1">
@@ -126,7 +126,7 @@ const defaultCategories: HelpCategory[] = [
           </Link>{' '}
           <Link href="/help/contact">
             {' '}
-            <div className="p-4 border border-[var(--color-border)] rounded-lg hover:bg-[var(--color-muted)] transition-colors">
+            <div className="p-4 border border-[var(--color-border)] rounded-lg hover:bg-[var(--color-muted)] transition-modern"> // UI Revamp - Transition moderne
               {' '}
               <h4 className="font-medium text-[var(--color-foreground)]">Need More Help?</h4>{' '}
               <p className="text-sm text-[var(--color-muted-foreground)] mt-1">

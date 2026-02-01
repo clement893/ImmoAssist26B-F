@@ -138,7 +138,7 @@ export default function TransactionContactsCard({
                     {contactsByRole[role]!.map((tc) => (
                       <div
                         key={`${tc.contact_id}-${tc.role}`}
-                        className="flex items-start justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                        className="flex items-start justify-between p-3 border rounded-lg hover:bg-muted/50 transition-modern" // UI Revamp - Transition moderne
                       >
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">

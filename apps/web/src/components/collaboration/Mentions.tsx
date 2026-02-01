@@ -181,14 +181,14 @@ export default function Mentions({
       {showSuggestions && suggestions.length > 0 && (
         <div
           ref={suggestionsRef}
-          className="absolute z-50 mt-1 w-full bg-background border border-border rounded-lg shadow-lg max-h-64 overflow-y-auto"
+          className="absolute z-50 mt-1 w-full bg-background border border-border rounded-lg shadow-standard-lg max-h-64 overflow-y-auto" // UI Revamp - Nouveau système d'ombres
         >
           {suggestions.map((user, index) => (
             <button
               key={user.id}
               onClick={() => handleSelectUser(user)}
               className={clsx(
-                'w-full px-4 py-3 flex items-center gap-3 text-left transition-colors',
+                'w-full px-4 py-3 flex items-center gap-3 text-left transition-modern', // UI Revamp - Transition moderne
                 index === selectedIndex
                   ? 'bg-primary-50 dark:bg-primary-900/20'
                   : 'hover:bg-muted'

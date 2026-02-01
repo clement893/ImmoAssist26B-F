@@ -63,7 +63,7 @@ export function ClientNavigation({ className }: ClientNavigationProps) {
             key={item.id}
             href={item.path}
             className={clsx(
-              'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors',
+              'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-modern', // UI Revamp - Transition moderne
               isActive
                 ? 'bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300'
                 : 'text-foreground hover:bg-muted'

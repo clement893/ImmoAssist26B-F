@@ -124,10 +124,10 @@ export interface SettingsNavigationProps {
             {' '}
             <Card
               className={clsx(
-                'h-full transition-all duration-200',
+                'h-full transition-modern', // UI Revamp - Transition moderne
                 active
                   ? 'ring-2 ring-primary-500 bg-primary-50 dark:bg-primary-900/20'
-                  : 'hover:shadow-lg hover:border-primary-300 dark:hover:border-primary-700',
+                  : 'hover:shadow-standard-lg hover:border-primary-300 dark:hover:border-primary-700', // UI Revamp - Nouveau système d'ombres
                 'cursor-pointer'
               )}
               hover

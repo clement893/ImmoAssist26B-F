@@ -103,10 +103,10 @@ export default function Tabs({
         container: 'flex gap-2',
         tab: (isActive: boolean) =>
           clsx(
-            'px-5 py-2.5 text-sm font-medium rounded-full transition-all duration-200 ease-natural shadow-sm', // Revamp UI - Padding augmenté, transitions fluides, ombre
+            'px-5 py-2.5 text-sm font-medium rounded-full transition-modern shadow-subtle-sm', // UI Revamp - Transition moderne et nouveau système d'ombres
             isActive
               ? 'bg-primary-600 dark:bg-primary-500 text-background shadow-primary' // Revamp UI - Ombre colorée
-              : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:shadow-md' // Revamp UI - Hover effect amélioré
+              : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:shadow-standard-md' // UI Revamp - Nouveau système d'ombres
           ),
       },
       underline: {
@@ -188,7 +188,7 @@ export function Tab({ children, value, disabled, className }: TabProps) {
       onClick={() => !disabled && setActiveTab(value)}
       disabled={disabled}
       className={clsx(
-        'px-5 py-3 text-sm font-medium border-b-2 transition-all duration-200 ease-natural whitespace-nowrap flex-shrink-0', // Revamp UI - Padding augmenté, transitions fluides
+        'px-5 py-3 text-sm font-medium border-b-2 transition-modern whitespace-nowrap flex-shrink-0', // UI Revamp - Transition moderne
         isActive
           ? 'border-primary-500 text-primary-600 dark:text-primary-400'
           : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border/60',

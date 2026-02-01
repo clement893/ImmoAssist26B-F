@@ -30,7 +30,7 @@ export default function ContactsGallery({
           {contacts.map((contact) => (
             <Card
               key={contact.id}
-              className="p-4 cursor-pointer hover:shadow-md transition-shadow"
+              className="p-4 cursor-pointer hover:shadow-standard-md transition-modern" // UI Revamp - Transition moderne, shadow-standard-md
               onClick={() => onContactClick?.(contact)}
             >
               {' '}

@@ -150,7 +150,7 @@ export default function LinkContactToTransactionModal({
                     setSearchQuery(transaction.name);
                     setTransactions([]);
                   }}
-                  className={`w-full text-left px-4 py-3 hover:bg-muted transition-colors rounded-lg ${
+                  className={`w-full text-left px-4 py-3 hover:bg-muted transition-modern rounded-lg ${ // UI Revamp - Transition moderne
                     selectedTransactionId === transaction.id ? 'bg-primary/10 border-l-4 border-primary' : ''
                   }`}
                 >

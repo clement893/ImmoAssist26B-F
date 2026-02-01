@@ -90,7 +90,7 @@ export default function LeaWelcomeScreen({
     <div className="flex flex-col items-center justify-center min-h-screen px-6 pb-12 max-w-4xl mx-auto w-full">
       {/* Large Green Sphere Icon */}
       <div className="mb-8 relative">
-        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-green-500 via-green-600 to-blue-600 flex items-center justify-center shadow-2xl shadow-green-500/50 animate-pulse">
+        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-green-500 via-green-600 to-blue-600 flex items-center justify-center shadow-standard-xl shadow-green-500/50 animate-pulse"> {/* UI Revamp - shadow-standard-xl */}
           <Sparkles className="w-12 h-12 text-white" />
         </div>
         <div className="absolute inset-0 rounded-full bg-gradient-to-br from-green-400 to-blue-500 opacity-20 blur-2xl animate-pulse" />
@@ -111,7 +111,7 @@ export default function LeaWelcomeScreen({
 
       {/* Large Input Field */}
       <div className="w-full mb-8">
-        <div className="relative bg-background border-2 border-border rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all duration-300 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
+        <div className="relative bg-background border-2 border-border rounded-2xl p-4 shadow-standard-lg hover:shadow-standard-xl transition-modern focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20"> {/* UI Revamp - Nouveau système d'ombres et transition moderne */}
           <input
             type="text"
             value={inputValue}
@@ -129,7 +129,7 @@ export default function LeaWelcomeScreen({
                 onClick={onVoiceToggle}
                 disabled={isLoading}
                 className={clsx(
-                  'p-2 rounded-lg transition-colors',
+                  'p-2 rounded-lg transition-modern', // UI Revamp - Transition moderne
                   isListening
                     ? 'bg-red-500 hover:bg-red-600 text-white'
                     : 'hover:bg-muted'
@@ -155,7 +155,7 @@ export default function LeaWelcomeScreen({
                 }}
                 disabled={!inputValue.trim() || isLoading || isListening}
                 className={clsx(
-                  'p-2 rounded-lg transition-colors',
+                  'p-2 rounded-lg transition-modern', // UI Revamp - Transition moderne
                   inputValue.trim() && !isLoading && !isListening
                     ? 'bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white'
                     : 'bg-muted opacity-50 cursor-not-allowed'
@@ -170,13 +170,13 @@ export default function LeaWelcomeScreen({
               </button>
             )}
             <button
-              className="p-2 rounded-lg hover:bg-muted transition-colors"
+              className="p-2 rounded-lg hover:bg-muted transition-modern" // UI Revamp - Transition moderne
               title="Citation"
             >
               <Quote className="w-5 h-5 text-green-500" />
             </button>
             <button
-              className="p-2 rounded-lg hover:bg-muted transition-colors"
+              className="p-2 rounded-lg hover:bg-muted transition-modern" // UI Revamp - Transition moderne
               title="Ajouter"
             >
               <Plus className="w-5 h-5 text-foreground" />
@@ -215,7 +215,7 @@ export default function LeaWelcomeScreen({
               key={index}
               hover
               onClick={() => handlePromptSelect(card.prompt)}
-              className="cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
+              className="cursor-pointer transition-modern hover:shadow-standard-lg hover:-translate-y-1" // UI Revamp - Transition moderne, shadow-standard-lg
             >
               <div className="flex items-start gap-4 p-6">
                 <div className="p-3 rounded-lg bg-muted flex-shrink-0">

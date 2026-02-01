@@ -22,7 +22,7 @@ export default function InternalLayout({ children }: InternalLayoutProps) {
           {/* Hamburger Menu Button (Mobile only) - UX/UI improvements Batch 17 */}{' '}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="md:hidden inline-flex items-center justify-center p-2 rounded-lg text-foreground hover:bg-muted transition-colors min-h-[44px] min-w-[44px]"
+            className="md:hidden inline-flex items-center justify-center p-2 rounded-lg text-foreground hover:bg-muted transition-modern min-h-[44px] min-w-[44px]" // UI Revamp - Transition moderne
             aria-label="Ouvrir le menu"
             aria-expanded={sidebarOpen}
           >

@@ -199,7 +199,7 @@ export function CommentThread({
                       {comment.reactions_count > 0 && <span>{comment.reactions_count}</span>}
                     </button>
                     {showReactions && (
-                      <div className="absolute z-10 mt-8 bg-background border border-border rounded-lg shadow-lg p-2 flex gap-1">
+                      <div className="absolute z-10 mt-8 bg-background border border-border rounded-lg shadow-standard-lg p-2 flex gap-1"> // UI Revamp - Nouveau système d'ombres
                         {REACTION_TYPES.map((type) => (
                           <button
                             key={type}

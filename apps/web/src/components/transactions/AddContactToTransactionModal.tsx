@@ -147,7 +147,7 @@ export default function AddContactToTransactionModal({
                     setSearchQuery(`${contact.first_name} ${contact.last_name}${contact.company ? ` - ${contact.company}` : ''}`);
                     setContacts([]);
                   }}
-                  className={`w-full text-left px-4 py-2 hover:bg-muted transition-colors ${
+                  className={`w-full text-left px-4 py-2 hover:bg-muted transition-modern ${ // UI Revamp - Transition moderne
                     selectedContactId === contact.id ? 'bg-primary/10 border-l-2 border-primary' : ''
                   }`}
                 >

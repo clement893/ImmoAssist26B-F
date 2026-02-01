@@ -86,7 +86,7 @@ const defaultTemplates: SectionTemplate[] = [
           {defaultTemplates.map((template) => (
             <div
               key={template.id}
-              className="border border-border rounded-lg p-4 hover:border-primary-500 dark:hover:border-primary-400 transition-colors cursor-pointer"
+              className="border border-border rounded-lg p-4 hover:border-primary-500 dark:hover:border-primary-400 transition-modern cursor-pointer" // UI Revamp - Transition moderne
               onClick={() => handleSelect(template)}
             >
               {' '}

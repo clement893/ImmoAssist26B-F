@@ -189,7 +189,7 @@ export default function RolePermissionsEditor({ role, onUpdate }: RolePermission
                 return (
                   <label
                     key={perm.id}
-                    className={`p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+                    className={`p-3 rounded-lg border-2 cursor-pointer transition-modern ${ // UI Revamp - Transition moderne
                       isSelected
                         ? 'bg-primary/10 border-primary'
                         : 'bg-muted border-border hover:border-primary/50'

@@ -61,7 +61,7 @@ export function ShareDialog({ entityType, entityId, onClose, onShare }: ShareDia
   return (
     <div className="fixed inset-0 bg-foreground/50 flex items-center justify-center z-50">
       {' '}
-      <div className="bg-background rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+      <div className="bg-background rounded-lg shadow-standard-xl max-w-md w-full mx-4 p-6"> // UI Revamp - Nouveau système d'ombres
         {' '}
         <div className="flex items-center justify-between mb-4">
           {' '}

@@ -173,7 +173,7 @@ export function TagInput({
       </div>
 
       {showSuggestions && suggestions.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-background border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+        <div className="absolute z-50 w-full mt-1 bg-background border border-border rounded-lg shadow-standard-lg max-h-60 overflow-y-auto"> // UI Revamp - Nouveau système d'ombres
           {suggestions.map((tag) => (
             <button
               key={tag.id}

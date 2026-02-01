@@ -107,7 +107,7 @@ export default function TriggerManager({
               key={type}
               onClick={() => setFilter(type)}
               className={clsx(
-                'px-3 py-1 rounded-lg text-sm transition-colors',
+                'px-3 py-1 rounded-lg text-sm transition-modern', // UI Revamp - Transition moderne
                 filter === type
                   ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
                   : 'bg-muted text-foreground hover:bg-muted/80'

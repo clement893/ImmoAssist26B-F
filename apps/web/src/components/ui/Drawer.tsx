@@ -252,7 +252,7 @@ export default function Drawer({
             {showCloseButton && (
               <button
                 onClick={onClose}
-                className="ml-auto text-muted-foreground hover:text-muted-foreground dark:hover:text-muted-foreground transition-colors"
+                className="ml-auto text-muted-foreground hover:text-muted-foreground dark:hover:text-muted-foreground transition-modern" // UI Revamp - Transition moderne
                 aria-label="Close drawer"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

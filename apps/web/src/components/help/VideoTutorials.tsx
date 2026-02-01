@@ -71,7 +71,7 @@ const defaultVideos: VideoTutorial[] = [
               {categoryVideos.map((video) => (
                 <div
                   key={video.id}
-                  className="border border-border rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
+                  className="border border-border rounded-lg overflow-hidden hover:shadow-standard-lg transition-modern" // UI Revamp - Nouveau système d'ombres et transition moderne
                 >
                   {' '}
                   <div className="relative aspect-video bg-muted">
@@ -88,7 +88,7 @@ const defaultVideos: VideoTutorial[] = [
                         <VideoIcon className="w-12 h-12 text-muted-foreground" />{' '}
                       </div>
                     )}{' '}
-                    <div className="absolute inset-0 flex items-center justify-center bg-foreground/30 hover:bg-foreground/40 transition-colors">
+                    <div className="absolute inset-0 flex items-center justify-center bg-foreground/30 hover:bg-foreground/40 transition-modern"> // UI Revamp - Transition moderne
                       {' '}
                       <Button
                         onClick={() => handleVideoClick(video)}

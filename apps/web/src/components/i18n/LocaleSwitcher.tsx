@@ -56,14 +56,14 @@ export default function LocaleSwitcher() {
           <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
 
           {/* Dropdown */}
-          <div className="absolute right-0 mt-2 w-48 bg-background rounded-lg shadow-lg border border-border z-20">
+          <div className="absolute right-0 mt-2 w-48 bg-background rounded-lg shadow-standard-lg border border-border z-20"> // UI Revamp - Nouveau système d'ombres
             <div className="py-1">
               {locales.map((loc) => (
                 <button
                   key={loc}
                   onClick={() => handleLocaleChange(loc)}
                   className={clsx(
-                    'w-full px-4 py-2 text-left text-sm flex items-center justify-between hover:bg-muted dark:hover:bg-muted transition-colors',
+                    'w-full px-4 py-2 text-left text-sm flex items-center justify-between hover:bg-muted dark:hover:bg-muted transition-modern', // UI Revamp - Transition moderne
                     locale === loc && 'bg-muted'
                   )}
                   dir={isRTL(loc) ? 'rtl' : 'ltr'}

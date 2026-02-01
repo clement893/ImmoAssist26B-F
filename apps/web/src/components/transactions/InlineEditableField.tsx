@@ -153,7 +153,7 @@ export default function InlineEditableField({
           size="sm"
           variant="ghost"
           onClick={handleStartEdit}
-          className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0 ml-2"
+          className="opacity-0 group-hover:opacity-100 transition-modern h-8 w-8 p-0 ml-2" // UI Revamp - Transition moderne
         >
           <Edit2 className="w-4 h-4" />
         </Button>

@@ -159,7 +159,7 @@ export function ActivityTimeline({
                   </div>
                   {/* Activity content */}
                   <div className="ml-8">
-                    <div className="bg-background border border-border rounded-lg p-4 shadow-sm">
+                    <div className="bg-background border border-border rounded-lg p-4 shadow-subtle-sm"> // UI Revamp - Nouveau système d'ombres
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <p className="text-sm font-medium text-foreground">

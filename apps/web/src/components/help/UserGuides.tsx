@@ -67,7 +67,7 @@ const defaultGuides: UserGuide[] = [
                   rel={guide.external ? 'noopener noreferrer' : undefined}
                 >
                   {' '}
-                  <div className="p-4 border border-border rounded-lg hover:bg-muted dark:hover:bg-muted transition-colors h-full">
+                  <div className="p-4 border border-border rounded-lg hover:bg-muted dark:hover:bg-muted transition-modern h-full"> // UI Revamp - Transition moderne
                     {' '}
                     <div className="flex items-start gap-3">
                       {' '}

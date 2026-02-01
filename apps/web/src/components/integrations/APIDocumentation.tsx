@@ -204,7 +204,7 @@ export default function APIDocumentation({
             <div key={index} className="border border-border rounded-lg overflow-hidden">
               <button
                 onClick={() => toggleEndpoint(endpoint.path)}
-                className="w-full p-4 flex items-center justify-between hover:bg-muted dark:hover:bg-background transition-colors"
+                className="w-full p-4 flex items-center justify-between hover:bg-muted dark:hover:bg-background transition-modern" // UI Revamp - Transition moderne
               >
                 <div className="flex items-center gap-3 flex-1">
                   {isExpanded ? (

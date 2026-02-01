@@ -27,7 +27,7 @@ export default function LeaMessageBubble({
     >
       <div
         className={clsx(
-          'max-w-[80%] rounded-xl px-4 py-3 shadow-sm',
+          'max-w-[80%] rounded-xl px-4 py-3 shadow-subtle-sm', // UI Revamp - shadow-subtle-sm
           isUser
             ? 'bg-gradient-to-r from-green-600 to-blue-600 text-white'
             : 'bg-muted text-foreground border border-border'

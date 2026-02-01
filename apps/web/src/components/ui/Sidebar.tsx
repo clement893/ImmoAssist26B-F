@@ -259,7 +259,7 @@ export default function Sidebar({
                 <span className={clsx(
                   "px-2 py-0.5 text-xs font-medium rounded-full",
                   isActive 
-                    ? "bg-primary text-primary-foreground shadow-sm" 
+                    ? "bg-primary text-primary-foreground shadow-subtle-sm" // UI Revamp - Nouveau système d'ombres 
                     : "bg-muted text-muted-foreground"
                 )}>
                   {item.badge}
@@ -426,7 +426,7 @@ export default function Sidebar({
               <button
                 onClick={onToggleCollapse}
                 className={clsx(
-                  'rounded-lg hover:bg-neutral-700 text-neutral-400 hover:text-white transition-all duration-200 ease-out flex items-center justify-center',
+                  'rounded-lg hover:bg-neutral-700 text-neutral-400 hover:text-white transition-modern flex items-center justify-center', // UI Revamp - Transition moderne
                   collapsed ? 'w-10 h-10' : 'p-2 min-h-[44px] min-w-[44px]'
                 )}
                 aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
@@ -444,7 +444,7 @@ export default function Sidebar({
               <button
                 onClick={onClose}
                 className={clsx(
-                  'rounded-lg hover:bg-neutral-700 text-neutral-400 hover:text-white transition-all duration-200 ease-out flex items-center justify-center',
+                  'rounded-lg hover:bg-neutral-700 text-neutral-400 hover:text-white transition-modern flex items-center justify-center', // UI Revamp - Transition moderne
                   collapsed ? 'w-10 h-10' : 'p-2 min-h-[44px] min-w-[44px]'
                 )}
                 aria-label="Fermer le menu"
@@ -457,7 +457,7 @@ export default function Sidebar({
               <button
                 onClick={onHomeClick}
                 className={clsx(
-                  'rounded-lg hover:bg-neutral-700 text-neutral-400 hover:text-white transition-all duration-200 ease-out flex items-center justify-center',
+                  'rounded-lg hover:bg-neutral-700 text-neutral-400 hover:text-white transition-modern flex items-center justify-center', // UI Revamp - Transition moderne
                   collapsed ? 'w-10 h-10' : 'p-2 min-h-[44px] min-w-[44px]'
                 )}
                 aria-label="Retour à l'accueil"
@@ -473,7 +473,7 @@ export default function Sidebar({
               <button
                 onClick={onLogoutClick}
                 className={clsx(
-                  'rounded-lg hover:bg-red-600/20 text-red-400 hover:text-red-300 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] flex items-center justify-center',
+                  'rounded-lg hover:bg-red-600/20 text-red-400 hover:text-red-300 transition-modern flex items-center justify-center', // UI Revamp - Transition moderne
                   collapsed ? 'w-10 h-10' : 'p-2 min-h-[44px] min-w-[44px]'
                 )}
                 aria-label="Déconnexion"

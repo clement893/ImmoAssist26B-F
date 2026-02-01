@@ -90,7 +90,7 @@
 | Composants Métier | 0 | 156+ | 0% |
 
 ### Total
-- **Composants migrés** : 54/270+ (20%)
+- **Composants migrés** : 122/270+ (45%)
 - **Fichiers modifiés** : 18
 - **Erreurs de lint** : 0
 
@@ -139,6 +139,42 @@
 - DashboardHeader.tsx (shadow-subtle-sm, transition-modern)
 - Header.tsx (transition-modern)
 - MotionDiv.tsx (transition-modern)
+- FontUploader.tsx (transition-modern)
+- TemplateManager.tsx (transition-modern, shadow-standard-lg)
+- LeaWidget.tsx, LeaMessageBubble.tsx, LeaWelcomeScreen.tsx, LeaInitialUI.tsx, LeaChatInput.tsx, LeaConversationHeader.tsx (composants Lea migrés)
+- StatusStepper.tsx (transition-modern)
+- ContactDetailPopup.tsx (shadow-standard-xl, transition-modern)
+- LinkContactToTransactionModal.tsx, MultiSelectFilter.tsx, ImportLogsViewer.tsx, ContactsGallery.tsx, CompaniesGallery.tsx (composants reseau migrés)
+- AddContactToTransactionModal.tsx, PDFImportModal.tsx, TransactionContactsCard.tsx (composants transactions migrés)
+- TaskManager.tsx, TriggerManager.tsx (composants workflow migrés)
+- Drawer.tsx (amélioration bouton close)
+- Sidebar.tsx, Footer.tsx, InternalLayout.tsx (composants layout migrés)
+- NotificationCenter.tsx, NotificationBell.tsx (composants notifications migrés)
+- UserSettings.tsx, SettingsNavigation.tsx, IntegrationsSettings.tsx (composants settings migrés)
+- OnboardingWizard.tsx, ProfileSetup.tsx (composants onboarding migrés)
+- IntegrationList.tsx, APIDocumentation.tsx (composants integrations migrés)
+- VideoTutorials.tsx, UserGuides.tsx, HelpCenter.tsx (composants help migrés)
+- SearchBar.tsx, AdvancedFilters.tsx (composants search migrés)
+- LocaleSwitcher.tsx, LanguageSwitcher.tsx (composants i18n migrés)
+- ShareDialog.tsx (composant sharing migré)
+- PricingCard.tsx (composant subscriptions migré)
+- TagInput.tsx (composant tags migré)
+- SectionTemplates.tsx (composant page-builder migré)
+- FeedbackForm.tsx (composant feedback migré)
+- ERPNavigation.tsx (composant erp migré)
+- EmailTemplateManager.tsx (composant email-templates migré)
+- ArticleList.tsx (composant documentation migré)
+- MediaLibrary.tsx, ContentDashboard.tsx (composants content migrés)
+- CommentThread.tsx, CollaborationPanel.tsx, Mentions.tsx (composants collaboration migrés)
+- ClientNavigation.tsx (composant client migré)
+- PaymentHistory.tsx, SubscriptionPlans.tsx (composants billing migrés)
+- AuditTrailViewer.tsx (composant audit-trail migré)
+- TemplateAIChat.tsx (composant ai migré)
+- UserRolesEditor.tsx, RolePermissionsEditor.tsx (composants admin migrés)
+- ActivityTimeline.tsx, ActivityFeed.tsx (composants activity migrés)
+- Sidebar.tsx (ui), DashboardLayout.tsx, Header.tsx, Tabs.tsx (composants layout/ui finaux migrés)
+- InlineEditableField.tsx, StatusStepper.tsx (composants transactions finaux migrés)
+- ContactDetailPopup.tsx (composant reseau final migré)
 
 ---
 

@@ -108,7 +108,7 @@ export default function NotificationCenter({
               key={filterType}
               onClick={() => setFilter(filterType)}
               className={clsx(
-                'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
+                'px-4 py-2 text-sm font-medium border-b-2 transition-modern', // UI Revamp - Transition moderne
                 filter === filterType
                   ? 'border-primary-500 dark:border-primary-400 text-primary-600 dark:text-primary-400'
                   : 'border-transparent text-muted-foreground hover:text-foreground dark:hover:text-muted-foreground'
@@ -143,7 +143,7 @@ export default function NotificationCenter({
             <div
               key={notification.id}
               className={clsx(
-                'p-4 rounded-lg border transition-colors',
+                'p-4 rounded-lg border transition-modern', // UI Revamp - Transition moderne
                 getTypeStyles(notification.notification_type),
                 !notification.read && 'ring-2 ring-primary-500 dark:ring-primary-400'
               )}
@@ -210,7 +210,7 @@ export default function NotificationCenter({
                       {!notification.read && onMarkAsRead && (
                         <button
                           onClick={() => handleMarkAsRead(notification.id)}
-                          className="p-1 text-muted-foreground hover:text-success-600 dark:hover:text-success-400 transition-colors"
+                          className="p-1 text-muted-foreground hover:text-success-600 dark:hover:text-success-400 transition-modern" // UI Revamp - Transition moderne
                           title="Mark as read"
                         >
                           {' '}
@@ -220,7 +220,7 @@ export default function NotificationCenter({
                       {onDelete && (
                         <button
                           onClick={() => handleDelete(notification.id)}
-                          className="p-1 text-muted-foreground hover:text-danger-600 dark:hover:text-danger-400 transition-colors"
+                          className="p-1 text-muted-foreground hover:text-danger-600 dark:hover:text-danger-400 transition-modern" // UI Revamp - Transition moderne
                           title="Delete"
                         >
                           {' '}

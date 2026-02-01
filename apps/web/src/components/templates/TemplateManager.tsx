@@ -146,7 +146,7 @@ export function TemplateManager({
           {templates.map((template) => (
             <Card
               key={template.id}
-              className="p-4 hover:shadow-lg transition-shadow cursor-pointer"
+              className="p-4 hover:shadow-standard-lg transition-modern cursor-pointer" // UI Revamp - Transition moderne, shadow-standard-lg
               onClick={() => onSelect?.(template)}
             >
               <div className="flex items-start justify-between mb-2">

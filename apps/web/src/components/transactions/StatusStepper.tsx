@@ -106,7 +106,7 @@ export default function StatusStepper({
             </div>
             <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
               <div
-                className="h-full bg-primary transition-all duration-500"
+                className="h-full bg-primary transition-modern" // UI Revamp - Transition moderne
                 style={{ width: `${getProgressPercentage()}%` }}
               />
             </div>
@@ -149,7 +149,7 @@ export default function StatusStepper({
                   {step.progress !== undefined && step.progress > 0 && step.progress < 100 && (
                     <div className="mt-2 w-full bg-muted rounded-full h-1.5">
                       <div
-                        className="h-full bg-primary transition-all duration-300"
+                        className="h-full bg-primary transition-modern" // UI Revamp - Transition moderne
                         style={{ width: `${step.progress}%` }}
                       />
                     </div>
@@ -174,7 +174,7 @@ export default function StatusStepper({
           </div>
           <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
             <div
-              className="h-full bg-primary transition-all duration-500"
+              className="h-full bg-primary transition-modern" // UI Revamp - Transition moderne
               style={{ width: `${getProgressPercentage()}%` }}
             />
           </div>
@@ -240,7 +240,7 @@ export default function StatusStepper({
                       </div>
                       <div className="w-full bg-muted rounded-full h-2">
                         <div
-                          className="h-full bg-primary transition-all duration-300"
+                          className="h-full bg-primary transition-modern" // UI Revamp - Transition moderne
                           style={{ width: `${step.progress}%` }}
                         />
                       </div>

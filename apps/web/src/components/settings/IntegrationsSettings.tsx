@@ -96,7 +96,7 @@ export interface IntegrationsSettingsProps {
                 {categoryIntegrations.map((integration) => (
                   <div
                     key={integration.id}
-                    className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted dark:hover:bg-muted transition-colors"
+                    className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted dark:hover:bg-muted transition-modern" // UI Revamp - Transition moderne
                   >
                     {' '}
                     <div className="flex-1">

@@ -129,7 +129,7 @@ export function EmailTemplateManager({ className = '' }: EmailTemplateManagerPro
             {templates.map((template) => (
               <div
                 key={template.id}
-                className={`p-3 border rounded-lg cursor-pointer transition-colors ${selectedTemplate?.id === template.id ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' : 'border-border hover:border-border dark:hover:border-border'}`}
+                className={`p-3 border rounded-lg cursor-pointer transition-modern ${selectedTemplate?.id === template.id ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' : 'border-border hover:border-border dark:hover:border-border'}`} // UI Revamp - Transition moderne
                 onClick={() => {
                   setSelectedTemplate(template);
                   setIsEditing(false);

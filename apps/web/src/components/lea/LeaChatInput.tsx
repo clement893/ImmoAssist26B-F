@@ -64,7 +64,7 @@ export default function LeaChatInput({
           {/* Attachment button */}
           <button
             type="button"
-            className="p-2 rounded-lg hover:bg-muted transition-colors flex-shrink-0"
+            className="p-2 rounded-lg hover:bg-muted transition-modern flex-shrink-0" // UI Revamp - Transition moderne
             title="Joindre un fichier"
           >
             <Paperclip className="w-5 h-5 text-muted-foreground" />
@@ -84,7 +84,7 @@ export default function LeaChatInput({
                 'w-full px-4 py-3 pr-12 rounded-xl border-2 border-border',
                 'bg-background text-foreground placeholder:text-muted-foreground',
                 'focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary',
-                'transition-all duration-200',
+                'transition-modern', // UI Revamp - Transition moderne
                 'disabled:opacity-50 disabled:cursor-not-allowed'
               )}
             />
@@ -121,7 +121,7 @@ export default function LeaChatInput({
             className={clsx(
               'p-3 rounded-xl transition-all flex-shrink-0',
               value.trim() && !isLoading && !isListening
-                ? 'bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white shadow-lg'
+                ? 'bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white shadow-standard-lg' // UI Revamp - shadow-standard-lg
                 : 'bg-muted text-muted-foreground opacity-50 cursor-not-allowed'
             )}
             title="Envoyer"

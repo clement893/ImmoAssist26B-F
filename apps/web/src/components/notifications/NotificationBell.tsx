@@ -84,7 +84,7 @@ export default function NotificationBell({
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={clsx(
-          'relative p-2 rounded-lg transition-colors',
+          'relative p-2 rounded-lg transition-modern', // UI Revamp - Transition moderne
           'text-foreground',
           'hover:bg-muted dark:hover:bg-muted',
           'focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400'
@@ -103,7 +103,7 @@ export default function NotificationBell({
 
       {isOpen && (
         <div className="absolute right-0 top-full mt-2 w-96 z-50">
-          <div className="bg-background rounded-lg shadow-xl border border-border max-h-[600px] flex flex-col">
+          <div className="bg-background rounded-lg shadow-standard-xl border border-border max-h-[600px] flex flex-col"> // UI Revamp - Nouveau système d'ombres
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-border">
               <h3 className="text-lg font-semibold text-foreground">

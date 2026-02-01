@@ -135,7 +135,7 @@ export default function ActivityFeed({
             onClick={handleLoadMore}
             disabled={loading || !hasMore}
             className={clsx(
-              'flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors',
+              'flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-modern', // UI Revamp - Transition moderne
               'text-foreground',
               'hover:bg-muted dark:hover:bg-muted',
               'disabled:opacity-50 disabled:cursor-not-allowed'

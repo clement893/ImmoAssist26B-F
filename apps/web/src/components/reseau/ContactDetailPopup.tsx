@@ -93,7 +93,7 @@ export default function ContactDetailPopup({
   return (
     <div
       ref={popupRef}
-      className="fixed z-50 w-96 bg-background rounded-xl shadow-2xl border border-border overflow-hidden animate-scale-in"
+      className="fixed z-50 w-96 bg-background rounded-xl shadow-standard-xl border border-border overflow-hidden animate-scale-in" // UI Revamp - shadow-standard-xl
       style={{
         left: `${adjustedPosition.x}px`,
         top: `${adjustedPosition.y}px`,
@@ -125,7 +125,7 @@ export default function ContactDetailPopup({
             {contact.phone && (
               <a
                 href={`tel:${contact.phone}`}
-                className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+                className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-modern" // UI Revamp - Transition moderne
                 aria-label="Call"
               >
                 <Phone className="w-4 h-4 text-white" />
@@ -134,14 +134,14 @@ export default function ContactDetailPopup({
             {contact.email && (
               <a
                 href={`mailto:${contact.email}`}
-                className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+                className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-modern" // UI Revamp - Transition moderne
                 aria-label="Email"
               >
                 <Mail className="w-4 h-4 text-white" />
               </a>
             )}
             <button
-              className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+              className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-modern" // UI Revamp - Transition moderne
               aria-label="More options"
             >
               <MoreVertical className="w-4 h-4 text-white" />

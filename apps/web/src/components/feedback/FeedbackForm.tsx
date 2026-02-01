@@ -94,7 +94,7 @@ export function FeedbackForm({ className = '', onSuccess }: FeedbackFormProps) {
                       | 'other';
                     setType(validType);
                   }}
-                  className={`flex items-center gap-2 p-2 rounded-lg border transition-colors ${
+                  className={`flex items-center gap-2 p-2 rounded-lg border transition-modern ${ // UI Revamp - Transition moderne
                     type === ft.value
                       ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
                       : 'border-border hover:border-border dark:hover:border-border'

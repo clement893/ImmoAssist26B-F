@@ -151,7 +151,7 @@ export default function PaymentHistory({
             {onDownloadReceipt && payment.status === 'completed' && (
               <button
                 onClick={() => onDownloadReceipt(payment)}
-                className="p-1 text-muted-foreground hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                className="p-1 text-muted-foreground hover:text-primary-600 dark:hover:text-primary-400 transition-modern" // UI Revamp - Transition moderne
                 title="Download Receipt"
               >
                 {' '}

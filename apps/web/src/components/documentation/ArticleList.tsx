@@ -129,7 +129,7 @@ export function ArticleList({ className = '' }: ArticleListProps) {
               <div className="grid md:grid-cols-2 gap-4">
                 {' '}
                 {featuredArticles.map((article) => (
-                  <Card key={article.id} className="hover:shadow-lg transition-shadow">
+                  <Card key={article.id} className="hover:shadow-standard-lg transition-modern"> // UI Revamp - Nouveau système d'ombres et transition moderne
                     {' '}
                     <Link href={`/docs/${article.slug}`}>
                       {' '}
@@ -154,7 +154,7 @@ export function ArticleList({ className = '' }: ArticleListProps) {
               <div className="space-y-2">
                 {' '}
                 {regularArticles.map((article) => (
-                  <Card key={article.id} className="hover:shadow-md transition-shadow">
+                  <Card key={article.id} className="hover:shadow-standard-md transition-modern"> // UI Revamp - Nouveau système d'ombres et transition moderne
                     {' '}
                     <Link href={`/docs/${article.slug}`}>
                       {' '}

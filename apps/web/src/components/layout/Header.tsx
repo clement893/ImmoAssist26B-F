@@ -132,7 +132,7 @@ export default function Header() {
                 <Link
                   href="/dashboard"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="text-foreground hover:text-primary-600 dark:hover:text-primary-400 transition-colors px-4 py-3 min-h-[44px] flex items-center rounded-lg hover:bg-muted/50"
+                  className="text-foreground hover:text-primary-600 dark:hover:text-primary-400 transition-modern px-4 py-3 min-h-[44px] flex items-center rounded-lg hover:bg-muted/50" // UI Revamp - Transition moderne
                 >
                   Dashboard
                 </Link>

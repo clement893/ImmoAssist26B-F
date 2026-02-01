@@ -10,7 +10,7 @@
 - **Total batches** : 6
 - **Batches complétés** : 2/6 (33%)
 - **Batches en cours** : 4/6 (67%)
-- **Composants migrés** : 54/270+ (20%) (tous les transition-opacity migrés, composants layout migrés)
+- **Composants migrés** : 122/270+ (45%) (composants ui/Sidebar, layout/DashboardLayout, layout/Header, ui/Tabs, transactions/InlineEditableField, reseau/ContactDetailPopup, transactions/StatusStepper migrés)
 
 ### Dernières Migrations
 - ✅ MultiSelect.tsx - transition-modern
@@ -30,6 +30,75 @@
 - ✅ DashboardHeader.tsx - shadow-subtle-sm, transition-modern (4 occurrences)
 - ✅ Header.tsx - transition-modern (4 occurrences)
 - ✅ MotionDiv.tsx - transition-modern
+- ✅ FontUploader.tsx - transition-modern
+- ✅ TemplateManager.tsx - transition-modern, shadow-standard-lg
+- ✅ LeaWidget.tsx - shadow-standard-xl, shadow-standard-lg, transition-modern
+- ✅ LeaMessageBubble.tsx - shadow-subtle-sm
+- ✅ LeaWelcomeScreen.tsx - shadow-standard-xl, shadow-standard-lg, transition-modern (7 occurrences)
+- ✅ LeaInitialUI.tsx - shadow-standard-xl, shadow-standard-lg, transition-modern (7 occurrences)
+- ✅ LeaChatInput.tsx - transition-modern, shadow-standard-lg (3 occurrences)
+- ✅ LeaConversationHeader.tsx - shadow-standard-lg
+- ✅ StatusStepper.tsx - transition-modern (4 occurrences)
+- ✅ ContactDetailPopup.tsx - shadow-standard-xl, transition-modern (4 occurrences)
+- ✅ LinkContactToTransactionModal.tsx - transition-modern
+- ✅ MultiSelectFilter.tsx - shadow-standard-lg
+- ✅ ImportLogsViewer.tsx - transition-modern
+- ✅ ContactsGallery.tsx - transition-modern, shadow-standard-md
+- ✅ CompaniesGallery.tsx - transition-modern, shadow-standard-md
+- ✅ AddContactToTransactionModal.tsx - transition-modern
+- ✅ PDFImportModal.tsx - transition-modern
+- ✅ TransactionContactsCard.tsx - transition-modern
+- ✅ TaskManager.tsx - transition-modern
+- ✅ TriggerManager.tsx - transition-modern
+- ✅ Drawer.tsx - transition-modern (bouton close)
+- ✅ Sidebar.tsx - transition-modern (4 occurrences)
+- ✅ Footer.tsx - transition-modern (17 occurrences)
+- ✅ InternalLayout.tsx - transition-modern
+- ✅ NotificationCenter.tsx - transition-modern (4 occurrences)
+- ✅ NotificationBell.tsx - transition-modern + shadow-standard-xl
+- ✅ UserSettings.tsx - transition-modern
+- ✅ SettingsNavigation.tsx - transition-modern + shadow-standard-lg
+- ✅ IntegrationsSettings.tsx - transition-modern
+- ✅ OnboardingWizard.tsx - transition-modern
+- ✅ ProfileSetup.tsx - transition-modern
+- ✅ IntegrationList.tsx - shadow-standard-md
+- ✅ APIDocumentation.tsx - transition-modern
+- ✅ VideoTutorials.tsx - transition-modern + shadow-standard-lg
+- ✅ UserGuides.tsx - transition-modern
+- ✅ HelpCenter.tsx - transition-modern (2 occurrences)
+- ✅ SearchBar.tsx - shadow-standard-lg
+- ✅ AdvancedFilters.tsx - shadow-standard-lg
+- ✅ LocaleSwitcher.tsx - shadow-standard-lg + transition-modern
+- ✅ LanguageSwitcher.tsx - shadow-standard-lg + transition-modern
+- ✅ ShareDialog.tsx - shadow-standard-xl
+- ✅ PricingCard.tsx - shadow-standard-lg
+- ✅ TagInput.tsx - shadow-standard-lg
+- ✅ SectionTemplates.tsx - transition-modern
+- ✅ FeedbackForm.tsx - transition-modern
+- ✅ ERPNavigation.tsx - transition-modern (2 occurrences)
+- ✅ EmailTemplateManager.tsx - transition-modern
+- ✅ ArticleList.tsx - shadow-standard-lg/md + transition-modern (2 occurrences)
+- ✅ MediaLibrary.tsx - shadow-standard-lg + transition-modern (5 occurrences)
+- ✅ ContentDashboard.tsx - shadow-standard-md + transition-modern (2 occurrences)
+- ✅ CommentThread.tsx - shadow-standard-lg
+- ✅ CollaborationPanel.tsx - transition-modern
+- ✅ Mentions.tsx - shadow-standard-lg + transition-modern
+- ✅ ClientNavigation.tsx - transition-modern
+- ✅ PaymentHistory.tsx - transition-modern
+- ✅ SubscriptionPlans.tsx - transition-modern
+- ✅ AuditTrailViewer.tsx - transition-modern
+- ✅ TemplateAIChat.tsx - shadow-standard-lg/xl
+- ✅ UserRolesEditor.tsx - transition-modern
+- ✅ RolePermissionsEditor.tsx - transition-modern
+- ✅ ActivityTimeline.tsx - shadow-subtle-sm (2 occurrences)
+- ✅ ActivityFeed.tsx - transition-modern
+- ✅ Sidebar.tsx (ui) - shadow-subtle-sm + transition-modern (5 occurrences)
+- ✅ DashboardLayout.tsx - transition-modern
+- ✅ Header.tsx - transition-modern
+- ✅ Tabs.tsx - shadow-subtle-sm/md + transition-modern (3 occurrences)
+- ✅ InlineEditableField.tsx - transition-modern
+- ✅ ContactDetailPopup.tsx - transition-modern (2 occurrences)
+- ✅ StatusStepper.tsx - transition-modern
 
 ---
 

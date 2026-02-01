@@ -48,7 +48,7 @@ export function AdvancedFilters({
         {filters.length > 0 && `(${filters.length})`}{' '}
       </Button>{' '}
       {isOpen && (
-        <div className="mt-2 p-4 bg-background border border-border rounded-lg shadow-lg">
+        <div className="mt-2 p-4 bg-background border border-border rounded-lg shadow-standard-lg"> // UI Revamp - Nouveau système d'ombres
           {' '}
           <div className="space-y-4">
             {' '}

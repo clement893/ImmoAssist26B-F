@@ -72,7 +72,7 @@ export interface ProfileSetupProps {
                 onChange={handleAvatarChange}
                 className="hidden"
               />{' '}
-              <div className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg hover:bg-muted dark:hover:bg-muted transition-colors">
+              <div className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg hover:bg-muted dark:hover:bg-muted transition-modern"> // UI Revamp - Transition moderne
                 {' '}
                 <Upload className="w-4 h-4" />{' '}
                 <span className="text-sm font-medium">Upload Photo</span>{' '}

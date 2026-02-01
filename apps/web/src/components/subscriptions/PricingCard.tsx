@@ -39,7 +39,7 @@ export function PricingCard({ plan, onSelect, isLoading, currentPlanId }: Pricin
     <Card
       className={clsx(
         'relative flex flex-col p-6',
-        plan.is_popular && 'border-primary shadow-lg scale-105'
+        plan.is_popular && 'border-primary shadow-standard-lg scale-105' // UI Revamp - Nouveau système d'ombres
       )}
     >
       {' '}

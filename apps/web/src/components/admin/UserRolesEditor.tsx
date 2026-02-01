@@ -88,7 +88,7 @@ export default function UserRolesEditor({ userId, onUpdate }: UserRolesEditorPro
           return (
             <label
               key={role.id}
-              className={`p-3 rounded-lg border-2 cursor-pointer transition-colors flex items-center justify-between ${
+              className={`p-3 rounded-lg border-2 cursor-pointer transition-modern flex items-center justify-between ${ // UI Revamp - Transition moderne
                 isSelected
                   ? 'bg-primary/10 border-primary'
                   : 'bg-muted border-border hover:border-primary/50'

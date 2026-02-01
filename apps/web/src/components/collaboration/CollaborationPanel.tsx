@@ -112,7 +112,7 @@ export default function CollaborationPanel({
             {collaborators.map((collaborator) => (
               <div
                 key={collaborator.id}
-                className="flex items-center justify-between p-3 rounded-lg hover:bg-muted dark:hover:bg-background transition-colors"
+                className="flex items-center justify-between p-3 rounded-lg hover:bg-muted dark:hover:bg-background transition-modern" // UI Revamp - Transition moderne
               >
                 {' '}
                 <div className="flex items-center gap-3 flex-1 min-w-0">

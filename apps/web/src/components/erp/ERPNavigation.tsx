@@ -96,7 +96,7 @@ export function ERPNavigation({ className }: ERPNavigationProps) {
                   <Link
                     href={item.path}
                     className={clsx(
-                      'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors',
+                      'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-modern', // UI Revamp - Transition moderne
                       isActive
                         ? 'bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300'
                         : 'text-foreground hover:bg-muted'
@@ -126,7 +126,7 @@ export function ERPNavigation({ className }: ERPNavigationProps) {
                             key={child.id}
                             href={child.path}
                             className={clsx(
-                              'flex items-center gap-2 px-3 py-2 rounded text-sm transition-colors',
+                              'flex items-center gap-2 px-3 py-2 rounded text-sm transition-modern', // UI Revamp - Transition moderne
                               isChildActive
                                 ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
                                 : 'text-muted-foreground hover:bg-muted dark:hover:bg-muted'

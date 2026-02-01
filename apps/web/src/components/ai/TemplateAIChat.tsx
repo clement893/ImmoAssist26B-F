@@ -134,7 +134,7 @@ export function TemplateAIChat({ className = '', defaultOpen = false }: Template
       <div className={`fixed bottom-6 right-6 z-50 ${className}`}>
         <Button
           onClick={() => setIsOpen(true)}
-          className="rounded-full shadow-lg h-14 w-14 p-0"
+          className="rounded-full shadow-standard-lg h-14 w-14 p-0" // UI Revamp - Nouveau système d'ombres
           variant="primary"
         >
           <Bot className="h-6 w-6" />
@@ -146,7 +146,7 @@ export function TemplateAIChat({ className = '', defaultOpen = false }: Template
   // Full chat interface when open
   return (
     <div className={`fixed bottom-6 right-6 z-50 w-96 h-[600px] ${className}`}>
-      <Card className="flex flex-col h-full shadow-2xl">
+      <Card className="flex flex-col h-full shadow-standard-xl"> // UI Revamp - Nouveau système d'ombres
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b bg-primary-50 dark:bg-primary-900/20">
           <div className="flex items-center gap-2">

@@ -203,7 +203,7 @@ export function SearchBar({
           id="search-suggestions"
           role="listbox"
           aria-label={`${suggestions.length} search suggestions`}
-          className="absolute z-50 w-full mt-1 bg-background border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto"
+          className="absolute z-50 w-full mt-1 bg-background border border-border rounded-lg shadow-standard-lg max-h-60 overflow-y-auto" // UI Revamp - Nouveau système d'ombres
         >
           {suggestions.map((suggestion, index) => (
             <button

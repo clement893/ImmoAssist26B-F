@@ -112,7 +112,7 @@ export default function UserSettings({
               <Avatar src={avatarPreview} name={formData.name} size="xl" />
               <label
                 htmlFor="avatar-upload"
-                className="absolute bottom-0 right-0 p-2 bg-primary-600 dark:bg-primary-500 rounded-full cursor-pointer hover:bg-primary-700 dark:hover:bg-primary-600 transition-colors"
+                className="absolute bottom-0 right-0 p-2 bg-primary-600 dark:bg-primary-500 rounded-full cursor-pointer hover:bg-primary-700 dark:hover:bg-primary-600 transition-modern" // UI Revamp - Transition moderne
               >
                 <Camera className="w-4 h-4 text-background" />
                 <input

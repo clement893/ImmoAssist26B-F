@@ -71,7 +71,7 @@ export default function SubscriptionPlans({
         <button
           onClick={() => setBillingInterval(billingInterval === 'month' ? 'year' : 'month')}
           className={clsx(
-            'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
+            'relative inline-flex h-6 w-11 items-center rounded-full transition-modern', // UI Revamp - Transition moderne
             'focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400',
             billingInterval === 'year' ? 'bg-primary-600 dark:bg-primary-500' : 'bg-muted'
           )}

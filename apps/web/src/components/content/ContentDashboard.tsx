@@ -127,7 +127,7 @@ export interface ContentDashboardProps {
               <Link
                 key={link.href}
                 href={link.href}
-                className="group p-4 border border-border rounded-lg hover:border-primary-300 dark:hover:border-primary-600 hover:shadow-md transition-all"
+                className="group p-4 border border-border rounded-lg hover:border-primary-300 dark:hover:border-primary-600 hover:shadow-standard-md transition-modern" // UI Revamp - Nouveau système d'ombres et transition moderne
               >
                 {' '}
                 <div className="flex items-start justify-between">
@@ -140,7 +140,7 @@ export interface ContentDashboardProps {
                         {' '}
                         <Icon className={`w-5 h-5 ${link.iconTextClass}`} />{' '}
                       </div>{' '}
-                      <h3 className="font-semibold text-foreground group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                      <h3 className="font-semibold text-foreground group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-modern"> // UI Revamp - Transition moderne
                         {' '}
                         {link.title}{' '}
                       </h3>{' '}

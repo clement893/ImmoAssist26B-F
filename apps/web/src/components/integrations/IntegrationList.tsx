@@ -174,7 +174,7 @@ export default function IntegrationList({
                 'bg-background',
                 'border-border',
                 'hover:border-primary-300 dark:hover:border-primary-600',
-                'hover:shadow-md'
+                'hover:shadow-standard-md' // UI Revamp - Nouveau système d'ombres
               )}
             >
               <div className="flex items-start justify-between mb-3">

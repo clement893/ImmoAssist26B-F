@@ -8,7 +8,7 @@
 
 - **Batches complétés** : 2/6 (33%)
 - **Batches en cours** : 1/6 (17%)
-- **Composants migrés** : 54/270+ (20%) (Composants layout et motion migrés)
+- **Composants migrés** : 122/270+ (45%) (Composants ui/Sidebar, layout/DashboardLayout, layout/Header, ui/Tabs, transactions/InlineEditableField, reseau/ContactDetailPopup, transactions/StatusStepper migrés)
 - **Composants critiques migrés** : 5/5 (100%) ✅
 
 ---

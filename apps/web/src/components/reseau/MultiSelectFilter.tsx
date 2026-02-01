@@ -68,7 +68,7 @@ export default function MultiSelectFilter({
         />{' '}
       </Button>{' '}
       {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-background border border-border rounded-md shadow-lg max-h-60 overflow-auto">
+        <div className="absolute z-50 w-full mt-1 bg-background border border-border rounded-md shadow-standard-lg max-h-60 overflow-auto"> {/* UI Revamp - shadow-standard-lg */}
           {' '}
           <div className="p-2 space-y-1">
             {' '}

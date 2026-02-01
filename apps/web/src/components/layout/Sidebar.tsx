@@ -97,7 +97,7 @@ export default function Sidebar({ isOpen: controlledIsOpen, onClose }: SidebarPr
         key={item.href}
         href={item.href}
         className={clsx(
-          'flex items-center gap-3 px-lg py-md rounded-lg text-sm font-medium transition-colors',
+          'flex items-center gap-3 px-lg py-md rounded-lg text-sm font-medium transition-modern', // UI Revamp - Transition moderne
           active
             ? 'bg-primary-50 dark:bg-primary-900/20 text-primary font-semibold'
             : 'text-foreground hover:bg-muted'
@@ -158,7 +158,7 @@ export default function Sidebar({ isOpen: controlledIsOpen, onClose }: SidebarPr
                 key={item.href}
                 href={item.href}
                 className={clsx(
-                  'flex items-center gap-3 px-lg py-md rounded-lg text-sm font-medium transition-colors',
+                  'flex items-center gap-3 px-lg py-md rounded-lg text-sm font-medium transition-modern', // UI Revamp - Transition moderne
                   isActive(item.href)
                     ? 'bg-primary-50 dark:bg-primary-900/20 text-primary font-semibold'
                     : 'text-foreground hover:bg-muted'
@@ -208,7 +208,7 @@ export default function Sidebar({ isOpen: controlledIsOpen, onClose }: SidebarPr
           {/* Hamburger Menu Button (Mobile only) */}
           <button
             onClick={handleClose}
-            className="md:hidden inline-flex items-center justify-center p-2 rounded-lg text-foreground hover:bg-muted transition-colors min-h-[44px] min-w-[44px]"
+            className="md:hidden inline-flex items-center justify-center p-2 rounded-lg text-foreground hover:bg-muted transition-modern min-h-[44px] min-w-[44px]" // UI Revamp - Transition moderne
             aria-label="Fermer le menu"
             aria-expanded={isOpen}
           >

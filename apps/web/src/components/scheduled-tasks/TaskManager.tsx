@@ -165,7 +165,7 @@ export function TaskManager({ className = '' }: TaskManagerProps) {
               <div
                 key={task.id}
                 className={clsx(
-                  'p-4 border border-border rounded-lg transition-all duration-500 ease-in-out',
+                  'p-4 border border-border rounded-lg transition-modern', // UI Revamp - Transition moderne
                   isCompleting && 'animate-fade-out-slide-up opacity-0 scale-95 -translate-y-2 pointer-events-none',
                   isCompleted && !showCompleted && 'hidden'
                 )}
