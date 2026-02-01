@@ -47,6 +47,7 @@ from app.models.real_estate_transaction import RealEstateTransaction
 from app.models.real_estate_contact import RealEstateContact, ContactType
 from app.models.transaction_contact import TransactionContact
 from app.models.transaction_action import TransactionAction, ActionCompletion
+from app.models.user_availability import UserAvailability, DayOfWeek
 from app.core.security_audit import SecurityAuditLog
 
 __all__ = [
@@ -140,6 +141,8 @@ __all__ = [
     "TransactionContact",
     "TransactionAction",
     "ActionCompletion",
+    "UserAvailability",
+    "DayOfWeek",
     "SecurityAuditLog",
 ]
 

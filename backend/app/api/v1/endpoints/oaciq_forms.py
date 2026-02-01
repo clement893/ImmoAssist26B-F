@@ -226,6 +226,122 @@ async def update_oaciq_form(
     return OACIQFormResponse.model_validate(form)
 
 
+@router.post("/oaciq/forms/import", response_model=OACIQFormImportResponse, tags=["oaciq-forms"])
+async def import_oaciq_forms(
+    request: Request,
+    import_data: OACIQFormImportRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Import en masse des formulaires OACIQ depuis Manus
+    
+    Permet d'importer plusieurs formulaires OACIQ en une seule requête.
+    Utile pour synchroniser les formulaires depuis un système externe comme Manus.
+    
+    Args:
+        import_data: Données d'import contenant la liste des formulaires
+        current_user: Utilisateur authentifié
+        db: Session de base de données
+        
+    Returns:
+        OACIQFormImportResponse: Résultats de l'import avec détails pour chaque formulaire
+    """
+    results = []
+    created_count = 0
+    updated_count = 0
+    skipped_count = 0
+    failed_count = 0
+    
+    for form_item in import_data.forms:
+        try:
+            # Vérifier si le formulaire existe déjà
+            existing_query = select(Form).where(Form.code == form_item.code)
+            existing_result = await db.execute(existing_query)
+            existing_form = existing_result.scalar_one_or_none()
+            
+            if existing_form:
+                # Formulaire existe déjà
+                if import_data.overwrite_existing:
+                    # Mettre à jour le formulaire existant
+                    existing_form.name = form_item.name
+                    existing_form.category = form_item.category.value
+                    if form_item.pdf_url:
+                        existing_form.pdf_url = form_item.pdf_url
+                    if form_item.fields:
+                        existing_form.fields = form_item.fields
+                    
+                    await db.commit()
+                    await db.refresh(existing_form)
+                    
+                    results.append(OACIQFormImportResult(
+                        code=form_item.code,
+                        success=True,
+                        action="updated",
+                        form_id=existing_form.id
+                    ))
+                    updated_count += 1
+                    logger.info(f"Updated OACIQ form {form_item.code} (ID: {existing_form.id})")
+                else:
+                    # Ignorer le formulaire existant
+                    results.append(OACIQFormImportResult(
+                        code=form_item.code,
+                        success=True,
+                        action="skipped",
+                        form_id=existing_form.id
+                    ))
+                    skipped_count += 1
+                    logger.info(f"Skipped existing OACIQ form {form_item.code}")
+            else:
+                # Créer un nouveau formulaire
+                # Les formulaires OACIQ nécessitent au minimum un champ fields vide
+                default_fields = form_item.fields if form_item.fields else {
+                    "sections": []
+                }
+                
+                new_form = Form(
+                    code=form_item.code,
+                    name=form_item.name,
+                    category=form_item.category.value,
+                    pdf_url=form_item.pdf_url,
+                    fields=default_fields,
+                    user_id=current_user.id
+                )
+                
+                db.add(new_form)
+                await db.commit()
+                await db.refresh(new_form)
+                
+                results.append(OACIQFormImportResult(
+                    code=form_item.code,
+                    success=True,
+                    action="created",
+                    form_id=new_form.id
+                ))
+                created_count += 1
+                logger.info(f"Created OACIQ form {form_item.code} (ID: {new_form.id})")
+                
+        except Exception as e:
+            logger.error(f"Error importing OACIQ form {form_item.code}: {e}", exc_info=True)
+            results.append(OACIQFormImportResult(
+                code=form_item.code,
+                success=False,
+                action="failed",
+                error=str(e)
+            ))
+            failed_count += 1
+    
+    return OACIQFormImportResponse(
+        success=failed_count == 0,
+        total=len(import_data.forms),
+        created=created_count,
+        updated=updated_count,
+        skipped=skipped_count,
+        failed=failed_count,
+        results=results
+    )
+
+
 @router.post("/oaciq/forms/extract-fields", response_model=ExtractFieldsResponse, tags=["oaciq-forms"])
 async def extract_form_fields(
     request_data: ExtractFieldsRequest,

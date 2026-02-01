@@ -5,7 +5,7 @@ import Container from '@/components/ui/Container';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Calendar from '@/components/ui/Calendar';
-import { Calendar as CalendarIcon, Clock, Plus } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, Plus, CalendarCheck } from 'lucide-react';
 import { useState } from 'react';
 
 export default function CalendrierModulePage() {
@@ -89,7 +89,7 @@ export default function CalendrierModulePage() {
         </Card>
 
         {/* Quick Actions */}
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           <Card hover onClick={() => router.push(`/${locale}/dashboard/modules/calendrier/nouveau`)}>
             <div className="p-6">
               <div className="flex items-center gap-4 mb-4">
@@ -108,6 +108,28 @@ export default function CalendrierModulePage() {
               </p>
               <Button variant="primary" size="sm" className="w-full">
                 Créer un événement
+              </Button>
+            </div>
+          </Card>
+
+          <Card hover onClick={() => router.push(`/${locale}/dashboard/modules/calendrier/disponibilites`)}>
+            <div className="p-6">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="p-3 bg-accent-purple/10 rounded-lg">
+                  <CalendarCheck className="w-8 h-8 text-accent-purple" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold">Disponibilités</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Gérer les horaires
+                  </p>
+                </div>
+              </div>
+              <p className="text-muted-foreground mb-4">
+                Définissez vos heures de disponibilité pour chaque jour de la semaine.
+              </p>
+              <Button variant="primary" size="sm" className="w-full">
+                Gérer les disponibilités
               </Button>
             </div>
           </Card>
