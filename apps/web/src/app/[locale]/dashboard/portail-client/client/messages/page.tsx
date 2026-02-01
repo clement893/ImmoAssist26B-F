@@ -63,7 +63,7 @@ export default function MessagesPage() {
     }
   };
 
-  const isFromMe = (expediteurId: number) => user?.id === expediteurId;
+  const isFromMe = (expediteurId: number) => String(expediteurId) === user?.id;
 
   if (loading) {
     return (

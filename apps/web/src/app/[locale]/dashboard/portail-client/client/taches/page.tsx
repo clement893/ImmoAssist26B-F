@@ -26,16 +26,6 @@ export default function TachesPage() {
   const [filterStatut, setFilterStatut] = useState<'toutes' | 'actives' | 'completees'>('actives');
   const [filterPriorite, setFilterPriorite] = useState<string>('toutes');
 
-  const fetchTaches = async () => {
-    if (!transactionId) return;
-    try {
-      const res = await apiClient.get<Tache[]>(`v1/portail/transaction-taches/transaction/${transactionId}`);
-      setTaches(Array.isArray(res.data) ? res.data : []);
-    } catch {
-      setTaches([]);
-    }
-  };
-
   useEffect(() => {
     const fetchData = async () => {
       try {

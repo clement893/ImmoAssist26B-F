@@ -9,10 +9,7 @@ import {
   Mail,
   Phone,
   Eye,
-  Settings,
-  Download,
   Activity,
-  CheckCircle2,
   Clock,
   AlertCircle,
 } from 'lucide-react';

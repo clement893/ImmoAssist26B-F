@@ -8,14 +8,8 @@ import {
   MessageSquare,
   CheckCircle2,
   Calendar,
-  User,
-  Bell,
-  TrendingUp,
-  ArrowRight,
   MapPin,
   DollarSign,
-  Mail,
-  Phone,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
@@ -35,18 +29,14 @@ export default function PortailClientDashboard() {
   const { user } = useAuthStore();
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   useEffect(() => {
     const fetchTransaction = async () => {
       try {
         setLoading(true);
-        setError(null);
         const res = await apiClient.get<Transaction>('v1/portail/transactions/client');
         setTransaction(res.data);
       } catch {
         setTransaction(null);
-        setError(null); // 404 is ok = no active transaction
       } finally {
         setLoading(false);
       }
@@ -54,7 +44,7 @@ export default function PortailClientDashboard() {
     fetchTransaction();
   }, []);
 
-  const prenom = user?.first_name || user?.name?.split(' ')[0] || 'Client';
+  const prenom = user?.name?.split(' ')[0] || 'Client';
   const typeProjet = transaction?.type || 'achat';
 
   if (loading) {
