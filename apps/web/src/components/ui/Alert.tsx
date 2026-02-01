@@ -40,25 +40,25 @@ export interface AlertProps extends BaseComponentProps, ClosableProps, IconProps
 
 const variantClasses = {
   info: {
-    container: 'bg-primary-50/80 dark:bg-primary-900/50 border-primary-200/60 dark:border-primary-800/60 backdrop-blur-sm shadow-sm',
+    container: 'bg-primary-50/80 dark:bg-primary-900/50 border-primary-200/60 dark:border-primary-800/60 backdrop-blur-sm shadow-subtle-sm', // UI Revamp
     text: 'text-primary-900 dark:text-primary-100',
     title: 'text-primary-900 dark:text-primary-50 font-semibold',
     icon: 'text-primary-600 dark:text-primary-400',
   },
   success: {
-    container: 'bg-secondary-50/80 dark:bg-secondary-900/50 border-secondary-200/60 dark:border-secondary-800/60 backdrop-blur-sm shadow-sm',
+    container: 'bg-secondary-50/80 dark:bg-secondary-900/50 border-secondary-200/60 dark:border-secondary-800/60 backdrop-blur-sm shadow-subtle-sm', // UI Revamp
     text: 'text-secondary-900 dark:text-secondary-100',
     title: 'text-secondary-900 dark:text-secondary-50 font-semibold',
     icon: 'text-secondary-600 dark:text-secondary-400',
   },
   warning: {
-    container: 'bg-warning-50/80 dark:bg-warning-900/50 border-warning-200/60 dark:border-warning-800/60 backdrop-blur-sm shadow-sm',
+    container: 'bg-warning-50/80 dark:bg-warning-900/50 border-warning-200/60 dark:border-warning-800/60 backdrop-blur-sm shadow-subtle-sm', // UI Revamp
     text: 'text-warning-900 dark:text-warning-100',
     title: 'text-warning-900 dark:text-warning-50 font-semibold',
     icon: 'text-warning-600 dark:text-warning-400',
   },
   error: {
-    container: 'bg-error-50/80 dark:bg-error-900/50 border-error-200/60 dark:border-error-800/60 backdrop-blur-sm shadow-sm',
+    container: 'bg-error-50/80 dark:bg-error-900/50 border-error-200/60 dark:border-error-800/60 backdrop-blur-sm shadow-subtle-sm', // UI Revamp
     text: 'text-error-900 dark:text-error-100',
     title: 'text-error-900 dark:text-error-50 font-semibold',
     icon: 'text-error-600 dark:text-error-400',

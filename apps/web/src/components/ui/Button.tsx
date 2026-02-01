@@ -43,20 +43,18 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   asChild?: boolean;
 }
 
-// Base styles - Modern, spacious and elegant design (Revamp UI)
+// Base styles - UI Revamp - Modern, spacious and elegant design
 const baseStyles = [
   'font-medium',
   'rounded-xl', // Modern rounded (12px) for elegant look
-  'transition-all',
-  'duration-200', // Smooth transitions
-  'ease-natural', // Natural easing
+  'transition-modern', // UI Revamp - Utilise transition-modern
   'focus:outline-none',
   'focus:ring-2',
   'focus:ring-offset-2',
   'disabled:opacity-50',
   'disabled:cursor-not-allowed',
-  'shadow-sm',
-  'hover:shadow-md',
+  'shadow-standard-sm', // UI Revamp - Nouveau système d'ombres
+  'hover:shadow-standard-md', // UI Revamp - Ombre hover améliorée
   'hover:-translate-y-0.5', // Subtle lift on hover
   'active:scale-[0.98]',
   'active:translate-y-0', // Reset lift on active
@@ -72,17 +70,17 @@ const variants = {
     'bg-gradient-to-r from-primary-500 to-primary-600',
     'dark:from-primary-500 dark:to-primary-600',
     'text-white',
-    'shadow-sm',
+    'shadow-standard-sm', // UI Revamp - Nouveau système d'ombres
     'hover:from-primary-600 hover:to-primary-700',
     'dark:hover:from-primary-600 dark:hover:to-primary-700',
-    'hover:shadow-primary',
+    'hover:shadow-colored-primary', // UI Revamp - Ombre colorée au hover
     'focus:ring-primary-500',
     'dark:focus:ring-primary-400',
     'focus:ring-offset-2',
   ].join(' '),
   secondary: createVariantStyles(
-    ['bg-secondary-600', 'dark:bg-secondary-500', 'text-white', 'shadow-sm'],
-    ['hover:bg-secondary-700', 'dark:hover:bg-secondary-600', 'hover:shadow'],
+    ['bg-secondary-600', 'dark:bg-secondary-500', 'text-white', 'shadow-standard-sm'], // UI Revamp
+    ['hover:bg-secondary-700', 'dark:hover:bg-secondary-600', 'hover:shadow-colored-secondary'], // UI Revamp
     ['focus:ring-secondary-500', 'dark:focus:ring-secondary-400', 'focus:ring-offset-1'],
     'color-secondary-500'
   ),
@@ -93,12 +91,12 @@ const variants = {
     'dark:from-primary-500',
     'dark:to-secondary-400',
     'text-white',
-    'shadow-sm',
+    'shadow-standard-sm', // UI Revamp
     'hover:from-primary-700',
     'hover:to-secondary-600',
     'dark:hover:from-primary-600',
     'dark:hover:to-secondary-500',
-    'hover:shadow',
+    'hover:shadow-colored-primary', // UI Revamp
     'focus:ring-primary-500',
     'dark:focus:ring-primary-400',
   ].join(' '),
@@ -109,8 +107,8 @@ const variants = {
     'dark:text-primary-300',
     'hover:bg-primary-100',
     'dark:hover:bg-primary-900/50',
-    'shadow-sm',
-    'hover:shadow',
+    'shadow-subtle-sm', // UI Revamp - Ombre subtile pour variant soft
+    'hover:shadow-subtle-md', // UI Revamp
     'focus:ring-primary-500',
     'dark:focus:ring-primary-400',
   ].join(' '),
@@ -128,8 +126,8 @@ const variants = {
     'focus:ring-primary-500',
     'dark:focus:ring-primary-400',
     'focus:ring-offset-1',
-    'shadow-sm',
-    'hover:shadow',
+    'shadow-subtle-sm', // UI Revamp - Ombre subtile pour variant outline
+    'hover:shadow-subtle-md', // UI Revamp
     '[border-color:var(--color-primary-500)]',
     '[color:var(--color-primary-500)]',
   ].join(' '),
@@ -142,16 +140,17 @@ const variants = {
     'focus:ring-primary-500',
     'dark:focus:ring-primary-400',
     'focus:ring-offset-1',
+    // UI Revamp - Pas d'ombre pour variant ghost (minimal)
   ].join(' '),
   danger: createVariantStyles(
-    ['bg-error-600', 'dark:bg-error-500', 'text-background', 'shadow-sm'],
-    ['hover:bg-error-700', 'dark:hover:bg-error-600', 'hover:shadow'],
+    ['bg-error-600', 'dark:bg-error-500', 'text-background', 'shadow-standard-sm'], // UI Revamp
+    ['hover:bg-error-700', 'dark:hover:bg-error-600', 'hover:shadow-colored-error'], // UI Revamp
     ['focus:ring-error-500', 'dark:focus:ring-error-400', 'focus:ring-offset-1'],
     'color-error-500'
   ),
   error: createVariantStyles(
-    ['bg-error-600', 'dark:bg-error-500', 'text-background', 'shadow-sm'],
-    ['hover:bg-error-700', 'dark:hover:bg-error-600', 'hover:shadow'],
+    ['bg-error-600', 'dark:bg-error-500', 'text-background', 'shadow-standard-sm'], // UI Revamp
+    ['hover:bg-error-700', 'dark:hover:bg-error-600', 'hover:shadow-colored-error'], // UI Revamp
     ['focus:ring-error-500', 'dark:focus:ring-error-400', 'focus:ring-offset-1'],
     'color-error-500'
   ),

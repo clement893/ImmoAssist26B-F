@@ -226,7 +226,7 @@ function Modal({
         className={clsx(
           // Use glassmorphism background if enabled, otherwise use default
           hasEffect('glassmorphism') ? '' : 'bg-background',
-          'shadow-xl',
+          'shadow-standard-xl', // UI Revamp - Nouveau système d'ombres
           'w-full h-full',
           'md:w-auto md:h-auto md:rounded-2xl',
           sizeClasses[size],

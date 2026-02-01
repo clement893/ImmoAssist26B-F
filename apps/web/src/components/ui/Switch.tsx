@@ -23,7 +23,7 @@ const Switch = forwardRef<HTMLInputElement, SwitchProps>(
           <input ref={ref} type="checkbox" id={switchId} className="sr-only peer" {...props} />
           <div
             className={clsx(
-              "bg-muted peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-500 dark:peer-focus:ring-primary-400 peer-focus:ring-offset-2 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-background after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-background after:border-2 after:border-border after:rounded-full after:transition-all duration-200 ease-natural peer-checked:bg-primary-600 dark:peer-checked:bg-primary-500 shadow-sm peer-checked:shadow-primary", // Revamp UI - Ring amélioré, transitions fluides, ombre
+              "bg-muted peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-500 dark:peer-focus:ring-primary-400 peer-focus:ring-offset-2 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-background after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-background after:border-2 after:border-border after:rounded-full after:transition-modern peer-checked:bg-primary-600 dark:peer-checked:bg-primary-500 shadow-subtle-sm peer-checked:shadow-colored-primary", // UI Revamp - Nouveau système d'ombres
               error && 'ring-2 ring-error-500 dark:ring-error-400',
               className
             )}

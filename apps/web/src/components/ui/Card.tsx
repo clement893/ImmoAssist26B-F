@@ -81,7 +81,10 @@ import { type ReactNode, type HTMLAttributes } from 'react';
 import { clsx } from 'clsx';
 import { useGlobalTheme } from '@/lib/theme/global-theme-provider';
 
-export type CardVariant = 'default' | 'elevated' | 'outlined' | 'gradient' | 'glass' | 'minimal';
+export type CardVariant = 'default' | 'elevated' | 'floating' | 'outlined' | 'gradient' | 'glass' | 'bordered' | 'image' | 'minimal';
+export type CardElevation = 'none' | 'sm' | 'md' | 'lg' | 'xl';
+export type CardHoverEffect = 'lift' | 'glow' | 'scale' | 'none';
+export type AccentBorderPosition = 'left' | 'top' | 'right' | 'bottom' | 'none';
 
 export interface CardProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onClick'> {
   /** Card content */
@@ -98,13 +101,25 @@ export interface CardProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onClick
   actions?: ReactNode;
   /** Card variant style */
   variant?: CardVariant;
+  /** Elevation level */
+  elevation?: CardElevation;
   /** Enable hover effect */
   hover?: boolean;
+  /** Hover effect type */
+  hoverEffect?: CardHoverEffect;
   /** Click handler */
   onClick?: () => void;
   /** Add padding to card content */
   padding?: boolean;
-  /** Left border color (for accent border) */
+  /** Accent border position */
+  accentBorder?: AccentBorderPosition;
+  /** Accent border color */
+  accentColor?: 'primary' | 'secondary' | 'success' | 'warning' | 'error' | string;
+  /** Image header URL (for image variant) */
+  imageHeader?: string;
+  /** Glass intensity (for glass variant) */
+  glassIntensity?: 'light' | 'medium' | 'strong';
+  /** Left border color (deprecated - use accentBorder and accentColor) */
   leftBorder?: 'primary' | 'secondary' | 'purple' | 'teal' | 'orange' | 'pink' | 'cyan' | 'success' | 'warning' | 'error';
 }
 
@@ -116,11 +131,17 @@ export default function Card({
   footer,
   actions,
   className,
-  variant = 'default',
+  variant = 'elevated',
+  elevation = 'md',
   hover = false,
+  hoverEffect = 'lift',
   onClick,
   padding = true,
-  leftBorder,
+  accentBorder = 'none',
+  accentColor = 'primary',
+  imageHeader,
+  glassIntensity = 'medium',
+  leftBorder, // Deprecated but kept for backward compatibility
   ...props
 }: CardProps) {
   const { theme } = useGlobalTheme();
@@ -150,18 +171,69 @@ export default function Card({
   const cardPadding = getCardPadding();
   const useThemePadding = typeof cardPadding === 'string' && cardPadding !== 'p-6';
 
-  // Variant styles (Revamp UI - Styles améliorés)
-  const variantStyles = {
-    default: 'bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-sm',
-    elevated: 'bg-white dark:bg-neutral-900 border-0 shadow-md hover:shadow-lg',
+  // Variant styles (UI Revamp - Nouveau système d'ombres)
+  const variantStyles: Record<CardVariant, string> = {
+    default: 'bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-standard-sm',
+    elevated: 'bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-standard-md',
+    floating: 'bg-white dark:bg-neutral-900 border-0 shadow-standard-lg',
     outlined: 'bg-transparent border-2 border-neutral-300 dark:border-neutral-700 shadow-none',
-    gradient: 'bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-primary-950 dark:to-secondary-950 border border-primary-200 dark:border-primary-800 shadow-sm',
-    glass: 'bg-white/80 dark:bg-neutral-900/80 backdrop-blur-md border border-white/20 dark:border-neutral-800/50 shadow-lg',
+    gradient: 'bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-primary-950 dark:to-secondary-950 border border-primary-200 dark:border-primary-800 shadow-standard-md',
+    glass: 'bg-white/70 dark:bg-neutral-900/70 backdrop-blur-glass border border-white/30 dark:border-neutral-800/50 shadow-glass-md',
+    bordered: 'bg-white dark:bg-neutral-900 rounded-2xl shadow-standard-sm',
+    image: 'bg-white dark:bg-neutral-900 rounded-2xl shadow-standard-lg overflow-hidden',
     minimal: 'bg-transparent border border-neutral-200 dark:border-neutral-800 shadow-none',
   };
 
-  // Left border color mapping (Revamp UI - Nouvelle fonctionnalité)
-  const leftBorderColors = {
+  // Glass intensity mapping
+  const glassBgOpacity = {
+    light: 'bg-white/50 dark:bg-neutral-900/50',
+    medium: 'bg-white/70 dark:bg-neutral-900/70',
+    strong: 'bg-white/90 dark:bg-neutral-900/90',
+  }[glassIntensity];
+
+  // Hover effect styles
+  const hoverEffectStyles: Record<CardHoverEffect, string> = {
+    lift: 'hover:shadow-standard-lg hover:-translate-y-0.5',
+    glow: 'hover:shadow-colored-primary',
+    scale: 'hover:scale-[1.02]',
+    none: '',
+  };
+
+  // Accent border styles
+  const accentBorderStyles: Record<AccentBorderPosition, string> = {
+    left: 'border-l-4',
+    top: 'border-t-4',
+    right: 'border-r-4',
+    bottom: 'border-b-4',
+    none: '',
+  };
+
+  // Accent colors mapping
+  const accentColorMap: Record<string, string> = {
+    primary: 'primary-500',
+    secondary: 'secondary-500',
+    success: 'success-500',
+    warning: 'warning-500',
+    error: 'error-500',
+  };
+
+  // Determine accent border color
+  const accentColorClass = accentColorMap[accentColor] || accentColor;
+  
+  // Build accent border class
+  let accentBorderClass = '';
+  if (accentBorder !== 'none') {
+    const borderSide = accentBorder.charAt(0); // 'l', 't', 'r', 'b'
+    const borderClass = `border-${borderSide}-4 border-${borderSide}-${accentColorClass}`;
+    accentBorderClass = borderClass;
+  }
+
+  // Backward compatibility: if leftBorder is provided, use it
+  const effectiveAccentBorder = leftBorder ? 'left' : accentBorder;
+  const effectiveAccentColor = leftBorder || accentColor;
+
+  // Left border color mapping (backward compatibility)
+  const leftBorderColors: Record<string, string> = {
     primary: 'border-l-4 border-l-primary-500',
     secondary: 'border-l-4 border-l-secondary-500',
     purple: 'border-l-4 border-l-[#a855f7]',
@@ -174,22 +246,31 @@ export default function Card({
     error: 'border-l-4 border-l-error-500',
   };
 
+  // Determine final accent border class (backward compatibility with leftBorder)
+  const finalAccentBorderClass = leftBorder 
+    ? leftBorderColors[leftBorder] 
+    : accentBorderClass;
+
+  // Determine hover class
+  const hoverClass = (hover || onClick) && hoverEffect !== 'none'
+    ? hoverEffectStyles[hoverEffect]
+    : '';
+
+  // Apply glass style if needed
+  const glassStyle = variant === 'glass' ? glassBgOpacity : '';
+
   return (
     <div
       className={clsx(
-        'rounded-2xl', // Modern rounded corners (16px) - Revamp UI
+        // Base styles
+        variant === 'floating' ? 'rounded-[20px]' : 'rounded-2xl', // 20px for floating, 16px for others
         variantStyles[variant],
-        variant === 'glass' && 'backdrop-blur-md',
-        variant !== 'glass' && 'backdrop-blur-sm',
-        'transition-all duration-200 ease-out',
-        // Enhanced hover effects (desktop only) - Revamp UI
-        (hover || onClick) && 'hover:shadow-xl hover:-translate-y-1',
-        // Touch-friendly on mobile
-        onClick && 'active:scale-[0.98]',
-        onClick && 'cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:ring-offset-2',
-        // Left border accent (Revamp UI - Nouvelle fonctionnalité)
-        leftBorder && leftBorderColors[leftBorder],
-        // Responsive padding
+        glassStyle,
+        finalAccentBorderClass,
+        'transition-modern',
+        hoverClass,
+        // Interactive states
+        onClick && 'active:scale-[0.98] cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:ring-offset-2',
         'w-full',
         className
       )}
@@ -231,7 +312,26 @@ export default function Card({
       }
       {...props}
     >
-      {(title || subtitle || header) && (
+      {/* Image Header (for image variant) */}
+      {imageHeader && variant === 'image' && (
+        <div className="relative h-48 w-full overflow-hidden">
+          <img 
+            src={imageHeader} 
+            alt={title || 'Card header'} 
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+          {(title || subtitle) && (
+            <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+              {title && <h3 className="text-xl font-semibold">{title}</h3>}
+              {subtitle && <p className="mt-1 text-sm opacity-90">{subtitle}</p>}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Header (if not image variant or no image header) */}
+      {!imageHeader && (title || subtitle || header) && (
         <div
           className={clsx('border-b border-neutral-200 dark:border-neutral-800', !useThemePadding && 'px-4 py-3')}
           style={
@@ -254,18 +354,37 @@ export default function Card({
         </div>
       )}
 
-      <div
-        className={clsx(padding && !useThemePadding && cardPadding)}
-        style={
-          padding && useThemePadding
-            ? {
-                padding: cardPadding,
-              }
-            : undefined
-        }
-      >
-        {children}
-      </div>
+      {/* Content (skip if image variant with image header and title/subtitle) */}
+      {!(imageHeader && variant === 'image' && (title || subtitle)) && (
+        <div
+          className={clsx(padding && !useThemePadding && cardPadding)}
+          style={
+            padding && useThemePadding
+              ? {
+                  padding: cardPadding,
+                }
+              : undefined
+          }
+        >
+          {children}
+        </div>
+      )}
+      
+      {/* Content for image variant when image header is present */}
+      {imageHeader && variant === 'image' && (title || subtitle) && (
+        <div
+          className={clsx(padding && !useThemePadding && cardPadding)}
+          style={
+            padding && useThemePadding
+              ? {
+                  padding: cardPadding,
+                }
+              : undefined
+          }
+        >
+          {children}
+        </div>
+      )}
 
       {cardFooter && (
         <div

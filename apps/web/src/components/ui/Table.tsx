@@ -49,7 +49,7 @@ export function TableBody({
       className={clsx(
         'bg-white dark:bg-neutral-900 divide-y divide-neutral-200 dark:divide-neutral-800',
         striped && '[&>tr:nth-child(even)]:bg-neutral-50 dark:[&>tr:nth-child(even)]:bg-neutral-900/50',
-        hover && '[&>tr:hover]:bg-primary-50/50 dark:[&>tr:hover]:bg-primary-900/10 [&>tr:hover]:transition-all [&>tr:hover]:duration-200 [&>tr:hover]:shadow-sm', // Revamp UI - Transitions améliorées, ombre au hover
+        hover && '[&>tr:hover]:bg-primary-50/50 dark:[&>tr:hover]:bg-primary-900/10 [&>tr:hover]:transition-modern [&>tr:hover]:shadow-subtle-sm', // UI Revamp - Transitions modernes, nouvelle ombre au hover
         className
       )}
       style={style}

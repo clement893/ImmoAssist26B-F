@@ -84,13 +84,79 @@
     relaxed: 'var(--typography-line-height-relaxed, 1.75)',
   },
 } as const;
-/** * Shadow tokens using CSS variables from global theme */ export const shadows = {
+/** 
+ * Shadow tokens using CSS variables from global theme
+ * UI Revamp - Nouveau système d'ombres multi-niveaux
+ */
+export const shadows = {
+  // Legacy shadows (kept for backward compatibility)
   sm: 'var(--shadow-sm, 0 1px 2px 0 rgba(0, 0, 0, 0.05))',
   base: 'var(--shadow-base, 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06))',
   md: 'var(--shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06))',
   lg: 'var(--shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05))',
   xl: 'var(--shadow-xl, 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04))',
 } as const;
+
+/**
+ * UI Revamp - Nouveau système d'ombres multi-niveaux
+ * Utiliser shadowSystem pour les nouveaux composants
+ */
+export const shadowSystem = {
+  // Ombres subtiles (pour éléments légers)
+  subtle: {
+    sm: 'var(--shadow-subtle-sm, 0 1px 2px 0 rgba(0, 0, 0, 0.03))',
+    md: 'var(--shadow-subtle-md, 0 2px 4px 0 rgba(0, 0, 0, 0.05))',
+    lg: 'var(--shadow-subtle-lg, 0 4px 8px 0 rgba(0, 0, 0, 0.08))',
+  },
+  
+  // Ombres standard (pour cards) - Utiliser celles-ci par défaut
+  standard: {
+    sm: 'var(--shadow-standard-sm, 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px 0 rgba(0, 0, 0, 0.04))',
+    md: 'var(--shadow-standard-md, 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06))',
+    lg: 'var(--shadow-standard-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.12), 0 4px 6px -2px rgba(0, 0, 0, 0.08))',
+    xl: 'var(--shadow-standard-xl, 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.06))',
+  },
+  
+  // Ombres colorées (pour éléments interactifs)
+  colored: {
+    primary: 'var(--shadow-colored-primary, 0 4px 14px 0 rgba(37, 99, 235, 0.15))',
+    secondary: 'var(--shadow-colored-secondary, 0 4px 14px 0 rgba(99, 102, 241, 0.15))',
+    success: 'var(--shadow-colored-success, 0 4px 14px 0 rgba(4, 120, 87, 0.15))',
+    warning: 'var(--shadow-colored-warning, 0 4px 14px 0 rgba(180, 83, 9, 0.15))',
+    error: 'var(--shadow-colored-error, 0 4px 14px 0 rgba(220, 38, 38, 0.15))',
+  },
+  
+  // Ombres pour hover states
+  hover: {
+    sm: 'var(--shadow-hover-sm, 0 8px 16px -4px rgba(0, 0, 0, 0.12))',
+    md: 'var(--shadow-hover-md, 0 12px 24px -6px rgba(0, 0, 0, 0.15))',
+    lg: 'var(--shadow-hover-lg, 0 16px 32px -8px rgba(0, 0, 0, 0.18))',
+  },
+  
+  // Ombres pour glassmorphism
+  glass: {
+    sm: 'var(--shadow-glass-sm, 0 8px 32px 0 rgba(31, 38, 135, 0.15))',
+    md: 'var(--shadow-glass-md, 0 8px 32px 0 rgba(31, 38, 135, 0.2))',
+    lg: 'var(--shadow-glass-lg, 0 8px 32px 0 rgba(31, 38, 135, 0.25))',
+  },
+  
+  // Ombres internes (pour effets de profondeur)
+  inner: {
+    sm: 'var(--shadow-inner-sm, inset 0 2px 4px 0 rgba(0, 0, 0, 0.06))',
+    md: 'var(--shadow-inner-md, inset 0 2px 8px 0 rgba(0, 0, 0, 0.1))',
+  },
+} as const;
+
+/**
+ * Helper pour obtenir une ombre du système
+ */
+export function getShadow(
+  category: keyof typeof shadowSystem,
+  size: string
+): string {
+  const categoryShadows = shadowSystem[category] as Record<string, string>;
+  return categoryShadows[size] || categoryShadows.md || '';
+}
 /** * Breakpoint tokens (for reference, actual breakpoints are in Tailwind config) */ export const breakpoints =
   {
     sm: 'var(--breakpoint-sm, 640px)',

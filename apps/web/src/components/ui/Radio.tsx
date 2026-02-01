@@ -17,10 +17,10 @@ const Radio = forwardRef<HTMLInputElement, RadioProps>(
           type="radio"
           id={radioId}
           className={clsx(
-            'text-primary-600 dark:text-primary-400 border-2 border-border', // Revamp UI - Border épaisseur augmentée
-            'transition-all duration-200 ease-natural', // Revamp UI - Transitions fluides
-            'focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:ring-offset-2', // Revamp UI - Ring offset augmenté
-            'hover:border-primary-400 dark:hover:border-primary-500', // Revamp UI - Hover effect
+            'text-primary-600 dark:text-primary-400 border-2 border-border', // UI Revamp - Border épaisseur augmentée
+            'transition-modern', // UI Revamp - Transition moderne
+            'focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:ring-offset-2',
+            'hover:border-primary-400 dark:hover:border-primary-500', // UI Revamp - Hover effect
             'disabled:opacity-50 disabled:cursor-not-allowed',
             error && 'border-error-500 dark:border-error-400',
             className

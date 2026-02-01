@@ -105,23 +105,23 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             id={inputId}
             className={clsx(
-              'w-full border rounded-xl transition-all duration-200 ease-natural', // Revamp UI - Border radius 12px
+              'w-full border rounded-xl transition-modern', // UI Revamp - Border radius 12px, transition moderne
               paddingClasses,
               'bg-[var(--color-input)] text-foreground',
-              'min-h-[48px]', // Revamp UI - Height augmentée pour md
+              'min-h-[48px]', // UI Revamp - Height augmentée pour md
               'backdrop-blur-sm',
-              'shadow-sm',
+              'shadow-subtle-sm', // UI Revamp - Nouveau système d'ombres (subtile pour inputs)
               'focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:ring-offset-2',
               'focus:border-primary-500 dark:focus:border-primary-400',
-              'focus:shadow-primary', // Revamp UI - Ombre colorée au focus
+              'focus:shadow-colored-primary', // UI Revamp - Ombre colorée au focus
               'disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-muted/50',
               'placeholder:text-muted-foreground placeholder:transition-opacity placeholder:duration-200',
-              'hover:border-primary-300 dark:hover:border-primary-600 hover:shadow-md', // Revamp UI - Hover amélioré
+              'hover:border-primary-300 dark:hover:border-primary-600 hover:shadow-subtle-md', // UI Revamp - Hover avec ombre subtile
               error
-                ? 'border-error-500 dark:border-error-400 focus:ring-error-500/50 dark:focus:ring-error-400/50 focus:shadow-error-500/10'
+                ? 'border-error-500 dark:border-error-400 focus:ring-error-500/50 dark:focus:ring-error-400/50 focus:shadow-colored-error' // UI Revamp - Ombre colorée error au focus
                 : 'border-border/60',
-              leftIcon && 'pl-12', // Revamp UI - Plus d'espace pour icône
-              rightIcon && 'pr-12', // Revamp UI - Plus d'espace pour icône
+              leftIcon && 'pl-12', // UI Revamp - Plus d'espace pour icône
+              rightIcon && 'pr-12', // UI Revamp - Plus d'espace pour icône
               className
             )}
             style={{ 

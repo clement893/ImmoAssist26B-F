@@ -14,7 +14,6 @@ import Loading from '@/components/ui/Loading';
 import { ArrowLeft, Plus, Edit, Trash2, Clock, Calendar } from 'lucide-react';
 import { calendarAvailabilityAPI, UserAvailability, UserAvailabilityCreate, UserAvailabilityUpdate, DayOfWeek } from '@/lib/api/calendar-availability';
 import { useToast } from '@/lib/toast';
-import { handleApiError } from '@/lib/errors';
 
 const DAYS_OF_WEEK: { value: DayOfWeek; label: string }[] = [
   { value: 'monday', label: 'Lundi' },
@@ -30,7 +29,7 @@ export default function DisponibilitesPage() {
   const router = useRouter();
   const params = useParams();
   const locale = params.locale as string;
-  const { toast } = useToast();
+  const { success, error: showError } = useToast();
 
   const [availabilities, setAvailabilities] = useState<UserAvailability[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,13 +55,9 @@ export default function DisponibilitesPage() {
       const response = await calendarAvailabilityAPI.getMyAvailabilities();
       setAvailabilities(response.availabilities || []);
     } catch (err) {
-      const errorMessage = handleApiError(err);
+      const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
       setError(errorMessage);
-      toast({
-        title: 'Erreur',
-        description: 'Impossible de charger les disponibilités',
-        variant: 'error',
-      });
+      showError('Impossible de charger les disponibilités');
     } finally {
       setLoading(false);
     }
@@ -115,28 +110,16 @@ export default function DisponibilitesPage() {
           label: formData.label || undefined,
         };
         await calendarAvailabilityAPI.update(editingAvailability.id, updateData);
-        toast({
-          title: 'Succès',
-          description: 'Disponibilité mise à jour avec succès',
-          variant: 'success',
-        });
+        success('Disponibilité mise à jour avec succès');
       } else {
         await calendarAvailabilityAPI.create(formData);
-        toast({
-          title: 'Succès',
-          description: 'Disponibilité créée avec succès',
-          variant: 'success',
-        });
+        success('Disponibilité créée avec succès');
       }
       handleCloseModal();
       loadAvailabilities();
     } catch (err) {
-      const errorMessage = handleApiError(err);
-      toast({
-        title: 'Erreur',
-        description: errorMessage,
-        variant: 'error',
-      });
+      const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
+      showError(errorMessage);
     }
   };
 
@@ -146,19 +129,11 @@ export default function DisponibilitesPage() {
     }
     try {
       await calendarAvailabilityAPI.delete(id);
-      toast({
-        title: 'Succès',
-        description: 'Disponibilité supprimée avec succès',
-        variant: 'success',
-      });
+      success('Disponibilité supprimée avec succès');
       loadAvailabilities();
     } catch (err) {
-      const errorMessage = handleApiError(err);
-      toast({
-        title: 'Erreur',
-        description: errorMessage,
-        variant: 'error',
-      });
+      const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
+      showError(errorMessage);
     }
   };
 
@@ -167,19 +142,11 @@ export default function DisponibilitesPage() {
       await calendarAvailabilityAPI.update(availability.id, {
         is_active: !availability.is_active,
       });
-      toast({
-        title: 'Succès',
-        description: `Disponibilité ${!availability.is_active ? 'activée' : 'désactivée'}`,
-        variant: 'success',
-      });
+      success(`Disponibilité ${!availability.is_active ? 'activée' : 'désactivée'}`);
       loadAvailabilities();
     } catch (err) {
-      const errorMessage = handleApiError(err);
-      toast({
-        title: 'Erreur',
-        description: errorMessage,
-        variant: 'error',
-      });
+      const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
+      showError(errorMessage);
     }
   };
 
@@ -246,7 +213,7 @@ export default function DisponibilitesPage() {
                       <Calendar className="w-5 h-5" />
                       {day.label}
                     </h2>
-                    <Badge variant={dayAvailabilities.length > 0 ? 'success' : 'neutral'}>
+                    <Badge variant={dayAvailabilities.length > 0 ? 'success' : 'default'}>
                       {dayAvailabilities.length} disponibilité{dayAvailabilities.length > 1 ? 's' : ''}
                     </Badge>
                   </div>
@@ -275,12 +242,12 @@ export default function DisponibilitesPage() {
                               </span>
                             </div>
                             {availability.label && (
-                              <Badge variant="outline" size="sm">
+                              <Badge variant="default" size="sm">
                                 {availability.label}
                               </Badge>
                             )}
                             {!availability.is_active && (
-                              <Badge variant="neutral" size="sm">
+                              <Badge variant="default" size="sm">
                                 Inactif
                               </Badge>
                             )}

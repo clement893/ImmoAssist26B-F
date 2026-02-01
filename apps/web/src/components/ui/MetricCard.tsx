@@ -85,10 +85,10 @@ export default function MetricCard({
   return (
     <div
       className={clsx(
-        'rounded-xl border p-4 sm:p-6 transition-all duration-200',
+        'rounded-xl border p-4 sm:p-6 transition-modern shadow-standard-sm', // UI Revamp - Transition moderne, nouveau système d'ombres
         'w-full', // Full width on mobile
         variantStyles[variant],
-        onClick && 'cursor-pointer hover:shadow-lg hover:-translate-y-1 active:scale-[0.98]',
+        onClick && 'cursor-pointer hover:shadow-standard-lg hover:-translate-y-1 active:scale-[0.98]', // UI Revamp - Hover avec nouvelle ombre
         className
       )}
       onClick={onClick}

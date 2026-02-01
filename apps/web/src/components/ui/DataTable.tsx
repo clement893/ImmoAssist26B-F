@@ -105,7 +105,7 @@ function DataTable<T extends Record<string, unknown>>({
     <div className={clsx('space-y-4', className)}>
       {/* Search and Filters */}
       {(searchable || filterable) && (
-        <div className="bg-white dark:bg-neutral-900 p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 shadow-sm">
+        <div className="bg-white dark:bg-neutral-900 p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 shadow-standard-sm"> {/* UI Revamp - Nouveau système d'ombres */}
           <div className="flex flex-col md:flex-row gap-4">
             {searchable && (
               <div className="flex-1">
@@ -134,7 +134,7 @@ function DataTable<T extends Record<string, unknown>>({
       )}
 
       {/* Table - Responsive wrapper for horizontal scroll on mobile */}
-      <div className="bg-white dark:bg-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-800 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-800 shadow-standard-sm overflow-hidden"> {/* UI Revamp - Nouveau système d'ombres */}
         {/* Scroll hint for mobile users */}
         <div className="px-3 py-1.5 text-xs text-neutral-500 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-800/50 border-b border-neutral-200 dark:border-neutral-700 md:hidden">
           <span className="inline-flex items-center gap-1">

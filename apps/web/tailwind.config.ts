@@ -197,6 +197,14 @@ const config: Config = {
         // Consistent border radius scale
         '4xl': '2rem',
         '5xl': '2.5rem',
+        // UI Revamp - Border radius pour cards (16px)
+        card: '16px',
+        'card-lg': '20px',
+      },
+      backdropBlur: {
+        // UI Revamp - Backdrop blur pour glassmorphism
+        glass: '12px',
+        'glass-lg': '16px',
       },
       fontFamily: {
         // Use theme font family if available, otherwise fallback to system fonts
@@ -253,10 +261,43 @@ const config: Config = {
         'swiss-cta': ['20px', { lineHeight: '28px', fontWeight: '700' }], // CTA text
       },
       boxShadow: {
-        // Custom shadows for depth
+        // Custom shadows for depth (legacy - kept for backward compatibility)
         soft: '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)',
         medium: '0 4px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
         strong: '0 10px 40px -10px rgba(0, 0, 0, 0.2)',
+        
+        // UI Revamp - Nouveau système d'ombres multi-niveaux
+        // Ombres subtiles (pour éléments légers)
+        'subtle-sm': '0 1px 2px 0 rgba(0, 0, 0, 0.03)',
+        'subtle-md': '0 2px 4px 0 rgba(0, 0, 0, 0.05)',
+        'subtle-lg': '0 4px 8px 0 rgba(0, 0, 0, 0.08)',
+        
+        // Ombres standard (pour cards) - Utiliser celles-ci par défaut
+        'standard-sm': '0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px 0 rgba(0, 0, 0, 0.04)',
+        'standard-md': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        'standard-lg': '0 10px 15px -3px rgba(0, 0, 0, 0.12), 0 4px 6px -2px rgba(0, 0, 0, 0.08)',
+        'standard-xl': '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.06)',
+        
+        // Ombres colorées (pour éléments interactifs)
+        'colored-primary': '0 4px 14px 0 rgba(37, 99, 235, 0.15)',
+        'colored-secondary': '0 4px 14px 0 rgba(99, 102, 241, 0.15)',
+        'colored-success': '0 4px 14px 0 rgba(4, 120, 87, 0.15)',
+        'colored-warning': '0 4px 14px 0 rgba(180, 83, 9, 0.15)',
+        'colored-error': '0 4px 14px 0 rgba(220, 38, 38, 0.15)',
+        
+        // Ombres hover (pour états hover)
+        'hover-sm': '0 8px 16px -4px rgba(0, 0, 0, 0.12)',
+        'hover-md': '0 12px 24px -6px rgba(0, 0, 0, 0.15)',
+        'hover-lg': '0 16px 32px -8px rgba(0, 0, 0, 0.18)',
+        
+        // Ombres glassmorphism
+        'glass-sm': '0 8px 32px 0 rgba(31, 38, 135, 0.15)',
+        'glass-md': '0 8px 32px 0 rgba(31, 38, 135, 0.2)',
+        'glass-lg': '0 8px 32px 0 rgba(31, 38, 135, 0.25)',
+        
+        // Ombres internes (pour effets de profondeur)
+        'inner-sm': 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)',
+        'inner-md': 'inset 0 2px 8px 0 rgba(0, 0, 0, 0.1)',
       },
       transitionDuration: {
         // Theme-aware transition durations

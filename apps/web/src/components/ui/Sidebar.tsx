@@ -16,6 +16,8 @@ interface SidebarItem {
   children?: SidebarItem[];
 }
 
+export type SidebarVariant = 'modern' | 'colored' | 'minimal' | 'floating';
+
 interface SidebarProps {
   items: SidebarItem[];
   currentPath?: string;
@@ -24,6 +26,11 @@ interface SidebarProps {
   onToggleCollapse?: () => void;
   user?: { name?: string; email?: string } | null;
   showSearch?: boolean; // New prop for search bar (UX/UI improvements - Batch 8)
+  variant?: SidebarVariant; // UI Revamp - Nouveau système de variants
+  collapsedWidth?: number; // UI Revamp - Largeur quand collapsed (px)
+  expandedWidth?: number; // UI Revamp - Largeur quand expanded (px)
+  accentColor?: string; // UI Revamp - Couleur d'accent pour état actif
+  showNotifications?: boolean; // UI Revamp - Badge de notifications
   // New props for header and footer actions
   notificationsComponent?: ReactNode;
   onHomeClick?: () => void;
@@ -41,6 +48,11 @@ export default function Sidebar({
   onToggleCollapse,
   user,
   showSearch = false, // Search bar disabled by default for backward compatibility
+  variant = 'modern', // UI Revamp - Variant par défaut
+  collapsedWidth,
+  expandedWidth,
+  accentColor,
+  showNotifications = false,
   notificationsComponent: _notificationsComponent,
   onHomeClick,
   themeToggleComponent,
@@ -52,6 +64,60 @@ export default function Sidebar({
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const activePath = currentPath || pathname;
+
+  // UI Revamp - Variant styles
+  const variantStyles: Record<SidebarVariant, {
+    container: string;
+    item: {
+      base: string;
+      active: string;
+      inactive: string;
+      icon: string;
+    };
+  }> = {
+    modern: {
+      container: 'bg-white dark:bg-neutral-900 border-r border-neutral-200 dark:border-neutral-800 shadow-standard-md',
+      item: {
+        base: 'px-4 py-2.5 rounded-xl transition-modern',
+        active: 'bg-primary-600 text-white shadow-colored-primary',
+        inactive: 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800',
+        icon: 'w-10 h-10 rounded-full flex items-center justify-center transition-modern',
+      },
+    },
+    colored: {
+      container: 'bg-slate-800 dark:bg-slate-900 shadow-standard-lg',
+      item: {
+        base: 'px-4 py-2.5 rounded-xl transition-modern',
+        active: 'bg-white/10 text-white',
+        inactive: 'text-neutral-300 hover:bg-white/5',
+        icon: 'w-10 h-10 rounded-full flex items-center justify-center transition-modern',
+      },
+    },
+    minimal: {
+      container: 'bg-neutral-50 dark:bg-neutral-900 border-r border-neutral-200 dark:border-neutral-800',
+      item: {
+        base: 'px-3 py-2 rounded-lg transition-modern',
+        active: 'bg-white dark:bg-neutral-800 border-l-4 border-l-primary-500 text-primary-600 dark:text-primary-400',
+        inactive: 'text-neutral-600 dark:text-neutral-400 hover:bg-white dark:hover:bg-neutral-800',
+        icon: 'w-8 h-8 flex items-center justify-center transition-modern',
+      },
+    },
+    floating: {
+      container: 'bg-white/90 dark:bg-neutral-900/90 backdrop-blur-glass rounded-r-2xl shadow-standard-lg border-r border-neutral-200 dark:border-neutral-800',
+      item: {
+        base: 'px-4 py-2.5 rounded-xl transition-modern',
+        active: 'bg-primary-600/10 text-primary-600 dark:text-primary-400 border-l-2 border-l-primary-500',
+        inactive: 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800',
+        icon: 'w-10 h-10 rounded-full flex items-center justify-center transition-modern',
+      },
+    },
+  };
+
+  const styles = variantStyles[variant];
+  
+  // Determine widths
+  const finalCollapsedWidth = collapsedWidth || (collapsed ? 80 : 0);
+  const finalExpandedWidth = expandedWidth || (collapsed ? 0 : 320);
 
   // Filter items based on search query (UX/UI improvements - Batch 8)
   const filteredItems = useMemo(() => {
@@ -97,22 +163,31 @@ export default function Sidebar({
     const isExpanded = expandedItems.has(item.label);
     const isActive = activePath === item.href || (item.href && activePath?.startsWith(item.href));
 
+    // UI Revamp - Apply variant-specific styles
+    const itemBaseClass = collapsed 
+      ? 'justify-center p-2' 
+      : styles.item.base;
+    
+    const itemActiveClass = isActive
+      ? collapsed
+        ? variant === 'colored' ? 'bg-white/10' : 'bg-primary-600/20'
+        : styles.item.active
+      : '';
+    
+    const itemInactiveClass = !isActive
+      ? collapsed
+        ? variant === 'colored' ? 'hover:bg-white/5' : 'hover:bg-neutral-700/50'
+        : styles.item.inactive
+      : '';
+
     return (
       <div key={item.label}>
         <div
           className={clsx(
-            'flex items-center justify-between transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]',
-            // Modern circular icon design like in the image
-            collapsed 
-              ? 'justify-center p-2' 
-              : 'px-4 py-2.5 rounded-xl', // Revamp UI - Padding augmenté, border radius moderne
-            isActive 
-              ? collapsed
-                ? 'bg-primary-600/20' 
-                : 'bg-primary-600/10 text-white border-l-2 border-primary-500'
-              : collapsed
-                ? 'hover:bg-neutral-700/50'
-                : 'text-neutral-300 hover:bg-neutral-700/50 hover:text-white',
+            'flex items-center justify-between transition-modern',
+            itemBaseClass,
+            itemActiveClass,
+            itemInactiveClass,
             level > 0 && !collapsed && 'ml-4' // Indentation for nested items
           )}
         >
@@ -126,13 +201,19 @@ export default function Sidebar({
             >
               {item.icon && (
                 <span className={clsx(
-                  'flex-shrink-0 flex items-center justify-center transition-all rounded-full',
+                  styles.item.icon,
                   collapsed 
                     ? 'w-10 h-10' 
-                    : 'w-9 h-9',
+                    : variant === 'minimal' ? 'w-8 h-8' : 'w-10 h-10',
                   isActive 
-                    ? 'bg-primary-500 text-white' 
-                    : 'text-neutral-400 hover:text-white'
+                    ? variant === 'modern' || variant === 'colored'
+                      ? 'bg-primary-500 text-white'
+                      : variant === 'floating'
+                        ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400'
+                        : 'text-primary-600 dark:text-primary-400'
+                    : variant === 'colored'
+                      ? 'text-neutral-300'
+                      : 'text-neutral-400 dark:text-neutral-500'
                 )}>
                   {item.icon}
                 </span>
@@ -143,7 +224,7 @@ export default function Sidebar({
             <button
               onClick={item.onClick || (hasChildren ? () => toggleItem(item.label) : undefined)}
               className={clsx(
-                'flex items-center min-w-0 text-left transition-all',
+                'flex items-center min-w-0 text-left transition-modern',
                 collapsed ? 'justify-center' : 'flex-1 space-x-3'
               )}
               aria-expanded={hasChildren ? isExpanded : undefined}
@@ -151,13 +232,19 @@ export default function Sidebar({
             >
               {item.icon && (
                 <span className={clsx(
-                  'flex-shrink-0 flex items-center justify-center transition-all rounded-full',
+                  styles.item.icon,
                   collapsed 
                     ? 'w-10 h-10' 
-                    : 'w-9 h-9',
+                    : variant === 'minimal' ? 'w-8 h-8' : 'w-10 h-10',
                   isActive 
-                    ? 'bg-primary-500 text-white' 
-                    : 'text-neutral-400 hover:text-white'
+                    ? variant === 'modern' || variant === 'colored'
+                      ? 'bg-primary-500 text-white'
+                      : variant === 'floating'
+                        ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400'
+                        : 'text-primary-600 dark:text-primary-400'
+                    : variant === 'colored'
+                      ? 'text-neutral-300'
+                      : 'text-neutral-400 dark:text-neutral-500'
                 )}>
                   {item.icon}
                 </span>
@@ -217,14 +304,26 @@ export default function Sidebar({
     });
   }, [items, activePath, expandedItems]);
 
+  // Determine container width
+  const containerWidth = collapsed 
+    ? (finalCollapsedWidth ? `${finalCollapsedWidth}px` : 'w-20')
+    : (finalExpandedWidth ? `${finalExpandedWidth}px` : 'w-72 md:w-80 lg:w-96');
+
   return (
     <aside
       className={clsx(
-        'bg-neutral-800 dark:bg-neutral-900 border-r border-neutral-700/50 h-full transition-all duration-300 ease-natural flex flex-col', // Revamp UI - Easing naturel
-        'shadow-lg backdrop-blur-sm', // Revamp UI - Backdrop blur
-        collapsed ? 'w-18' : 'w-72 md:w-80 lg:w-96', // Revamp UI - Largeurs augmentées
+        'h-screen sticky top-0 flex flex-col transition-modern',
+        styles.container,
+        containerWidth,
         className
       )}
+      style={
+        finalCollapsedWidth || finalExpandedWidth
+          ? {
+              width: collapsed ? finalCollapsedWidth : finalExpandedWidth,
+            }
+          : undefined
+      }
     >
       {/* Header: AI Model Selector (like ChatGPT AI in image) */}
       {!collapsed && (

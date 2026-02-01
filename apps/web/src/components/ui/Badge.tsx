@@ -32,11 +32,11 @@ function Badge({ children, variant = 'default', className }: BadgeProps) {
   return (
     <span
       className={clsx(
-        'inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold', // Revamp UI - Padding et taille augmentés
-        'shadow-sm backdrop-blur-sm',
-        'transition-all duration-200 ease-natural',
-        'border', // Revamp UI - Bordure visible pour variants colorés
-        'hover:shadow-md', // Revamp UI - Hover effect
+        'inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold', // UI Revamp - Padding et taille augmentés
+        'shadow-subtle-sm backdrop-blur-sm', // UI Revamp - Nouveau système d'ombres
+        'transition-modern', // UI Revamp - Transition moderne
+        'border', // UI Revamp - Bordure visible pour variants colorés
+        'hover:shadow-subtle-md', // UI Revamp - Hover effect avec ombre subtile
         variantClasses,
         className
       )}

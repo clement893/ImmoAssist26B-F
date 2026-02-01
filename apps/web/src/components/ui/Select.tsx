@@ -43,18 +43,18 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
           ref={ref}
           id={selectId}
           className={clsx(
-            'block w-full rounded-xl transition-all duration-200 ease-natural', // Revamp UI - Border radius moderne
+            'block w-full rounded-xl transition-modern', // UI Revamp - Border radius moderne, transition moderne
             'bg-[var(--color-input)]',
             'text-foreground',
             'border border-border/60',
-            'min-h-[48px]', // Revamp UI - Height augmentée
-            'shadow-sm hover:shadow-md', // Revamp UI - Hover effect
+            'min-h-[48px]', // UI Revamp - Height augmentée
+            'shadow-subtle-sm hover:shadow-subtle-md', // UI Revamp - Nouveau système d'ombres subtiles
             'focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:ring-offset-2',
             'focus:border-primary-500 dark:focus:border-primary-400',
-            'focus:shadow-primary', // Revamp UI - Ombre colorée au focus
+            'focus:shadow-colored-primary', // UI Revamp - Ombre colorée au focus
             'disabled:opacity-50 disabled:cursor-not-allowed',
             error &&
-              'border-error-500 dark:border-error-400 focus:border-error-500 dark:focus:border-error-400 focus:ring-error-500 dark:focus:ring-error-400',
+              'border-error-500 dark:border-error-400 focus:border-error-500 dark:focus:border-error-400 focus:ring-error-500 dark:focus:ring-error-400 focus:shadow-colored-error', // UI Revamp - Ombre colorée error au focus
             className
           )}
           style={{

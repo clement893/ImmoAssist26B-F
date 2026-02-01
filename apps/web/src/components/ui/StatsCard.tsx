@@ -83,10 +83,10 @@ export default function StatsCard({
   return (
     <div
       className={clsx(
-        'rounded-2xl border-2 p-6 sm:p-8 transition-all duration-200 ease-natural shadow-sm', // Revamp UI - Border radius moderne, padding augmenté, ombre
+        'rounded-2xl border-2 p-6 sm:p-8 transition-modern shadow-standard-sm', // UI Revamp - Border radius moderne, padding augmenté, nouveau système d'ombres
         'w-full', // Full width on mobile
         variantStyles[variant],
-        onClick && 'cursor-pointer hover:shadow-xl hover:-translate-y-1 active:scale-[0.98]', // Revamp UI - Hover effect amélioré
+        onClick && 'cursor-pointer hover:shadow-standard-lg hover:-translate-y-1 active:scale-[0.98]', // UI Revamp - Hover effect amélioré avec nouvelle ombre
         className
       )}
       onClick={onClick}
@@ -107,7 +107,7 @@ export default function StatsCard({
         <div className="flex-1">
           <div className="flex items-center gap-4 mb-3"> {/* Revamp UI - Gap et margin augmentés */}
             {icon && (
-              <div className={clsx('p-3 rounded-xl shadow-sm', iconStyles[variant])}> {/* Revamp UI - Padding et border radius améliorés */}
+              <div className={clsx('p-3 rounded-xl shadow-subtle-sm', iconStyles[variant])}> {/* UI Revamp - Padding et border radius améliorés, nouvelle ombre */}
                 {icon}
               </div>
             )}

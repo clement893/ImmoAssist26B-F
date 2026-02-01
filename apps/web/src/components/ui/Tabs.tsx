@@ -93,7 +93,7 @@ export default function Tabs({
         container: 'border-b border-border',
         tab: (isActive: boolean) =>
           clsx(
-            'px-5 py-3 text-sm font-medium border-b-2 transition-all duration-200 ease-natural', // Revamp UI - Padding augmenté, transitions fluides
+            'px-5 py-3 text-sm font-medium border-b-2 transition-modern', // UI Revamp - Padding augmenté, transition moderne
             isActive
               ? 'border-primary-500 text-primary-600 dark:text-primary-400'
               : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border/60'
