@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -15,8 +15,11 @@ import {
   Calendar,
   CheckCircle2,
   Send,
+  Users,
+  Search,
+  X,
 } from 'lucide-react';
-import { apiClient } from '@/lib/api';
+import { apiClient, reseauContactsAPI, type Contact } from '@/lib/api';
 
 export default function InviterClientPage() {
   const router = useRouter();
@@ -28,6 +31,72 @@ export default function InviterClientPage() {
     type_projet: 'achat',
     message_personnalise: '',
   });
+
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [contactsLoading, setContactsLoading] = useState(true);
+  const [contactSearch, setContactSearch] = useState('');
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setContactsLoading(true);
+    reseauContactsAPI
+      .list(0, 300)
+      .then((list) => {
+        if (!cancelled) setContacts(list);
+      })
+      .catch(() => {
+        if (!cancelled) setContacts([]);
+      })
+      .finally(() => {
+        if (!cancelled) setContactsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const contactsWithEmail = useMemo(
+    () => contacts.filter((c) => c.email && c.email.trim() !== ''),
+    [contacts]
+  );
+
+  const filteredContacts = useMemo(() => {
+    const q = contactSearch.trim().toLowerCase();
+    if (!q) return contactsWithEmail.slice(0, 20);
+    return contactsWithEmail
+      .filter(
+        (c) =>
+          (c.first_name?.toLowerCase().includes(q) ||
+            c.last_name?.toLowerCase().includes(q) ||
+            c.email?.toLowerCase().includes(q) ||
+            `${(c.first_name || '').trim()} ${(c.last_name || '').trim()}`.toLowerCase().includes(q))
+      )
+      .slice(0, 20);
+  }, [contactsWithEmail, contactSearch]);
+
+  const handleSelectContact = (contact: Contact) => {
+    setSelectedContact(contact);
+    setFormData((prev) => ({
+      ...prev,
+      prenom: contact.first_name || '',
+      nom: contact.last_name || '',
+      email: contact.email || '',
+      telephone: contact.phone || '',
+    }));
+  };
+
+  const handleClearContact = () => {
+    setSelectedContact(null);
+    setFormData((prev) => ({
+      ...prev,
+      prenom: '',
+      nom: '',
+      email: '',
+      telephone: '',
+    }));
+    setContactSearch('');
+  };
 
   const [permissions, setPermissions] = useState({
     documents: true,
@@ -103,6 +172,82 @@ export default function InviterClientPage() {
           </div>
         )}
         <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Users className="w-5 h-5 text-blue-600" />
+              Choisir un contact existant
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Sélectionnez un contact dans votre carnet pour préremplir le formulaire (contacts avec email uniquement).
+            </p>
+            {selectedContact ? (
+              <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <User className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">
+                      {selectedContact.first_name} {selectedContact.last_name}
+                    </p>
+                    <p className="text-sm text-gray-600">{selectedContact.email}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleClearContact}
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                  Effacer la sélection
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="relative mb-3">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    value={contactSearch}
+                    onChange={(e) => setContactSearch(e.target.value)}
+                    placeholder="Rechercher par nom ou email..."
+                    className="w-full pl-10 pr-4 py-2.5 bg-gray-50 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-200"
+                  />
+                </div>
+                <div className="max-h-48 overflow-y-auto rounded-xl border border-gray-200 divide-y divide-gray-100">
+                  {contactsLoading ? (
+                    <div className="p-6 text-center text-sm text-gray-500">Chargement des contacts...</div>
+                  ) : filteredContacts.length === 0 ? (
+                    <div className="p-6 text-center text-sm text-gray-500">
+                      {contactsWithEmail.length === 0
+                        ? 'Aucun contact avec email. Ajoutez des contacts dans Réseau → Contacts.'
+                        : 'Aucun contact ne correspond à la recherche.'}
+                    </div>
+                  ) : (
+                    filteredContacts.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => handleSelectContact(c)}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="p-1.5 bg-gray-100 rounded-lg">
+                          <User className="w-4 h-4 text-gray-500" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {c.first_name} {c.last_name}
+                          </p>
+                          <p className="text-xs text-gray-500 truncate">{c.email}</p>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+
           <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
             <h2 className="text-lg font-semibold text-gray-900 mb-6">Informations du client</h2>
 

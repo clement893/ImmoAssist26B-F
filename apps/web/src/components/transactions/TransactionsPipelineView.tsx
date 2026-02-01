@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from '@/i18n/routing';
-import { Plus, Search, Filter, MoreVertical, MapPin, DollarSign, Users, Calendar } from 'lucide-react';
+import { Plus, Search, Filter, MoreVertical, MapPin, DollarSign, Users, Calendar, Home } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import TransactionImage from '@/components/transactions/TransactionImage';
 
 interface Transaction {
   id: number;
@@ -229,8 +230,11 @@ export default function TransactionsPipelineView({
                     ...(transaction.buyers || []).map((b: any) => b.name),
                   ].filter(Boolean);
                   
-                  // Get first photo from documents
-                  const firstPhoto = transaction.documents?.find(doc => doc.type === 'photo') || transaction.documents?.[0];
+                  // Get first photo from documents (type 'photo' or image content_type)
+                  const firstPhoto =
+                    transaction.documents?.find(
+                      (doc) => doc.type === 'photo' || doc.content_type?.startsWith?.('image/')
+                    ) || transaction.documents?.[0];
 
                   return (
                     <div
@@ -248,20 +252,22 @@ export default function TransactionsPipelineView({
                         draggedTransaction === transaction.id ? 'opacity-50' : ''
                       }`}
                     >
-                      {/* Photo Header */}
-                      {firstPhoto?.url && (
-                        <div className="relative w-full h-32 bg-gray-100 dark:bg-neutral-800 overflow-hidden">
-                          <img
+                      {/* Photo Header - toujours visible avec photo ou placeholder */}
+                      <div className="relative w-full h-32 bg-gray-100 dark:bg-neutral-800 overflow-hidden">
+                        {firstPhoto?.url ? (
+                          <TransactionImage
                             src={firstPhoto.url}
                             alt={transaction.name}
+                            transactionId={transaction.id}
+                            documentId={firstPhoto.id}
                             className="w-full h-full object-cover"
-                            onError={(e) => {
-                              // Hide image on error
-                              (e.target as HTMLImageElement).style.display = 'none';
-                            }}
                           />
-                        </div>
-                      )}
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 dark:from-neutral-800 dark:to-neutral-700">
+                            <Home className="w-12 h-12 text-gray-400" />
+                          </div>
+                        )}
+                      </div>
                       
                       <div className="p-6">
                         {/* Transaction Title */}

@@ -66,6 +66,16 @@ class ClientInvitationList(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class ClientInvitationByToken(BaseModel):
+    """Public schema for invitation by token (activation page)"""
+    email: str
+    prenom: str
+    nom: str
+    statut: str
+
+    model_config = {"from_attributes": True}
+
+
 class ClientInvitationActivate(BaseModel):
     """Schema for activating invitation (create user)"""
     password: str = Field(..., min_length=8)

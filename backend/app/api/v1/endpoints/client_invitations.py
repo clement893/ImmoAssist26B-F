@@ -17,6 +17,7 @@ from app.schemas.client_invitation import (
     ClientInvitationUpdate,
     ClientInvitationResponse,
     ClientInvitationList,
+    ClientInvitationByToken,
     ClientInvitationActivate,
 )
 from app.services.email_service import EmailService
@@ -64,7 +65,8 @@ async def create_invitation(
 
     # Envoyer l'email d'invitation via SendGrid (si SENDGRID_API_KEY est configurée)
     frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
-    invitation_url = f"{frontend_url}/portail-client/activation/{token}"
+    default_locale = os.getenv("FRONTEND_DEFAULT_LOCALE", "fr")
+    invitation_url = f"{frontend_url}/{default_locale}/portail-client/activation/{token}"
     courtier_nom = f"{current_user.first_name or ''} {current_user.last_name or ''}".strip() or current_user.email
     email_service = EmailService()
     if email_service.is_configured():
@@ -107,6 +109,31 @@ async def list_invitations(
     result = await db.execute(query)
     invitations = list(result.scalars().all())
     return [ClientInvitationList.model_validate(i) for i in invitations]
+
+
+@router.get("/by-token/{token}", response_model=ClientInvitationByToken)
+async def get_invitation_by_token(
+    token: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Get invitation by token (public, for activation page)."""
+    result = await db.execute(
+        select(ClientInvitation).where(ClientInvitation.token == token)
+    )
+    invitation = result.scalar_one_or_none()
+    if not invitation:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lien d'invitation invalide ou expiré")
+    if invitation.statut == "actif":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ce lien a déjà été utilisé. Connectez-vous avec votre mot de passe.",
+        )
+    return ClientInvitationByToken(
+        email=invitation.email,
+        prenom=invitation.prenom,
+        nom=invitation.nom,
+        statut=invitation.statut,
+    )
 
 
 @router.get("/{invitation_id}", response_model=ClientInvitationResponse)

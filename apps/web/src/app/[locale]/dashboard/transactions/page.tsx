@@ -16,7 +16,8 @@ import TransactionForm from '@/components/transactions/TransactionForm';
 import PDFImportModal from '@/components/transactions/PDFImportModal';
 import TransactionsPipelineView from '@/components/transactions/TransactionsPipelineView';
 import { transactionsAPI } from '@/lib/api';
-import { FileText, Plus, Search, MapPin, Calendar, DollarSign, Users, Trash2, Eye, Upload, LayoutGrid, List } from 'lucide-react';
+import { FileText, Plus, Search, MapPin, Calendar, DollarSign, Users, Trash2, Eye, Upload, LayoutGrid, List, Home } from 'lucide-react';
+import TransactionImage from '@/components/transactions/TransactionImage';
 // Simple date formatting function
 const formatDate = (dateString?: string) => {
   if (!dateString) return '-';
@@ -298,8 +299,11 @@ function TransactionsContent() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {transactions.map((transaction) => {
-              // Get first photo from documents
-              const firstPhoto = transaction.documents?.find(doc => doc.type === 'photo') || transaction.documents?.[0];
+              // Get first photo from documents (type 'photo' or image content_type)
+              const firstPhoto =
+                transaction.documents?.find(
+                  (doc) => doc.type === 'photo' || doc.content_type?.startsWith?.('image/')
+                ) || transaction.documents?.[0];
               
               return (
               <Card
@@ -308,20 +312,22 @@ function TransactionsContent() {
                 hover
                 className="flex flex-col overflow-hidden rounded-3xl"
               >
-                {/* Photo Header */}
-                {firstPhoto?.url && (
-                  <div className="relative w-full h-48 bg-muted overflow-hidden">
-                    <img
+                {/* Photo Header - toujours visible avec photo ou placeholder */}
+                <div className="relative w-full h-48 bg-muted overflow-hidden">
+                  {firstPhoto?.url ? (
+                    <TransactionImage
                       src={firstPhoto.url}
                       alt={transaction.name}
+                      transactionId={transaction.id}
+                      documentId={firstPhoto.id}
                       className="w-full h-full object-cover"
-                      onError={(e) => {
-                        // Hide image on error
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
                     />
-                  </div>
-                )}
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+                      <Home className="w-16 h-16 text-gray-400" />
+                    </div>
+                  )}
+                </div>
                 
                 <div className="flex-1 p-6 space-y-4">
                   {/* Header */}

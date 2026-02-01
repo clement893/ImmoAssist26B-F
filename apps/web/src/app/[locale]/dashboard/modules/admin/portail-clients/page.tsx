@@ -168,21 +168,18 @@ export default function AdminPortailClientsInfoPage() {
             <li>Le courtier crée une invitation (formulaire « Inviter un client »).</li>
             <li>Un token unique est généré et un email est envoyé (SendGrid) avec le lien :<br />
               <code className="text-sm bg-gray-100 px-2 py-1 rounded mt-1 inline-block">
-                {`{FRONTEND_URL}/portail-client/activation/{token}`}
-              </code>
-            </li>
-            <li>Le client ouvre le lien et doit avoir une page frontend « Activation » qui appelle l&apos;API :<br />
-              <code className="text-sm bg-gray-100 px-2 py-1 rounded mt-1 inline-block">
-                POST /api/v1/client-invitations/activate/{'{token}'}
+                {`{FRONTEND_URL}/{locale}/portail-client/activation/{token}`}
               </code>
               <br />
-              avec le body : <code className="text-sm bg-gray-100 px-1 rounded">{`{ "password": "...", "first_name": "...", "last_name": "..." }`}</code> (first_name/last_name optionnels, par défaut pris de l&apos;invitation).
+              <span className="text-sm text-gray-500">(locale par défaut : FRONTEND_DEFAULT_LOCALE ou &quot;fr&quot;)</span>
             </li>
+            <li>Le client ouvre le lien : page <strong>Activation</strong> (<code>/{'{locale}'}/portail-client/activation/[token]</code>) qui valide le token via <code>GET /api/v1/client-invitations/by-token/{'{token}'}</code> puis affiche le formulaire mot de passe.</li>
+            <li>Le client saisit son mot de passe et soumet : <code>POST /api/v1/client-invitations/activate/{'{token}'}</code> avec <code>{`{ "password": "...", "first_name": "...", "last_name": "..." }`}</code> (first_name/last_name optionnels).</li>
             <li>Le backend crée l&apos;utilisateur (client), lie <code>client_invitation_id</code>, crée une transaction par défaut, marque l&apos;invitation comme « actif ».</li>
-            <li>Le client peut se connecter et accéder à son portail.</li>
+            <li>Le client est redirigé vers la connexion et peut accéder à son portail après login.</li>
           </ol>
-          <p className="text-amber-700 text-sm mt-4 bg-amber-50 border border-amber-200 rounded-lg p-3">
-            Une page frontend <strong>Activation</strong> (<code>/portail-client/activation/[token]</code>) peut être ajoutée pour permettre au client de saisir son mot de passe et d&apos;activer son compte depuis le lien reçu par email.
+          <p className="text-green-700 text-sm mt-4 bg-green-50 border border-green-200 rounded-lg p-3">
+            La page frontend <strong>Activation</strong> est implémentée : <code>/{'{locale}'}/portail-client/activation/[token]</code>. Endpoints publics : <code>GET /api/v1/client-invitations/by-token/{'{token}'}</code> (infos invitation), <code>POST /api/v1/client-invitations/activate/{'{token}'}</code> (création compte).
           </p>
         </div>
       </section>
@@ -205,6 +202,7 @@ export default function AdminPortailClientsInfoPage() {
             <li><strong>SENDGRID_FROM_EMAIL</strong> – Adresse expéditrice (ex. noreply@votredomaine.com).</li>
             <li><strong>SENDGRID_FROM_NAME</strong> – Nom affiché (ex. ImmoAssist).</li>
             <li><strong>FRONTEND_URL</strong> – URL du frontend pour le lien d&apos;activation (ex. https://votre-app.up.railway.app).</li>
+            <li><strong>FRONTEND_DEFAULT_LOCALE</strong> – Locale pour le lien d&apos;activation (défaut : <code>fr</code>).</li>
           </ul>
           <p className="text-gray-600 text-sm">
             Template utilisé : <code>EmailTemplates.invitation_portail</code> (service <code>email_templates.py</code>).
