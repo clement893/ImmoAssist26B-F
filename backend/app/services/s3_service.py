@@ -2,6 +2,7 @@
 
 import os
 import uuid
+import base64
 from typing import Optional
 from datetime import datetime, timedelta, timezone
 
@@ -36,6 +37,59 @@ class S3Service:
         if not s3_client:
             raise ValueError("S3 client not configured. Please set AWS credentials.")
 
+    @staticmethod
+    def _encode_filename_for_metadata(filename: str) -> str:
+        """
+        Encode filename to ASCII-safe string for S3 metadata.
+        S3 metadata can only contain ASCII characters.
+        
+        Args:
+            filename: Original filename (may contain non-ASCII characters)
+            
+        Returns:
+            ASCII-safe encoded filename
+        """
+        if not filename:
+            return ""
+        
+        # Try to encode as ASCII, replacing non-ASCII characters
+        try:
+            # First, try to encode as ASCII (will fail if non-ASCII chars exist)
+            filename.encode('ascii')
+            return filename
+        except UnicodeEncodeError:
+            # If non-ASCII characters exist, encode as base64
+            # This preserves all information while being ASCII-safe
+            encoded = base64.b64encode(filename.encode('utf-8')).decode('ascii')
+            return f"base64:{encoded}"
+
+    @staticmethod
+    def _decode_filename_from_metadata(encoded_filename: str) -> str:
+        """
+        Decode filename from S3 metadata.
+        
+        Args:
+            encoded_filename: Encoded filename from S3 metadata
+            
+        Returns:
+            Decoded original filename
+        """
+        if not encoded_filename:
+            return ""
+        
+        # Check if it's base64 encoded
+        if encoded_filename.startswith("base64:"):
+            try:
+                encoded_part = encoded_filename[7:]  # Remove "base64:" prefix
+                decoded = base64.b64decode(encoded_part).decode('utf-8')
+                return decoded
+            except Exception:
+                # If decoding fails, return as-is
+                return encoded_filename
+        
+        # If not encoded, return as-is
+        return encoded_filename
+
     def upload_file(
         self,
         file: UploadFile,
@@ -67,13 +121,16 @@ class S3Service:
 
         # Upload to S3
         try:
+            # Encode filename for S3 metadata (must be ASCII-only)
+            encoded_filename = self._encode_filename_for_metadata(file.filename or "")
+            
             s3_client.put_object(
                 Bucket=AWS_S3_BUCKET,
                 Key=file_key,
                 Body=file_content,
                 ContentType=file.content_type or "application/octet-stream",
                 Metadata={
-                    "original_filename": file.filename or "",
+                    "original_filename": encoded_filename,
                     "uploaded_at": datetime.now(timezone.utc).isoformat(),
                     "user_id": user_id or "",
                 },
@@ -147,18 +204,26 @@ class S3Service:
             file_key: S3 object key
             
         Returns:
-            dict with file metadata
+            dict with file metadata (original_filename is decoded if it was encoded)
         """
         if not AWS_S3_BUCKET:
             raise ValueError("AWS_S3_BUCKET is not configured")
 
         try:
             response = s3_client.head_object(Bucket=AWS_S3_BUCKET, Key=file_key)
+            metadata = response.get("Metadata", {})
+            
+            # Decode original_filename if it was encoded
+            if "original_filename" in metadata:
+                metadata["original_filename"] = self._decode_filename_from_metadata(
+                    metadata["original_filename"]
+                )
+            
             return {
                 "size": response.get("ContentLength", 0),
                 "content_type": response.get("ContentType", ""),
                 "last_modified": response.get("LastModified"),
-                "metadata": response.get("Metadata", {}),
+                "metadata": metadata,
             }
         except ClientError as e:
             raise ValueError(f"Failed to get file metadata: {str(e)}")
