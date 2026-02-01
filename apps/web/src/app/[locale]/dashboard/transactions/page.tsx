@@ -134,18 +134,32 @@ function TransactionsContent() {
   };
 
   const handleStatusChange = async (transactionId: number, newStatus: string) => {
-    setLoading(true);
-    setError(null);
+    // Mise à jour optimiste : mettre à jour immédiatement l'état local
+    const transactionToUpdate = transactions.find(t => t.id === transactionId);
+    if (transactionToUpdate) {
+      const updatedTransaction = { ...transactionToUpdate, status: newStatus };
+      setTransactions(prev => 
+        prev.map(t => t.id === transactionId ? updatedTransaction : t)
+      );
+    }
+    
     try {
-      // Mettre à jour uniquement le statut via l'API
+      // Appel API en arrière-plan
       await transactionsAPI.update(transactionId, {
         status: newStatus,
       });
+      // Recharger les transactions pour s'assurer que tout est synchronisé
+      // mais sans bloquer l'UI (on ne met pas setLoading(true))
       await loadTransactions();
     } catch (err) {
+      // En cas d'erreur, restaurer l'état précédent
+      if (transactionToUpdate) {
+        setTransactions(prev => 
+          prev.map(t => t.id === transactionId ? transactionToUpdate : t)
+        );
+      }
       const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la mise à jour du statut';
       setError(errorMessage);
-      setLoading(false);
     }
   };
 

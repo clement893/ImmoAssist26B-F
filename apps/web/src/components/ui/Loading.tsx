@@ -30,9 +30,17 @@ export default function Loading({
   );
   if (fullScreen) {
     return (
-      <div className="fixed inset-0 flex flex-col items-center justify-center bg-background/90 z-50">
-        {' '}
-        {spinner} {text && <p className="mt-4 text-muted-foreground">{text}</p>}{' '}
+      <div className="fixed inset-0 flex flex-col items-center justify-center bg-background/95 backdrop-blur-sm z-50">
+        <div className="flex flex-col items-center gap-6">
+          <span className="text-primary-600 dark:text-primary-400 font-semibold tracking-widest uppercase text-xs opacity-80">
+            ImmoAssist
+          </span>
+          <div className="relative flex items-center justify-center">
+            <div className="absolute w-12 h-12 rounded-full border-2 border-primary-200 dark:border-primary-800" aria-hidden />
+            <div className="w-12 h-12 rounded-full border-2 border-primary-600 dark:border-primary-400 border-t-transparent animate-spin" aria-hidden />
+          </div>
+          {text && <p className="text-sm font-medium text-muted-foreground">{text}</p>}
+        </div>
       </div>
     );
   }

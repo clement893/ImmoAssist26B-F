@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from '@/i18n/routing';
 import { Plus, Search, Filter, MoreVertical, MapPin, DollarSign, Users, Calendar, Home } from 'lucide-react';
 import Button from '@/components/ui/Button';
@@ -109,6 +109,13 @@ export default function TransactionsPipelineView({
   const [draggedTransaction, setDraggedTransaction] = useState<number | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  // État local pour les mises à jour optimistes
+  const [localTransactions, setLocalTransactions] = useState<Transaction[]>(transactions);
+  
+  // Synchroniser l'état local avec les transactions reçues en props
+  useEffect(() => {
+    setLocalTransactions(transactions);
+  }, [transactions]);
 
   const handleDragStart = (transactionId: number) => {
     setDraggedTransaction(transactionId);
@@ -126,14 +133,39 @@ export default function TransactionsPipelineView({
   const handleDrop = async (e: React.DragEvent, columnStatus: string) => {
     e.preventDefault();
     if (draggedTransaction && onStatusChange) {
-      await onStatusChange(draggedTransaction, columnStatus);
+      // Mise à jour optimiste : mettre à jour immédiatement l'état local
+      const transactionToUpdate = localTransactions.find(t => t.id === draggedTransaction);
+      if (transactionToUpdate) {
+        const updatedTransaction = { ...transactionToUpdate, status: columnStatus };
+        setLocalTransactions(prev => 
+          prev.map(t => t.id === draggedTransaction ? updatedTransaction : t)
+        );
+      }
+      
+      setDraggedTransaction(null);
+      setDragOverColumn(null);
+      
+      // Appel API en arrière-plan
+      try {
+        await onStatusChange(draggedTransaction, columnStatus);
+      } catch (error) {
+        // En cas d'erreur, restaurer l'état précédent
+        if (transactionToUpdate) {
+          setLocalTransactions(prev => 
+            prev.map(t => t.id === draggedTransaction ? transactionToUpdate : t)
+          );
+        }
+        // L'erreur sera gérée par le composant parent
+        throw error;
+      }
+    } else {
+      setDraggedTransaction(null);
+      setDragOverColumn(null);
     }
-    setDraggedTransaction(null);
-    setDragOverColumn(null);
   };
 
-  // Filtrer les transactions selon la recherche
-  const filteredTransactions = transactions.filter((transaction) => {
+  // Filtrer les transactions selon la recherche (utiliser localTransactions pour les mises à jour optimistes)
+  const filteredTransactions = localTransactions.filter((transaction) => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     return (
@@ -152,7 +184,7 @@ export default function TransactionsPipelineView({
     );
   }
 
-  if (transactions.length === 0) {
+  if (localTransactions.length === 0) {
     return (
       <div className="text-center py-12 bg-white rounded-3xl">
         <p className="text-gray-500 mb-4">Aucune transaction trouvée</p>
