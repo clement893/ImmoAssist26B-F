@@ -1,6 +1,6 @@
 """Fix transaction actions columns in real_estate_transactions
 
-Revision ID: 036_fix_transaction_actions_columns
+Revision ID: 036_fix_txn_actions
 Revises: 035_create_user_availabilities
 Create Date: 2026-02-01 01:15:00.000000
 
@@ -15,7 +15,7 @@ from sqlalchemy import inspect
 
 
 # revision identifiers, used by Alembic.
-revision: str = '036_fix_transaction_actions_columns'
+revision: str = '036_fix_txn_actions'
 down_revision: Union[str, None] = '035_create_user_availabilities'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
