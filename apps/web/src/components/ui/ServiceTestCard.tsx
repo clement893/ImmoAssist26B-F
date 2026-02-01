@@ -77,7 +77,7 @@ export default function ServiceTestCard({
     <Link
       href={href}
       className={clsx(
-        'group p-6 border-2 rounded-lg hover:shadow-lg transition-all duration-200',
+        'group p-6 border-2 rounded-lg hover:shadow-standard-lg transition-modern', // UI Revamp - Nouveau système d'ombres, transition moderne
         colors.border,
         colors.bg,
         colors.hoverBorder

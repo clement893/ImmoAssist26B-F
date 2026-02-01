@@ -19,9 +19,9 @@ export default function SkipLink({
         'focus:absolute focus:top-4 focus:left-4 focus:z-[9999]',
         'focus:px-4 focus:py-2',
         'focus:bg-primary-600 focus:text-background',
-        'focus:rounded-lg focus:shadow-lg',
+        'focus:rounded-lg focus:shadow-standard-lg', // UI Revamp - Nouveau système d'ombres
         'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
-        'transition-all duration-200',
+        'transition-modern', // UI Revamp - Transition moderne
         className
       )}
     >

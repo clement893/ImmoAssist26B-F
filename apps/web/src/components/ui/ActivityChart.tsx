@@ -104,7 +104,7 @@ export default function ActivityChart({
               >
                 {/* Tooltip */}
                 {showTooltips && isHovered && (
-                  <div className="absolute bottom-full mb-2 px-3 py-1.5 bg-neutral-900 dark:bg-neutral-800 text-white text-xs font-medium rounded-lg shadow-lg z-10 whitespace-nowrap">
+                  <div className="absolute bottom-full mb-2 px-3 py-1.5 bg-neutral-900 dark:bg-neutral-800 text-white text-xs font-medium rounded-lg shadow-standard-lg z-10 whitespace-nowrap"> {/* UI Revamp - Nouveau système d'ombres */}
                     {point.label || `${point.value} ${point.value === 1 ? 'hour' : 'hours'}`}
                     <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-neutral-900 dark:border-t-neutral-800" />
                   </div>
@@ -113,10 +113,10 @@ export default function ActivityChart({
                 {/* Bar */}
                 <div
                   className={clsx(
-                    'w-full rounded-t-lg transition-all duration-200 cursor-pointer',
+                    'w-full rounded-t-lg transition-modern cursor-pointer', // UI Revamp - Transition moderne
                     colors.bar,
                     isHovered ? colors.hover : '',
-                    isHovered ? 'shadow-lg' : 'shadow-sm'
+                    isHovered ? 'shadow-standard-lg' : 'shadow-subtle-sm' // UI Revamp - Nouveau système d'ombres
                   )}
                   style={{
                     height: `${Math.max(barHeight, 4)}px`, // Minimum 4px height

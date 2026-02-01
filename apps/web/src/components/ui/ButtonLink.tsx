@@ -21,20 +21,19 @@ import { Link } from '@/i18n/routing';
 import { clsx } from 'clsx';
 import type { ButtonVariant, Size } from './types';
 
-// Base styles - same as Button component (compact design)
+// Base styles - same as Button component (compact design) - UI Revamp
 const baseStyles = [
   'font-medium',
   'rounded-lg',
-  'transition-all',
-  'duration-150',
+  'transition-modern', // UI Revamp - Transition moderne
   'focus:outline-none',
   'focus:ring-2',
   'focus:ring-offset-1',
   'inline-flex',
   'items-center',
   'justify-center',
-  'shadow-sm',
-  'hover:shadow',
+  'shadow-standard-sm', // UI Revamp - Nouveau système d'ombres
+  'hover:shadow-standard-md', // UI Revamp
   'active:scale-[0.98]',
 ].join(' ');
 
@@ -44,14 +43,14 @@ const createVariantStyles = (base: string[], hover: string[], focus: string[], c
 
 const variants: Record<string, string> = {
   primary: createVariantStyles(
-    ['bg-primary-600', 'dark:bg-primary-500', 'text-background', 'shadow-sm'],
-    ['hover:bg-primary-700', 'dark:hover:bg-primary-600', 'hover:shadow'],
+    ['bg-primary-600', 'dark:bg-primary-500', 'text-background', 'shadow-standard-sm'], // UI Revamp
+    ['hover:bg-primary-700', 'dark:hover:bg-primary-600', 'hover:shadow-colored-primary'], // UI Revamp
     ['focus:ring-primary-500', 'dark:focus:ring-primary-400', 'focus:ring-offset-1'],
     'color-primary-500'
   ),
   secondary: createVariantStyles(
-    ['bg-secondary-600', 'dark:bg-secondary-500', 'text-background', 'shadow-sm'],
-    ['hover:bg-secondary-700', 'dark:hover:bg-secondary-600', 'hover:shadow'],
+    ['bg-secondary-600', 'dark:bg-secondary-500', 'text-background', 'shadow-standard-sm'], // UI Revamp
+    ['hover:bg-secondary-700', 'dark:hover:bg-secondary-600', 'hover:shadow-colored-secondary'], // UI Revamp
     ['focus:ring-secondary-500', 'dark:focus:ring-secondary-400', 'focus:ring-offset-1'],
     'color-secondary-500'
   ),
@@ -66,21 +65,21 @@ const variants: Record<string, string> = {
     'focus:ring-primary-500',
     'dark:focus:ring-primary-400',
     'focus:ring-offset-1',
-    'shadow-sm',
-    'hover:shadow',
+    'shadow-subtle-sm', // UI Revamp
+    'hover:shadow-subtle-md', // UI Revamp
     '[border-color:var(--color-primary-500)]',
     '[color:var(--color-primary-500)]',
   ].join(' '),
   ghost: ['text-foreground', 'hover:bg-muted', 'focus:ring-primary-500', 'dark:focus:ring-primary-400', 'focus:ring-offset-1'].join(' '),
   danger: createVariantStyles(
-    ['bg-error-600', 'dark:bg-error-500', 'text-background', 'shadow-sm'],
-    ['hover:bg-error-700', 'dark:hover:bg-error-600', 'hover:shadow'],
+    ['bg-error-600', 'dark:bg-error-500', 'text-background', 'shadow-standard-sm'], // UI Revamp
+    ['hover:bg-error-700', 'dark:hover:bg-error-600', 'hover:shadow-colored-error'], // UI Revamp
     ['focus:ring-error-500', 'dark:focus:ring-error-400', 'focus:ring-offset-1'],
     'color-error-500'
   ),
   error: createVariantStyles(
-    ['bg-error-600', 'dark:bg-error-500', 'text-background', 'shadow-sm'],
-    ['hover:bg-error-700', 'dark:hover:bg-error-600', 'hover:shadow'],
+    ['bg-error-600', 'dark:bg-error-500', 'text-background', 'shadow-standard-sm'], // UI Revamp
+    ['hover:bg-error-700', 'dark:hover:bg-error-600', 'hover:shadow-colored-error'], // UI Revamp
     ['focus:ring-error-500', 'dark:focus:ring-error-400', 'focus:ring-offset-1'],
     'color-error-500'
   ),

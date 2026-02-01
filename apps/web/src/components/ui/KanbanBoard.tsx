@@ -115,7 +115,7 @@ export default function KanbanBoard({
                   onDragStart={() => handleDragStart(card.id)}
                   onClick={() => onCardClick?.(card)}
                   className={clsx(
-                    'bg-background rounded-lg p-4 shadow-sm cursor-move hover:shadow-md transition-shadow',
+                    'bg-background rounded-lg p-4 shadow-subtle-sm cursor-move hover:shadow-standard-md transition-modern', // UI Revamp - Nouveau système d'ombres, transition moderne
                     draggedCard === card.id && 'opacity-50'
                   )}
                 >

@@ -82,7 +82,7 @@
 | Composants Métier | 0 | 156+ | 0% |
 
 ### Total
-- **Composants migrés** : 27/270+ (10%)
+- **Composants migrés** : 35/270+ (13%)
 - **Fichiers modifiés** : 18
 - **Erreurs de lint** : 0
 
@@ -113,7 +113,10 @@
 - ✅ Backward compatibility maintenue partout
 
 ### Composants Migrés Récemment
-- StatsCard.tsx, MetricCard.tsx, DataTable.tsx, Table.tsx, Toast.tsx
+- TimePicker.tsx, Calendar.tsx, Timeline.tsx, Drawer.tsx, Accordion.tsx
+- Avatar.tsx, Dropdown.tsx, Tooltip.tsx, MultiSelect.tsx
+- ButtonLink.tsx, ActivityChart.tsx, ServiceTestCard.tsx, KanbanBoard.tsx
+- ColorPicker.tsx, PricingCardSimple.tsx, BillingPeriodToggle.tsx, SkipLink.tsx
 
 ---
 

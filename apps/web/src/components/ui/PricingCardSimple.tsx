@@ -39,7 +39,7 @@ export default function PricingCardSimple({
     <Card
       className={clsx(
         'relative',
-        plan.popular && 'border-2 border-primary-500 shadow-xl scale-105'
+        plan.popular && 'border-2 border-primary-500 shadow-standard-xl scale-105' // UI Revamp - Nouveau système d'ombres
       )}
     >
       {' '}

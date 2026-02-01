@@ -10,7 +10,7 @@
 - **Total batches** : 6
 - **Batches complétés** : 2/6 (33%)
 - **Batches en cours** : 4/6 (67%)
-- **Composants migrés** : 27/270+ (10%)
+- **Composants migrés** : 35/270+ (13%)
 
 ---
 
@@ -179,6 +179,14 @@
 - ✅ Dropdown.tsx - shadow-standard-lg
 - ✅ Tooltip.tsx - shadow-standard-lg
 - ✅ MultiSelect.tsx - shadow-standard-lg
+- ✅ ButtonLink.tsx - shadow-standard-*, shadow-colored-*, transition-modern
+- ✅ ActivityChart.tsx - shadow-standard-lg, shadow-subtle-sm, transition-modern
+- ✅ ServiceTestCard.tsx - shadow-standard-lg, transition-modern
+- ✅ KanbanBoard.tsx - shadow-subtle-sm, shadow-standard-md, transition-modern
+- ✅ ColorPicker.tsx - shadow-standard-lg, transition-modern
+- ✅ PricingCardSimple.tsx - shadow-standard-xl
+- ✅ BillingPeriodToggle.tsx - shadow-standard-md
+- ✅ SkipLink.tsx - shadow-standard-lg, transition-modern
 
 ---
 

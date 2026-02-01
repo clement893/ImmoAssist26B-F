@@ -111,7 +111,7 @@ export default function ColorPicker({
           )}{' '}
         </div>{' '}
         {isOpen && (
-          <div className="absolute z-50 mt-2 p-3 bg-background border border-border rounded-lg shadow-lg">
+          <div className="absolute z-50 mt-2 p-3 bg-background border border-border rounded-lg shadow-standard-lg"> {/* UI Revamp - Nouveau système d'ombres */}
             {' '}
             <div className="grid grid-cols-6 gap-2">
               {' '}
@@ -121,7 +121,7 @@ export default function ColorPicker({
                   type="button"
                   onClick={() => handleColorSelect(color)}
                   className={clsx(
-                    'w-8 h-8 rounded border-2 transition-all',
+                    'w-8 h-8 rounded border-2 transition-modern', // UI Revamp - Transition moderne
                     'focus:outline-none focus:ring-2 focus:ring-primary-500',
                     currentValue.toLowerCase() === color.toLowerCase()
                       ? 'border-border scale-110'

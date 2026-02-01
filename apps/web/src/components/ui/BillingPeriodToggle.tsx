@@ -6,7 +6,7 @@ interface BillingPeriodToggleProps {
 }
 export default function BillingPeriodToggle({ value, onChange }: BillingPeriodToggleProps) {
   return (
-    <div className="inline-flex items-center bg-background rounded-lg p-1 shadow-md">
+    <div className="inline-flex items-center bg-background rounded-lg p-1 shadow-standard-md"> {/* UI Revamp - Nouveau système d'ombres */}
       {' '}
       <Button
         onClick={() => onChange('month')}
