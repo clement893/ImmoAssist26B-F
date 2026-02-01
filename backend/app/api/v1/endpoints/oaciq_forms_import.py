@@ -6,7 +6,7 @@ Endpoint pour l'import en masse de formulaires OACIQ depuis Manus
 
 import asyncio
 from typing import Any, Dict, List
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form as FormParam, HTTPException, Request, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError, OperationalError, ProgrammingError
@@ -82,7 +82,7 @@ async def get_oaciq_form_schema(
 )
 async def extract_pdf_oaciq_form(
     file: UploadFile = File(..., description="Fichier PDF du formulaire"),
-    form_code: str = Form(..., description="Code du formulaire OACIQ (ex: PA, DIA)"),
+    form_code: str = FormParam(..., description="Code du formulaire OACIQ (ex: PA, DIA)"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
