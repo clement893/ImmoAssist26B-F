@@ -531,11 +531,6 @@ function ContactsContent() {
       <PageHeader
         title="Contacts"
         description={`Gérez vos contacts commerciaux${contacts.length > 0 ? ` - ${contacts.length} contact${contacts.length > 1 ? 's' : ''} au total` : ''}`}
-        breadcrumbs={[
-          { label: 'Dashboard', href: '/dashboard' },
-          { label: 'Module Réseau', href: '/dashboard/reseau' },
-          { label: 'Contacts' },
-        ]}
       />
 
       {/* Header Actions Bar */}
