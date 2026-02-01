@@ -23,12 +23,20 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { oaciqFormsAPI, type OACIQForm } from '@/lib/api/oaciq-forms';
+import { oaciqFormsAPI } from '@/lib/api/oaciq-adapters';
 
-// Extended type to match demo structure
-interface ExtendedOACIQForm extends OACIQForm {
+// Type pour affichage (API snake_case ou démo)
+interface DisplayForm {
+  id?: number;
+  code?: string;
+  name?: string;
+  category?: string;
+  pdf_url?: string;
+  pdfUrl?: string;
   description?: string;
   version?: string;
+  created_at?: string;
+  updated_at?: string;
   fields?: {
     code_fr?: string;
     code_en?: string;
@@ -36,6 +44,7 @@ interface ExtendedOACIQForm extends OACIQForm {
     nom_en?: string;
     pdf_fr_url?: string;
     pdf_en_url?: string;
+    pdf_url?: string;
     type?: string;
     tags?: string[];
   };
@@ -48,6 +57,8 @@ export default function FormViewPage() {
   const [selectedLanguage, setSelectedLanguage] = useState<'fr' | 'en'>('fr');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [zoom, setZoom] = useState(100);
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+  const [pdfLoadError, setPdfLoadError] = useState<string | null>(null);
 
   // Load form from API
   const { data: form, isLoading, error } = useQuery({
@@ -58,8 +69,8 @@ export default function FormViewPage() {
   });
 
   // Fallback demo form if API fails
-  const loadDemoForm = (): ExtendedOACIQForm | null => {
-    const demoForms: Record<string, ExtendedOACIQForm> = {
+  const loadDemoForm = (): DisplayForm | null => {
+    const demoForms: Record<string, DisplayForm & { created_at?: string; updated_at?: string }> = {
       AOS: {
         id: 1,
         code: 'AOS',
@@ -108,6 +119,30 @@ export default function FormViewPage() {
           tags: ['déclaration', 'immeuble', 'obligatoire'],
         },
       },
+      ACD: {
+        id: 4,
+        code: 'ACD',
+        name: 'Annexe – Contrat de courtage – Curateur public',
+        description: 'Formulaire annexe pour le contrat de courtage avec curateur public',
+        category: 'curateur_public',
+        pdf_url:
+          'https://immoassist.s3.us-east-2.amazonaws.com/formulaires_oaciq_pdf/francais/ACD.pdf',
+        version: '2024',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        fields: {
+          code_fr: 'ACD',
+          code_en: 'ACD',
+          nom_fr: 'Annexe – Contrat de courtage – Curateur public',
+          nom_en: 'Annex – Brokerage contract – Curator of Public Curatorship',
+          pdf_fr_url:
+            'https://immoassist.s3.us-east-2.amazonaws.com/formulaires_oaciq_pdf/francais/ACD.pdf',
+          pdf_en_url:
+            'https://immoassist.s3.us-east-2.amazonaws.com/formulaires_oaciq_pdf/anglais/ACD.pdf',
+          type: 'Annexe',
+          tags: ['curateur', 'courtage', 'annexe'],
+        },
+      },
       PAI: {
         id: 3,
         code: 'PAI',
@@ -138,12 +173,39 @@ export default function FormViewPage() {
   };
 
   // Use demo form if API fails
-  const displayForm = useMemo(() => {
+  const displayForm = useMemo((): DisplayForm | null => {
     if (error && !form) {
       return loadDemoForm();
     }
-    return (form || null) as ExtendedOACIQForm | null;
+    return (form || null) as DisplayForm | null;
   }, [form, error, code]);
+
+  // Load PDF via proxy (évite X-Frame-Options et CORS)
+  useEffect(() => {
+    if (!displayForm || !code) return;
+    setPdfLoadError(null);
+    let cancelled = false;
+    oaciqFormsAPI.getPdfPreviewBlob(code, selectedLanguage).then(
+      (blob: Blob) => {
+        if (cancelled) return;
+        const url = URL.createObjectURL(blob);
+        setPdfBlobUrl(url);
+      },
+      (err: unknown) => {
+        if (!cancelled) {
+          setPdfLoadError(err instanceof Error ? err.message : 'Erreur chargement PDF');
+          setPdfBlobUrl(null);
+        }
+      }
+    );
+    return () => {
+      cancelled = true;
+      setPdfBlobUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+    };
+  }, [code, selectedLanguage, displayForm]);
 
   // Handle fullscreen changes
   useEffect(() => {
@@ -175,10 +237,11 @@ export default function FormViewPage() {
 
   const getPdfUrl = () => {
     if (!displayForm) return '';
+    const pdfUrl = displayForm.pdf_url || (displayForm as { pdfUrl?: string }).pdfUrl;
     if (selectedLanguage === 'fr') {
-      return displayForm.fields?.pdf_fr_url || displayForm.pdf_url || '';
+      return displayForm.fields?.pdf_fr_url || displayForm.fields?.pdf_url || pdfUrl || '';
     }
-    return displayForm.fields?.pdf_en_url || displayForm.pdf_url || '';
+    return displayForm.fields?.pdf_en_url || pdfUrl || '';
   };
 
   const handleZoomIn = () => {
@@ -200,8 +263,10 @@ export default function FormViewPage() {
   };
 
   const handleDownload = () => {
+    const url = pdfBlobUrl || getPdfUrl();
+    if (!url) return;
     const link = document.createElement('a');
-    link.href = getPdfUrl();
+    link.href = url;
     link.download = `${getFormCode()}.pdf`;
     document.body.appendChild(link);
     link.click();
@@ -351,7 +416,7 @@ export default function FormViewPage() {
               </button>
 
               <a
-                href={getPdfUrl()}
+                href={pdfBlobUrl || getPdfUrl()}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
@@ -389,12 +454,32 @@ export default function FormViewPage() {
               transition: 'width 0.3s ease',
             }}
           >
-            <iframe
-              id="pdf-viewer"
-              src={`${getPdfUrl()}#toolbar=0&navpanes=0&scrollbar=1`}
-              className="w-full h-full"
-              title={getFormName()}
-            />
+            {pdfLoadError ? (
+              <div className="w-full h-full min-h-[400px] flex flex-col items-center justify-center gap-4 p-8 text-gray-500">
+                <AlertCircle className="w-12 h-12 text-amber-500" />
+                <p className="text-sm">{pdfLoadError}</p>
+                <a
+                  href={getPdfUrl()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  Ouvrir le PDF dans un nouvel onglet
+                </a>
+              </div>
+            ) : pdfBlobUrl ? (
+              <iframe
+                id="pdf-viewer"
+                src={`${pdfBlobUrl}#toolbar=0&navpanes=0&scrollbar=1`}
+                className="w-full h-full"
+                title={getFormName()}
+              />
+            ) : (
+              <div className="w-full h-full min-h-[400px] flex items-center justify-center">
+                <Loader2 className="w-12 h-12 text-blue-500 animate-spin" />
+              </div>
+            )}
           </div>
         </div>
       </div>

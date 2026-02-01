@@ -4,7 +4,9 @@ Formulaires OACIQ spécifiques
 """
 
 from typing import List, Optional
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, or_
 from sqlalchemy.exc import SQLAlchemyError, OperationalError, ProgrammingError
@@ -131,6 +133,67 @@ async def get_oaciq_form_by_code(
         )
     
     return OACIQFormResponse.model_validate(form)
+
+
+@router.get("/oaciq/forms/{code}/pdf-preview", tags=["oaciq-forms"])
+async def get_oaciq_form_pdf_preview(
+    code: str,
+    lang: Optional[str] = Query("fr", description="Langue: fr ou en"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Proxy pour l'aperçu PDF des formulaires OACIQ.
+    Permet l'affichage en iframe en contournant les restrictions X-Frame-Options.
+    """
+    query = select(Form).where(Form.code == code)
+    result = await db.execute(query)
+    form = result.scalar_one_or_none()
+    if not form:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Formulaire OACIQ introuvable",
+        )
+    # Récupérer l'URL PDF (fields ou pdf_url direct)
+    pdf_url = None
+    if form.fields and isinstance(form.fields, dict):
+        if lang == "en":
+            pdf_url = form.fields.get("pdf_en_url") or form.fields.get("pdf_url")
+        else:
+            pdf_url = form.fields.get("pdf_fr_url") or form.fields.get("pdf_url")
+    if not pdf_url and form.pdf_url:
+        pdf_url = form.pdf_url
+    if not pdf_url or not pdf_url.startswith("http"):
+        # Fallback: construire l'URL S3 standard
+        base = "https://immoassist.s3.us-east-2.amazonaws.com/formulaires_oaciq_pdf"
+        folder = "francais" if lang == "fr" else "anglais"
+        pdf_url = f"{base}/{folder}/{code}.pdf"
+    try:
+        async with httpx.AsyncClient(follow_redirects=True, timeout=30.0) as client:
+            response = await client.get(pdf_url)
+            response.raise_for_status()
+            content = response.content
+            content_type = response.headers.get(
+                "content-type", "application/pdf"
+            ).split(";")[0]
+            if "pdf" not in content_type.lower():
+                content_type = "application/pdf"
+    except Exception as e:
+        logger.error(f"Erreur chargement PDF OACIQ {code}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Impossible de charger le PDF: {str(e)}",
+        )
+    headers = {
+        "Content-Type": content_type,
+        "X-Frame-Options": "SAMEORIGIN",
+        "Cache-Control": "public, max-age=3600",
+    }
+    return StreamingResponse(
+        iter([content]),
+        media_type=content_type,
+        headers=headers,
+    )
 
 
 @router.post("/oaciq/forms", response_model=OACIQFormResponse, status_code=status.HTTP_201_CREATED, tags=["oaciq-forms"])
