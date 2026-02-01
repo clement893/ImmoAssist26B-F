@@ -109,15 +109,6 @@ interface Transaction {
 }
 
 
-function formatCurrency(amount?: number): string {
-  if (!amount) return '-';
-  return new Intl.NumberFormat('fr-CA', {
-    style: 'currency',
-    currency: 'CAD',
-  }).format(amount);
-}
-
-
 export default function TransactionDetailPage() {
   const params = useParams();
   const router = useRouter();

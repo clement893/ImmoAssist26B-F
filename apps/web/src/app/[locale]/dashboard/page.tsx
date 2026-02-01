@@ -16,7 +16,6 @@ import {
   DollarSign,
   TrendingUp,
   AlertCircle,
-  CheckCircle2,
   Plus,
   Calendar,
   FileText,
