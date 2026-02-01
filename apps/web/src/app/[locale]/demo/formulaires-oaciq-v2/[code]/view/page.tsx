@@ -12,8 +12,6 @@ import {
   ZoomOut,
   Maximize2,
   Minimize2,
-  ChevronLeft,
-  ChevronRight,
   Loader2,
   AlertCircle,
   Globe,
@@ -155,7 +153,10 @@ export default function FormViewPage() {
       },
     };
     
-    setForm(demoForms[code] || demoForms['AOS']);
+    const selectedForm = demoForms[code] || demoForms['AOS'];
+    if (selectedForm) {
+      setForm(selectedForm);
+    }
   };
 
   const getFormName = () => {

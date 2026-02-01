@@ -8,8 +8,6 @@ import {
   FileText,
   Download,
   Eye,
-  Tag,
-  Calendar,
   CheckCircle2,
   AlertCircle,
   Sparkles,
@@ -50,14 +48,12 @@ export default function FormDetailPage() {
   
   const [form, setForm] = useState<OACIQForm | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState<'fr' | 'en'>('fr');
 
   useEffect(() => {
     const fetchForm = async () => {
       try {
         setLoading(true);
-        setError(null);
         
         const apiUrl = `/api/v1/oaciq/forms/${code}`;
         
@@ -77,7 +73,6 @@ export default function FormDetailPage() {
         setForm(data);
       } catch (err) {
         console.error('Erreur lors du chargement du formulaire:', err);
-        setError('Impossible de charger le formulaire. Utilisation des données de démo.');
         loadDemoForm();
       } finally {
         setLoading(false);
@@ -154,7 +149,10 @@ export default function FormDetailPage() {
       },
     };
     
-    setForm(demoForms[code] || demoForms['AOS']);
+    const selectedForm = demoForms[code] || demoForms['AOS'];
+    if (selectedForm) {
+      setForm(selectedForm);
+    }
   };
 
   const getCategoryColor = (categorie: string) => {
