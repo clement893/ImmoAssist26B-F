@@ -22,6 +22,11 @@ class RealEstateTransaction(Base):
     expected_closing_date = Column(Date, nullable=True, comment="Date de clôture prévue")
     actual_closing_date = Column(Date, nullable=True, comment="Date de clôture réelle")
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    
+    # Suivi des actions
+    current_action_code = Column(String(50), ForeignKey("transaction_actions.code"), nullable=True, comment="Code de l'action actuelle")
+    last_action_at = Column(DateTime(timezone=True), nullable=True, comment="Date de la dernière action")
+    action_count = Column(Integer, default=0, nullable=True, comment="Nombre d'actions effectuées")
 
     # 2. Informations sur la propriété
     property_address = Column(String, nullable=True, comment="Adresse complète")

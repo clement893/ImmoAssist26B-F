@@ -12,6 +12,8 @@ import { realEstateContactsAPI } from '@/lib/api/real-estate-contacts';
 import InlineEditableField from '@/components/transactions/InlineEditableField';
 import TransactionSummaryCard from '@/components/transactions/TransactionSummaryCard';
 import TransactionContactsCard from '@/components/transactions/TransactionContactsCard';
+import TransactionActionsPanel from '@/components/transactions/TransactionActionsPanel';
+import TransactionTimeline from '@/components/transactions/TransactionTimeline';
 import Breadcrumb from '@/components/ui/Breadcrumb';
 import Tabs, { TabList, Tab, TabPanels, TabPanel } from '@/components/ui/Tabs';
 import { 
@@ -249,6 +251,10 @@ export default function TransactionDetailPage() {
             <Tab value="information">
               <FileText className="w-4 h-4 mr-2" />
               Information
+            </Tab>
+            <Tab value="actions">
+              <Zap className="w-4 h-4 mr-2" />
+              Actions
             </Tab>
             <Tab value="contacts">
               <Users className="w-4 h-4 mr-2" />
@@ -560,6 +566,20 @@ export default function TransactionDetailPage() {
                     </Card>
                   </div>
                 </div>
+              </div>
+            </TabPanel>
+
+            {/* Actions Tab */}
+            <TabPanel value="actions">
+              <div className="mt-4 space-y-6">
+                <TransactionActionsPanel
+                  transactionId={parseInt(transactionId)}
+                  onActionComplete={() => {
+                    // Recharger la transaction après une action
+                    loadTransaction();
+                  }}
+                />
+                <TransactionTimeline transactionId={parseInt(transactionId)} />
               </div>
             </TabPanel>
 
