@@ -11,9 +11,17 @@ import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
 import Alert from '@/components/ui/Alert';
 import Loading from '@/components/ui/Loading';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { ArrowLeft, Plus, Edit, Trash2, Clock, Calendar } from 'lucide-react';
 import { calendarAvailabilityAPI, UserAvailability, UserAvailabilityCreate, UserAvailabilityUpdate, DayOfWeek } from '@/lib/api/calendar-availability';
 import { useToast } from '@/lib/toast';
+
+/** Normalize time string for HTML input type="time" (HH:MM or HH:MM:SS -> HH:MM) */
+function toTimeInputValue(t: string | undefined): string {
+  if (!t) return '09:00';
+  const part = t.substring(0, 5);
+  return /^\d{2}:\d{2}$/.test(part) ? part : '09:00';
+}
 
 const DAYS_OF_WEEK: { value: DayOfWeek; label: string }[] = [
   { value: 'monday', label: 'Lundi' },
@@ -53,7 +61,8 @@ export default function DisponibilitesPage() {
       setLoading(true);
       setError(null);
       const response = await calendarAvailabilityAPI.getMyAvailabilities();
-      setAvailabilities(response.availabilities || []);
+      const list = Array.isArray(response.availabilities) ? response.availabilities : [];
+      setAvailabilities(list);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
       setError(errorMessage);
@@ -68,8 +77,8 @@ export default function DisponibilitesPage() {
       setEditingAvailability(availability);
       setFormData({
         day_of_week: availability.day_of_week,
-        start_time: availability.start_time,
-        end_time: availability.end_time,
+        start_time: toTimeInputValue(availability.start_time),
+        end_time: toTimeInputValue(availability.end_time),
         is_active: availability.is_active,
         label: availability.label || '',
       });
@@ -154,21 +163,25 @@ export default function DisponibilitesPage() {
     return availabilities.filter((av) => av.day_of_week === day);
   };
 
-  const formatTime = (time: string) => {
-    return time.substring(0, 5); // HH:MM format
+  const formatTime = (time: string | undefined) => {
+    if (!time) return '--:--';
+    return time.substring(0, 5);
   };
 
   if (loading) {
     return (
-      <Container>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <Loading />
-        </div>
-      </Container>
+      <ProtectedRoute>
+        <Container>
+          <div className="flex items-center justify-center min-h-[400px]">
+            <Loading />
+          </div>
+        </Container>
+      </ProtectedRoute>
     );
   }
 
   return (
+    <ProtectedRoute>
     <Container>
       <div className="space-y-6">
         {/* Header */}
@@ -365,5 +378,6 @@ export default function DisponibilitesPage() {
         </Modal>
       </div>
     </Container>
+    </ProtectedRoute>
   );
 }

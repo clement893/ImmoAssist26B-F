@@ -3,6 +3,7 @@
 import { useRouter, useParams } from 'next/navigation';
 import Container from '@/components/ui/Container';
 import AppointmentForm from '@/components/appointments/AppointmentForm';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useAppointmentsMutations } from '@/hooks/useAppointments';
 import type { AppointmentCreate, AppointmentAttendeeCreate } from '@/lib/api/appointments';
 
@@ -34,20 +35,22 @@ export default function NouveauRendezVousPage() {
   };
 
   return (
-    <Container>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Nouveau rendez-vous</h1>
-          <p className="text-muted-foreground mt-1">
-            Créez un rendez-vous et ajoutez des participants.
-          </p>
+    <ProtectedRoute>
+      <Container>
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold">Nouveau rendez-vous</h1>
+            <p className="text-muted-foreground mt-1">
+              Créez un rendez-vous et ajoutez des participants.
+            </p>
+          </div>
+          <AppointmentForm
+            onSubmit={handleSubmit}
+            onCancel={() => router.push(`/${locale}/dashboard/modules/calendrier/rendez-vous`)}
+            submitLabel="Créer le rendez-vous"
+          />
         </div>
-        <AppointmentForm
-          onSubmit={handleSubmit}
-          onCancel={() => router.push(`/${locale}/dashboard/modules/calendrier/rendez-vous`)}
-          submitLabel="Créer le rendez-vous"
-        />
-      </div>
-    </Container>
+      </Container>
+    </ProtectedRoute>
   );
 }

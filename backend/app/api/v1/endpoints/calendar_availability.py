@@ -62,9 +62,9 @@ async def list_availabilities(
 async def get_my_availabilities(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    is_active: Optional[bool] = Query(True, description="Filter by active status"),
+    is_active: Optional[bool] = Query(None, description="Filter by active status (omit to get all)"),
 ):
-    """Get current user's availabilities (all, no pagination)"""
+    """Get current user's availabilities (all, no pagination). Omit is_active to get both active and inactive."""
     query = select(UserAvailability).where(UserAvailability.user_id == current_user.id)
     
     if is_active is not None:

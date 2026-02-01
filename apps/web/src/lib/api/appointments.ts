@@ -1,6 +1,7 @@
 /**
  * Appointments API client
  * Rendez-vous and calendar connections
+ * apiClient returns the response body directly (no .data wrapper).
  */
 
 import { apiClient } from '@/lib/api';
@@ -81,39 +82,84 @@ export interface CalendarConnectionResponse {
   updated_at: string;
 }
 
+function normalizeListResponse(
+  res: AppointmentListResponse | { data?: AppointmentListResponse }
+): AppointmentListResponse {
+  if (res && typeof res === 'object' && 'appointments' in res) return res as AppointmentListResponse;
+  return (res as { data?: AppointmentListResponse })?.data ?? { appointments: [], total: 0 };
+}
+
+function normalizeAppointmentResponse(
+  res: AppointmentResponse | { data?: AppointmentResponse } | null | undefined
+): AppointmentResponse | null {
+  if (!res) return null;
+  if (typeof res === 'object' && 'id' in res && 'title' in res) return res as AppointmentResponse;
+  return (res as { data?: AppointmentResponse })?.data ?? null;
+}
+
+function normalizeAvailabilityResponse(
+  res: AvailabilityResponse | { data?: AvailabilityResponse }
+): AvailabilityResponse {
+  if (res && typeof res === 'object' && 'slots' in res) return res as AvailabilityResponse;
+  return (res as { data?: AvailabilityResponse })?.data ?? { slots: [] };
+}
+
+function normalizeConnectionsResponse(
+  res: { connections: CalendarConnectionResponse[] } | { data?: { connections: CalendarConnectionResponse[] } }
+): { connections: CalendarConnectionResponse[] } {
+  if (res && typeof res === 'object' && 'connections' in res) return res as { connections: CalendarConnectionResponse[] };
+  return (res as { data?: { connections: CalendarConnectionResponse[] } })?.data ?? { connections: [] };
+}
+
 export const appointmentsAPI = {
-  list: (params?: {
+  list: async (params?: {
     skip?: number;
     limit?: number;
     status?: AppointmentStatus;
     transaction_id?: number;
     date_from?: string;
     date_to?: string;
-  }) => apiClient.get<AppointmentListResponse>('/v1/appointments/', { params }),
+  }) => {
+    const res = await apiClient.get<AppointmentListResponse>('/v1/appointments/', { params });
+    return normalizeListResponse(res);
+  },
 
-  get: (id: number) => apiClient.get<AppointmentResponse>(`/v1/appointments/${id}`),
+  get: async (id: number) => {
+    const res = await apiClient.get<AppointmentResponse>(`/v1/appointments/${id}`);
+    const out = normalizeAppointmentResponse(res);
+    if (!out) throw new Error('Rendez-vous non trouvé');
+    return out;
+  },
 
-  create: (data: AppointmentCreate) =>
-    apiClient.post<AppointmentResponse>('/v1/appointments/', data),
+  create: async (data: AppointmentCreate) => {
+    const res = await apiClient.post<AppointmentResponse>('/v1/appointments/', data);
+    const out = normalizeAppointmentResponse(res);
+    if (!out) throw new Error('Échec de la création du rendez-vous');
+    return out;
+  },
 
-  update: (id: number, data: AppointmentUpdate) =>
-    apiClient.put<AppointmentResponse>(`/v1/appointments/${id}`, data),
+  update: async (id: number, data: AppointmentUpdate) => {
+    const res = await apiClient.put<AppointmentResponse>(`/v1/appointments/${id}`, data);
+    const out = normalizeAppointmentResponse(res);
+    if (!out) throw new Error('Échec de la mise à jour du rendez-vous');
+    return out;
+  },
 
   delete: (id: number) => apiClient.delete(`/v1/appointments/${id}`),
 
-  getAvailability: (params: {
+  getAvailability: async (params: {
     date_from: string;
     date_to: string;
     duration_minutes?: number;
-  }) =>
-    apiClient.get<AvailabilityResponse>('/v1/appointments/availability', {
-      params,
-    }),
+  }) => {
+    const res = await apiClient.get<AvailabilityResponse>('/v1/appointments/availability', { params });
+    return normalizeAvailabilityResponse(res);
+  },
 
-  listCalendarConnections: () =>
-    apiClient.get<{ connections: CalendarConnectionResponse[] }>(
-      '/v1/calendar/connections/'
-    ),
+  listCalendarConnections: async () => {
+    const res = await apiClient.get<{ connections: CalendarConnectionResponse[] }>('/v1/calendar/connections/');
+    return normalizeConnectionsResponse(res);
+  },
 
   disconnectCalendar: (provider?: 'google' | 'outlook') =>
     apiClient.delete('/v1/calendar/connections/', {

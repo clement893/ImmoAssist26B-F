@@ -4,7 +4,6 @@
  */
 
 import { apiClient } from './client';
-import { extractApiData } from './utils';
 
 export type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
 
@@ -48,15 +47,37 @@ export interface ListAvailabilitiesParams {
   is_active?: boolean;
 }
 
+function normalizeListResponse(
+  response: UserAvailabilityListResponse | { data?: UserAvailabilityListResponse }
+): UserAvailabilityListResponse {
+  const data =
+    response && typeof response === 'object' && 'availabilities' in response
+      ? (response as UserAvailabilityListResponse)
+      : (response as { data?: UserAvailabilityListResponse }).data;
+  return data ?? { availabilities: [], total: 0 };
+}
+
+function normalizeItemResponse<T>(response: T | { data?: T }, fallback: string): T {
+  const data =
+    response && typeof response === 'object' && !('availabilities' in response) && 'data' in response
+      ? (response as { data: T }).data
+      : (response as T);
+  if (!data) {
+    throw new Error(fallback);
+  }
+  return data;
+}
+
 export const calendarAvailabilityAPI = {
   /**
-   * Get current user's availabilities
+   * Get current user's availabilities (all, or filter by is_active).
+   * apiClient returns the response body directly.
    */
   async getMyAvailabilities(isActive?: boolean): Promise<UserAvailabilityListResponse> {
     const response = await apiClient.get<UserAvailabilityListResponse>('/v1/calendar/availability/me', {
       params: isActive !== undefined ? { is_active: isActive } : undefined,
     });
-    return extractApiData<UserAvailabilityListResponse>(response) || { availabilities: [], total: 0 };
+    return normalizeListResponse(response);
   },
 
   /**
@@ -64,7 +85,7 @@ export const calendarAvailabilityAPI = {
    */
   async list(params?: ListAvailabilitiesParams): Promise<UserAvailabilityListResponse> {
     const response = await apiClient.get<UserAvailabilityListResponse>('/v1/calendar/availability', { params });
-    return extractApiData<UserAvailabilityListResponse>(response) || { availabilities: [], total: 0 };
+    return normalizeListResponse(response);
   },
 
   /**
@@ -72,11 +93,7 @@ export const calendarAvailabilityAPI = {
    */
   async get(id: number): Promise<UserAvailability> {
     const response = await apiClient.get<UserAvailability>(`/v1/calendar/availability/${id}`);
-    const data = extractApiData<UserAvailability>(response);
-    if (!data) {
-      throw new Error(`Availability not found: ${id}`);
-    }
-    return data;
+    return normalizeItemResponse(response, `Availability not found: ${id}`);
   },
 
   /**
@@ -84,11 +101,7 @@ export const calendarAvailabilityAPI = {
    */
   async create(data: UserAvailabilityCreate): Promise<UserAvailability> {
     const response = await apiClient.post<UserAvailability>('/v1/calendar/availability', data);
-    const result = extractApiData<UserAvailability>(response);
-    if (!result) {
-      throw new Error('Failed to create availability: no data returned');
-    }
-    return result;
+    return normalizeItemResponse(response, 'Failed to create availability: no data returned');
   },
 
   /**
@@ -96,11 +109,7 @@ export const calendarAvailabilityAPI = {
    */
   async update(id: number, data: UserAvailabilityUpdate): Promise<UserAvailability> {
     const response = await apiClient.put<UserAvailability>(`/v1/calendar/availability/${id}`, data);
-    const result = extractApiData<UserAvailability>(response);
-    if (!result) {
-      throw new Error('Failed to update availability: no data returned');
-    }
-    return result;
+    return normalizeItemResponse(response, 'Failed to update availability: no data returned');
   },
 
   /**

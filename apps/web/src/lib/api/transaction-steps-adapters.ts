@@ -57,10 +57,12 @@ export const transactionStepsAPI = {
     const response = await apiClient.get<TransactionStepsResponse>(
       `/v1/transactions/${transactionId}/steps`
     );
-    if (!response.data) {
+    // apiClient returns the response body directly (FastAPI returns JSON body, not wrapped in .data)
+    const data = response as TransactionStepsResponse;
+    if (!data || typeof data !== 'object' || !('transaction' in data)) {
       throw new Error('Empty response from transaction steps API');
     }
-    return response.data;
+    return data;
   },
 
   completeAction: async (
@@ -76,13 +78,14 @@ export const transactionStepsAPI = {
     }>(`/v1/transactions/${transactionId}/step-actions/${actionCode}/complete`, {
       completed,
     });
-    const data = response.data;
+    // apiClient returns the response body directly
+    const data = response as { success: boolean; completed_actions: string[] };
     if (!data) {
       throw new Error('Empty response from complete action API');
     }
     return {
       success: data.success,
-      completed_actions: data.completed_actions,
+      completed_actions: data.completed_actions ?? [],
     };
   },
 };

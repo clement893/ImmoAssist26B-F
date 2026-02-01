@@ -22,10 +22,7 @@ export function useAppointmentsList(params?: {
 }) {
   const { data, error, isLoading, refetch } = useQuery({
     queryKey: ['appointments', 'list', params ?? {}],
-    queryFn: async () => {
-      const res = await appointmentsAPI.list(params);
-      return res.data as AppointmentListResponse;
-    },
+    queryFn: () => appointmentsAPI.list(params),
   });
   return {
     appointments: data?.appointments ?? [],
@@ -39,11 +36,7 @@ export function useAppointmentsList(params?: {
 export function useAppointment(id: number | null, enabled = true) {
   const { data, error, isLoading, refetch } = useQuery({
     queryKey: ['appointments', id],
-    queryFn: async () => {
-      if (!id) return null;
-      const res = await appointmentsAPI.get(id);
-      return res.data as AppointmentResponse;
-    },
+    queryFn: () => (id ? appointmentsAPI.get(id) : Promise.resolve(null)),
     enabled: enabled && !!id,
   });
   return {
@@ -61,11 +54,7 @@ export function useAvailability(params: {
 } | null) {
   const { data, error, isLoading, refetch } = useQuery({
     queryKey: ['appointments', 'availability', params],
-    queryFn: async () => {
-      if (!params) return { slots: [] };
-      const res = await appointmentsAPI.getAvailability(params);
-      return res.data as AvailabilityResponse;
-    },
+    queryFn: () => (params ? appointmentsAPI.getAvailability(params) : Promise.resolve({ slots: [] })),
     enabled: !!params,
   });
   return {
@@ -79,10 +68,7 @@ export function useAvailability(params: {
 export function useCalendarConnections() {
   const { data, error, isLoading, refetch } = useQuery({
     queryKey: ['calendar', 'connections'],
-    queryFn: async () => {
-      const res = await appointmentsAPI.listCalendarConnections();
-      return res.data as { connections: CalendarConnectionResponse[] };
-    },
+    queryFn: () => appointmentsAPI.listCalendarConnections(),
   });
   return {
     connections: data?.connections ?? [],
@@ -98,12 +84,12 @@ export function useAppointmentsMutations() {
   const createAppointment = async (data: AppointmentCreate) => {
     const res = await appointmentsAPI.create(data);
     await queryClient.invalidateQueries({ queryKey: ['appointments'] });
-    return res.data;
+    return res;
   };
   const updateAppointment = async (id: number, data: AppointmentUpdate) => {
     const res = await appointmentsAPI.update(id, data);
     await queryClient.invalidateQueries({ queryKey: ['appointments'] });
-    return res.data;
+    return res;
   };
   const deleteAppointment = async (id: number) => {
     await appointmentsAPI.delete(id);
