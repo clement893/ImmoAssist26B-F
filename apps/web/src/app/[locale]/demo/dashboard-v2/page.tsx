@@ -1,14 +1,11 @@
 'use client';
 
-import { useState } from 'react';
 import {
   TrendingUp,
   Users,
   Building2,
   DollarSign,
-  Target,
   Award,
-  Zap,
   Star,
   Flame,
   Trophy,
@@ -18,13 +15,11 @@ import {
   ArrowUpRight,
   Sparkles,
   Heart,
-  MessageCircle,
   Bell,
   Search,
 } from 'lucide-react';
 
 export default function DashboardV2() {
-  const [selectedPeriod, setSelectedPeriod] = useState('month');
 
   // Mock data
   const stats = {
