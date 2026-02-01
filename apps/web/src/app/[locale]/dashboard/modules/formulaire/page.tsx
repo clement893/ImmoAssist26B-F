@@ -76,14 +76,14 @@ export default function FormulaireModulePage() {
           <div className="p-6">
             <h3 className="text-lg font-semibold mb-4">Accès rapide</h3>
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => router.push(`/${locale}/dashboard/modules/formulaire/oaciq`)}>
+              <div className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-modern cursor-pointer" onClick={() => router.push(`/${locale}/dashboard/modules/formulaire/oaciq`)}> // UI Revamp - Transition moderne
                 <FileCheck className="w-5 h-5 text-primary" />
                 <div>
                   <div className="font-medium">Formulaires OACIQ</div>
                   <div className="text-sm text-muted-foreground">Formulaires officiels</div>
                 </div>
               </div>
-              <div className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => router.push(`/${locale}/dashboard/modules/formulaire/mes-clauses`)}>
+              <div className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-modern cursor-pointer" onClick={() => router.push(`/${locale}/dashboard/modules/formulaire/mes-clauses`)}> // UI Revamp - Transition moderne
                 <ClipboardList className="w-5 h-5 text-success" />
                 <div>
                   <div className="font-medium">Mes Clauses</div>

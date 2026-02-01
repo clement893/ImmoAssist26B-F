@@ -73,7 +73,7 @@ export default function VirtualTable<T extends Record<string, unknown>>({
   return (
     <div
       ref={containerRef}
-      className={clsx('border border-border rounded-lg overflow-hidden bg-background', className)}
+      className={clsx('border border-border rounded-lg overflow-hidden bg-background shadow-subtle-sm transition-modern', className)} // UI Revamp - Ombres subtiles et transition moderne
       style={{ height: `${height}px`, overflowY: 'auto' }}
       onScroll={handleScroll}
     >

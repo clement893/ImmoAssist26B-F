@@ -21,8 +21,8 @@ export default function EmptyState({
   className,
 }: EmptyStateProps) {
   return (
-    <div className={clsx('flex flex-col items-center justify-center py-12 px-4', className)}>
-      {icon && <div className="mb-4 text-muted-foreground">{icon}</div>}
+    <div className={clsx('flex flex-col items-center justify-center py-12 px-4 transition-modern', className)}> {/* UI Revamp - Transition moderne */}
+      {icon && <div className="mb-4 text-muted-foreground transition-modern">{icon}</div>} {/* UI Revamp - Transition moderne */}
       <h3 className="text-lg font-medium text-foreground mb-2">{title}</h3>
       {description && (
         <p className="text-sm text-muted-foreground text-center max-w-md mb-6">{description}</p>

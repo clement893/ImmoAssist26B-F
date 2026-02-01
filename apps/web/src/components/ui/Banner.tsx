@@ -66,7 +66,7 @@ export default function Banner({
   return (
     <div
       className={clsx(
-        'border rounded-lg p-4',
+        'border rounded-lg p-4 shadow-subtle-sm transition-modern', // UI Revamp - Ombres subtiles et transition moderne
         styles.bg,
         styles.border,
         fullWidth ? 'w-full' : '',

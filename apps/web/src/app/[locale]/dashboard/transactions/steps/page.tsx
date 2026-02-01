@@ -234,7 +234,7 @@ function TransactionStepsContent() {
                 </div>
                 <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
                   <div
-                    className="h-full bg-primary transition-all duration-500"
+                    className="h-full bg-primary transition-modern" // UI Revamp - Transition moderne
                     style={{ width: `${progress}%` }}
                   />
                 </div>

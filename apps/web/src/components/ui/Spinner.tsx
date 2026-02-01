@@ -13,7 +13,7 @@ export default function Spinner({ size = 'md', className, color = 'primary' }: S
   };
   return (
     <div
-      className={clsx('rounded-full animate-spin', sizes[size], colors[color], className)}
+      className={clsx('rounded-full animate-spin transition-modern', sizes[size], colors[color], className)} // UI Revamp - Transition moderne
       role="status"
       aria-label="Loading"
     >

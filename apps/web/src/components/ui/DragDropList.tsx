@@ -80,13 +80,13 @@ export default function DragDropList({
             onDrop={(e) => !item.disabled && handleDrop(e, index)}
             onDragEnd={handleDragEnd}
             className={clsx(
-              'flex items-center gap-3 p-4 rounded-lg border transition-modern', // UI Revamp - Transition moderne
+              'flex items-center gap-3 p-4 rounded-lg border transition-modern shadow-subtle-sm', // UI Revamp - Transition moderne et ombres subtiles
               'bg-background',
               'border-border',
               isDragging && 'opacity-50 cursor-grabbing',
               isDragOver &&
-                'border-primary-500 dark:border-primary-400 bg-primary-50 dark:bg-primary-900/20',
-              !item.disabled && 'cursor-grab hover:border-border dark:hover:border-border',
+                'border-primary-500 dark:border-primary-400 bg-primary-50 dark:bg-primary-900/20 shadow-subtle-md',
+              !item.disabled && 'cursor-grab hover:border-border dark:hover:border-border hover:shadow-subtle-md',
               item.disabled && 'opacity-50 cursor-not-allowed',
               itemClassName
             )}

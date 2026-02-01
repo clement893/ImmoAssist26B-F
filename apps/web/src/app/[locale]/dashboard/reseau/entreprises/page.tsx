@@ -366,7 +366,7 @@ function CompaniesContent() {
               </div>
             )}
           </div>
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="opacity-0 group-hover:opacity-100 transition-modern"> // UI Revamp - Transition moderne
             <CompanyRowActions
               company={company}
               onView={() => openDetailPage(company)}
@@ -545,7 +545,7 @@ function CompaniesContent() {
                           className="fixed inset-0 z-10"
                           onClick={() => setShowActionsMenu(false)}
                         />
-                        <div className="absolute right-0 mt-1 w-48 bg-background border border-border rounded-md shadow-lg z-20">
+                        <div className="absolute right-0 mt-1 w-48 bg-background border border-border rounded-md shadow-standard-lg z-20"> // UI Revamp - Nouveau système d'ombres
                           <div className="py-1">
                             <button
                               onClick={() => {

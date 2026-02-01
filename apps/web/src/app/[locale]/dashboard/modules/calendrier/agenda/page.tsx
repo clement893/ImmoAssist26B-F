@@ -137,7 +137,7 @@ export default function AgendaPage() {
                   {dayEvents.map((event) => (
                     <div
                       key={event.id}
-                      className="p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+                      className="p-4 border border-border rounded-lg hover:bg-muted/50 transition-modern cursor-pointer" // UI Revamp - Transition moderne
                       onClick={() => router.push(`/${locale}/dashboard/modules/calendrier/evenements/${event.id}`)}
                     >
                       <div className="flex items-start justify-between">

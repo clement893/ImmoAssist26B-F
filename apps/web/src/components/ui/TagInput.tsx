@@ -106,8 +106,8 @@ export default function TagInput({
       <div
         className={clsx(
           'flex flex-wrap gap-2 p-2 border border-border rounded-lg',
-          'bg-background',
-          'focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-transparent',
+          'bg-background shadow-subtle-sm transition-modern', // UI Revamp - Ombres subtiles et transition moderne
+          'focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-transparent focus-within:shadow-subtle-md',
           disabled && 'opacity-50 cursor-not-allowed'
         )}
         onClick={() => inputRef.current?.focus()}
@@ -118,7 +118,7 @@ export default function TagInput({
             className={clsx(
               'inline-flex items-center gap-1 px-2 py-1 text-sm',
               'bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200',
-              'rounded-md',
+              'rounded-md shadow-subtle-sm transition-modern', // UI Revamp - Ombres subtiles et transition moderne
               !disabled && 'cursor-default'
             )}
           >
@@ -130,7 +130,7 @@ export default function TagInput({
                   e.stopPropagation();
                   removeTag(tag);
                 }}
-                className="hover:bg-primary-200 dark:hover:bg-primary-800 rounded p-0.5"
+                className="hover:bg-primary-200 dark:hover:bg-primary-800 rounded p-0.5 transition-modern" // UI Revamp - Transition moderne
                 aria-label={`Supprimer ${tag}`}
               >
                 <X className="w-3 h-3" />

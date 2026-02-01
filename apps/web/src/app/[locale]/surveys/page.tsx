@@ -151,7 +151,7 @@ export default function SurveysPage() {
               {surveys.map((survey) => (
                 <div
                   key={survey.id}
-                  className="p-4 border border-border rounded-lg hover:shadow-lg transition-shadow cursor-pointer"
+                  className="p-4 border border-border rounded-lg hover:shadow-standard-lg transition-modern cursor-pointer"
                   onClick={() => handleEdit(survey)}
                 >
                   <h3 className="font-semibold mb-2">{survey.name}</h3>

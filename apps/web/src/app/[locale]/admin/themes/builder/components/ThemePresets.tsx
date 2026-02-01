@@ -27,7 +27,7 @@ export function ThemePresets({ presets, onSelect }: ThemePresetsProps) {
         {presets.map((preset) => (
           <Card
             key={preset.id}
-            className="cursor-pointer hover:shadow-lg transition-shadow"
+            className="cursor-pointer hover:shadow-standard-lg transition-modern"
             onClick={() => onSelect(preset)}
           >
             <div className="p-6">

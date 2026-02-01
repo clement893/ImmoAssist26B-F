@@ -167,9 +167,8 @@ describe('ServiceTestCard Component', () => {
       expect(link).toHaveClass('p-6');
       expect(link).toHaveClass('border-2');
       expect(link).toHaveClass('rounded-lg');
-      expect(link).toHaveClass('hover:shadow-lg');
-      expect(link).toHaveClass('transition-all');
-      expect(link).toHaveClass('duration-200');
+      expect(link).toHaveClass('hover:shadow-standard-lg'); // UI Revamp - Nouveau système d'ombres
+      expect(link).toHaveClass('transition-modern'); // UI Revamp - Transition moderne
     });
 
     it('applies color-specific border classes', () => {

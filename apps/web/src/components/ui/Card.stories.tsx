@@ -59,7 +59,7 @@ export const WithHeader: Story = {
 export const Interactive: Story = {
   render: () => (
     <Card
-      className="cursor-pointer hover:shadow-lg transition-shadow"
+      className="cursor-pointer hover:shadow-standard-lg transition-modern" // UI Revamp - Nouveau système d'ombres et transition moderne
       onClick={() => alert('Card clicked!')}
       role="button"
       tabIndex={0}

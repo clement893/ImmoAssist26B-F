@@ -248,7 +248,7 @@ function ContactsContent() {
                 </thead>
                 <tbody>
                   {contacts.map((contact) => (
-                    <tr key={contact.id} className="border-b hover:bg-muted/50 transition-colors">
+                    <tr key={contact.id} className="border-b hover:bg-muted/50 transition-modern"> // UI Revamp - Transition moderne
                       <td className="p-4">
                         <div className="font-medium">
                           {contact.first_name} {contact.last_name}

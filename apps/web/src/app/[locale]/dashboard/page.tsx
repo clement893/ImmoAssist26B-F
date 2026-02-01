@@ -196,7 +196,7 @@ function DashboardContent() {
             {/* Actions rapides */}
             <Card variant="gradient" leftBorder="primary" className="h-full">
               <div className="flex items-center gap-4 mb-6">
-                <div className="p-4 bg-primary-600 dark:bg-primary-500 rounded-xl shadow-sm">
+                <div className="p-4 bg-primary-600 dark:bg-primary-500 rounded-xl shadow-subtle-sm"> // UI Revamp - Nouveau système d'ombres
                   <Zap className="w-6 h-6 text-white" />
                 </div>
                 <div>
@@ -267,7 +267,7 @@ function DashboardContent() {
             {/* Résumé financier */}
             <Card variant="elevated" className="h-full">
               <div className="flex items-center gap-4 mb-6">
-                <div className="p-4 bg-success-100 dark:bg-success-900/30 rounded-xl shadow-sm">
+                <div className="p-4 bg-success-100 dark:bg-success-900/30 rounded-xl shadow-subtle-sm"> // UI Revamp - Nouveau système d'ombres
                   <DollarSign className="w-6 h-6 text-success-600 dark:text-success-400" />
                 </div>
                 <div>
@@ -309,7 +309,7 @@ function DashboardContent() {
         <MotionDiv variant="slideUp" delay={350}>
           <Grid columns={{ mobile: 1, tablet: 2 }} gap="spacious">
             <Link href="/dashboard/modules/calendrier" className="block">
-              <Card variant="elevated" className="h-full hover:shadow-xl transition-all duration-200">
+              <Card variant="elevated" className="h-full hover:shadow-standard-xl transition-modern"> // UI Revamp - Nouveau système d'ombres et transition moderne
                 <div className="flex items-center gap-4">
                   <div className="p-4 bg-primary-100 dark:bg-primary-900/30 rounded-xl">
                     <Calendar className="w-6 h-6 text-primary-600 dark:text-primary-400" />
@@ -325,7 +325,7 @@ function DashboardContent() {
               </Card>
             </Link>
             <Link href="/dashboard/modules/formulaire/oaciq" className="block">
-              <Card variant="elevated" className="h-full hover:shadow-xl transition-all duration-200">
+              <Card variant="elevated" className="h-full hover:shadow-standard-xl transition-modern"> // UI Revamp - Nouveau système d'ombres et transition moderne
                 <div className="flex items-center gap-4">
                   <div className="p-4 bg-secondary-100 dark:bg-secondary-900/30 rounded-xl">
                     <ClipboardList className="w-6 h-6 text-secondary-600 dark:text-secondary-400" />
@@ -348,7 +348,7 @@ function DashboardContent() {
         <MotionDiv variant="slideUp" delay={400}>
           <Card className="bg-gradient-to-br from-[#1A1A2E] to-[#16213E] border-gray-800" leftBorder="purple">
             <div className="flex items-center gap-4 mb-6">
-              <div className="p-4 bg-gradient-to-br from-green-500 to-blue-500 rounded-xl shadow-sm">
+              <div className="p-4 bg-gradient-to-br from-green-500 to-blue-500 rounded-xl shadow-subtle-sm"> // UI Revamp - Nouveau système d'ombres
                 <Sparkles className="w-6 h-6 text-white" />
               </div>
               <div>

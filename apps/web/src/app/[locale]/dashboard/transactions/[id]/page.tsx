@@ -609,7 +609,7 @@ export default function TransactionDetailPage() {
                         <ImageIcon className="w-4 h-4" />
                         Photos
                       </h2>
-                      <label className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg cursor-pointer hover:bg-muted transition-colors text-sm">
+                      <label className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg cursor-pointer hover:bg-muted transition-modern text-sm"> // UI Revamp - Transition moderne
                         <Upload className="w-4 h-4" />
                         Ajouter une photo
                         <input
@@ -644,7 +644,7 @@ export default function TransactionDetailPage() {
                         {transaction.documents.filter(d => d.type === 'photo').map((photo) => (
                           <div
                             key={photo.id}
-                            className="group relative aspect-square border border-border rounded-lg overflow-hidden bg-muted hover:shadow-lg transition-shadow"
+                            className="group relative aspect-square border border-border rounded-lg overflow-hidden bg-muted hover:shadow-standard-lg transition-modern" // UI Revamp - Nouveau système d'ombres et transition moderne
                           >
                             <img
                               src={photo.url}
@@ -654,7 +654,7 @@ export default function TransactionDetailPage() {
                                 (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23ddd" width="200" height="200"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="14" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EImage%3C/text%3E%3C/svg%3E';
                               }}
                             />
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-modern flex items-center justify-center opacity-0 group-hover:opacity-100"> // UI Revamp - Transition moderne
                               <div className="flex items-center gap-2">
                                 <Button
                                   variant="ghost"
@@ -721,7 +721,7 @@ export default function TransactionDetailPage() {
                         <FileText className="w-4 h-4" />
                         Documents
                       </h2>
-                      <label className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg cursor-pointer hover:bg-muted transition-colors text-sm">
+                      <label className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg cursor-pointer hover:bg-muted transition-modern text-sm"> // UI Revamp - Transition moderne
                         <Upload className="w-4 h-4" />
                         Ajouter un document
                         <input
@@ -755,7 +755,7 @@ export default function TransactionDetailPage() {
                         {transaction.documents.filter(d => d.type !== 'photo').map((doc) => (
                           <div
                             key={doc.id}
-                            className="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-muted/50 transition-colors"
+                            className="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-muted/50 transition-modern" // UI Revamp - Transition moderne
                           >
                             <div className="flex items-center gap-2 flex-1 min-w-0">
                               <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />

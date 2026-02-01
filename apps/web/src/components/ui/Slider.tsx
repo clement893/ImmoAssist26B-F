@@ -68,11 +68,13 @@ export default function Slider({
           onChange={handleChange}
           disabled={disabled}
           className={clsx(
-            'w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer',
+            'w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer transition-modern', // UI Revamp - Transition moderne
             'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
             disabled && 'opacity-50 cursor-not-allowed',
-            '[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary-600 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:hover:bg-primary-700',
-            '[&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary-600 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:hover:bg-primary-700'
+            // Webkit thumb styles with improved transitions and shadows
+            '[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary-600 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-subtle-sm [&::-webkit-slider-thumb]:transition-modern [&::-webkit-slider-thumb]:hover:bg-primary-700 [&::-webkit-slider-thumb]:hover:shadow-subtle-md [&::-webkit-slider-thumb]:active:scale-110',
+            // Mozilla thumb styles with improved transitions and shadows
+            '[&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary-600 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-subtle-sm [&::-moz-range-thumb]:transition-modern [&::-moz-range-thumb]:hover:bg-primary-700 [&::-moz-range-thumb]:hover:shadow-subtle-md [&::-moz-range-thumb]:active:scale-110'
           )}
           aria-label={label}
           aria-valuemin={min}

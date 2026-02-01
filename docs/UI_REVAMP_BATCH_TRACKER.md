@@ -10,7 +10,7 @@
 - **Total batches** : 6
 - **Batches complétés** : 2/6 (33%)
 - **Batches en cours** : 4/6 (67%)
-- **Composants migrés** : 122/270+ (45%) (composants ui/Sidebar, layout/DashboardLayout, layout/Header, ui/Tabs, transactions/InlineEditableField, reseau/ContactDetailPopup, transactions/StatusStepper migrés)
+- **Composants migrés** : 135/270+ (50%) (pages dashboard migrées)
 
 ### Dernières Migrations
 - ✅ MultiSelect.tsx - transition-modern

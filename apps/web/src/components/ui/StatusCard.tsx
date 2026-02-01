@@ -25,7 +25,7 @@ export default function StatusCard({ title, description, status = 'success' }: S
     info: 'text-primary-800 dark:text-primary-200',
   };
   return (
-    <div className={clsx('p-4 border rounded-lg', statusClasses[status])}>
+    <div className={clsx('p-4 border rounded-lg shadow-subtle-sm transition-modern', statusClasses[status])}> {/* UI Revamp - Ombres subtiles et transition moderne */}
       {' '}
       <p className={clsx('font-semibold', textClasses[status])}>{title}</p>{' '}
       <p className={clsx('text-sm mt-1', textSecondaryClasses[status])}>{description}</p>{' '}

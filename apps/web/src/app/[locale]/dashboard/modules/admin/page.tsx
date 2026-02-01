@@ -122,7 +122,7 @@ export default function AdminModulePage() {
         {adminSections.map((section) => (
           <Card
             key={section.title}
-            className="hover:shadow-lg transition-shadow cursor-pointer"
+            className="hover:shadow-standard-lg transition-modern cursor-pointer" // UI Revamp - Nouveau système d'ombres et transition moderne
             onClick={() => router.push(section.href)}
           >
             <div className="flex items-start gap-4">

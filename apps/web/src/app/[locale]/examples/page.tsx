@@ -118,7 +118,7 @@ export default function ExamplesPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
         {examples.map((example) => (
           <Link key={example.id} href={example.href}>
-            <Card className="h-full hover:shadow-xl transition-shadow cursor-pointer">
+            <Card className="h-full hover:shadow-standard-xl transition-modern cursor-pointer">
               <div className="p-8 text-center">
                 <div className="text-6xl mb-4">{example.icon}</div>
                 <h2 className="text-2xl font-bold text-foreground mb-3">{example.title}</h2>

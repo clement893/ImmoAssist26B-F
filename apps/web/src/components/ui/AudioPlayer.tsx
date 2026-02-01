@@ -111,7 +111,7 @@ export default function AudioPlayer({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
   return (
-    <div className={clsx('bg-background rounded-lg border border-border p-4', className)}>
+    <div className={clsx('bg-background rounded-lg border border-border p-4 shadow-subtle-sm transition-modern', className)}> {/* UI Revamp - Ombres subtiles et transition moderne */}
       {' '}
       <audio ref={audioRef} src={src} loop={loop} muted={isMuted} autoPlay={autoplay} />{' '}
       {/* Title and Artist */}{' '}
@@ -131,7 +131,7 @@ export default function AudioPlayer({
           max={duration || 0}
           value={currentTime}
           onChange={handleSeek}
-          className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary-500"
+          className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary-500 transition-modern" // UI Revamp - Transition moderne
         />{' '}
         <div className="flex justify-between text-xs text-muted-foreground mt-1">
           {' '}

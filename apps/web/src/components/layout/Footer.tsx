@@ -249,19 +249,19 @@ export default function Footer() {
             <div className="flex items-center gap-6 flex-wrap">
               <Link
                 href="/sitemap"
-                className="hover:text-primary-300 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-primary-900 rounded"
+                className="hover:text-primary-300 transition-modern focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-primary-900 rounded" // UI Revamp - Transition moderne
               >
                 Plan du site
               </Link>
               <Link
                 href="/privacy"
-                className="hover:text-primary-300 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-primary-900 rounded"
+                className="hover:text-primary-300 transition-modern focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-primary-900 rounded" // UI Revamp - Transition moderne
               >
                 Confidentialité
               </Link>
               <Link
                 href="/terms"
-                className="hover:text-primary-300 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-primary-900 rounded"
+                className="hover:text-primary-300 transition-modern focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-primary-900 rounded" // UI Revamp - Transition moderne
               >
                 Conditions
               </Link>

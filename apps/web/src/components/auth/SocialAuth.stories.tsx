@@ -101,7 +101,7 @@ export const InCard: Story = {
     },
   },
   render: (args) => (
-    <div className="p-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm max-w-md">
+    <div className="p-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-subtle-sm max-w-md"> // UI Revamp - Nouveau système d'ombres
       <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
         Sign in to your account
       </h2>

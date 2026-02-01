@@ -121,7 +121,7 @@ function FormsList({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {forms.map((form) => (
-        <Card key={form.id} className="p-4 hover:shadow-lg transition">
+        <Card key={form.id} className="p-4 hover:shadow-standard-lg transition-modern"> // UI Revamp - Nouveau système d'ombres et transition moderne
           <div className="flex items-start gap-3">
             <div className="rounded-lg bg-primary/10 p-2">
               <FileText className="h-5 w-5 text-primary" />

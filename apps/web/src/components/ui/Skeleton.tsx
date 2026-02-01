@@ -21,7 +21,7 @@ export default function Skeleton({
   if (height) style.height = typeof height === 'number' ? `${height}px` : height;
   return (
     <div
-      className={clsx(baseStyles, variants[variant], animations[animation], className)}
+      className={clsx(baseStyles, variants[variant], animations[animation], 'transition-modern', className)} // UI Revamp - Transition moderne
       style={style}
     />
   );

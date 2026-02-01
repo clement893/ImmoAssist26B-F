@@ -58,9 +58,9 @@ function SitemapPageContent() {
                     return (
                       <div
                         key={page.path}
-                        className={`block p-4 rounded-lg border transition-all group ${
+                        className={`block p-4 rounded-lg border transition-modern group ${
                           canAccess
-                            ? 'border-border hover:border-primary hover:shadow-md cursor-pointer'
+                            ? 'border-border hover:border-primary hover:shadow-standard-md cursor-pointer'
                             : 'border-border opacity-60 cursor-not-allowed'
                         }`}
                       >

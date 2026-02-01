@@ -239,7 +239,7 @@ export default function AdvancedCharts({
   };
 
   return (
-    <div className={clsx('bg-background rounded-lg border border-border p-6', className)}>
+    <div className={clsx('bg-background rounded-lg border border-border p-6 shadow-subtle-sm transition-modern', className)}> {/* UI Revamp - Ombres subtiles et transition moderne */}
       {title && <h3 className="text-lg font-semibold text-foreground mb-4">{title}</h3>}
       <div style={{ height: `${height}px` }} className="relative">
         {renderChart()}
