@@ -30,6 +30,8 @@ export interface User {
   is_verified: boolean;
   /** Whether the user has admin privileges */
   is_admin?: boolean;
+  /** Whether the user is a client (invited by broker, portail client) */
+  is_client?: boolean;
   /** Account creation timestamp (ISO 8601) */
   created_at?: string;
   /** Last update timestamp (ISO 8601) */

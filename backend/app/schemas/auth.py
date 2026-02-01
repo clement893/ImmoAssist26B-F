@@ -150,10 +150,12 @@ class UserResponse(BaseModel):
     last_name: Optional[str] = None
     avatar: Optional[str] = None
     is_active: bool
+    # True if user was created from a client invitation (portail client)
+    is_client: bool = Field(default=False, description="User is a client (invited by broker)")
     # DEPRECATED: theme_preference is kept for API compatibility only
     # Theme management is now handled globally via the theme system
     theme_preference: str = Field(
-        default='system', 
+        default='system',
         description="DEPRECATED: Theme is now global. This field is kept for backward compatibility only."
     )
     created_at: str

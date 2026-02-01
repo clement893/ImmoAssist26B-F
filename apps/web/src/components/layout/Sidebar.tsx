@@ -29,11 +29,15 @@ export default function Sidebar({ isOpen: controlledIsOpen, onClose }: SidebarPr
   const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
   const handleClose = onClose || (() => setInternalIsOpen(false));
 
-  // Check if user is admin or superadmin
+  // Check if user is admin or courtier vs client (portail client)
   const isAdmin = user?.is_admin || false;
+  const isClient = user?.is_client ?? false;
 
-  // Get navigation configuration
-  const navigationConfig = useMemo(() => getNavigationConfig(isAdmin), [isAdmin]);
+  // Get navigation configuration (menu différent pour client vs courtier)
+  const navigationConfig = useMemo(
+    () => getNavigationConfig(isAdmin, isClient),
+    [isAdmin, isClient]
+  );
 
   // Toggle group open/closed
   const toggleGroup = (groupName: string) => {

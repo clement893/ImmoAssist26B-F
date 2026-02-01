@@ -443,6 +443,7 @@ async def login(
         first_name=user.first_name,
         last_name=user.last_name,
         is_active=user.is_active,
+        is_client=bool(getattr(user, 'client_invitation_id', None)),
         theme_preference=user.theme_preference or 'system',  # Required field for API compatibility
         created_at=user.created_at.isoformat() if user.created_at else "",
         updated_at=user.updated_at.isoformat() if user.updated_at else "",
@@ -673,6 +674,7 @@ async def get_current_user_info(
             first_name=current_user.first_name,
             last_name=current_user.last_name,
             is_active=current_user.is_active,
+            is_client=bool(getattr(current_user, 'client_invitation_id', None)),
             # theme_preference is deprecated but kept for API compatibility
             theme_preference=current_user.theme_preference or 'system',
             created_at=current_user.created_at.isoformat() if current_user.created_at else "",

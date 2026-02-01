@@ -48,11 +48,108 @@ export interface NavigationConfig {
   items: (NavigationItem | NavigationGroup)[];
 }
 
+/** Format attendu par le Sidebar UI (label, href, icon, children) */
+export interface SidebarItemFormat {
+  label: string;
+  href?: string;
+  icon?: ReactNode;
+  children?: SidebarItemFormat[];
+}
+
+/**
+ * Convertit la config de navigation en items pour le Sidebar UI (DashboardLayout).
+ */
+export function navigationConfigToSidebarItems(config: NavigationConfig): SidebarItemFormat[] {
+  return config.items.map((item) => {
+    if ('items' in item) {
+      return {
+        label: item.name,
+        icon: item.icon,
+        children: item.items.map((sub) => ({
+          label: sub.name,
+          href: sub.href,
+          icon: sub.icon,
+        })),
+      };
+    }
+    return {
+      label: item.name,
+      href: item.href,
+      icon: item.icon,
+    };
+  });
+}
+
 /**
  * Get default navigation structure
- * Can be customized based on user permissions
+ * Can be customized based on user permissions.
+ * Clients (is_client) see a reduced menu; courtiers see the full menu.
  */
-export function getNavigationConfig(_isAdmin?: boolean): NavigationConfig {
+export function getNavigationConfig(isAdmin?: boolean, isClient?: boolean): NavigationConfig {
+  // Menu pour un client (portail client) : Dashboard, Formulaire, Profil uniquement
+  if (isClient) {
+    return {
+      items: [
+        {
+          name: 'Dashboard',
+          href: '/dashboard',
+          icon: <LayoutDashboard className="w-5 h-5" />,
+        },
+        {
+          name: 'Formulaire',
+          icon: <ClipboardList className="w-5 h-5" />,
+          items: [
+            {
+              name: 'Vue d\'ensemble',
+              href: '/dashboard/modules/formulaire',
+              icon: <LayoutDashboard className="w-5 h-5" />,
+            },
+            {
+              name: 'Formulaires OACIQ',
+              href: '/dashboard/modules/formulaire/oaciq',
+              icon: <FileText className="w-5 h-5" />,
+            },
+            {
+              name: 'Mes formulaires OACIQ',
+              href: '/dashboard/modules/formulaire/mes-formulaires-oaciq',
+              icon: <FileText className="w-5 h-5" />,
+            },
+          ],
+          collapsible: true,
+          defaultOpen: false,
+        },
+        {
+          name: 'Profil',
+          icon: <User className="w-5 h-5" />,
+          items: [
+            {
+              name: 'Mon profil',
+              href: '/dashboard/modules/profil',
+              icon: <User className="w-5 h-5" />,
+            },
+            {
+              name: 'Paramètres',
+              href: '/dashboard/modules/profil/settings',
+              icon: <Settings className="w-5 h-5" />,
+            },
+            {
+              name: 'Sécurité',
+              href: '/dashboard/modules/profil/security',
+              icon: <Lock className="w-5 h-5" />,
+            },
+            {
+              name: 'Notifications',
+              href: '/dashboard/modules/profil/notifications',
+              icon: <MessageSquare className="w-5 h-5" />,
+            },
+          ],
+          collapsible: true,
+          defaultOpen: false,
+        },
+      ],
+    };
+  }
+
   const config: NavigationConfig = {
     items: [
       // Dashboard (non-grouped)
@@ -201,8 +298,9 @@ export function getNavigationConfig(_isAdmin?: boolean): NavigationConfig {
     ],
   };
 
-  // Module Admin - visible dans le menu avec toutes les sous-pages
-  config.items.push({
+  // Module Admin - visible uniquement pour les admins
+  if (isAdmin) {
+    config.items.push({
       name: 'Admin',
       icon: <Shield className="w-5 h-5" />,
       items: [
@@ -280,6 +378,7 @@ export function getNavigationConfig(_isAdmin?: boolean): NavigationConfig {
       collapsible: true,
       defaultOpen: false,
     });
+  }
 
   return config;
 }
