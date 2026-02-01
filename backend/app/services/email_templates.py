@@ -251,6 +251,67 @@ L'équipe {app_name}
         }
 
     @staticmethod
+    def invitation_portail(
+        prenom: str,
+        courtier_nom: str,
+        invitation_url: str,
+        message_personnalise: Optional[str] = None,
+    ) -> Dict[str, str]:
+        """Portail client invitation email (ImmoAssist)"""
+        app_name = os.getenv("SENDGRID_FROM_NAME", "ImmoAssist")
+
+        message_block = ""
+        if message_personnalise and message_personnalise.strip():
+            message_block = f"""
+            <div style="background-color: #f0f9ff; border-left: 4px solid #2563eb; padding: 20px; margin: 24px 0; border-radius: 0 8px 8px 0;">
+                <p style="color: #1e40af; margin: 0; font-style: italic; line-height: 1.6;">
+                    {message_personnalise.strip()}
+                </p>
+            </div>
+            """
+
+        html_content = f"""
+            <h2 style="color: #111827; font-size: 24px; font-weight: 600; margin: 0 0 20px 0;">
+                Bonjour {prenom},
+            </h2>
+            <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                {courtier_nom} vous invite à accéder à votre portail client {app_name} pour suivre l'évolution de votre projet immobilier.
+            </p>
+            {message_block}
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="{invitation_url}" style="display: inline-block; background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">
+                    Activer mon compte
+                </a>
+            </div>
+            <p style="color: #6b7280; font-size: 14px; line-height: 1.6; margin: 20px 0 0 0;">
+                Ce lien est valide pendant 7 jours. Si vous n'avez pas demandé cette invitation, vous pouvez ignorer cet email.
+            </p>
+        """
+
+        text_content = f"""
+Bonjour {prenom},
+
+{courtier_nom} vous invite à accéder à votre portail client {app_name} pour suivre l'évolution de votre projet immobilier.
+"""
+        if message_personnalise and message_personnalise.strip():
+            text_content += f"\nMessage de votre courtier :\n{message_personnalise.strip()}\n"
+        text_content += f"""
+Cliquez sur le lien ci-dessous pour activer votre compte :
+{invitation_url}
+
+Ce lien est valide pendant 7 jours.
+
+Cordialement,
+L'équipe {app_name}
+        """
+
+        return {
+            "subject": f"Invitation au portail client {app_name}",
+            "html": EmailTemplates.get_base_template(html_content),
+            "text": text_content.strip(),
+        }
+
+    @staticmethod
     def invoice(
         name: str,
         invoice_number: str,

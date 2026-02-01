@@ -201,3 +201,25 @@ class EmailService:
             text_content=template["text"],
         )
 
+    def send_invitation_portail_email(
+        self,
+        to_email: str,
+        prenom: str,
+        courtier_nom: str,
+        invitation_url: str,
+        message_personnalise: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Send portail client invitation email (ImmoAssist)."""
+        template = EmailTemplates.invitation_portail(
+            prenom=prenom,
+            courtier_nom=courtier_nom,
+            invitation_url=invitation_url,
+            message_personnalise=message_personnalise,
+        )
+        return self.send_email(
+            to_email=to_email,
+            subject=template["subject"],
+            html_content=template["html"],
+            text_content=template["text"],
+        )
+

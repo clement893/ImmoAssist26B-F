@@ -3,6 +3,7 @@ Client Invitations Endpoints (Portail client ImmoAssist)
 API for broker-to-client invitations
 """
 
+import os
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,6 +19,8 @@ from app.schemas.client_invitation import (
     ClientInvitationList,
     ClientInvitationActivate,
 )
+from app.services.email_service import EmailService
+from app.core.logging import logger
 
 router = APIRouter(prefix="/client-invitations", tags=["portail-client-invitations"])
 
@@ -58,6 +61,27 @@ async def create_invitation(
     db.add(invitation)
     await db.commit()
     await db.refresh(invitation)
+
+    # Envoyer l'email d'invitation via SendGrid (si SENDGRID_API_KEY est configurée)
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
+    invitation_url = f"{frontend_url}/portail-client/activation/{token}"
+    courtier_nom = f"{current_user.first_name or ''} {current_user.last_name or ''}".strip() or current_user.email
+    email_service = EmailService()
+    if email_service.is_configured():
+        try:
+            email_service.send_invitation_portail_email(
+                to_email=data.email,
+                prenom=data.prenom,
+                courtier_nom=courtier_nom,
+                invitation_url=invitation_url,
+                message_personnalise=data.message_personnalise,
+            )
+            logger.info("Invitation email sent", extra={"to": data.email, "invitation_id": invitation.id})
+        except Exception as e:
+            logger.warning("Failed to send invitation email (invitation created)", extra={"error": str(e), "to": data.email})
+    else:
+        logger.info("SendGrid not configured: invitation created but no email sent", extra={"to": data.email})
+
     return ClientInvitationResponse.model_validate(invitation)
 
 
