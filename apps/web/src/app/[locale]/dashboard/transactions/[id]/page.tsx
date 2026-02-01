@@ -466,14 +466,46 @@ export default function TransactionDetailPage() {
                       onChange={async (e) => {
                         const selectedFile = e.target.files?.[0];
                         if (selectedFile && transaction && transactionId) {
+                          // Créer une URL d'aperçu immédiate
+                          const previewUrl = URL.createObjectURL(selectedFile);
+                          
+                          // Mise à jour optimiste : ajouter la photo immédiatement à l'UI
+                          const tempPhotoId = Date.now(); // ID temporaire
+                          const optimisticPhoto = {
+                            id: tempPhotoId,
+                            filename: selectedFile.name,
+                            url: previewUrl,
+                            size: selectedFile.size,
+                            content_type: selectedFile.type || 'image/jpeg',
+                            description: undefined,
+                            uploaded_at: new Date().toISOString(),
+                            uploaded_by: undefined,
+                            type: 'photo' as const,
+                          };
+                          
+                          // Mettre à jour la transaction immédiatement avec la photo optimiste
+                          setTransaction((prev) => {
+                            if (!prev) return prev;
+                            return {
+                              ...prev,
+                              documents: [...(prev.documents || []), optimisticPhoto],
+                            };
+                          });
+                          
                           try {
                             setSaving((prev) => ({ ...prev, photos: true }));
                             const id = parseInt(transactionId);
                             if (isNaN(id)) {
                               throw new Error('ID de transaction invalide');
                             }
+                            
                             const response = await transactionsAPI.addPhoto(id, selectedFile);
+                            
+                            // Nettoyer l'URL d'aperçu
+                            URL.revokeObjectURL(previewUrl);
+                            
                             if (response?.data) {
+                              // Remplacer la transaction avec la vraie réponse du serveur
                               setTransaction(response.data);
                               showToast({
                                 message: 'Photo ajoutée avec succès',
@@ -488,6 +520,16 @@ export default function TransactionDetailPage() {
                               });
                             }
                           } catch (err) {
+                            // En cas d'erreur, retirer la photo optimiste et recharger
+                            URL.revokeObjectURL(previewUrl);
+                            setTransaction((prev) => {
+                              if (!prev) return prev;
+                              return {
+                                ...prev,
+                                documents: (prev.documents || []).filter(doc => doc.id !== tempPhotoId),
+                              };
+                            });
+                            await reloadTransaction();
                             showToast({
                               message: err instanceof Error ? err.message : 'Erreur lors de l\'ajout de la photo',
                               type: 'error',
