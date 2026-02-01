@@ -8,7 +8,6 @@ import {
   Download,
   Eye,
   Tag,
-  Calendar,
   CheckCircle2,
   AlertCircle,
   TrendingUp,
@@ -16,7 +15,6 @@ import {
   Globe,
   Loader2,
   ExternalLink,
-  BookOpen,
   BarChart3,
 } from 'lucide-react';
 
