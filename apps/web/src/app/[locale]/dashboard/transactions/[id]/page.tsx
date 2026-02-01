@@ -30,6 +30,8 @@ import {
   Shield,
   History,
   Image as ImageIcon,
+  Zap,
+  Bolt,
 } from 'lucide-react';
 
 interface Transaction {
@@ -253,7 +255,7 @@ export default function TransactionDetailPage() {
               Information
             </Tab>
             <Tab value="actions">
-              <Zap className="w-4 h-4 mr-2" />
+              <Bolt className="w-4 h-4 mr-2" />
               Actions
             </Tab>
             <Tab value="contacts">

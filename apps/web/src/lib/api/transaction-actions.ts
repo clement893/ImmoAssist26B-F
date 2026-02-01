@@ -3,6 +3,7 @@
  */
 
 import { apiClient } from './client';
+import { extractApiData } from './utils';
 
 export interface TransactionAction {
   id: number;
@@ -64,7 +65,8 @@ export async function getAvailableActions(transactionId: number): Promise<Transa
   const response = await apiClient.get<TransactionAction[]>(
     `/v1/transactions/${transactionId}/actions/available`
   );
-  return response.data;
+  const data = extractApiData(response);
+  return Array.isArray(data) ? data : [];
 }
 
 /**
@@ -74,7 +76,8 @@ export async function getActionHistory(transactionId: number): Promise<ActionCom
   const response = await apiClient.get<ActionCompletion[]>(
     `/v1/transactions/${transactionId}/actions/history`
   );
-  return response.data;
+  const data = extractApiData(response);
+  return Array.isArray(data) ? data : [];
 }
 
 /**
@@ -88,5 +91,9 @@ export async function executeAction(
     `/v1/transactions/${transactionId}/actions/execute`,
     request
   );
-  return response.data;
+  const data = extractApiData(response);
+  if (data && typeof data === 'object' && 'success' in data) {
+    return data as ExecuteActionResponse;
+  }
+  return { success: false, completion_id: 0, new_status: '', previous_status: '' };
 }

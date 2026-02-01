@@ -10,12 +10,10 @@ import { useRouter } from '@/i18n/routing';
 import { Card } from '@/components/ui';
 import { Button } from '@/components/ui';
 import { Input } from '@/components/ui';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui';
+import Tabs, { TabList, Tab, TabPanels, TabPanel } from '@/components/ui/Tabs';
 import { FileText, Download, CheckCircle2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { oaciqFormsAPI, type OACIQForm } from '@/lib/api/oaciq-forms';
-import { handleApiError } from '@/lib/errors';
-import { toast } from 'sonner';
 
 export default function OACIQFormsPage() {
   const router = useRouter();
@@ -52,34 +50,44 @@ export default function OACIQFormsPage() {
 
       {/* Onglets par catégorie */}
       <Tabs
-        defaultValue="all"
-        onValueChange={(v) => {
+        defaultTab="all"
+        onChange={(v) => {
           if (v === 'all') setCategory(undefined);
           else setCategory(v as any);
         }}
       >
-        <TabsList>
-          <TabsTrigger value="all">Tous (49)</TabsTrigger>
-          <TabsTrigger value="obligatoire">Obligatoires (28)</TabsTrigger>
-          <TabsTrigger value="recommandé">Recommandés (15)</TabsTrigger>
-          <TabsTrigger value="curateur_public">Curateur public (6)</TabsTrigger>
-        </TabsList>
+        <TabList>
+          <Tab value="all">Tous (49)</Tab>
+          <Tab value="obligatoire">Obligatoires (28)</Tab>
+          <Tab value="recommandé">Recommandés (15)</Tab>
+          <Tab value="curateur_public">Curateur public (6)</Tab>
+        </TabList>
 
-        <TabsContent value="all" className="mt-6">
-          <FormsList forms={forms} isLoading={isLoading} router={router} />
-        </TabsContent>
+        <TabPanels>
+          <TabPanel value="all">
+            <div className="mt-4">
+              <FormsList forms={forms} isLoading={isLoading} router={router} />
+            </div>
+          </TabPanel>
 
-        <TabsContent value="obligatoire" className="mt-6">
-          <FormsList forms={forms} isLoading={isLoading} router={router} />
-        </TabsContent>
+          <TabPanel value="obligatoire">
+            <div className="mt-4">
+              <FormsList forms={forms} isLoading={isLoading} router={router} />
+            </div>
+          </TabPanel>
 
-        <TabsContent value="recommandé" className="mt-6">
-          <FormsList forms={forms} isLoading={isLoading} router={router} />
-        </TabsContent>
+          <TabPanel value="recommandé">
+            <div className="mt-4">
+              <FormsList forms={forms} isLoading={isLoading} router={router} />
+            </div>
+          </TabPanel>
 
-        <TabsContent value="curateur_public" className="mt-6">
-          <FormsList forms={forms} isLoading={isLoading} router={router} />
-        </TabsContent>
+          <TabPanel value="curateur_public">
+            <div className="mt-4">
+              <FormsList forms={forms} isLoading={isLoading} router={router} />
+            </div>
+          </TabPanel>
+        </TabPanels>
       </Tabs>
     </div>
   );

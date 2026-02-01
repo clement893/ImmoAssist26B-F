@@ -1,11 +1,41 @@
 'use client';
 
 import { Card } from '@/components/ui';
-import { getActionHistory, ActionCompletion } from '@/lib/api/transaction-actions';
+import { getActionHistory } from '@/lib/api/transaction-actions';
 import { useQuery } from '@tanstack/react-query';
-import { formatDistanceToNow } from 'date-fns';
-import { fr } from 'date-fns/locale';
 import { CheckCircle2, User, Loader2, AlertCircle } from 'lucide-react';
+
+function formatDistanceToNow(date: Date): string {
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  
+  if (diffInSeconds < 60) {
+    return `il y a ${diffInSeconds} seconde${diffInSeconds > 1 ? 's' : ''}`;
+  }
+  
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) {
+    return `il y a ${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''}`;
+  }
+  
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) {
+    return `il y a ${diffInHours} heure${diffInHours > 1 ? 's' : ''}`;
+  }
+  
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays < 30) {
+    return `il y a ${diffInDays} jour${diffInDays > 1 ? 's' : ''}`;
+  }
+  
+  const diffInMonths = Math.floor(diffInDays / 30);
+  if (diffInMonths < 12) {
+    return `il y a ${diffInMonths} mois`;
+  }
+  
+  const diffInYears = Math.floor(diffInMonths / 12);
+  return `il y a ${diffInYears} an${diffInYears > 1 ? 's' : ''}`;
+}
 
 interface TransactionTimelineProps {
   transactionId: number;
@@ -78,10 +108,7 @@ export default function TransactionTimeline({ transactionId }: TransactionTimeli
                   )}
                 </div>
                 <span className="text-xs text-muted-foreground whitespace-nowrap ml-4">
-                  {formatDistanceToNow(new Date(completion.completed_at), { 
-                    addSuffix: true,
-                    locale: fr 
-                  })}
+                  {formatDistanceToNow(new Date(completion.completed_at))}
                 </span>
               </div>
               

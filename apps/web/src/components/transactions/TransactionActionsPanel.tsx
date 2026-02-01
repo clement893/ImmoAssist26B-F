@@ -123,7 +123,7 @@ export default function TransactionActionsPanel({ transactionId, onActionComplet
               </div>
               
               <Button
-                variant="default"
+                variant="primary"
                 size="sm"
                 onClick={(e) => {
                   e.stopPropagation();

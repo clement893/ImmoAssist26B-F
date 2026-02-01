@@ -6,16 +6,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from '@/i18n/routing';
+import { useParams } from 'next/navigation';
+import { useRouter } from '@/i18n/routing';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui';
 import { Card } from '@/components/ui';
 import Progress from '@/components/ui/Progress';
 import { Save, Check, ArrowLeft } from 'lucide-react';
 import { oaciqFormsAPI } from '@/lib/api/oaciq-forms';
-import { handleApiError } from '@/lib/errors';
-import { toast } from 'sonner';
 import { FormRenderer } from '@/components/forms/FormRenderer';
+import Alert from '@/components/ui/Alert';
+import { useToast } from '@/lib/toast';
+import { handleApiError } from '@/lib/errors';
 
 export default function FormFillPage() {
   const params = useParams();
@@ -42,23 +44,23 @@ export default function FormFillPage() {
     },
   });
 
+  const { success: showSuccess, error: showError } = useToast();
+
   const saveSubmissionMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Record<string, any>; isAutoSave: boolean }) =>
+    mutationFn: ({ id, data, isAutoSave }: { id: number; data: Record<string, any>; isAutoSave: boolean }) =>
       oaciqFormsAPI.saveSubmission(id, { data, isAutoSave }),
     onSuccess: () => {
       setHasUnsavedChanges(false);
       queryClient.invalidateQueries({ queryKey: ['oaciq-submission', submissionId] });
     },
     onError: (error) => {
-      const appError = handleApiError(error);
-      toast.error(appError.message || 'Erreur lors de la sauvegarde');
+      console.error('Erreur lors de la sauvegarde:', error);
     },
   });
 
   const completeSubmissionMutation = useMutation({
     mutationFn: oaciqFormsAPI.completeSubmission,
     onSuccess: () => {
-      toast.success('Formulaire complété !');
       router.push('/dashboard/modules/formulaire/oaciq');
     },
   });
@@ -97,11 +99,11 @@ export default function FormFillPage() {
       });
 
       if (!isAutoSave) {
-        toast.success('Formulaire sauvegardé');
+        showSuccess('Formulaire sauvegardé');
       }
     } catch (error) {
       const appError = handleApiError(error);
-      toast.error(appError.message || 'Erreur lors de la sauvegarde');
+      showError(appError.message || 'Erreur lors de la sauvegarde');
     }
   };
 
@@ -113,7 +115,7 @@ export default function FormFillPage() {
       await completeSubmissionMutation.mutateAsync(submissionId);
     } catch (error) {
       const appError = handleApiError(error);
-      toast.error(appError.message || 'Erreur lors de la complétion');
+      showError(appError.message || 'Erreur lors de la complétion');
     }
   };
 

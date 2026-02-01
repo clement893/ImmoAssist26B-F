@@ -103,7 +103,7 @@ export const oaciqFormsAPI = {
         is_auto_save: data.isAutoSave || false,
       }
     );
-    return extractApiData(response);
+    return extractApiData(response) as OACIQFormSubmission;
   },
 
   /**
@@ -111,7 +111,7 @@ export const oaciqFormsAPI = {
    */
   completeSubmission: async (submissionId: number): Promise<{ success: boolean }> => {
     const response = await apiClient.patch(`/v1/oaciq/forms/submissions/${submissionId}/complete`);
-    return extractApiData(response);
+    return extractApiData(response) as { success: boolean };
   },
 
   /**

@@ -9,8 +9,6 @@ import { Input } from '@/components/ui';
 import { Textarea } from '@/components/ui';
 import { Checkbox } from '@/components/ui';
 import { Select } from '@/components/ui';
-import type { SelectOption } from '@/components/ui';
-import { Label } from '@/components/ui';
 import { Card } from '@/components/ui';
 
 interface FormRendererProps {
@@ -69,10 +67,10 @@ function FieldRenderer({ field, value, onChange }: any) {
 
   return (
     <div>
-      <Label htmlFor={field.id || field.name}>
+      <label htmlFor={field.id || field.name} className="block text-xs font-medium text-foreground mb-1.5">
         {field.label}
         {field.required && <span className="text-red-500 ml-1">*</span>}
-      </Label>
+      </label>
 
       {field.helpText && (
         <p className="text-xs text-muted-foreground mt-1 mb-2">{field.helpText}</p>
@@ -145,7 +143,7 @@ function FieldRenderer({ field, value, onChange }: any) {
             })) || []
           }
           value={value || ''}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onChange(e.target.value)}
           placeholder={field.placeholder}
         />
       )}
@@ -155,11 +153,11 @@ function FieldRenderer({ field, value, onChange }: any) {
           <Checkbox
             id={field.id || field.name}
             checked={value || false}
-            onCheckedChange={onChange}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.checked)}
           />
-          <Label htmlFor={field.id || field.name} className="font-normal">
+          <label htmlFor={field.id || field.name} className="font-normal text-xs">
             {field.label}
-          </Label>
+          </label>
         </div>
       )}
     </div>
