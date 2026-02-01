@@ -136,6 +136,16 @@ if [ -n "$DATABASE_URL" ]; then
         else
             python scripts/create_default_theme.py 2>&1 || echo "⚠️  Could not ensure default theme (will be created on first API call)"
         fi
+        
+        # Initialize transaction actions after migrations (with timeout)
+        echo "=========================================="
+        echo "Initializing transaction actions..."
+        echo "=========================================="
+        if command -v timeout >/dev/null 2>&1; then
+            timeout 30 python scripts/seed_transaction_actions.py 2>&1 || echo "⚠️  Could not initialize transaction actions (will be initialized on first use or via API)"
+        else
+            python scripts/seed_transaction_actions.py 2>&1 || echo "⚠️  Could not initialize transaction actions (will be initialized on first use or via API)"
+        fi
     else
         echo "⚠️  Database migrations failed, timed out, or skipped!"
         echo "This may be due to:"

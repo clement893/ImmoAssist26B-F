@@ -1,299 +1,224 @@
+/**
+ * OACIQ Form Fill Page
+ * Page de remplissage dynamique d'un formulaire OACIQ
+ */
+
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { Container, Card, Button, Input, Loading, Alert } from '@immoassist/ui';
-import { oaciqFormsAPI, OACIQForm, FormSubmissionStatus } from '@/lib/api/oaciq-adapters';
-import { FormSection, FormFieldConfig } from '@immoassist/formulaire/types';
+import { useState, useEffect } from 'react';
+import { useParams, useRouter } from '@/i18n/routing';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Button } from '@/components/ui';
+import { Card } from '@/components/ui';
+import { Progress } from '@/components/ui';
+import { Save, Check, ArrowLeft } from 'lucide-react';
+import { oaciqFormsAPI } from '@/lib/api/oaciq-forms';
+import { handleApiError } from '@/lib/errors';
+import { toast } from 'sonner';
+import { FormRenderer } from '@/components/forms/FormRenderer';
 
-export default function FillOACIQFormPage() {
+export default function FormFillPage() {
   const params = useParams();
   const router = useRouter();
-  const code = params.code as string;
-  const locale = params.locale as string;
-  
-  const [form, setForm] = useState<OACIQForm | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const formCode = params.code as string;
+
+  const [submissionId, setSubmissionId] = useState<number | null>(null);
   const [formData, setFormData] = useState<Record<string, any>>({});
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
+  const { data: form, isLoading: formLoading } = useQuery({
+    queryKey: ['oaciq-form', formCode],
+    queryFn: () => oaciqFormsAPI.getByCode(formCode),
+  });
+
+  const createSubmissionMutation = useMutation({
+    mutationFn: oaciqFormsAPI.createSubmission,
+    onSuccess: (data) => {
+      setSubmissionId(data.id);
+      if (data.data) {
+        setFormData(data.data);
+      }
+    },
+  });
+
+  const saveSubmissionMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Record<string, any>; isAutoSave: boolean }) =>
+      oaciqFormsAPI.saveSubmission(id, { data, isAutoSave }),
+    onSuccess: () => {
+      setHasUnsavedChanges(false);
+      queryClient.invalidateQueries({ queryKey: ['oaciq-submission', submissionId] });
+    },
+  });
+
+  const completeSubmissionMutation = useMutation({
+    mutationFn: oaciqFormsAPI.completeSubmission,
+    onSuccess: () => {
+      toast.success('Formulaire complété !');
+      router.push('/dashboard/modules/formulaire/oaciq');
+    },
+  });
+
+  // Créer une nouvelle soumission au chargement
   useEffect(() => {
-    if (code) {
-      loadForm();
+    if (form && !submissionId && !createSubmissionMutation.isPending) {
+      createSubmissionMutation.mutate({ form_code: form.code });
     }
-  }, [code]);
+  }, [form, submissionId]);
 
-  const loadForm = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await oaciqFormsAPI.getByCode(code);
-      setForm(data);
-    } catch (err) {
-      console.error('Erreur lors du chargement du formulaire:', err);
-      setError('Erreur lors du chargement du formulaire');
-    } finally {
-      setLoading(false);
-    }
+  // Sauvegarde automatique toutes les 30 secondes
+  useEffect(() => {
+    if (!submissionId || !hasUnsavedChanges) return;
+
+    const interval = setInterval(() => {
+      handleSave(true);
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [submissionId, formData, hasUnsavedChanges]);
+
+  const handleFieldChange = (fieldName: string, value: any) => {
+    setFormData((prev) => ({ ...prev, [fieldName]: value }));
+    setHasUnsavedChanges(true);
   };
 
-  const handleSubmit = async (status: FormSubmissionStatus) => {
-    if (!form || !form.code) return;
-    
+  const handleSave = async (isAutoSave = false) => {
+    if (!submissionId) return;
+
     try {
-      setSaving(true);
-      setError(null);
-      await oaciqFormsAPI.createSubmission({
-        formCode: form.code,
+      await saveSubmissionMutation.mutateAsync({
+        id: submissionId,
         data: formData,
-        status,
+        isAutoSave,
       });
-      
-      router.push(`/${locale}/dashboard/modules/formulaire/oaciq`);
-    } catch (err) {
-      console.error('Erreur lors de la soumission:', err);
-      setError('Erreur lors de la soumission du formulaire');
-    } finally {
-      setSaving(false);
+
+      if (!isAutoSave) {
+        toast.success('Formulaire sauvegardé');
+      }
+    } catch (error) {
+      const appError = handleApiError(error);
+      toast.error(appError.message || 'Erreur lors de la sauvegarde');
     }
   };
 
-  const renderField = (field: FormFieldConfig) => {
-    const value = formData[field.id] || '';
+  const handleComplete = async () => {
+    if (!submissionId) return;
 
-    switch (field.type) {
-      case 'text':
-      case 'email':
-        return (
-          <Input
-            key={field.id}
-            type={field.type}
-            label={field.label}
-            value={value}
-            onChange={(e) => setFormData({ ...formData, [field.id]: e.target.value })}
-            required={field.required}
-            placeholder={field.placeholder}
-          />
-        );
-      
-      case 'textarea':
-        return (
-          <div key={field.id}>
-            <label className="block text-sm font-medium mb-1">
-              {field.label}
-              {field.required && <span className="text-red-500 ml-1">*</span>}
-            </label>
-            <textarea
-              value={value}
-              onChange={(e) => setFormData({ ...formData, [field.id]: e.target.value })}
-              required={field.required}
-              placeholder={field.placeholder}
-              className="w-full px-3 py-2 border rounded-lg bg-background resize-none"
-              rows={4}
-            />
-            {field.helpText && (
-              <p className="text-sm text-muted-foreground mt-1">{field.helpText}</p>
-            )}
-          </div>
-        );
-      
-      case 'number':
-        return (
-          <Input
-            key={field.id}
-            type="number"
-            label={field.label}
-            value={value}
-            onChange={(e) => setFormData({ ...formData, [field.id]: e.target.value })}
-            required={field.required}
-            placeholder={field.placeholder}
-          />
-        );
-      
-      case 'date':
-        return (
-          <Input
-            key={field.id}
-            type="date"
-            label={field.label}
-            value={value}
-            onChange={(e) => setFormData({ ...formData, [field.id]: e.target.value })}
-            required={field.required}
-          />
-        );
-      
-      case 'select':
-        return (
-          <div key={field.id}>
-            <label className="block text-sm font-medium mb-1">
-              {field.label}
-              {field.required && <span className="text-red-500 ml-1">*</span>}
-            </label>
-            <select
-              value={value}
-              onChange={(e) => setFormData({ ...formData, [field.id]: e.target.value })}
-              required={field.required}
-              className="w-full px-3 py-2 border rounded-lg bg-background"
-            >
-              <option value="">Sélectionner...</option>
-              {field.options?.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-            {field.helpText && (
-              <p className="text-sm text-muted-foreground mt-1">{field.helpText}</p>
-            )}
-          </div>
-        );
-      
-      case 'checkbox':
-        return (
-          <div key={field.id} className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={value || false}
-              onChange={(e) => setFormData({ ...formData, [field.id]: e.target.checked })}
-              className="w-4 h-4"
-            />
-            <label className="text-sm font-medium">
-              {field.label}
-              {field.required && <span className="text-red-500 ml-1">*</span>}
-            </label>
-          </div>
-        );
-      
-      default:
-        return (
-          <div key={field.id}>
-            <label className="block text-sm font-medium mb-1">
-              {field.label}
-              {field.required && <span className="text-red-500 ml-1">*</span>}
-            </label>
-            <Input
-              type="text"
-              value={value}
-              onChange={(e) => setFormData({ ...formData, [field.id]: e.target.value })}
-              required={field.required}
-              placeholder={field.placeholder}
-            />
-          </div>
-        );
+    try {
+      await handleSave(false);
+      await completeSubmissionMutation.mutateAsync(submissionId);
+    } catch (error) {
+      const appError = handleApiError(error);
+      toast.error(appError.message || 'Erreur lors de la complétion');
     }
   };
 
-  if (loading) {
+  if (formLoading || !form) {
     return (
-      <Container>
+      <div className="container py-8">
         <div className="flex items-center justify-center min-h-[400px]">
-          <Loading />
+          <div className="text-muted-foreground">Chargement...</div>
         </div>
-      </Container>
+      </div>
     );
   }
 
-  if (error || !form) {
-    return (
-      <Container>
-        <Alert variant="error">
-          {error || 'Formulaire introuvable'}
-        </Alert>
-      </Container>
-    );
-  }
-
-  // Parser les champs depuis le JSON
-  let fields: { sections: FormSection[] } | null = null;
-  try {
-    if (form.fields && typeof form.fields === 'object' && 'sections' in form.fields) {
-      fields = form.fields as { sections: FormSection[] };
-    }
-  } catch (e) {
-    console.error('Erreur lors du parsing des champs:', e);
-  }
-
-  if (!fields || !fields.sections || fields.sections.length === 0) {
-    return (
-      <Container>
-        <Card>
-          <div className="p-6">
-            <h1 className="text-2xl font-bold mb-4">[{form.code}] {form.name}</h1>
-            <Alert variant="warning">
-              Ce formulaire n&apos;a pas encore de champs définis. Utilisez la fonction d&apos;extraction IA pour générer les champs depuis le PDF.
-            </Alert>
-            {form.pdfUrl && (
-              <div className="mt-4">
-                <Button
-                  variant="primary"
-                  onClick={async () => {
-                    try {
-                      await oaciqFormsAPI.extractFields(form.code!, form.pdfUrl!);
-                      await loadForm();
-                    } catch (err) {
-                      console.error('Erreur lors de l\'extraction:', err);
-                    }
-                  }}
-                >
-                  Extraire les champs depuis le PDF
-                </Button>
-              </div>
-            )}
-          </div>
-        </Card>
-      </Container>
-    );
-  }
+  const fields = form.fields;
+  const completionPercentage = calculateCompletion(formData, fields);
 
   return (
-    <Container>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">[{form.code}] {form.name}</h1>
-          {form.category && (
-            <p className="text-muted-foreground mt-1 capitalize">{form.category}</p>
-          )}
+    <div className="container max-w-5xl py-8">
+      {/* Header */}
+      <div className="mb-6">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => router.back()}
+          className="mb-4"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Retour
+        </Button>
+
+        <div className="flex items-start justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-sm font-mono bg-muted px-2 py-1 rounded">
+                {form.code}
+              </span>
+            </div>
+            <h1 className="text-2xl font-bold">{form.name}</h1>
+          </div>
+
+          <div className="text-right">
+            <div className="text-2xl font-bold text-primary">
+              {completionPercentage}%
+            </div>
+            <div className="text-xs text-muted-foreground">Complété</div>
+          </div>
         </div>
 
-        {error && (
-          <Alert variant="error">{error}</Alert>
-        )}
+        <Progress value={completionPercentage} className="mt-4" />
+      </div>
 
-        <form className="space-y-8">
-          {fields.sections
-            .sort((a, b) => a.order - b.order)
-            .map((section) => (
-              <Card key={section.id}>
-                <div className="p-6">
-                  <h2 className="text-xl font-semibold mb-4">{section.title}</h2>
-                  <div className="space-y-4">
-                    {section.fields.map((field) => renderField(field))}
-                  </div>
-                </div>
-              </Card>
-            ))}
+      {/* Formulaire */}
+      {fields && (
+        <FormRenderer
+          fields={fields}
+          data={formData}
+          onChange={handleFieldChange}
+        />
+      )}
 
-          <div className="flex gap-4">
+      {/* Actions */}
+      <Card className="p-4 mt-6 sticky bottom-4">
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            {hasUnsavedChanges && '● Modifications non sauvegardées'}
+          </div>
+
+          <div className="flex gap-2">
             <Button
-              type="button"
               variant="outline"
-              onClick={() => handleSubmit(FormSubmissionStatus.DRAFT)}
-              disabled={saving}
+              size="sm"
+              onClick={() => handleSave(false)}
+              disabled={!hasUnsavedChanges || saveSubmissionMutation.isPending}
             >
-              Sauvegarder brouillon
+              <Save className="h-4 w-4 mr-2" />
+              Sauvegarder
             </Button>
+
             <Button
-              type="button"
-              variant="primary"
-              onClick={() => handleSubmit(FormSubmissionStatus.COMPLETED)}
-              disabled={saving}
+              size="sm"
+              onClick={handleComplete}
+              disabled={completionPercentage < 100 || completeSubmissionMutation.isPending}
             >
-              {saving ? 'Enregistrement...' : 'Soumettre'}
+              <Check className="h-4 w-4 mr-2" />
+              Compléter
             </Button>
           </div>
-        </form>
-      </div>
-    </Container>
+        </div>
+      </Card>
+    </div>
   );
+}
+
+function calculateCompletion(data: Record<string, any>, fields: any): number {
+  if (!fields || !fields.sections) return 0;
+
+  const requiredFields = fields.sections.reduce((acc: string[], section: any) => {
+    const required = section.fields
+      ?.filter((f: any) => f.required)
+      .map((f: any) => f.name || f.id) || [];
+    return [...acc, ...required];
+  }, []);
+
+  if (requiredFields.length === 0) return 100;
+
+  const filledFields = requiredFields.filter((field: string) => {
+    const value = data[field];
+    return value !== null && value !== undefined && value !== '';
+  });
+
+  return Math.round((filledFields.length / requiredFields.length) * 100);
 }
