@@ -75,9 +75,17 @@ class FormSubmissionResponse(BaseModel):
     user_agent: Optional[str] = None
     user_id: Optional[int] = None
     submitted_at: str
+    source_document_url: Optional[str] = None
+    extraction_confidence: Optional[dict] = None
+    needs_review: Optional[bool] = None
 
     class Config:
         from_attributes = True
+
+
+class FormSubmissionUpdate(BaseModel):
+    data: Optional[dict] = None
+    needs_review: Optional[bool] = None
 
 
 @router.get("/forms", response_model=List[FormResponse], tags=["forms"])
@@ -347,6 +355,55 @@ async def list_submissions(
         response.form_name = form.name
     
     return responses
+
+
+@router.get("/forms/submissions/{submission_id}", response_model=FormSubmissionResponse, tags=["forms"])
+async def get_submission(
+    submission_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get a form submission by ID (for review page)."""
+    result = await db.execute(select(FormSubmission).where(FormSubmission.id == submission_id))
+    submission = result.scalar_one_or_none()
+    if not submission:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found")
+    form_result = await db.execute(select(Form).where(Form.id == submission.form_id))
+    form = form_result.scalar_one_or_none()
+    if form and form.user_id != current_user.id and not await is_superadmin(current_user, db):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to view this submission")
+    resp = FormSubmissionResponse.model_validate(submission)
+    if form:
+        resp.form_name = form.name
+    return resp
+
+
+@router.patch("/forms/submissions/{submission_id}", response_model=FormSubmissionResponse, tags=["forms"])
+async def update_submission(
+    submission_id: int,
+    body: FormSubmissionUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update a form submission (corrections and/or approve)."""
+    result = await db.execute(select(FormSubmission).where(FormSubmission.id == submission_id))
+    submission = result.scalar_one_or_none()
+    if not submission:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found")
+    form_result = await db.execute(select(Form).where(Form.id == submission.form_id))
+    form = form_result.scalar_one_or_none()
+    if form and form.user_id != current_user.id and not await is_superadmin(current_user, db):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to update this submission")
+    if body.data is not None:
+        submission.data = body.data
+    if body.needs_review is not None:
+        submission.needs_review = body.needs_review
+    await db.commit()
+    await db.refresh(submission)
+    resp = FormSubmissionResponse.model_validate(submission)
+    if form:
+        resp.form_name = form.name
+    return resp
 
 
 @router.delete("/forms/submissions/{submission_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["forms"])

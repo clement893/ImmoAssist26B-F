@@ -202,6 +202,24 @@ class S3Service:
         except ClientError as e:
             raise ValueError(f"Failed to generate presigned URL: {str(e)}")
 
+    def get_file_content(self, file_key: str) -> bytes:
+        """
+        Download file content from S3.
+
+        Args:
+            file_key: S3 object key
+
+        Returns:
+            File content as bytes
+        """
+        if not AWS_S3_BUCKET:
+            raise ValueError("AWS_S3_BUCKET is not configured")
+        try:
+            response = s3_client.get_object(Bucket=AWS_S3_BUCKET, Key=file_key)
+            return response["Body"].read()
+        except ClientError as e:
+            raise ValueError(f"Failed to download file from S3: {str(e)}")
+
     def get_file_metadata(self, file_key: str) -> dict:
         """
         Get file metadata from S3.

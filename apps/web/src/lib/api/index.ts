@@ -23,6 +23,7 @@ export {
   apiSettingsAPI,
   pagesAPI,
   formsAPI,
+  formOcrAPI,
   menusAPI,
   supportTicketsAPI,
   seoAPI,

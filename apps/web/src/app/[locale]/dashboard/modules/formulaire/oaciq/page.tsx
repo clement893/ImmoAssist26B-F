@@ -252,16 +252,24 @@ export default function OACIQFormsPage() {
               </div>
             </div>
 
-            {/* Lien externe OACIQ */}
-            <a
-              href="https://www.oaciq.com/fr/formulaires"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 bg-gray-50 hover:bg-gray-100 rounded-xl text-sm font-medium text-gray-700 transition-colors"
-            >
-              <ExternalLink className="w-4 h-4" />
-              Site OACIQ
-            </a>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/dashboard/forms/import"
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors"
+              >
+                <Sparkles className="w-4 h-4" />
+                Importer un formulaire (OCR)
+              </Link>
+              <a
+                href="https://www.oaciq.com/fr/formulaires"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-4 py-2 bg-gray-50 hover:bg-gray-100 rounded-xl text-sm font-medium text-gray-700 transition-colors"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Site OACIQ
+              </a>
+            </div>
           </div>
 
           {/* Filtres */}

@@ -772,8 +772,38 @@ export const formsAPI = {
   getSubmissions: (formId: number, params?: { skip?: number; limit?: number }) => {
     return apiClient.get(`/v1/forms/${formId}/submissions`, { params });
   },
+  getSubmission: (submissionId: number) => {
+    return apiClient.get(`/v1/forms/submissions/${submissionId}`);
+  },
+  updateSubmission: (
+    submissionId: number,
+    data: { data?: Record<string, unknown>; needs_review?: boolean }
+  ) => {
+    return apiClient.patch(`/v1/forms/submissions/${submissionId}`, data);
+  },
   deleteSubmission: (submissionId: number) => {
     return apiClient.delete(`/v1/forms/submissions/${submissionId}`);
+  },
+};
+
+export const formOcrAPI = {
+  uploadAndProcess: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiClient.post<{ task_id: string; message: string }>(
+      '/v1/forms/submissions/upload-and-process',
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    );
+  },
+  getTaskStatus: (taskId: string) => {
+    return apiClient.get<{
+      status: string;
+      submission_id?: number;
+      form_code?: string;
+      error?: string;
+      result?: Record<string, unknown>;
+    }>(`/v1/tasks/${taskId}/status`);
   },
 };
 

@@ -36,6 +36,7 @@ class Form(Base):
     code = Column(String(20), unique=True, nullable=True, index=True)  # OACIQ form code (e.g., "PA", "CCVE")
     category = Column(String(50), nullable=True, index=True)  # "obligatoire", "recommandé", "curateur_public"
     pdf_url = Column(Text, nullable=True)  # URL to official OACIQ PDF
+    extraction_schema = Column(JSON, nullable=True)  # Schema for LLM extraction: {"fields": [{"name", "description"}]}
     
     # Ownership and relationships
     user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
@@ -85,6 +86,11 @@ class FormSubmission(Base):
     
     # Timestamps
     submitted_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+    
+    # OCR extraction metadata
+    source_document_url = Column(String(512), nullable=True)  # URL to original PDF/image (S3)
+    extraction_confidence = Column(JSON, nullable=True)  # Per-field confidence e.g. {"buyer_name": 0.95}
+    needs_review = Column(Boolean, default=True, nullable=False)  # Manual review required
     
     # Relationships
     form = relationship("Form", back_populates="submissions")
