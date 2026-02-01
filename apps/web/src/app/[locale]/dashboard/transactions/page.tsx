@@ -15,8 +15,9 @@ import Loading from '@/components/ui/Loading';
 import Alert from '@/components/ui/Alert';
 import TransactionForm from '@/components/transactions/TransactionForm';
 import PDFImportModal from '@/components/transactions/PDFImportModal';
+import TransactionsPipelineView from '@/components/transactions/TransactionsPipelineView';
 import { transactionsAPI } from '@/lib/api';
-import { FileText, Plus, Search, MapPin, Calendar, DollarSign, Users, Trash2, Eye, Upload } from 'lucide-react';
+import { FileText, Plus, Search, MapPin, Calendar, DollarSign, Users, Trash2, Eye, Upload, LayoutGrid, List } from 'lucide-react';
 // Simple date formatting function
 const formatDate = (dateString?: string) => {
   if (!dateString) return '-';
@@ -64,6 +65,7 @@ function TransactionsContent() {
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
+  const [viewMode, setViewMode] = useState<'list' | 'pipeline'>('pipeline');
 
   const loadTransactions = async () => {
     setLoading(true);
@@ -124,6 +126,22 @@ function TransactionsContent() {
     }
   };
 
+  const handleStatusChange = async (transactionId: number, newStatus: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Mettre à jour uniquement le statut via l'API
+      await transactionsAPI.update(transactionId, {
+        status: newStatus,
+      });
+      await loadTransactions();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la mise à jour du statut';
+      setError(errorMessage);
+      setLoading(false);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Conclue':
@@ -160,6 +178,27 @@ function TransactionsContent() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            {/* View Mode Toggle */}
+            <div className="flex items-center gap-2 p-1 bg-muted rounded-lg">
+              <Button
+                variant={viewMode === 'pipeline' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('pipeline')}
+                className="flex items-center gap-2"
+              >
+                <LayoutGrid className="w-4 h-4" />
+                Pipeline
+              </Button>
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('list')}
+                className="flex items-center gap-2"
+              >
+                <List className="w-4 h-4" />
+                Liste
+              </Button>
+            </div>
             <Button
               variant="outline"
               onClick={() => setShowPDFImportModal(true)}
@@ -185,36 +224,51 @@ function TransactionsContent() {
           </Alert>
         )}
 
-        {/* Filters and Search */}
-        <Card>
-          <div className="flex items-center gap-4 p-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Rechercher une transaction..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
+        {/* Filters and Search - Only show in list view */}
+        {viewMode === 'list' && (
+          <Card>
+            <div className="flex items-center gap-4 p-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Rechercher une transaction..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="px-4 py-2 border border-border rounded-lg bg-background text-foreground"
+              >
+                <option value="">Tous les statuts</option>
+                <option value="En cours">En cours</option>
+                <option value="Conditionnelle">Conditionnelle</option>
+                <option value="Ferme">Ferme</option>
+                <option value="Annulée">Annulée</option>
+                <option value="Conclue">Conclue</option>
+              </select>
             </div>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 border border-border rounded-lg bg-background text-foreground"
-            >
-              <option value="">Tous les statuts</option>
-              <option value="En cours">En cours</option>
-              <option value="Conditionnelle">Conditionnelle</option>
-              <option value="Ferme">Ferme</option>
-              <option value="Annulée">Annulée</option>
-              <option value="Conclue">Conclue</option>
-            </select>
-          </div>
-        </Card>
+          </Card>
+        )}
 
-        {/* Transactions Grid */}
-        {loading && transactions.length === 0 ? (
+        {/* Pipeline View */}
+        {viewMode === 'pipeline' ? (
+          <TransactionsPipelineView
+            transactions={transactions}
+            isLoading={loading}
+            onStatusChange={handleStatusChange}
+            onAddTransaction={() => setShowCreateModal(true)}
+            onTransactionClick={(transaction) => {
+              window.location.href = `/dashboard/transactions/${transaction.id}`;
+            }}
+          />
+        ) : (
+          <>
+            {/* Transactions Grid - List View */}
+            {loading && transactions.length === 0 ? (
           <div className="flex items-center justify-center py-12">
             <Loading />
           </div>
@@ -357,6 +411,8 @@ function TransactionsContent() {
               </Card>
             ))}
           </div>
+        )}
+          </>
         )}
 
         {/* PDF Import Modal */}

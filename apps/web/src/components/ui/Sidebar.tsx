@@ -25,19 +25,18 @@ interface SidebarProps {
   collapsed?: boolean;
   onToggleCollapse?: () => void;
   user?: { name?: string; email?: string } | null;
-  showSearch?: boolean; // New prop for search bar (UX/UI improvements - Batch 8)
-  variant?: SidebarVariant; // UI Revamp - Nouveau système de variants
-  collapsedWidth?: number; // UI Revamp - Largeur quand collapsed (px)
-  expandedWidth?: number; // UI Revamp - Largeur quand expanded (px)
-  accentColor?: string; // UI Revamp - Couleur d'accent pour état actif
-  showNotifications?: boolean; // UI Revamp - Badge de notifications
-  // New props for header and footer actions
+  showSearch?: boolean;
+  variant?: SidebarVariant;
+  collapsedWidth?: number;
+  expandedWidth?: number;
+  accentColor?: string;
+  showNotifications?: boolean;
   notificationsComponent?: ReactNode;
   onHomeClick?: () => void;
   themeToggleComponent?: ReactNode;
   onLogoutClick?: () => void;
-  onClose?: () => void; // For mobile menu close button
-  isMobile?: boolean; // To hide text labels in mobile mode
+  onClose?: () => void;
+  isMobile?: boolean;
 }
 
 export default function Sidebar({
@@ -47,8 +46,8 @@ export default function Sidebar({
   collapsed = false,
   onToggleCollapse,
   user,
-  showSearch = false, // Search bar disabled by default for backward compatibility
-  variant = 'modern', // UI Revamp - Variant par défaut
+  showSearch = false,
+  variant = 'modern',
   collapsedWidth,
   expandedWidth,
   accentColor: _accentColor,
@@ -65,61 +64,7 @@ export default function Sidebar({
   const [searchQuery, setSearchQuery] = useState('');
   const activePath = currentPath || pathname;
 
-  // UI Revamp - Variant styles - Updated to match demo pages ultra-minimalist design
-  const variantStyles: Record<SidebarVariant, {
-    container: string;
-    item: {
-      base: string;
-      active: string;
-      inactive: string;
-      icon: string;
-    };
-  }> = {
-    modern: {
-      container: 'bg-white dark:bg-neutral-900 shadow-sm border-r border-neutral-200 dark:border-neutral-800',
-      item: {
-        base: 'px-5 py-3.5 rounded-xl transition-all duration-200',
-        active: 'bg-blue-500 text-white shadow-md shadow-blue-500/30',
-        inactive: 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-800',
-        icon: 'w-5 h-5 transition-all duration-200',
-      },
-    },
-    colored: {
-      container: 'bg-slate-800 dark:bg-slate-900 shadow-standard-lg',
-      item: {
-        base: 'px-4 py-2.5 rounded-xl transition-modern',
-        active: 'bg-white/10 text-white',
-        inactive: 'text-neutral-300 hover:bg-white/5',
-        icon: 'w-10 h-10 rounded-full flex items-center justify-center transition-modern',
-      },
-    },
-    minimal: {
-      container: 'bg-neutral-50 dark:bg-neutral-900 border-r border-neutral-200 dark:border-neutral-800',
-      item: {
-        base: 'px-3 py-2 rounded-lg transition-modern',
-        active: 'bg-white dark:bg-neutral-800 border-l-4 border-l-primary-500 text-primary-600 dark:text-primary-400',
-        inactive: 'text-neutral-600 dark:text-neutral-400 hover:bg-white dark:hover:bg-neutral-800',
-        icon: 'w-8 h-8 flex items-center justify-center transition-modern',
-      },
-    },
-    floating: {
-      container: 'bg-white/90 dark:bg-neutral-900/90 backdrop-blur-glass rounded-r-2xl shadow-standard-lg border-r border-neutral-200 dark:border-neutral-800',
-      item: {
-        base: 'px-4 py-2.5 rounded-xl transition-modern',
-        active: 'bg-primary-600/10 text-primary-600 dark:text-primary-400 border-l-2 border-l-primary-500',
-        inactive: 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800',
-        icon: 'w-10 h-10 rounded-full flex items-center justify-center transition-modern',
-      },
-    },
-  };
-
-  const styles = variantStyles[variant];
-  
-  // Determine widths
-  const finalCollapsedWidth = collapsedWidth || (collapsed ? 80 : 0);
-  const finalExpandedWidth = expandedWidth || (collapsed ? 0 : 320);
-
-  // Filter items based on search query (UX/UI improvements - Batch 8)
+  // Filter items based on search query
   const filteredItems = useMemo(() => {
     if (!searchQuery.trim() || !showSearch) {
       return items;
@@ -158,153 +103,117 @@ export default function Sidebar({
     });
   };
 
+  const isItemActive = (item: SidebarItem): boolean => {
+    if (item.href) {
+      if (item.href === '/dashboard') {
+        return activePath === '/dashboard';
+      }
+      return activePath?.startsWith(item.href) || false;
+    }
+    // Check if any child is active
+    if (item.children) {
+      return item.children.some((child) => isItemActive(child));
+    }
+    return false;
+  };
+
   const renderItem = (item: SidebarItem, level = 0) => {
     const hasChildren = item.children && item.children.length > 0;
     const isExpanded = expandedItems.has(item.label);
-    const isActive = activePath === item.href || (item.href && activePath?.startsWith(item.href));
+    const isActive = isItemActive(item);
 
-    // UI Revamp - Apply variant-specific styles
-    const itemBaseClass = collapsed 
-      ? 'justify-center p-2' 
-      : styles.item.base;
-    
-    const itemActiveClass = isActive
-      ? collapsed
-        ? variant === 'colored' ? 'bg-white/10' : 'bg-primary-600/20'
-        : styles.item.active
-      : '';
-    
-    const itemInactiveClass = !isActive
-      ? collapsed
-        ? variant === 'colored' ? 'hover:bg-white/5' : 'hover:bg-neutral-700/50'
-        : styles.item.inactive
-      : '';
+    // Ultra-minimalist design inspired by Video Buddy
+    const itemClasses = clsx(
+      'flex items-center transition-all duration-200 rounded-xl',
+      collapsed
+        ? 'justify-center p-2'
+        : 'px-5 py-3.5 gap-4', // Generous spacing: gap-4, py-3.5
+      isActive && !collapsed
+        ? 'bg-blue-500 text-white shadow-md shadow-blue-500/30' // Vibrant blue background with shadow
+        : !collapsed
+          ? 'text-gray-600 hover:bg-gray-50' // Light gray text, subtle hover
+          : 'hover:bg-gray-100',
+      level > 0 && !collapsed && 'ml-4' // Indentation for nested items
+    );
+
+    const iconClasses = clsx(
+      'w-5 h-5 flex-shrink-0 transition-all duration-200',
+      isActive && !collapsed
+        ? 'text-white'
+        : 'text-gray-400'
+    );
+
+    const textClasses = clsx(
+      'text-sm transition-all duration-200',
+      isActive && !collapsed
+        ? 'font-medium text-white' // font-medium for active
+        : 'font-light text-gray-600' // font-light for inactive
+    );
 
     return (
       <div key={item.label}>
-        <div
-          className={clsx(
-            'flex items-center justify-between transition-all duration-200',
-            itemBaseClass,
-            itemActiveClass,
-            itemInactiveClass,
-            level > 0 && !collapsed && 'ml-4' // Indentation for nested items
-          )}
-        >
+        <div className={itemClasses}>
           {item.href ? (
-            <Link 
-              href={item.href} 
+            <Link
+              href={item.href}
               className={clsx(
-                'flex items-center min-w-0 transition-all duration-200',
-                collapsed ? 'justify-center' : variant === 'modern' ? 'flex-1 gap-4' : 'flex-1 space-x-3'
+                'flex items-center min-w-0 flex-1',
+                collapsed && 'justify-center'
               )}
             >
-              {item.icon && (
-                <span className={clsx(
-                  styles.item.icon,
-                  collapsed 
-                    ? 'w-10 h-10' 
-                    : variant === 'minimal' ? 'w-8 h-8' : 'w-5 h-5',
-                  isActive 
-                    ? variant === 'modern'
-                      ? 'text-white'
-                      : variant === 'colored'
-                        ? 'text-white'
-                        : variant === 'floating'
-                          ? 'text-primary-600 dark:text-primary-400'
-                          : 'text-primary-600 dark:text-primary-400'
-                    : variant === 'colored'
-                      ? 'text-neutral-300'
-                      : variant === 'modern'
-                        ? 'text-gray-400'
-                        : 'text-neutral-400 dark:text-neutral-500'
-                )}>
-                  {item.icon}
-                </span>
-              )}
+              {item.icon && <span className={iconClasses}>{item.icon}</span>}
               {!collapsed && (
-                <span className={clsx(
-                  'flex-1 truncate text-sm',
-                  isActive && variant === 'modern' ? 'font-medium' : variant === 'modern' ? 'font-light' : 'font-medium'
-                )}>
-                  {item.label}
-                </span>
+                <>
+                  <span className={textClasses}>{item.label}</span>
+                  {item.badge && (
+                    <span className="ml-auto px-2 py-0.5 text-xs font-medium bg-white/20 text-white rounded-full">
+                      {item.badge}
+                    </span>
+                  )}
+                </>
               )}
             </Link>
           ) : (
             <button
               onClick={item.onClick || (hasChildren ? () => toggleItem(item.label) : undefined)}
               className={clsx(
-                'flex items-center min-w-0 text-left transition-all duration-200',
-                collapsed ? 'justify-center' : variant === 'modern' ? 'flex-1 gap-4' : 'flex-1 space-x-3'
+                'flex items-center min-w-0 flex-1 text-left',
+                collapsed && 'justify-center'
               )}
               aria-expanded={hasChildren ? isExpanded : undefined}
               aria-label={hasChildren ? `Toggle ${item.label}` : item.label}
             >
-              {item.icon && (
-                <span className={clsx(
-                  styles.item.icon,
-                  collapsed 
-                    ? 'w-10 h-10' 
-                    : variant === 'minimal' ? 'w-8 h-8' : 'w-5 h-5',
-                  isActive 
-                    ? variant === 'modern'
-                      ? 'text-white'
-                      : variant === 'colored'
-                        ? 'text-white'
-                        : variant === 'floating'
-                          ? 'text-primary-600 dark:text-primary-400'
-                          : 'text-primary-600 dark:text-primary-400'
-                    : variant === 'colored'
-                      ? 'text-neutral-300'
-                      : variant === 'modern'
-                        ? 'text-gray-400'
-                        : 'text-neutral-400 dark:text-neutral-500'
-                )}>
-                  {item.icon}
-                </span>
-              )}
+              {item.icon && <span className={iconClasses}>{item.icon}</span>}
               {!collapsed && (
-                <span className={clsx(
-                  'flex-1 truncate text-sm',
-                  isActive && variant === 'modern' ? 'font-medium' : variant === 'modern' ? 'font-light' : 'font-medium'
-                )}>
-                  {item.label}
-                </span>
+                <>
+                  <span className={textClasses}>{item.label}</span>
+                  {item.badge && (
+                    <span className={clsx(
+                      'ml-auto px-2 py-0.5 text-xs font-medium rounded-full',
+                      isActive
+                        ? 'bg-white/20 text-white'
+                        : 'bg-gray-100 text-gray-600'
+                    )}>
+                      {item.badge}
+                    </span>
+                  )}
+                  {hasChildren && (
+                    <ChevronDown
+                      className={clsx(
+                        'ml-auto w-4 h-4 transition-transform duration-200',
+                        isExpanded ? 'rotate-180' : '',
+                        isActive ? 'text-white' : 'text-gray-400'
+                      )}
+                    />
+                  )}
+                </>
               )}
             </button>
-          )}
-
-          {!collapsed && (
-            <div className="flex items-center space-x-2 flex-shrink-0">
-              {item.badge && (
-                <span className={clsx(
-                  "px-2 py-0.5 text-xs font-medium rounded-full",
-                  isActive 
-                    ? "bg-primary text-primary-foreground shadow-subtle-sm" // UI Revamp - Nouveau système d'ombres 
-                    : "bg-muted text-muted-foreground"
-                )}>
-                  {item.badge}
-                </span>
-              )}
-              {hasChildren &&
-                (isExpanded ? (
-                  <ChevronDown className={clsx(
-                    "w-4 h-4 transition-transform",
-                    isActive ? "text-primary" : "text-muted-foreground"
-                  )} />
-                ) : (
-                  <ChevronRight className={clsx(
-                    "w-4 h-4 transition-transform",
-                    isActive ? "text-primary" : "text-muted-foreground"
-                  )} />
-                ))}
-            </div>
           )}
         </div>
 
         {hasChildren && isExpanded && !collapsed && (
-          <div className="mt-1 space-y-1 ml-4 border-l-2 border-neutral-700/50 pl-3">
+          <div className="mt-2 space-y-2 ml-4 pl-4 border-l-2 border-gray-100">
             {item.children!.map((child) => renderItem(child, level + 1))}
           </div>
         )}
@@ -312,13 +221,11 @@ export default function Sidebar({
     );
   };
 
-  // Auto-expand groups that contain active items (UX/UI improvements - Batch 8)
+  // Auto-expand groups that contain active items
   useEffect(() => {
     items.forEach((item) => {
       if (item.children) {
-        const hasActiveChild = item.children.some(
-          (child) => activePath === child.href || (child.href && activePath?.startsWith(child.href))
-        );
+        const hasActiveChild = item.children.some((child) => isItemActive(child));
         if (hasActiveChild && !expandedItems.has(item.label)) {
           setExpandedItems((prev) => new Set(prev).add(item.label));
         }
@@ -327,15 +234,17 @@ export default function Sidebar({
   }, [items, activePath, expandedItems]);
 
   // Determine container width
-  const containerWidth = collapsed 
+  const containerWidth = collapsed
     ? (finalCollapsedWidth ? `${finalCollapsedWidth}px` : 'w-20')
-    : (finalExpandedWidth ? `${finalExpandedWidth}px` : 'w-72 md:w-80 lg:w-96');
+    : (finalExpandedWidth ? `${finalExpandedWidth}px` : 'w-72 md:w-80');
+
+  const finalCollapsedWidth = collapsedWidth || (collapsed ? 80 : 0);
+  const finalExpandedWidth = expandedWidth || (collapsed ? 0 : 320);
 
   return (
     <aside
       className={clsx(
-        'h-screen sticky top-0 flex flex-col transition-modern',
-        styles.container,
+        'h-screen sticky top-0 flex flex-col bg-white shadow-sm', // Clean white background with subtle shadow
         containerWidth,
         className
       )}
@@ -347,71 +256,47 @@ export default function Sidebar({
           : undefined
       }
     >
-      {/* Header: Logo/Brand Section - Ultra-minimalist style like demo pages */}
+      {/* Header: Logo/Brand Section */}
       {!collapsed && (
-        <div className={clsx(
-          'flex-shrink-0',
-          variant === 'modern' ? 'p-8 pb-6 border-b border-gray-100' : 'p-3 border-b border-neutral-700/50'
-        )}>
-          {variant === 'modern' ? (
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md">
-                <Sparkles className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-medium text-gray-900">ImmoAssist</h1>
-                <p className="text-xs font-light text-gray-400">Demo Pages</p>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 cursor-pointer hover:bg-gray-800/50 rounded-lg p-1.5 transition-modern">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-blue-500 flex items-center justify-center flex-shrink-0">
-                <Sparkles className="w-4 h-4 text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-white truncate">Léa AI</p>
-              </div>
-              <ChevronDown className="w-4 h-4 text-neutral-400 flex-shrink-0" />
-            </div>
-          )}
-        </div>
-      )}
-      
-      {/* Collapsed: Just show icon */}
-      {collapsed && (
-        <div className={clsx(
-          'flex-shrink-0 flex justify-center',
-          variant === 'modern' ? 'p-8 pb-6 border-b border-gray-100' : 'p-3 border-b border-gray-800/50'
-        )}>
-          {variant === 'modern' ? (
+        <div className="flex-shrink-0 p-8 pb-6 border-b border-gray-100">
+          <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md">
               <Sparkles className="w-5 h-5 text-white" />
             </div>
-          ) : (
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-blue-500 flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-white" />
+            <div>
+              <h1 className="text-xl font-medium text-gray-900">ImmoAssist</h1>
+              <p className="text-xs font-light text-gray-400">Dashboard</p>
             </div>
-          )}
+          </div>
         </div>
       )}
 
-      {/* Search Bar (UX/UI improvements - Batch 8) */}
+      {/* Collapsed: Just show icon */}
+      {collapsed && (
+        <div className="flex-shrink-0 p-8 pb-6 border-b border-gray-100 flex justify-center">
+          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md">
+            <Sparkles className="w-5 h-5 text-white" />
+          </div>
+        </div>
+      )}
+
+      {/* Search Bar */}
       {showSearch && !collapsed && (
-        <div className="px-lg py-md border-b border-border/50 flex-shrink-0 bg-background/30 backdrop-blur-sm">
+        <div className="px-4 py-4 border-b border-gray-100 flex-shrink-0">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input
               type="text"
               placeholder="Rechercher..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-10 h-10 text-sm bg-background/50 border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
+              className="pl-10 pr-10 h-10 text-sm bg-gray-50 border-0 rounded-xl text-gray-900 placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:ring-blue-500"
               aria-label="Rechercher dans la navigation"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground min-h-[44px] min-w-[44px] flex items-center justify-center transition-modern" // UI Revamp - Transition moderne
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-all duration-200"
                 aria-label="Effacer la recherche"
               >
                 <X className="w-4 h-4" />
@@ -421,12 +306,13 @@ export default function Sidebar({
         </div>
       )}
 
+      {/* Navigation */}
       <nav className={clsx(
         'flex-1 overflow-y-auto',
-        collapsed ? 'p-1.5 space-y-1.5' : variant === 'modern' ? 'px-4 py-2 space-y-2' : 'p-2.5 space-y-1'
+        collapsed ? 'p-2 space-y-1' : 'px-4 py-2 space-y-2' // space-y-2 between menu items
       )}>
         {filteredItems.length === 0 ? (
-          <div className={clsx('text-sm text-neutral-400 text-center', collapsed ? 'px-2 py-4' : 'px-lg py-md')}>
+          <div className={clsx('text-sm text-gray-400 text-center', collapsed ? 'px-2 py-4' : 'px-4 py-8')}>
             Aucun résultat trouvé
           </div>
         ) : (
@@ -434,62 +320,61 @@ export default function Sidebar({
         )}
       </nav>
 
-      {/* Footer: User Avatar at bottom (like in image) */}
-      {user && (
-        <div className={clsx('border-t border-neutral-700/50 flex-shrink-0', collapsed ? 'p-1.5' : 'p-3')}>
-          {collapsed ? (
-            <div className="flex justify-center">
-              <div className="relative">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
-                  <span className="text-sm font-medium text-white">
-                    {user.name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
-                  </span>
-                </div>
-                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#171717] dark:border-[#0a0a0a]" />
+      {/* Pro Badge - Gradient card with upgrade call-to-action */}
+      {!collapsed && (
+        <div className="px-4 py-4 border-t border-gray-100 flex-shrink-0">
+          <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl p-4 shadow-md">
+            <div className="flex items-center gap-3 mb-2">
+              <Sparkles className="w-5 h-5 text-white" />
+              <div>
+                <p className="text-sm font-medium text-white">Upgrade to Pro</p>
+                <p className="text-xs font-light text-white/80">Unlock all features</p>
               </div>
             </div>
-          ) : (
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
-                  <span className="text-sm font-medium text-white">
-                    {user.name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
-                  </span>
-                </div>
-                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#171717] dark:border-[#0a0a0a]" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-white truncate">{user.name || 'Utilisateur'}</p>
-                <p className="text-xs text-neutral-400 truncate">{user.email}</p>
-              </div>
-            </div>
-          )}
+            <button className="w-full mt-2 px-4 py-2 bg-white text-blue-600 rounded-lg text-sm font-medium hover:bg-gray-50 transition-all duration-200">
+              Upgrade Now
+            </button>
+          </div>
         </div>
       )}
 
-      {/* Footer: Actions (Collapse, Close, Home, Theme, Logout) */}
+      {/* Footer: User Section */}
+      {user && !collapsed && (
+        <div className="border-t border-gray-100 flex-shrink-0 p-4">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                <span className="text-sm font-medium text-white">
+                  {user.name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
+                </span>
+              </div>
+              <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">{user.name || 'Utilisateur'}</p>
+              <p className="text-xs font-light text-gray-400 truncate">{user.email}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Footer: Actions */}
       {(onToggleCollapse || onClose || onHomeClick || themeToggleComponent || onLogoutClick) && (
-        <div className={clsx(
-          'flex-shrink-0',
-          variant === 'modern' 
-            ? 'border-t border-gray-100 p-4' 
-            : 'border-t border-gray-800/50',
-          collapsed ? 'p-1.5' : variant === 'modern' ? 'p-4' : 'p-2.5'
-        )}>
+        <div className="border-t border-gray-100 flex-shrink-0 p-4">
           <div className={clsx('flex items-center gap-2', collapsed || isMobile ? 'justify-center flex-wrap' : 'justify-start')}>
             {onToggleCollapse && (
               <button
                 onClick={onToggleCollapse}
                 className={clsx(
-                  'rounded-lg hover:bg-neutral-700 text-neutral-400 hover:text-white transition-modern flex items-center justify-center', // UI Revamp - Transition moderne
-                  collapsed ? 'w-10 h-10' : 'p-2 min-h-[44px] min-w-[44px]'
+                  'rounded-xl hover:bg-gray-50 text-gray-400 hover:text-gray-600 transition-all duration-200 flex items-center justify-center',
+                  collapsed ? 'w-10 h-10' : 'p-2'
                 )}
                 aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                 title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               >
                 <ChevronRight
                   className={clsx(
-                    'w-5 h-5 transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]',
+                    'w-5 h-5 transition-transform duration-200',
                     collapsed && 'rotate-180'
                   )}
                 />
@@ -499,8 +384,8 @@ export default function Sidebar({
               <button
                 onClick={onClose}
                 className={clsx(
-                  'rounded-lg hover:bg-neutral-700 text-neutral-400 hover:text-white transition-modern flex items-center justify-center', // UI Revamp - Transition moderne
-                  collapsed ? 'w-10 h-10' : 'p-2 min-h-[44px] min-w-[44px]'
+                  'rounded-xl hover:bg-gray-50 text-gray-400 hover:text-gray-600 transition-all duration-200 flex items-center justify-center',
+                  collapsed ? 'w-10 h-10' : 'p-2'
                 )}
                 aria-label="Fermer le menu"
                 title="Fermer le menu"
@@ -512,8 +397,8 @@ export default function Sidebar({
               <button
                 onClick={onHomeClick}
                 className={clsx(
-                  'rounded-lg hover:bg-neutral-700 text-neutral-400 hover:text-white transition-modern flex items-center justify-center', // UI Revamp - Transition moderne
-                  collapsed ? 'w-10 h-10' : 'p-2 min-h-[44px] min-w-[44px]'
+                  'rounded-xl hover:bg-gray-50 text-gray-400 hover:text-gray-600 transition-all duration-200 flex items-center justify-center',
+                  collapsed ? 'w-10 h-10' : 'p-2'
                 )}
                 aria-label="Retour à l'accueil"
                 title="Retour à l'accueil"
@@ -528,19 +413,14 @@ export default function Sidebar({
               <button
                 onClick={onLogoutClick}
                 className={clsx(
-                  'rounded-xl transition-all duration-200 flex items-center justify-center',
-                  variant === 'modern'
-                    ? 'text-gray-600 hover:bg-red-50 hover:text-red-600'
-                    : 'rounded-lg hover:bg-red-600/20 text-red-400 hover:text-red-300',
-                  collapsed ? 'w-10 h-10' : variant === 'modern' ? 'px-5 py-3 w-full' : 'p-2 min-h-[44px] min-w-[44px]'
+                  'rounded-xl transition-all duration-200 flex items-center justify-center text-gray-600 hover:bg-red-50 hover:text-red-600',
+                  collapsed ? 'w-10 h-10' : 'px-5 py-3 w-full gap-3'
                 )}
                 aria-label="Déconnexion"
                 title="Déconnexion"
               >
                 <LogOut className="w-5 h-5" />
-                {!collapsed && variant === 'modern' && (
-                  <span className="ml-3 text-sm font-light">Log out</span>
-                )}
+                {!collapsed && <span className="text-sm font-light">Log out</span>}
               </button>
             )}
           </div>
