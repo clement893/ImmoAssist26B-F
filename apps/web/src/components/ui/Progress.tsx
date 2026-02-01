@@ -21,7 +21,13 @@ export default function Progress({
   className,
 }: ProgressProps) {
   const percentage = Math.min(Math.max((value / max) * 100, 0), 100);
-  const sizes = { sm: 'h-1', md: 'h-2', lg: 'h-4' };
+  const sizes: Record<Size, string> = { 
+    xs: 'h-0.5',
+    sm: 'h-1', 
+    md: 'h-2', 
+    lg: 'h-4',
+    xl: 'h-6'
+  };
   const variants: Record<ColorVariant, string> = {
     default: 'bg-primary-600 dark:bg-primary-500',
     success: 'bg-success-600 dark:bg-success-500',

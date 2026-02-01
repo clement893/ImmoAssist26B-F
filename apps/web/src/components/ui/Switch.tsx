@@ -6,7 +6,6 @@
 
 import { forwardRef, type InputHTMLAttributes } from 'react';
 import { clsx } from 'clsx';
-import { useComponentConfig } from '@/lib/theme/use-component-config';
 
 interface SwitchProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> {
   label?: string;
@@ -17,11 +16,6 @@ interface SwitchProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'
 const Switch = forwardRef<HTMLInputElement, SwitchProps>(
   ({ label, error, className, fullWidth = false, id, ...props }, ref) => {
     const switchId = id || `switch-${Math.random().toString(36).substring(7)}`;
-    const { getSize } = useComponentConfig('switch');
-    const sizeConfig = getSize('md');
-    const height = sizeConfig?.minHeight || '1.5rem';
-    const width = `calc(${height} * 1.833)`; // Maintain aspect ratio
-    const borderRadius = sizeConfig?.borderRadius || '9999px';
 
     return (
       <div className={clsx('flex items-center', fullWidth && 'w-full')}>

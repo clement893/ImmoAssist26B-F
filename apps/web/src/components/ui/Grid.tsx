@@ -42,7 +42,8 @@ export default function Grid({ children, columns = 3, gap = 'normal', gapValue, 
   const { getGap } = useLayout();
 
   // Get gap value from theme or use custom value
-  const gapValueToUse = gapValue || getGap(gap);
+  // Handle 'spacious' gap separately since getGap doesn't support it
+  const gapValueToUse = gapValue || (gap === 'spacious' ? undefined : getGap(gap as 'tight' | 'normal' | 'loose'));
 
   // Build grid template columns
   const getGridColumns = () => {

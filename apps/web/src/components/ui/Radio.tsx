@@ -1,7 +1,6 @@
 /** * Radio Component * Radio button component */ 'use client';
 import { forwardRef, type InputHTMLAttributes } from 'react';
 import { clsx } from 'clsx';
-import { useComponentConfig } from '@/lib/theme/use-component-config';
 interface RadioProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> {
   label?: string;
   error?: string;
@@ -10,9 +9,6 @@ interface RadioProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>
 const Radio = forwardRef<HTMLInputElement, RadioProps>(
   ({ label, error, className, fullWidth = false, id, ...props }, ref) => {
     const radioId = id || `radio-${Math.random().toString(36).substring(7)}`;
-    const { getSize } = useComponentConfig('radio');
-    const sizeConfig = getSize('md');
-    const size = sizeConfig?.minHeight || '1rem';
     return (
       <div className={clsx('flex items-center', fullWidth && 'w-full')}>
         {' '}
