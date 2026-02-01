@@ -506,7 +506,7 @@ export default function TransactionDetailPage() {
                             
                             if (response?.data) {
                               const serverTransaction = response.data;
-                              const serverPhotos = (serverTransaction.documents || []).filter(d => d.type === 'photo') || [];
+                              const serverPhotos = (serverTransaction.documents || []).filter((d: { type?: string }) => d.type === 'photo') || [];
                               
                               // Si le serveur a ajouté une nouvelle photo, remplacer complètement
                               if (serverPhotos.length > photosBeforeAdd) {
@@ -518,14 +518,14 @@ export default function TransactionDetailPage() {
                                 setTransaction((prev) => {
                                   if (!prev) return serverTransaction;
                                   
-                                  const optimisticPhoto = (prev.documents || []).find(doc => doc.id === tempPhotoId);
+                                  const optimisticPhoto = (prev.documents || []).find((doc: { id?: number }) => doc.id === tempPhotoId);
                                   if (!optimisticPhoto) {
                                     return serverTransaction;
                                   }
                                   
                                   // Fusionner : garder tous les documents du serveur + la photo optimiste
                                   const allServerDocs = serverTransaction.documents || [];
-                                  const hasOptimistic = allServerDocs.some(doc => doc.id === tempPhotoId);
+                                  const hasOptimistic = allServerDocs.some((doc: { id?: number }) => doc.id === tempPhotoId);
                                   
                                   return {
                                     ...serverTransaction,
