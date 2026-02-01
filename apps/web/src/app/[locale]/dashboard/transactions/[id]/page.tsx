@@ -3,35 +3,34 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Container from '@/components/ui/Container';
-import Card from '@/components/ui/Card';
 import Loading from '@/components/ui/Loading';
 import Alert from '@/components/ui/Alert';
-import Button from '@/components/ui/Button';
 import { transactionsAPI } from '@/lib/api';
-import { realEstateContactsAPI } from '@/lib/api/real-estate-contacts';
-import InlineEditableField from '@/components/transactions/InlineEditableField';
-import TransactionSummaryCard from '@/components/transactions/TransactionSummaryCard';
-import TransactionContactsCard from '@/components/transactions/TransactionContactsCard';
-import TransactionActionsPanel from '@/components/transactions/TransactionActionsPanel';
 import TransactionTimeline from '@/components/transactions/TransactionTimeline';
-import Breadcrumb from '@/components/ui/Breadcrumb';
-import Tabs, { TabList, Tab, TabPanels, TabPanel } from '@/components/ui/Tabs';
+import StatusStepper from '@/components/transactions/StatusStepper';
+import { calculateTransactionSteps } from '@/lib/transactions/progression';
 import { useToast } from '@/components/ui';
 import { 
-  Calendar, 
   DollarSign, 
-  Users, 
   FileText,
   Home,
-  Clock,
   Upload,
-  Trash2,
   Eye,
-  Receipt,
-  Shield,
-  History,
   Image as ImageIcon,
-  Bolt,
+  ChevronRight,
+  Edit,
+  Send,
+  MapPin,
+  Building2,
+  Bed,
+  Bath,
+  Square,
+  Mail,
+  Phone,
+  MessageSquare,
+  Download,
+  Paperclip,
+  Plus,
 } from 'lucide-react';
 
 interface Transaction {
@@ -232,723 +231,493 @@ export default function TransactionDetailPage() {
     );
   }
 
+  // Calculate transaction steps
+  const steps = calculateTransactionSteps(transaction);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [newComment, setNewComment] = useState('');
+
+  // Format expected closing date
+  const formatExpectedClosing = (dateString?: string): string => {
+    if (!dateString) return '-';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    } catch {
+      return dateString;
+    }
+  };
+
+  // Format file size
+  const formatFileSize = (bytes?: number): string => {
+    if (!bytes) return '-';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  // Format timestamp for activity
+  const formatTimestamp = (dateString?: string): string => {
+    if (!dateString) return '-';
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+      
+      if (diffMins < 1) return 'Just now';
+      if (diffMins < 60) return `${diffMins}m ago`;
+      if (diffHours < 24) return `${diffHours}h ago`;
+      if (diffDays < 7) return `${diffDays}d ago`;
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    } catch {
+      return dateString;
+    }
+  };
+
+  // Tabs configuration
+  const tabs = [
+    { id: 'overview', label: 'Overview', icon: Home },
+    { id: 'documents', label: 'Documents', icon: FileText },
+    { id: 'activity', label: 'Activity', icon: MessageSquare },
+    { id: 'photos', label: 'Photos', icon: ImageIcon },
+  ];
+
+  // Get property address
+  const propertyAddress = transaction.property_address 
+    ? `${transaction.property_address}${transaction.property_city ? `, ${transaction.property_city}` : ''}${transaction.property_postal_code ? ` ${transaction.property_postal_code}` : ''}`
+    : '-';
+
+  // Get first buyer and seller
+  const firstBuyer = transaction.buyers && transaction.buyers.length > 0 ? transaction.buyers[0] : null;
+  const firstSeller = transaction.sellers && transaction.sellers.length > 0 ? transaction.sellers[0] : null;
+  const buyerBroker = transaction.buyer_broker;
+  const sellerBroker = transaction.seller_broker;
+
+  // Filter documents
+  const documents = transaction.documents?.filter(d => d.type !== 'photo') || [];
+  const photos = transaction.documents?.filter(d => d.type === 'photo') || [];
+
   return (
-    <Container>
-      <div className="space-y-4">
-        {/* Breadcrumbs */}
-        <Breadcrumb
-          items={[
-            { label: 'Transactions', href: '/dashboard/transactions', icon: <FileText className="w-4 h-4" /> },
-            { label: transaction.name },
-          ]}
-          showHome={true}
-          homeHref="/dashboard"
-        />
+    <div className="min-h-screen bg-gray-100 p-8">
+      <div className="max-w-[1400px] mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <button 
+                onClick={() => router.push('/dashboard/transactions')}
+                className="text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <ChevronRight className="w-5 h-5 rotate-180" />
+              </button>
+              <h1 className="text-2xl font-semibold text-gray-900">{transaction.name}</h1>
+            </div>
+            <p className="text-sm text-gray-500 ml-8">Transaction #{transaction.id}</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button className="px-4 py-2 bg-white rounded-2xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
+              <Edit className="w-4 h-4 inline mr-2" />
+              Edit
+            </button>
+            <button className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl text-sm font-medium text-white hover:shadow-lg transition-shadow">
+              <Send className="w-4 h-4 inline mr-2" />
+              Send Update
+            </button>
+          </div>
+        </div>
 
-        {/* Summary Card */}
-        <TransactionSummaryCard transaction={transaction} />
+        {/* Progress Steps */}
+        <div className="bg-white rounded-3xl p-8 shadow-sm">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 mb-1">Transaction progress</h2>
+              <p className="text-sm text-gray-500">Track all steps from initial contact to closing</p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-gray-500 mb-1">Expected closing</p>
+              <p className="text-lg font-semibold text-gray-900">
+                {formatExpectedClosing(transaction.expected_closing_date)}
+              </p>
+            </div>
+          </div>
 
-        {/* Tabs */}
-        <Tabs defaultTab="information">
-          <TabList className="border-b border-slate-200 dark:border-slate-700">
-            <Tab value="information">
-              <FileText className="w-4 h-4 mr-2" />
-              Information
-            </Tab>
-            <Tab value="actions">
-              <Bolt className="w-4 h-4 mr-2" />
-              Actions
-            </Tab>
-            <Tab value="contacts">
-              <Users className="w-4 h-4 mr-2" />
-              Contacts
-              {contactsCount > 0 && (
-                <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full">
-                  {contactsCount}
-                </span>
-              )}
-            </Tab>
-            <Tab value="photos">
-              <ImageIcon className="w-4 h-4 mr-2" />
-              Photos
-              {transaction.documents && transaction.documents.filter(d => d.type === 'photo').length > 0 && (
-                <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full">
-                  {transaction.documents.filter(d => d.type === 'photo').length}
-                </span>
-              )}
-            </Tab>
-            <Tab value="documents">
-              <FileText className="w-4 h-4 mr-2" />
-              Documents
-              {transaction.documents && transaction.documents.filter(d => d.type !== 'photo').length > 0 && (
-                <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full">
-                  {transaction.documents.filter(d => d.type !== 'photo').length}
-                </span>
-              )}
-            </Tab>
-            <Tab value="transactions">
-              <Receipt className="w-4 h-4 mr-2" />
-              Transactions
-            </Tab>
-            <Tab value="deposits">
-              <Shield className="w-4 h-4 mr-2" />
-              Dépôts de sécurité
-            </Tab>
-            <Tab value="balance">
-              <DollarSign className="w-4 h-4 mr-2" />
-              Solde
-            </Tab>
-            <Tab value="history">
-              <History className="w-4 h-4 mr-2" />
-              Historique
-            </Tab>
-          </TabList>
+          {/* StatusStepper with horizontal orientation */}
+          <StatusStepper steps={steps} orientation="horizontal" />
+        </div>
 
-          <TabPanels>
-            {/* Information Tab */}
-            <TabPanel value="information">
-              <div className="mt-4 space-y-4">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                  {/* Left Column - Main Info */}
-                  <div className="lg:col-span-2 space-y-6">
-                    {/* Identification */}
-                    <Card>
-                      <div className="p-4 space-y-4">
-                        <h2 className="text-base font-semibold flex items-center gap-2">
-                          <FileText className="w-4 h-4" />
-                          Identification
-                        </h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <InlineEditableField
-                            label="Nom de la transaction"
-                            value={transaction.name}
-                            onSave={(value) => handleFieldUpdate('name', value as string)}
-                          />
-                          <InlineEditableField
-                            label="Numéro de dossier"
-                            value={transaction.dossier_number}
-                            onSave={(value) => handleFieldUpdate('dossier_number', value as string)}
-                            placeholder="Optionnel"
-                          />
-                          <InlineEditableField
-                            label="Statut"
-                            value={transaction.status}
-                            type="select"
-                            options={STATUS_OPTIONS}
-                            onSave={(value) => handleFieldUpdate('status', value as string)}
-                          />
-                          <div>
-                            <label className="text-sm font-medium text-muted-foreground">Date de création</label>
-                            <p className="text-base font-medium">{formatDate(transaction.created_at)}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-
-                    {/* Property Info */}
-                    <Card>
-                      <div className="p-4 space-y-4">
-                        <h2 className="text-base font-semibold flex items-center gap-2">
-                          <Home className="w-4 h-4" />
-                          Propriété
-                        </h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <InlineEditableField
-                            label="Adresse"
-                            value={transaction.property_address}
-                            onSave={(value) => handleFieldUpdate('property_address', value as string)}
-                            placeholder="123 Rue Principale"
-                          />
-                          <InlineEditableField
-                            label="Ville"
-                            value={transaction.property_city}
-                            onSave={(value) => handleFieldUpdate('property_city', value as string)}
-                          />
-                          <InlineEditableField
-                            label="Code postal"
-                            value={transaction.property_postal_code}
-                            onSave={(value) => handleFieldUpdate('property_postal_code', value as string)}
-                          />
-                          <InlineEditableField
-                            label="Province"
-                            value={transaction.property_province}
-                            onSave={(value) => handleFieldUpdate('property_province', value as string)}
-                          />
-                          <InlineEditableField
-                            label="Type de propriété"
-                            value={transaction.property_type}
-                            type="select"
-                            options={PROPERTY_TYPE_OPTIONS}
-                            onSave={(value) => handleFieldUpdate('property_type', value as string)}
-                          />
-                          <InlineEditableField
-                            label="Année de construction"
-                            value={transaction.construction_year}
-                            type="number"
-                            onSave={(value) => handleFieldUpdate('construction_year', value as number)}
-                          />
-                          <InlineEditableField
-                            label="Superficie du terrain (pi²)"
-                            value={transaction.land_area_sqft}
-                            type="number"
-                            onSave={(value) => handleFieldUpdate('land_area_sqft', value as number)}
-                          />
-                          <InlineEditableField
-                            label="Superficie habitable (pi²)"
-                            value={transaction.living_area_sqft}
-                            type="number"
-                            onSave={(value) => handleFieldUpdate('living_area_sqft', value as number)}
-                          />
-                          <InlineEditableField
-                            label="Nombre de chambres"
-                            value={transaction.bedrooms}
-                            type="number"
-                            onSave={(value) => handleFieldUpdate('bedrooms', value as number)}
-                          />
-                          <InlineEditableField
-                            label="Nombre de salles de bain"
-                            value={transaction.bathrooms}
-                            type="number"
-                            onSave={(value) => handleFieldUpdate('bathrooms', value as number)}
-                          />
-                        </div>
-                      </div>
-                    </Card>
-
-                    {/* Financial Info */}
-                    <Card>
-                      <div className="p-4 space-y-4">
-                        <h2 className="text-base font-semibold flex items-center gap-2">
-                          <DollarSign className="w-4 h-4" />
-                          Informations financières
-                        </h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <InlineEditableField
-                            label="Prix demandé"
-                            value={transaction.listing_price}
-                            type="number"
-                            formatValue={(val) => formatCurrency(val as number)}
-                            onSave={(value) => handleFieldUpdate('listing_price', value as number)}
-                          />
-                          <InlineEditableField
-                            label="Prix offert"
-                            value={transaction.offered_price}
-                            type="number"
-                            formatValue={(val) => formatCurrency(val as number)}
-                            onSave={(value) => handleFieldUpdate('offered_price', value as number)}
-                          />
-                          <InlineEditableField
-                            label="Prix de vente final"
-                            value={transaction.final_sale_price}
-                            type="number"
-                            formatValue={(val) => formatCurrency(val as number)}
-                            onSave={(value) => handleFieldUpdate('final_sale_price', value as number)}
-                          />
-                          <InlineEditableField
-                            label="Montant du dépôt"
-                            value={transaction.deposit_amount}
-                            type="number"
-                            formatValue={(val) => formatCurrency(val as number)}
-                            onSave={(value) => handleFieldUpdate('deposit_amount', value as number)}
-                          />
-                        </div>
-                      </div>
-                    </Card>
-
-                    {/* Dates */}
-                    <Card>
-                      <div className="p-4 space-y-4">
-                        <h2 className="text-base font-semibold flex items-center gap-2">
-                          <Calendar className="w-4 h-4" />
-                          Dates importantes
-                        </h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <InlineEditableField
-                            label="Date de promesse d'achat"
-                            value={transaction.promise_to_purchase_date}
-                            type="date"
-                            formatValue={(val) => formatDate(val as string)}
-                            onSave={(value) => handleFieldUpdate('promise_to_purchase_date', value as string)}
-                          />
-                          <InlineEditableField
-                            label="Date d'acceptation"
-                            value={transaction.promise_acceptance_date}
-                            type="date"
-                            formatValue={(val) => formatDate(val as string)}
-                            onSave={(value) => handleFieldUpdate('promise_acceptance_date', value as string)}
-                          />
-                          <InlineEditableField
-                            label="Date de clôture prévue"
-                            value={transaction.expected_closing_date}
-                            type="date"
-                            formatValue={(val) => formatDate(val as string)}
-                            onSave={(value) => handleFieldUpdate('expected_closing_date', value as string)}
-                          />
-                          <InlineEditableField
-                            label="Date de clôture réelle"
-                            value={transaction.actual_closing_date}
-                            type="date"
-                            formatValue={(val) => formatDate(val as string)}
-                            onSave={(value) => handleFieldUpdate('actual_closing_date', value as string)}
-                          />
-                          <InlineEditableField
-                            label="Date de prise de possession"
-                            value={transaction.possession_date}
-                            type="date"
-                            formatValue={(val) => formatDate(val as string)}
-                            onSave={(value) => handleFieldUpdate('possession_date', value as string)}
-                          />
-                        </div>
-                      </div>
-                    </Card>
-
-                    {/* Notes */}
-                    <Card>
-                      <div className="p-4 space-y-4">
-                        <h2 className="text-base font-semibold flex items-center gap-2">
-                          <FileText className="w-4 h-4" />
-                          Notes
-                        </h2>
-                        <InlineEditableField
-                          label="Notes"
-                          value={transaction.notes || ''}
-                          type="textarea"
-                          onSave={(value) => handleFieldUpdate('notes', value as string)}
-                        />
-                      </div>
-                    </Card>
-                  </div>
-
-                  {/* Right Column - Sidebar */}
-                  <div className="space-y-4">
-                    {/* Parties */}
-                    <Card>
-                      <div className="p-4 space-y-3">
-                        <h2 className="text-base font-semibold flex items-center gap-2">
-                          <Users className="w-4 h-4" />
-                          Parties impliquées
-                        </h2>
-                        {transaction.sellers && transaction.sellers.length > 0 && (
-                          <div>
-                            <h3 className="text-sm font-medium text-muted-foreground mb-2">Vendeurs</h3>
-                            <div className="space-y-1">
-                              {transaction.sellers.map((seller, idx) => (
-                                <p key={idx} className="text-sm">{seller.name}</p>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        {transaction.buyers && transaction.buyers.length > 0 && (
-                          <div>
-                            <h3 className="text-sm font-medium text-muted-foreground mb-2">Acheteurs</h3>
-                            <div className="space-y-1">
-                              {transaction.buyers.map((buyer, idx) => (
-                                <p key={idx} className="text-sm">{buyer.name}</p>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </Card>
-
-                    {/* Quick Actions */}
-                    <Card>
-                      <div className="p-4 space-y-3">
-                        <h2 className="text-base font-semibold">Actions rapides</h2>
-                        <div className="space-y-2">
-                          <Button
-                            variant="outline"
-                            className="w-full justify-start"
-                            onClick={() => router.push(`/dashboard/transactions/steps?id=${transaction.id}`)}
-                          >
-                            <Clock className="w-4 h-4 mr-2" />
-                            Voir les étapes
-                          </Button>
-                        </div>
-                      </div>
-                    </Card>
-                  </div>
-                </div>
-              </div>
-            </TabPanel>
-
-            {/* Actions Tab */}
-            <TabPanel value="actions">
-              <div className="mt-4 space-y-6">
-                <TransactionActionsPanel
-                  transactionId={parseInt(transactionId)}
-                  onActionComplete={() => {
-                    // Recharger la transaction après une action
-                    loadTransaction();
-                  }}
-                />
-                <TransactionTimeline transactionId={parseInt(transactionId)} />
-              </div>
-            </TabPanel>
-
-            {/* Contacts Tab */}
-            <TabPanel value="contacts">
-              <div className="mt-4">
-                <TransactionContactsCard
-                  transactionId={parseInt(transactionId)}
-                  onContactAdded={() => {
-                    loadContactsCount();
-                  }}
-                  onContactRemoved={() => {
-                    loadContactsCount();
-                  }}
-                />
-              </div>
-            </TabPanel>
-
-            {/* Photos Tab */}
-            <TabPanel value="photos">
-              <div className="mt-4">
-                <Card>
-                  <div className="p-4 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-base font-semibold flex items-center gap-2">
-                        <ImageIcon className="w-4 h-4" />
-                        Photos
-                      </h2>
-                      <label className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg cursor-pointer hover:bg-muted transition-modern text-sm"> // UI Revamp - Transition moderne
-                        <Upload className="w-4 h-4" />
-                        Ajouter une photo
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={async (e) => {
-                            const selectedFile = e.target.files?.[0];
-                            if (selectedFile && transaction && transactionId) {
-                              try {
-                                setSaving({ ...saving, photos: true });
-                                const id = parseInt(transactionId);
-                                if (isNaN(id)) {
-                                  throw new Error('ID de transaction invalide');
-                                }
-                                const response = await transactionsAPI.addPhoto(
-                                  id,
-                                  selectedFile
-                                );
-                                setTransaction(response.data);
-                                setError(null); // Clear any previous errors
-                                showToast({
-                                  message: 'Photo ajoutée avec succès',
-                                  type: 'success',
-                                });
-                              } catch (err) {
-                                const errorMessage = err instanceof Error ? err.message : 'Erreur lors de l\'ajout de la photo';
-                                console.error('Error adding photo:', err);
-                                showToast({
-                                  message: errorMessage,
-                                  type: 'error',
-                                });
-                              } finally {
-                                setSaving({ ...saving, photos: false });
-                                e.target.value = '';
-                              }
-                            } else if (!transaction) {
-                              showToast({
-                                message: 'Transaction introuvable. Veuillez recharger la page.',
-                                type: 'error',
-                              });
-                            }
-                          }}
-                          disabled={saving.photos}
-                        />
-                      </label>
+        {/* Main Content with Tabs */}
+        <div className="bg-white rounded-3xl shadow-sm overflow-hidden">
+          {/* Tabs */}
+          <div className="border-b border-gray-200">
+            <div className="flex">
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex-1 px-6 py-4 text-sm font-medium transition-colors relative ${
+                      activeTab === tab.id
+                        ? 'text-blue-600'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <Icon className="w-4 h-4" />
+                      {tab.label}
                     </div>
-                    
-                    {transaction.documents && transaction.documents.filter(d => d.type === 'photo').length > 0 ? (
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                        {transaction.documents.filter(d => d.type === 'photo').map((photo) => (
-                          <div
-                            key={photo.id}
-                            className="group relative aspect-square border border-border rounded-lg overflow-hidden bg-muted hover:shadow-standard-lg transition-modern" // UI Revamp - Nouveau système d'ombres et transition moderne
-                          >
-                            <img
-                              src={photo.url}
-                              alt={photo.description || photo.filename}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23ddd" width="200" height="200"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="14" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EImage%3C/text%3E%3C/svg%3E';
-                              }}
-                            />
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-modern flex items-center justify-center opacity-0 group-hover:opacity-100"> // UI Revamp - Transition moderne
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => window.open(photo.url, '_blank')}
-                                  title="Voir la photo"
-                                  className="text-white hover:bg-white/20"
-                                >
-                                  <Eye className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={async () => {
-                                    if (confirm('Êtes-vous sûr de vouloir supprimer cette photo ?')) {
-                                      try {
-                                        setSaving({ ...saving, [`photo_${photo.id}`]: true });
-                                        const response = await transactionsAPI.removeDocument(
-                                          parseInt(transactionId),
-                                          photo.id
-                                        );
-                                        setTransaction(response.data);
-                                      } catch (err) {
-                                        setError(err instanceof Error ? err.message : 'Erreur lors de la suppression');
-                                      } finally {
-                                        setSaving({ ...saving, [`photo_${photo.id}`]: false });
-                                      }
-                                    }
-                                  }}
-                                  disabled={saving[`photo_${photo.id}`]}
-                                  title="Supprimer la photo"
-                                  className="text-white hover:bg-white/20"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </div>
+                    {activeTab === tab.id && (
+                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500"></div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Tab Content */}
+          <div className="p-8">
+            {/* Overview Tab */}
+            {activeTab === 'overview' && (
+              <div className="space-y-6">
+                {/* Property Info */}
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Property details</h3>
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                          <MapPin className="w-5 h-5 text-gray-400" />
+                          <div>
+                            <p className="text-sm text-gray-500">Address</p>
+                            <p className="text-sm font-medium text-gray-900">{propertyAddress}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Building2 className="w-5 h-5 text-gray-400" />
+                          <div>
+                            <p className="text-sm text-gray-500">Property type</p>
+                            <p className="text-sm font-medium text-gray-900">{transaction.property_type || '-'}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <DollarSign className="w-5 h-5 text-gray-400" />
+                          <div>
+                            <p className="text-sm text-gray-500">Price</p>
+                            <p className="text-sm font-medium text-gray-900">
+                              {transaction.final_sale_price 
+                                ? formatCurrency(transaction.final_sale_price)
+                                : transaction.offered_price
+                                ? formatCurrency(transaction.offered_price)
+                                : transaction.listing_price
+                                ? formatCurrency(transaction.listing_price)
+                                : '-'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="bg-gray-50 rounded-2xl p-4">
+                        <Bed className="w-5 h-5 text-gray-600 mb-2" />
+                        <p className="text-2xl font-semibold text-gray-900">{transaction.bedrooms || '-'}</p>
+                        <p className="text-xs text-gray-500">Bedrooms</p>
+                      </div>
+                      <div className="bg-gray-50 rounded-2xl p-4">
+                        <Bath className="w-5 h-5 text-gray-600 mb-2" />
+                        <p className="text-2xl font-semibold text-gray-900">{transaction.bathrooms || '-'}</p>
+                        <p className="text-xs text-gray-500">Bathrooms</p>
+                      </div>
+                      <div className="bg-gray-50 rounded-2xl p-4">
+                        <Square className="w-5 h-5 text-gray-600 mb-2" />
+                        <p className="text-2xl font-semibold text-gray-900">{transaction.living_area_sqft || '-'}</p>
+                        <p className="text-xs text-gray-500">sq ft</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    {/* Client Info */}
+                    {firstBuyer && (
+                      <div className="bg-gray-50 rounded-2xl p-6">
+                        <h3 className="text-sm font-semibold text-gray-900 mb-4">Client</h3>
+                        <div className="flex items-center gap-4 mb-4">
+                          <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
+                            {firstBuyer.name?.charAt(0) || 'C'}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{firstBuyer.name}</p>
+                            <p className="text-xs text-gray-500">Buyer</p>
+                          </div>
+                        </div>
+                        {firstBuyer.email && (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                              <Mail className="w-4 h-4" />
+                              {firstBuyer.email}
                             </div>
-                            {photo.description && (
-                              <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-2 truncate">
-                                {photo.description}
+                            {firstBuyer.phone && (
+                              <div className="flex items-center gap-2 text-sm text-gray-600">
+                                <Phone className="w-4 h-4" />
+                                {firstBuyer.phone}
                               </div>
                             )}
                           </div>
-                        ))}
+                        )}
+                        <div className="flex gap-2 mt-4">
+                          <button className="flex-1 px-3 py-2 bg-blue-500 text-white rounded-xl text-sm font-medium hover:bg-blue-600 transition-colors">
+                            <MessageSquare className="w-4 h-4 inline mr-1" />
+                            Message
+                          </button>
+                          {firstBuyer.phone && (
+                            <button className="flex-1 px-3 py-2 bg-white text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-100 transition-colors">
+                              <Phone className="w-4 h-4 inline mr-1" />
+                              Call
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    ) : (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <ImageIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                        <p>Aucune photo associée à cette transaction</p>
+                    )}
+
+                    {/* Agent Info */}
+                    {buyerBroker && (
+                      <div className="bg-gray-50 rounded-2xl p-6">
+                        <h3 className="text-sm font-semibold text-gray-900 mb-4">Agent</h3>
+                        <div className="flex items-center gap-4 mb-4">
+                          <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white font-semibold">
+                            {buyerBroker.name?.charAt(0) || 'A'}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{buyerBroker.name}</p>
+                            <p className="text-xs text-gray-500">Real Estate Agent</p>
+                          </div>
+                        </div>
+                        {buyerBroker.contact && (
+                          <div className="space-y-2">
+                            {buyerBroker.contact.email && (
+                              <div className="flex items-center gap-2 text-sm text-gray-600">
+                                <Mail className="w-4 h-4" />
+                                {buyerBroker.contact.email}
+                              </div>
+                            )}
+                            {buyerBroker.contact.phone && (
+                              <div className="flex items-center gap-2 text-sm text-gray-600">
+                                <Phone className="w-4 h-4" />
+                                {buyerBroker.contact.phone}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
-                </Card>
+                </div>
               </div>
-            </TabPanel>
+            )}
 
             {/* Documents Tab */}
-            <TabPanel value="documents">
-              <div className="mt-4">
-                <Card>
-                  <div className="p-4 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-base font-semibold flex items-center gap-2">
-                        <FileText className="w-4 h-4" />
-                        Documents
-                      </h2>
-                      <label className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg cursor-pointer hover:bg-muted transition-modern text-sm"> // UI Revamp - Transition moderne
-                        <Upload className="w-4 h-4" />
-                        Ajouter un document
-                        <input
-                          type="file"
-                          className="hidden"
-                          onChange={async (e) => {
-                            const selectedFile = e.target.files?.[0];
-                            if (selectedFile) {
-                              try {
-                                setSaving({ ...saving, documents: true });
-                                const response = await transactionsAPI.addDocument(
-                                  parseInt(transactionId),
-                                  selectedFile
-                                );
-                                setTransaction(response.data);
-                              } catch (err) {
-                                setError(err instanceof Error ? err.message : 'Erreur lors de l\'ajout du document');
-                              } finally {
-                                setSaving({ ...saving, documents: false });
-                                e.target.value = '';
-                              }
+            {activeTab === 'documents' && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900">Transaction documents</h3>
+                  <label className="px-4 py-2 bg-blue-500 text-white rounded-2xl text-sm font-medium hover:bg-blue-600 transition-colors cursor-pointer">
+                    <Upload className="w-4 h-4 inline mr-2" />
+                    Upload Document
+                    <input
+                      type="file"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const selectedFile = e.target.files?.[0];
+                        if (selectedFile) {
+                          try {
+                            setSaving({ ...saving, documents: true });
+                            const response = await transactionsAPI.addDocument(
+                              parseInt(transactionId),
+                              selectedFile
+                            );
+                            setTransaction(response.data);
+                            showToast({
+                              message: 'Document ajouté avec succès',
+                              type: 'success',
+                            });
+                          } catch (err) {
+                            showToast({
+                              message: err instanceof Error ? err.message : 'Erreur lors de l\'ajout du document',
+                              type: 'error',
+                            });
+                          } finally {
+                            setSaving({ ...saving, documents: false });
+                            e.target.value = '';
+                          }
+                        }
+                      }}
+                      disabled={saving.documents}
+                    />
+                  </label>
+                </div>
+
+                {documents.length > 0 ? (
+                  documents.map((doc) => (
+                    <div
+                      key={doc.id}
+                      className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                          <FileText className="w-6 h-6 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{doc.filename}</p>
+                          <p className="text-xs text-gray-500">
+                            {doc.content_type || 'Document'} • {formatFileSize(doc.size)} • Uploaded {doc.uploaded_at ? formatTimestamp(doc.uploaded_at) : '-'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                          pending
+                        </span>
+                        <button 
+                          onClick={() => window.open(doc.url, '_blank')}
+                          className="p-2 hover:bg-gray-200 rounded-xl transition-colors"
+                        >
+                          <Download className="w-4 h-4 text-gray-600" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-12 text-gray-500">
+                    <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>No documents uploaded yet</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Activity Tab */}
+            {activeTab === 'activity' && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900">Activity timeline</h3>
+                </div>
+
+                {/* Add Comment */}
+                <div className="bg-gray-50 rounded-2xl p-4">
+                  <textarea
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder="Add a comment..."
+                    className="w-full px-4 py-3 bg-white rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 border-none resize-none"
+                    rows={3}
+                  />
+                  <div className="flex items-center justify-between mt-3">
+                    <div className="flex items-center gap-2">
+                      <button className="p-2 hover:bg-gray-200 rounded-xl transition-colors">
+                        <Paperclip className="w-4 h-4 text-gray-600" />
+                      </button>
+                      <button className="p-2 hover:bg-gray-200 rounded-xl transition-colors">
+                        <ImageIcon className="w-4 h-4 text-gray-600" />
+                      </button>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        // TODO: Implement comment submission
+                        setNewComment('');
+                      }}
+                      className="px-4 py-2 bg-blue-500 text-white rounded-xl text-sm font-medium hover:bg-blue-600 transition-colors"
+                    >
+                      <Send className="w-4 h-4 inline mr-2" />
+                      Post Comment
+                    </button>
+                  </div>
+                </div>
+
+                {/* Timeline */}
+                <div className="space-y-4">
+                  <TransactionTimeline transactionId={parseInt(transactionId)} />
+                </div>
+              </div>
+            )}
+
+            {/* Photos Tab */}
+            {activeTab === 'photos' && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900">Property photos</h3>
+                  <label className="px-4 py-2 bg-blue-500 text-white rounded-2xl text-sm font-medium hover:bg-blue-600 transition-colors cursor-pointer">
+                    <Plus className="w-4 h-4 inline mr-2" />
+                    Add Photos
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const selectedFile = e.target.files?.[0];
+                        if (selectedFile && transaction && transactionId) {
+                          try {
+                            setSaving({ ...saving, photos: true });
+                            const id = parseInt(transactionId);
+                            if (isNaN(id)) {
+                              throw new Error('ID de transaction invalide');
                             }
+                            const response = await transactionsAPI.addPhoto(id, selectedFile);
+                            setTransaction(response.data);
+                            showToast({
+                              message: 'Photo ajoutée avec succès',
+                              type: 'success',
+                            });
+                          } catch (err) {
+                            showToast({
+                              message: err instanceof Error ? err.message : 'Erreur lors de l\'ajout de la photo',
+                              type: 'error',
+                            });
+                          } finally {
+                            setSaving({ ...saving, photos: false });
+                            e.target.value = '';
+                          }
+                        }
+                      }}
+                      disabled={saving.photos}
+                    />
+                  </label>
+                </div>
+
+                {photos.length > 0 ? (
+                  <div className="grid grid-cols-2 gap-6">
+                    {photos.map((photo) => (
+                      <div key={photo.id} className="group relative aspect-video rounded-2xl overflow-hidden">
+                        <img
+                          src={photo.url}
+                          alt={photo.description || photo.filename}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23ddd" width="200" height="200"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="14" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EImage%3C/text%3E%3C/svg%3E';
                           }}
-                          disabled={saving.documents}
                         />
-                      </label>
-                    </div>
-                    
-                    {transaction.documents && transaction.documents.filter(d => d.type !== 'photo').length > 0 ? (
-                      <div className="space-y-2">
-                        {transaction.documents.filter(d => d.type !== 'photo').map((doc) => (
-                          <div
-                            key={doc.id}
-                            className="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-muted/50 transition-modern" // UI Revamp - Transition moderne
-                          >
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium truncate">{doc.filename}</p>
-                                {doc.description && (
-                                  <p className="text-sm text-muted-foreground truncate">{doc.description}</p>
-                                )}
-                                {doc.size && (
-                                  <p className="text-xs text-muted-foreground">
-                                    {(doc.size / 1024).toFixed(2)} KB
-                                    {doc.uploaded_at && ` • ${formatDate(doc.uploaded_at)}`}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2 flex-shrink-0">
-                              {doc.url && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => window.open(doc.url, '_blank')}
-                                  title="Voir le document"
-                                >
-                                  <Eye className="w-4 h-4" />
-                                </Button>
-                              )}
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={async () => {
-                                  if (confirm('Êtes-vous sûr de vouloir supprimer ce document ?')) {
-                                    try {
-                                      setSaving({ ...saving, [`doc_${doc.id}`]: true });
-                                      const response = await transactionsAPI.removeDocument(
-                                        parseInt(transactionId),
-                                        doc.id
-                                      );
-                                      setTransaction(response.data);
-                                    } catch (err) {
-                                      setError(err instanceof Error ? err.message : 'Erreur lors de la suppression');
-                                    } finally {
-                                      setSaving({ ...saving, [`doc_${doc.id}`]: false });
-                                    }
-                                  }
-                                }}
-                                disabled={saving[`doc_${doc.id}`]}
-                                title="Supprimer le document"
-                              >
-                                <Trash2 className="w-4 h-4 text-destructive" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                        <p>Aucun document associé à cette transaction</p>
-                      </div>
-                    )}
-                  </div>
-                </Card>
-              </div>
-            </TabPanel>
-
-            {/* Transactions Tab */}
-            <TabPanel value="transactions">
-              <div className="mt-4">
-                <Card>
-                  <div className="p-4">
-                    <h2 className="text-base font-semibold flex items-center gap-2 mb-3">
-                      <Receipt className="w-4 h-4" />
-                      Historique financier
-                    </h2>
-                    <div className="text-center py-12 text-muted-foreground">
-                      <Receipt className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                      <p>Fonctionnalité à venir</p>
-                    </div>
-                  </div>
-                </Card>
-              </div>
-            </TabPanel>
-
-            {/* Deposits Tab */}
-            <TabPanel value="deposits">
-              <div className="mt-4">
-                <Card>
-                  <div className="p-4">
-                    <h2 className="text-base font-semibold flex items-center gap-2 mb-3">
-                      <Shield className="w-4 h-4" />
-                      Dépôts de sécurité
-                    </h2>
-                    <div className="text-center py-12 text-muted-foreground">
-                      <Shield className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                      <p>Fonctionnalité à venir</p>
-                    </div>
-                  </div>
-                </Card>
-              </div>
-            </TabPanel>
-
-            {/* Balance Tab */}
-            <TabPanel value="balance">
-              <div className="mt-4">
-                <Card>
-                  <div className="p-4">
-                    <h2 className="text-base font-semibold flex items-center gap-2 mb-3">
-                      <DollarSign className="w-4 h-4" />
-                      Solde
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                      <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-                        <div className="p-4">
-                          <p className="text-xs text-muted-foreground mb-1.5">Solde du bail</p>
-                          <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                            {formatCurrency(transaction.deposit_amount ? -transaction.deposit_amount : 0)}
-                          </p>
-                        </div>
-                      </Card>
-                      <Card className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
-                        <div className="p-4">
-                          <p className="text-xs text-muted-foreground mb-1.5">Dépôts de sécurité</p>
-                          <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                            {formatCurrency(transaction.deposit_amount)}
-                          </p>
-                        </div>
-                      </Card>
-                    </div>
-                    <div className="text-center py-8 text-muted-foreground">
-                      <DollarSign className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                      <p>Détails financiers à venir</p>
-                    </div>
-                  </div>
-                </Card>
-              </div>
-            </TabPanel>
-
-            {/* History Tab */}
-            <TabPanel value="history">
-              <div className="mt-4">
-                <Card>
-                  <div className="p-4">
-                    <h2 className="text-base font-semibold flex items-center gap-2 mb-3">
-                      <History className="w-4 h-4" />
-                      Historique
-                    </h2>
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3 p-3 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded">
-                        <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                        <div className="flex-1">
-                          <p className="text-xs font-medium">Transaction créée</p>
-                          <p className="text-[10px] text-muted-foreground">{formatDate(transaction.created_at)}</p>
-                        </div>
-                      </div>
-                      {transaction.updated_at !== transaction.created_at && (
-                        <div className="flex items-center gap-3 p-3 border-l-4 border-green-500 bg-green-50 dark:bg-green-900/20 rounded">
-                          <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                          <div className="flex-1">
-                            <p className="text-xs font-medium">Dernière modification</p>
-                            <p className="text-[10px] text-muted-foreground">{formatDate(transaction.updated_at)}</p>
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="absolute bottom-4 left-4 right-4">
+                            <p className="text-white font-medium">{photo.description || photo.filename}</p>
                           </div>
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    ))}
                   </div>
-                </Card>
+                ) : (
+                  <div className="text-center py-12 text-gray-500">
+                    <ImageIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>No photos uploaded yet</p>
+                  </div>
+                )}
               </div>
-            </TabPanel>
-          </TabPanels>
-        </Tabs>
+            )}
+
+          </div>
+        </div>
       </div>
-    </Container>
+    </div>
   );
 }

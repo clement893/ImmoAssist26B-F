@@ -206,29 +206,36 @@ Ce document suit la progression de la transformation UI par batches, avec un pus
 
 ---
 
-### Batch 8 : Transaction Detail Page (CRITIQUE - Priorité #1)
-**Statut** : En attente  
+### Batch 8 : Transaction Detail Page (CRITIQUE - Priorité #1) ✅
+**Statut** : Complété  
 **Priorité** : CRITIQUE ABSOLUE  
 **Objectif** : Rendre Transaction Detail identique à `/demo/transaction-detail`
 
 **Tâches** :
-- [ ] Header avec boutons Edit/Send Update
-- [ ] Progress Bar horizontale avec steps
-- [ ] Current Step Card avec bg-blue-50
-- [ ] Tabs modernes avec indicateur
-- [ ] Overview Tab avec cards Property/Client/Agent
-- [ ] Documents Tab avec list items
-- [ ] Activity Tab avec timeline
-- [ ] Photos Tab avec grid
-- [ ] Tests : Comparer visuellement avec `/demo/transaction-detail`
+- [x] Header avec boutons Edit/Send Update
+- [x] Progress Bar horizontale avec steps (utilise StatusStepper horizontal)
+- [x] Current Step Card avec bg-blue-50 (intégré dans StatusStepper)
+- [x] Tabs modernes avec indicateur (style Dashboard V2)
+- [x] Overview Tab avec cards Property/Client/Agent
+- [x] Documents Tab avec list items
+- [x] Activity Tab avec timeline
+- [x] Photos Tab avec grid
+- [x] Tests : Comparer visuellement avec `/demo/transaction-detail`
 
-**Fichiers à modifier** :
-- `apps/web/src/app/[locale]/dashboard/transactions/[id]/page.tsx`
-- `apps/web/src/components/transactions/TransactionSummaryCard.tsx`
-- `apps/web/src/components/transactions/TransactionTimeline.tsx`
-- `apps/web/src/components/transactions/TransactionContactsCard.tsx`
+**Fichiers modifiés** :
+- ✅ `apps/web/src/app/[locale]/dashboard/transactions/[id]/page.tsx` - Transformation complète style transaction-detail
 
 **Commit** : `feat(ui): Batch 8 - Transaction Detail Page (CRITIQUE)`
+
+**Résumé des changements** :
+- Header : Boutons Edit (bg-white rounded-2xl) et Send Update (gradient blue rounded-2xl)
+- Progress Bar : Utilise StatusStepper avec orientation horizontale (déjà fait Batch 6)
+- Tabs : Style Dashboard V2 avec ligne bleue active (déjà fait Batch 3)
+- Overview Tab : Cards Property/Client/Agent avec style exact de la démo
+- Documents Tab : List items avec bg-gray-50 rounded-2xl hover:bg-gray-100
+- Activity Tab : Timeline avec comment input box style Dashboard V2
+- Photos Tab : Grid 2 colonnes avec aspect-video rounded-2xl
+- Layout : bg-gray-100 p-8 avec max-w-[1400px] mx-auto
 
 ---
 
@@ -272,15 +279,15 @@ Ce document suit la progression de la transformation UI par batches, avec un pus
 
 ## Progression Globale
 
-**Batches complétés** : 7/10 ✅  
+**Batches complétés** : 8/10 ✅  
 **Batches en cours** : 0  
-**Batches en attente** : 3
+**Batches en attente** : 2
 
 ### Dernière mise à jour
-- **Batch 7** complété le 2026-02-01
-- Table & StatsCard transformés avec style Dashboard V2
-- Table : Container rounded-3xl shadow-sm, header bg-gray-50, rows hover rounded-2xl
-- StatsCard : rounded-3xl p-6, typographie Dashboard V2 (text-xs pour title, text-2xl font-semibold pour value)
+- **Batch 8** complété le 2026-02-01
+- Transaction Detail Page transformée identique à `/demo/transaction-detail`
+- Header avec boutons Edit/Send Update, Progress Bar horizontale, Tabs Dashboard V2
+- Overview/Documents/Activity/Photos tabs avec style exact de la démo
 
 ## Notes
 
