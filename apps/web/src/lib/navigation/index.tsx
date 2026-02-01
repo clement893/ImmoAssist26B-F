@@ -26,6 +26,7 @@ import {
   UserCheck,
   ClipboardList,
   Receipt,
+  UserPlus,
 } from 'lucide-react';
 
 export interface NavigationItem {
@@ -51,7 +52,7 @@ export interface NavigationConfig {
  * Get default navigation structure
  * Can be customized based on user permissions
  */
-export function getNavigationConfig(isAdmin: boolean): NavigationConfig {
+export function getNavigationConfig(_isAdmin?: boolean): NavigationConfig {
   const config: NavigationConfig = {
     items: [
       // Dashboard (non-grouped)
@@ -134,6 +135,30 @@ export function getNavigationConfig(isAdmin: boolean): NavigationConfig {
         collapsible: true,
         defaultOpen: false,
       },
+      // Portail client
+      {
+        name: 'Portail client',
+        icon: <Users className="w-5 h-5" />,
+        items: [
+          {
+            name: 'Portails clients infos',
+            href: '/dashboard/portail-client/infos',
+            icon: <LayoutDashboard className="w-5 h-5" />,
+          },
+          {
+            name: 'Liste des clients',
+            href: '/dashboard/portail-client/courtier/clients',
+            icon: <Users className="w-5 h-5" />,
+          },
+          {
+            name: 'Inviter un client',
+            href: '/dashboard/portail-client/courtier/clients/inviter',
+            icon: <UserPlus className="w-5 h-5" />,
+          },
+        ],
+        collapsible: true,
+        defaultOpen: false,
+      },
       // Module Profil
       {
         name: 'Profil',
@@ -171,9 +196,8 @@ export function getNavigationConfig(isAdmin: boolean): NavigationConfig {
     ],
   };
 
-  // Add Admin module only for admins
-  if (isAdmin) {
-    config.items.push({
+  // Module Admin - visible dans le menu avec toutes les sous-pages
+  config.items.push({
       name: 'Admin',
       icon: <Shield className="w-5 h-5" />,
       items: [
@@ -251,7 +275,6 @@ export function getNavigationConfig(isAdmin: boolean): NavigationConfig {
       collapsible: true,
       defaultOpen: false,
     });
-  }
 
   return config;
 }

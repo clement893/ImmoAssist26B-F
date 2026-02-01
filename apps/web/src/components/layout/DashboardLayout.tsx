@@ -41,6 +41,7 @@ import {
   Sliders,
   UserCog,
   Users,
+  UserPlus,
   Calendar,
   Clock,
 } from 'lucide-react';
@@ -52,7 +53,7 @@ interface DashboardLayoutProps {
 
 // Memoize sidebar items to prevent recreation on every render
 // This ensures the sidebar doesn't re-render unnecessarily during navigation
-const createSidebarItems = (isAdmin: boolean) => [
+const createSidebarItems = () => [
   {
     label: 'Dashboard',
     href: '/dashboard',
@@ -119,6 +120,28 @@ const createSidebarItems = (isAdmin: boolean) => [
       },
     ],
   },
+  // Portail client (courtier)
+  {
+    label: 'Portail client',
+    icon: <Users className="w-5 h-5" />,
+    children: [
+      {
+        label: 'Portails clients infos',
+        href: '/dashboard/portail-client/infos',
+        icon: <LayoutDashboard className="w-5 h-5" />,
+      },
+      {
+        label: 'Liste des clients',
+        href: '/dashboard/portail-client/courtier/clients',
+        icon: <Users className="w-5 h-5" />,
+      },
+      {
+        label: 'Inviter un client',
+        href: '/dashboard/portail-client/courtier/clients/inviter',
+        icon: <UserPlus className="w-5 h-5" />,
+      },
+    ],
+  },
   // Module Calendrier
   {
     label: 'Calendrier',
@@ -178,87 +201,83 @@ const createSidebarItems = (isAdmin: boolean) => [
     href: '/dashboard/become-superadmin',
     icon: <Shield className="w-5 h-5" />,
   },
-  // Module Admin - only visible to admins and superadmins
-  ...(isAdmin
-    ? [
-        {
-          label: 'Admin',
-          icon: <Shield className="w-5 h-5" />,
-          children: [
-            {
-              label: 'Vue d\'ensemble',
-              href: '/dashboard/modules/admin',
-              icon: <LayoutDashboard className="w-5 h-5" />,
-            },
-            {
-              label: 'Utilisateurs',
-              href: '/dashboard/modules/admin/users',
-              icon: <Users className="w-5 h-5" />,
-            },
-            {
-              label: 'Équipes',
-              href: '/dashboard/modules/admin/teams',
-              icon: <UserCog className="w-5 h-5" />,
-            },
-            {
-              label: 'Rôles et permissions',
-              href: '/dashboard/modules/admin/rbac',
-              icon: <Shield className="w-5 h-5" />,
-            },
-            {
-              label: 'Organisations',
-              href: '/dashboard/modules/admin/organizations',
-              icon: <Building2 className="w-5 h-5" />,
-            },
-            {
-              label: 'Invitations',
-              href: '/dashboard/modules/admin/invitations',
-              icon: <UserCheck className="w-5 h-5" />,
-            },
-            {
-              label: 'Pages',
-              href: '/dashboard/modules/admin/pages',
-              icon: <FileText className="w-5 h-5" />,
-            },
-            {
-              label: 'Articles',
-              href: '/dashboard/modules/admin/articles',
-              icon: <FileCheck className="w-5 h-5" />,
-            },
-            {
-              label: 'Médias',
-              href: '/dashboard/modules/admin/media',
-              icon: <Image className="w-5 h-5" />,
-            },
-            {
-              label: 'Thèmes',
-              href: '/dashboard/modules/admin/themes',
-              icon: <Palette className="w-5 h-5" />,
-            },
-            {
-              label: 'Clés API',
-              href: '/dashboard/modules/admin/api-keys',
-              icon: <Lock className="w-5 h-5" />,
-            },
-            {
-              label: 'Statistiques',
-              href: '/dashboard/modules/admin/statistics',
-              icon: <Sliders className="w-5 h-5" />,
-            },
-            {
-              label: 'Configuration',
-              href: '/dashboard/modules/admin/settings',
-              icon: <Cog className="w-5 h-5" />,
-            },
-            {
-              label: 'Tenancy',
-              href: '/dashboard/modules/admin/tenancy',
-              icon: <Building2 className="w-5 h-5" />,
-            },
-          ],
-        },
-      ]
-    : []),
+  // Module Admin - visible dans le menu avec toutes les sous-pages
+  {
+    label: 'Admin',
+    icon: <Shield className="w-5 h-5" />,
+    children: [
+      {
+        label: 'Vue d\'ensemble',
+        href: '/dashboard/modules/admin',
+        icon: <LayoutDashboard className="w-5 h-5" />,
+      },
+      {
+        label: 'Utilisateurs',
+        href: '/dashboard/modules/admin/users',
+        icon: <Users className="w-5 h-5" />,
+      },
+      {
+        label: 'Équipes',
+        href: '/dashboard/modules/admin/teams',
+        icon: <UserCog className="w-5 h-5" />,
+      },
+      {
+        label: 'Rôles et permissions',
+        href: '/dashboard/modules/admin/rbac',
+        icon: <Shield className="w-5 h-5" />,
+      },
+      {
+        label: 'Organisations',
+        href: '/dashboard/modules/admin/organizations',
+        icon: <Building2 className="w-5 h-5" />,
+      },
+      {
+        label: 'Invitations',
+        href: '/dashboard/modules/admin/invitations',
+        icon: <UserCheck className="w-5 h-5" />,
+      },
+      {
+        label: 'Pages',
+        href: '/dashboard/modules/admin/pages',
+        icon: <FileText className="w-5 h-5" />,
+      },
+      {
+        label: 'Articles',
+        href: '/dashboard/modules/admin/articles',
+        icon: <FileCheck className="w-5 h-5" />,
+      },
+      {
+        label: 'Médias',
+        href: '/dashboard/modules/admin/media',
+        icon: <Image className="w-5 h-5" />,
+      },
+      {
+        label: 'Thèmes',
+        href: '/dashboard/modules/admin/themes',
+        icon: <Palette className="w-5 h-5" />,
+      },
+      {
+        label: 'Clés API',
+        href: '/dashboard/modules/admin/api-keys',
+        icon: <Lock className="w-5 h-5" />,
+      },
+      {
+        label: 'Statistiques',
+        href: '/dashboard/modules/admin/statistics',
+        icon: <Sliders className="w-5 h-5" />,
+      },
+      {
+        label: 'Configuration',
+        href: '/dashboard/modules/admin/settings',
+        icon: <Cog className="w-5 h-5" />,
+      },
+      {
+        label: 'Tenancy',
+        href: '/dashboard/modules/admin/tenancy',
+        icon: <Building2 className="w-5 h-5" />,
+      },
+    ],
+  },
 ];
 
 // Memoize the sidebar component to prevent re-renders during navigation
@@ -272,12 +291,9 @@ function DashboardLayoutContent({ children }: DashboardLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Check if user is admin or superadmin
-  const isAdmin = user?.is_admin ?? false;
-
-  // Memoize sidebar items - only recreate if admin status changes
+  // Memoize sidebar items
   // This prevents the sidebar from re-rendering on every navigation
-  const sidebarItems = useMemo(() => createSidebarItems(isAdmin), [isAdmin]);
+  const sidebarItems = useMemo(() => createSidebarItems(), []);
 
   // Memoize callbacks to prevent re-renders
   const handleToggleCollapse = useCallback(() => {

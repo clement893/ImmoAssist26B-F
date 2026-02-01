@@ -3,6 +3,7 @@ API v1 router registration.
 """
 from fastapi import APIRouter
 from app.api.v1.endpoints import themes, theme_fonts, projects, websocket, admin, auth, two_factor, api_keys, users, health, db_health, newsletter, exports, imports, search, tags, activities, comments, favorites, templates, versions, shares, feature_flags, user_preferences, announcements, feedback, onboarding, documentation, scheduled_tasks, backups, email_templates, audit_trail, integrations, api_settings, organization_settings, general_settings, pages, forms, menus, support_tickets, seo, teams, invitations, rbac, notifications, api_connection_check, reports, media, insights, analytics, posts, subscriptions, lea, transactions, dashboard, transaction_actions, calendar_availability
+from app.api.v1.endpoints import client_invitations, portail_transactions, transaction_documents, transaction_messages, transaction_taches
 from app.api.v1.endpoints import oaciq_forms, oaciq_forms_import
 from app.api.v1.endpoints.reseau import contacts as reseau_contacts
 from app.api.v1.endpoints.reseau import companies as reseau_companies
@@ -465,3 +466,10 @@ api_router.include_router(
     calendar_availability.router,
     tags=["calendar-availability"]
 )
+
+# Portail client ImmoAssist
+api_router.include_router(client_invitations.router)
+api_router.include_router(portail_transactions.router)
+api_router.include_router(transaction_documents.router)
+api_router.include_router(transaction_messages.router)
+api_router.include_router(transaction_taches.router)

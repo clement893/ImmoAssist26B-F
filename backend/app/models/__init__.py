@@ -48,6 +48,12 @@ from app.models.real_estate_contact import RealEstateContact, ContactType
 from app.models.transaction_contact import TransactionContact
 from app.models.transaction_action import TransactionAction, ActionCompletion
 from app.models.user_availability import UserAvailability, DayOfWeek
+from app.models.client_invitation import ClientInvitation
+from app.models.portail_transaction import PortailTransaction
+from app.models.transaction_document import TransactionDocument
+from app.models.transaction_message import TransactionMessage
+from app.models.transaction_tache import TransactionTache
+from app.models.transaction_etape import TransactionEtape
 from app.core.security_audit import SecurityAuditLog
 
 __all__ = [
@@ -143,6 +149,12 @@ __all__ = [
     "ActionCompletion",
     "UserAvailability",
     "DayOfWeek",
+    "ClientInvitation",
+    "PortailTransaction",
+    "TransactionDocument",
+    "TransactionMessage",
+    "TransactionTache",
+    "TransactionEtape",
     "SecurityAuditLog",
 ]
 

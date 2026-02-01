@@ -5,7 +5,7 @@ SQLAlchemy model for users
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, Column, DateTime, Integer, String, func, Index
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, func, Index, ForeignKey
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
@@ -28,6 +28,8 @@ class User(Base):
     last_name = Column(String(100), nullable=True, index=True)  # For search
     avatar = Column(String(500), nullable=True)  # Avatar URL
     is_active = Column(Boolean, default=True, nullable=False, index=True)
+    # Portail client: user created from a client invitation (client side)
+    client_invitation_id = Column(Integer, ForeignKey("client_invitations.id"), nullable=True, unique=True, index=True)
     # DEPRECATED: theme_preference column exists in DB but is deprecated
     # Theme management is now handled globally via the theme system
     # Made nullable=True to handle cases where migration hasn't been run yet
@@ -49,6 +51,14 @@ class User(Base):
     sent_invitations = relationship("Invitation", foreign_keys="Invitation.invited_by_id", back_populates="invited_by")
     subscriptions = relationship("Subscription", back_populates="user", cascade="all, delete-orphan")
     invoices = relationship("Invoice", back_populates="user", cascade="all, delete-orphan")
+
+    # Portail client (ImmoAssist)
+    invitations_portail = relationship("ClientInvitation", back_populates="courtier", foreign_keys="ClientInvitation.courtier_id")
+    invitation_portail = relationship("ClientInvitation", back_populates="client_user", foreign_keys=[client_invitation_id], uselist=False)
+    transactions_portail = relationship("PortailTransaction", back_populates="courtier", foreign_keys="PortailTransaction.courtier_id")
+    documents_partages_portail = relationship("TransactionDocument", back_populates="partage_par", foreign_keys="TransactionDocument.partage_par_id")
+    messages_portail = relationship("TransactionMessage", back_populates="expediteur", foreign_keys="TransactionMessage.expediteur_id")
+    taches_portail_creees = relationship("TransactionTache", back_populates="cree_par", foreign_keys="TransactionTache.cree_par_id")
 
     @property
     def is_superadmin(self) -> bool:

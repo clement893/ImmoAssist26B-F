@@ -36,6 +36,12 @@ from app.models import contact  # noqa: F401
 from app.models import company  # noqa: F401
 # from app.models import masterclass  # noqa: F401  # Removed: masterclass models deleted
 from app.models import booking  # noqa: F401
+from app.models import client_invitation  # noqa: F401
+from app.models import portail_transaction  # noqa: F401
+from app.models import transaction_document  # noqa: F401
+from app.models import transaction_message  # noqa: F401
+from app.models import transaction_tache  # noqa: F401
+from app.models import transaction_etape  # noqa: F401
 from app.core.security_audit import SecurityAuditLog  # noqa: F401
 
 # this is the Alembic Config object, which provides
