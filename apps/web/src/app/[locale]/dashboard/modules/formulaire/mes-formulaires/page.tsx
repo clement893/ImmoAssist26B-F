@@ -39,7 +39,9 @@ export default function MesFormulairesPage() {
         setLoading(true);
         setError(null);
         const res = await formsAPI.list();
-        const data = extractApiData<FormItem[] | { items: FormItem[] }>(res);
+        const data = extractApiData<FormItem[] | { items: FormItem[] }>(
+          res as unknown as FormItem[] | { items: FormItem[] }
+        );
         const list = Array.isArray(data)
           ? data
           : data && typeof data === 'object' && 'items' in data
