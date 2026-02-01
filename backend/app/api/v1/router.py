@@ -3,7 +3,7 @@ API v1 router registration.
 """
 from fastapi import APIRouter
 from app.api.v1.endpoints import themes, theme_fonts, projects, websocket, admin, auth, two_factor, api_keys, users, health, db_health, newsletter, exports, imports, search, tags, activities, comments, favorites, templates, versions, shares, feature_flags, user_preferences, announcements, feedback, onboarding, documentation, scheduled_tasks, backups, email_templates, audit_trail, integrations, api_settings, organization_settings, general_settings, pages, forms, menus, support_tickets, seo, teams, invitations, rbac, notifications, api_connection_check, reports, media, insights, analytics, posts, subscriptions, lea, transactions, dashboard, transaction_actions
-from app.api.v1.endpoints import oaciq_forms
+from app.api.v1.endpoints import oaciq_forms, oaciq_forms_import
 from app.api.v1.endpoints.reseau import contacts as reseau_contacts
 from app.api.v1.endpoints.reseau import companies as reseau_companies
 from app.api.v1.endpoints.client import invoices_router, projects_router, tickets_router, dashboard_router
@@ -314,6 +314,10 @@ api_router.include_router(
 # Register OACIQ forms endpoints
 api_router.include_router(
     oaciq_forms.router,
+    tags=["oaciq-forms"]
+)
+api_router.include_router(
+    oaciq_forms_import.router,
     tags=["oaciq-forms"]
 )
 
