@@ -21,6 +21,7 @@ import {
   Download,
   Paperclip,
   Plus,
+  Trash2,
 } from 'lucide-react';
 
 interface Transaction {
@@ -313,7 +314,7 @@ export default function TransactionDetailPage() {
                         const selectedFile = e.target.files?.[0];
                         if (selectedFile) {
                           try {
-                            setSaving({ ...saving, documents: true });
+                            setSaving((prev) => ({ ...prev, documents: true }));
                             const response = await transactionsAPI.addDocument(
                               parseInt(transactionId),
                               selectedFile
@@ -329,7 +330,7 @@ export default function TransactionDetailPage() {
                               type: 'error',
                             });
                           } finally {
-                            setSaving({ ...saving, documents: false });
+                            setSaving((prev) => ({ ...prev, documents: false }));
                             e.target.value = '';
                           }
                         }
@@ -439,7 +440,7 @@ export default function TransactionDetailPage() {
                         const selectedFile = e.target.files?.[0];
                         if (selectedFile && transaction && transactionId) {
                           try {
-                            setSaving({ ...saving, photos: true });
+                            setSaving((prev) => ({ ...prev, photos: true }));
                             const id = parseInt(transactionId);
                             if (isNaN(id)) {
                               throw new Error('ID de transaction invalide');
@@ -456,7 +457,7 @@ export default function TransactionDetailPage() {
                               type: 'error',
                             });
                           } finally {
-                            setSaving({ ...saving, photos: false });
+                            setSaving((prev) => ({ ...prev, photos: false }));
                             e.target.value = '';
                           }
                         }
@@ -479,6 +480,44 @@ export default function TransactionDetailPage() {
                           }}
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="absolute top-4 right-4">
+                            <button
+                              onClick={async () => {
+                                if (!transaction || !transactionId) return;
+                                
+                                // Confirmation avant suppression
+                                if (!confirm('Êtes-vous sûr de vouloir supprimer cette photo ?')) {
+                                  return;
+                                }
+                                
+                                try {
+                                  setSaving((prev) => ({ ...prev, [`photo-${photo.id}`]: true }));
+                                  const id = parseInt(transactionId);
+                                  if (isNaN(id)) {
+                                    throw new Error('ID de transaction invalide');
+                                  }
+                                  const response = await transactionsAPI.removeDocument(id, photo.id);
+                                  setTransaction(response.data);
+                                  showToast({
+                                    message: 'Photo supprimée avec succès',
+                                    type: 'success',
+                                  });
+                                } catch (err) {
+                                  showToast({
+                                    message: err instanceof Error ? err.message : 'Erreur lors de la suppression de la photo',
+                                    type: 'error',
+                                  });
+                                } finally {
+                                  setSaving((prev) => ({ ...prev, [`photo-${photo.id}`]: false }));
+                                }
+                              }}
+                              disabled={saving[`photo-${photo.id}`]}
+                              className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Supprimer la photo"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                           <div className="absolute bottom-4 left-4 right-4">
                             <p className="text-white font-medium">{photo.description || photo.filename}</p>
                           </div>
