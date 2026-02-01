@@ -43,7 +43,6 @@ interface ExtendedOACIQForm extends OACIQForm {
 
 export default function OACIQFormsPage() {
   const params = useParams();
-  const locale = (params?.locale as string) || 'fr';
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');

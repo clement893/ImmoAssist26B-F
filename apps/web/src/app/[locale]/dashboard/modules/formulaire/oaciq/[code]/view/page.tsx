@@ -43,7 +43,6 @@ interface ExtendedOACIQForm extends OACIQForm {
 
 export default function FormViewPage() {
   const params = useParams();
-  const locale = (params?.locale as string) || 'fr';
   const code = params.code as string;
 
   const [selectedLanguage, setSelectedLanguage] = useState<'fr' | 'en'>('fr');
