@@ -16,6 +16,7 @@ import TransactionActionsPanel from '@/components/transactions/TransactionAction
 import TransactionTimeline from '@/components/transactions/TransactionTimeline';
 import Breadcrumb from '@/components/ui/Breadcrumb';
 import Tabs, { TabList, Tab, TabPanels, TabPanel } from '@/components/ui/Tabs';
+import { useToast } from '@/components/ui';
 import { 
   Calendar, 
   DollarSign, 
@@ -159,6 +160,7 @@ function formatCurrency(amount?: number): string {
 export default function TransactionDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { showToast } = useToast();
   const transactionId = params.id as string;
   
   const [transaction, setTransaction] = useState<Transaction | null>(null);
@@ -618,20 +620,39 @@ export default function TransactionDetailPage() {
                           className="hidden"
                           onChange={async (e) => {
                             const selectedFile = e.target.files?.[0];
-                            if (selectedFile) {
+                            if (selectedFile && transaction && transactionId) {
                               try {
                                 setSaving({ ...saving, photos: true });
+                                const id = parseInt(transactionId);
+                                if (isNaN(id)) {
+                                  throw new Error('ID de transaction invalide');
+                                }
                                 const response = await transactionsAPI.addPhoto(
-                                  parseInt(transactionId),
+                                  id,
                                   selectedFile
                                 );
                                 setTransaction(response.data);
+                                setError(null); // Clear any previous errors
+                                showToast({
+                                  message: 'Photo ajoutée avec succès',
+                                  type: 'success',
+                                });
                               } catch (err) {
-                                setError(err instanceof Error ? err.message : 'Erreur lors de l\'ajout de la photo');
+                                const errorMessage = err instanceof Error ? err.message : 'Erreur lors de l\'ajout de la photo';
+                                console.error('Error adding photo:', err);
+                                showToast({
+                                  message: errorMessage,
+                                  type: 'error',
+                                });
                               } finally {
                                 setSaving({ ...saving, photos: false });
                                 e.target.value = '';
                               }
+                            } else if (!transaction) {
+                              showToast({
+                                message: 'Transaction introuvable. Veuillez recharger la page.',
+                                type: 'error',
+                              });
                             }
                           }}
                           disabled={saving.photos}
