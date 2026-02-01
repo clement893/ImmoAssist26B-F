@@ -127,6 +127,11 @@ export function getNavigationConfig(_isAdmin?: boolean): NavigationConfig {
             icon: <FileText className="w-5 h-5" />,
           },
           {
+            name: 'Mes formulaires',
+            href: '/dashboard/modules/formulaire/mes-formulaires',
+            icon: <FileText className="w-5 h-5" />,
+          },
+          {
             name: 'Mes Clauses',
             href: '/dashboard/modules/formulaire/mes-clauses',
             icon: <ClipboardList className="w-5 h-5" />,
