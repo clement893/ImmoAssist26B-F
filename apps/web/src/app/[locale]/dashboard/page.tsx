@@ -27,7 +27,6 @@ import {
   AlertCircle,
   CheckCircle2,
   ArrowRight,
-  Plus,
 } from 'lucide-react';
 
 function DashboardContent() {
