@@ -10,16 +10,32 @@ import {
   Mail,
   Sparkles,
   ArrowRight,
-  Play
+  Play,
+  LucideIcon
 } from "lucide-react";
+
+interface DemoMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+interface DemoStep {
+  id: number;
+  title: string;
+  subtitle: string;
+  description: string;
+  icon: LucideIcon;
+  color: string;
+  demoMessages: DemoMessage[];
+}
 
 export default function LeaEnActionDemo() {
   const [currentStep, setCurrentStep] = useState(0);
   const [isActive, setIsActive] = useState(false);
-  const [messages, setMessages] = useState<Array<{ role: "user" | "assistant", content: string }>>([]);
+  const [messages, setMessages] = useState<DemoMessage[]>([]);
   const [showAnimation, setShowAnimation] = useState(false);
 
-  const demoSteps = [
+  const demoSteps: DemoStep[] = [
     {
       id: 0,
       title: "Bienvenue dans ImmoAssist",
@@ -37,8 +53,8 @@ export default function LeaEnActionDemo() {
       icon: Mic,
       color: "from-blue-500 to-cyan-500",
       demoMessages: [
-        { role: "user" as const, content: "Léa, crée une nouvelle transaction pour Sophie Martin, achat au 123 Rue Principale, Montréal, 450 000 dollars" },
-        { role: "assistant" as const, content: "Parfait ! Je crée la transaction pour Sophie Martin. Voici ce que j'ai compris :\n\n• **Client** : Sophie Martin\n• **Type** : Achat\n• **Adresse** : 123 Rue Principale, Montréal\n• **Prix** : 450 000 $\n\n✅ Transaction créée avec succès ! J'ai généré automatiquement le dossier complet avec tous les documents nécessaires." }
+        { role: "user", content: "Léa, crée une nouvelle transaction pour Sophie Martin, achat au 123 Rue Principale, Montréal, 450 000 dollars" },
+        { role: "assistant", content: "Parfait ! Je crée la transaction pour Sophie Martin. Voici ce que j'ai compris :\n\n• **Client** : Sophie Martin\n• **Type** : Achat\n• **Adresse** : 123 Rue Principale, Montréal\n• **Prix** : 450 000 $\n\n✅ Transaction créée avec succès ! J'ai généré automatiquement le dossier complet avec tous les documents nécessaires." }
       ]
     },
     {
@@ -49,8 +65,8 @@ export default function LeaEnActionDemo() {
       icon: FileText,
       color: "from-green-500 to-emerald-500",
       demoMessages: [
-        { role: "user" as const, content: "Peux-tu pré-remplir le contrat de courtage achat pour Sophie ?" },
-        { role: "assistant" as const, content: "Bien sûr ! Je remplis le contrat de courtage achat (CCA) avec les informations de Sophie Martin...\n\n✅ **Contrat pré-rempli à 95% !**\n\n• Nom de l'acheteur : Sophie Martin\n• Budget maximum : 450 000 $\n• Secteur recherché : Montréal\n• Date de début : 2026-02-03\n• Durée du contrat : 90 jours\n\nIl ne reste plus qu'à vérifier et signer !" }
+        { role: "user", content: "Peux-tu pré-remplir le contrat de courtage achat pour Sophie ?" },
+        { role: "assistant", content: "Bien sûr ! Je remplis le contrat de courtage achat (CCA) avec les informations de Sophie Martin...\n\n✅ **Contrat pré-rempli à 95% !**\n\n• Nom de l'acheteur : Sophie Martin\n• Budget maximum : 450 000 $\n• Secteur recherché : Montréal\n• Date de début : 2026-02-03\n• Durée du contrat : 90 jours\n\nIl ne reste plus qu'à vérifier et signer !" }
       ]
     },
     {
@@ -61,8 +77,8 @@ export default function LeaEnActionDemo() {
       icon: Calendar,
       color: "from-orange-500 to-red-500",
       demoMessages: [
-        { role: "user" as const, content: "Quelles sont mes prochaines échéances ?" },
-        { role: "assistant" as const, content: "Voici vos échéances cette semaine :\n\n⚠️ **Mercredi 5 février - Inspection**\n123 Rue Principale - 14h00\n*Dans 2 jours*\n\n⚠️ **Vendredi 7 février - Financement**\nDate limite d'obtention du prêt\n*Dans 4 jours*\n\n📅 **Samedi 8 février - Signature**\nChez le notaire - 10h00\n*Dans 5 jours*\n\nJe vous enverrai des rappels automatiques 24h et 1h avant chaque échéance." }
+        { role: "user", content: "Quelles sont mes prochaines échéances ?" },
+        { role: "assistant", content: "Voici vos échéances cette semaine :\n\n⚠️ **Mercredi 5 février - Inspection**\n123 Rue Principale - 14h00\n*Dans 2 jours*\n\n⚠️ **Vendredi 7 février - Financement**\nDate limite d'obtention du prêt\n*Dans 4 jours*\n\n📅 **Samedi 8 février - Signature**\nChez le notaire - 10h00\n*Dans 5 jours*\n\nJe vous enverrai des rappels automatiques 24h et 1h avant chaque échéance." }
       ]
     },
     {
@@ -73,8 +89,8 @@ export default function LeaEnActionDemo() {
       icon: Bell,
       color: "from-indigo-500 to-purple-500",
       demoMessages: [
-        { role: "user" as const, content: "Envoie un rappel à Sophie pour l'inspection de demain" },
-        { role: "assistant" as const, content: "✅ **Rappel envoyé à Sophie Martin !**\n\n📧 **Email** :\n\"Bonjour Sophie, rappel pour votre inspection demain à 14h00 au 123 Rue Principale. N'oubliez pas d'apporter vos questions pour l'inspecteur !\"\n\n📱 **SMS** :\n\"Rappel : Inspection demain 14h - 123 Rue Principale\"\n\nSophie a bien reçu les deux notifications." }
+        { role: "user", content: "Envoie un rappel à Sophie pour l'inspection de demain" },
+        { role: "assistant", content: "✅ **Rappel envoyé à Sophie Martin !**\n\n📧 **Email** :\n\"Bonjour Sophie, rappel pour votre inspection demain à 14h00 au 123 Rue Principale. N'oubliez pas d'apporter vos questions pour l'inspecteur !\"\n\n📱 **SMS** :\n\"Rappel : Inspection demain 14h - 123 Rue Principale\"\n\nSophie a bien reçu les deux notifications." }
       ]
     },
     {
@@ -85,8 +101,8 @@ export default function LeaEnActionDemo() {
       icon: Mail,
       color: "from-pink-500 to-rose-500",
       demoMessages: [
-        { role: "user" as const, content: "J'ai transféré la promesse d'achat signée à documents@immoassist.ai" },
-        { role: "assistant" as const, content: "✅ **Document reçu et classé automatiquement !**\n\n📧 **Email analysé** :\n• De : sophie.martin@email.com\n• Objet : PA signée - 123 Rue Principale\n• Pièce jointe : PA_123_Principale_signee.pdf\n\n📁 **Classement** :\nTransaction : 123 Rue Principale → Documents → Promesse d'achat signée\n\nLe document est maintenant accessible dans votre dossier de transaction." }
+        { role: "user", content: "J'ai transféré la promesse d'achat signée à documents@immoassist.ai" },
+        { role: "assistant", content: "✅ **Document reçu et classé automatiquement !**\n\n📧 **Email analysé** :\n• De : sophie.martin@email.com\n• Objet : PA signée - 123 Rue Principale\n• Pièce jointe : PA_123_Principale_signee.pdf\n\n📁 **Classement** :\nTransaction : 123 Rue Principale → Documents → Promesse d'achat signée\n\nLe document est maintenant accessible dans votre dossier de transaction." }
       ]
     },
     {
@@ -97,8 +113,8 @@ export default function LeaEnActionDemo() {
       icon: CheckCircle,
       color: "from-teal-500 to-green-500",
       demoMessages: [
-        { role: "user" as const, content: "Donne-moi un aperçu de la transaction de Sophie" },
-        { role: "assistant" as const, content: "**Transaction : 123 Rue Principale, Montréal**\n\n📊 **Progression : 75%**\n\n✅ **Étapes complétées** :\n• Promesse d'achat acceptée (1er février)\n• Inspection complétée (2 février)\n• Financement approuvé (3 février)\n\n⏳ **Prochaine étape** :\n• Signature chez le notaire (8 février - 10h00)\n\n📋 **Documents à jour** :\n• Contrat de courtage ✓\n• Promesse d'achat signée ✓\n• Rapport d'inspection ✓\n• Lettre de financement ✓\n\nTout est sur la bonne voie ! Je vous tiendrai informé de chaque avancement." }
+        { role: "user", content: "Donne-moi un aperçu de la transaction de Sophie" },
+        { role: "assistant", content: "**Transaction : 123 Rue Principale, Montréal**\n\n📊 **Progression : 75%**\n\n✅ **Étapes complétées** :\n• Promesse d'achat acceptée (1er février)\n• Inspection complétée (2 février)\n• Financement approuvé (3 février)\n\n⏳ **Prochaine étape** :\n• Signature chez le notaire (8 février - 10h00)\n\n📋 **Documents à jour** :\n• Contrat de courtage ✓\n• Promesse d'achat signée ✓\n• Rapport d'inspection ✓\n• Lettre de financement ✓\n\nTout est sur la bonne voie ! Je vous tiendrai informé de chaque avancement." }
       ]
     }
   ];
@@ -114,15 +130,17 @@ export default function LeaEnActionDemo() {
   }, [currentStep]);
 
   const startDemo = () => {
-    if (currentStepData.demoMessages.length === 0) return;
+    if (!currentStepData || currentStepData.demoMessages.length === 0) return;
     
     setIsActive(true);
     setMessages([]);
     
     let messageIndex = 0;
     const addNextMessage = () => {
+      if (!currentStepData) return;
       if (messageIndex < currentStepData.demoMessages.length) {
         const message = currentStepData.demoMessages[messageIndex];
+        if (!message) return;
         setMessages(prev => [...prev, message]);
         messageIndex++;
         
@@ -135,6 +153,10 @@ export default function LeaEnActionDemo() {
     
     setTimeout(addNextMessage, 500);
   };
+
+  if (!currentStepData) return null;
+
+  const CurrentIcon = currentStepData.icon;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
@@ -207,7 +229,7 @@ export default function LeaEnActionDemo() {
             }`}>
               <div className="flex items-start gap-4">
                 <div className="flex-shrink-0 w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
-                  <currentStepData.icon className="w-8 h-8 text-white" />
+                  <CurrentIcon className="w-8 h-8 text-white" />
                 </div>
                 <div className="flex-1">
                   <h2 className="text-3xl font-bold mb-2">{currentStepData.title}</h2>
