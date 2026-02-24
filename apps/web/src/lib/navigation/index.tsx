@@ -158,11 +158,19 @@ export function getNavigationConfig(isAdmin?: boolean, isClient?: boolean): Navi
         href: '/dashboard',
         icon: <LayoutDashboard className="w-5 h-5" />,
       },
-      // Léa - Assistant IA
+      // Module Léa - Assistant IA
       {
         name: 'Léa',
-        href: '/dashboard/lea',
         icon: <MessageSquare className="w-5 h-5" />,
+        items: [
+          {
+            name: 'Assistant IA',
+            href: '/dashboard/lea',
+            icon: <MessageSquare className="w-5 h-5" />,
+          },
+        ],
+        collapsible: true,
+        defaultOpen: true,
       },
       // Module Transactions
       {
