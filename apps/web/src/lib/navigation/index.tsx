@@ -23,9 +23,9 @@ import {
   Network,
   Building2,
   MessageSquare,
-  UserCheck,
   ClipboardList,
   Receipt,
+  UserCheck,
   UserPlus,
 } from 'lucide-react';
 
@@ -158,13 +158,7 @@ export function getNavigationConfig(isAdmin?: boolean, isClient?: boolean): Navi
         href: '/dashboard',
         icon: <LayoutDashboard className="w-5 h-5" />,
       },
-      // Léa (non-grouped)
-      {
-        name: 'Léa',
-        href: '/dashboard/agents',
-        icon: <UserCheck className="w-5 h-5" />,
-      },
-      // Léa AI Assistant (non-grouped)
+      // Léa - Assistant IA
       {
         name: 'Léa',
         href: '/dashboard/lea',
