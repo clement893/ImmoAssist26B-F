@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuthStore } from '@/lib/store';
-import { Sparkles, Quote, Plus, Paperclip, ChevronDown, ListTodo, Mail, Mic, MicOff, ArrowUp, Receipt, Calculator, ClipboardList, Home } from 'lucide-react';
+import { Sparkles, Quote, Plus, Paperclip, ChevronDown, ListTodo, Mail, Mic, MicOff, ArrowUp, Receipt, Calculator, ClipboardList, Home, Square, AudioLines } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { Card } from '@/components/ui';
 import { clsx } from 'clsx';
@@ -17,6 +17,10 @@ interface LeaWelcomeScreenProps {
   onVoiceToggle: () => Promise<void>;
   voiceSupported: boolean;
   isLoading: boolean;
+  // Voice recording (message vocal → API)
+  recordSupported?: boolean;
+  isRecording?: boolean;
+  onVoiceRecordToggle?: () => Promise<void>;
 }
 
 const exampleCards = [
@@ -61,6 +65,9 @@ export default function LeaWelcomeScreen({
   onVoiceToggle,
   voiceSupported,
   isLoading,
+  recordSupported = false,
+  isRecording = false,
+  onVoiceRecordToggle,
 }: LeaWelcomeScreenProps) {
   const { user } = useAuthStore();
 
@@ -122,24 +129,37 @@ export default function LeaWelcomeScreen({
             className="w-full bg-transparent text-foreground placeholder:text-muted-foreground text-lg outline-none pr-24"
           />
           <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-            {/* Voice Button */}
+            {/* Voice Recording - message vocal API */}
+            {recordSupported && onVoiceRecordToggle && (
+              <button
+                type="button"
+                onClick={onVoiceRecordToggle}
+                disabled={isLoading || isListening}
+                className={clsx(
+                  'p-2 rounded-lg transition-modern',
+                  isRecording ? 'bg-red-500 hover:bg-red-600 text-white' : 'hover:bg-muted'
+                )}
+                title={isRecording ? 'Arrêter et envoyer' : 'Message vocal'}
+              >
+                {isRecording ? <Square className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+              </button>
+            )}
+            {/* Voice Recognition - dictée */}
             {voiceSupported && (
               <button
                 type="button"
                 onClick={onVoiceToggle}
-                disabled={isLoading}
+                disabled={isLoading || isRecording}
                 className={clsx(
-                  'p-2 rounded-lg transition-modern', // UI Revamp - Transition moderne
-                  isListening
-                    ? 'bg-red-500 hover:bg-red-600 text-white'
-                    : 'hover:bg-muted'
+                  'p-2 rounded-lg transition-modern',
+                  isListening ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'hover:bg-muted'
                 )}
-                title={isListening ? 'Arrêter l\'écoute' : 'Parler à Léa'}
+                title={isListening ? 'Arrêter la dictée' : 'Dicter'}
               >
                 {isListening ? (
                   <MicOff className="w-5 h-5" />
                 ) : (
-                  <Mic className="w-5 h-5" />
+                  <AudioLines className="w-5 h-5" />
                 )}
               </button>
             )}

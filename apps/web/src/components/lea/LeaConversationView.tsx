@@ -27,6 +27,10 @@ interface LeaConversationViewProps {
   soundEnabled: boolean;
   soundSupported: boolean;
   onToggleSound: () => void;
+  // Voice recording (for /lea/chat/voice API)
+  recordSupported?: boolean;
+  isRecording?: boolean;
+  onVoiceRecordToggle?: () => Promise<void>;
 }
 
 export default function LeaConversationView({
@@ -46,6 +50,9 @@ export default function LeaConversationView({
   soundEnabled,
   soundSupported,
   onToggleSound,
+  recordSupported = false,
+  isRecording = false,
+  onVoiceRecordToggle,
 }: LeaConversationViewProps) {
   const [input, setInput] = useState('');
 
@@ -117,6 +124,9 @@ export default function LeaConversationView({
         onVoiceToggle={onVoiceToggle}
         voiceSupported={voiceSupported}
         placeholder="Écrivez votre message à Léa..."
+        recordSupported={recordSupported}
+        isRecording={isRecording}
+        onVoiceRecordToggle={onVoiceRecordToggle}
       />
     </div>
   );

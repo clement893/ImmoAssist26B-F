@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useLea } from '@/hooks/useLea';
 import { useVoiceRecognition } from '@/hooks/useVoiceRecognition';
 import { useVoiceSynthesis } from '@/hooks/useVoiceSynthesis';
+import { useVoiceRecording } from '@/hooks/useVoiceRecording';
 import { clsx } from 'clsx';
 import LeaWelcomeScreen from './LeaWelcomeScreen';
 import LeaConversationView from './LeaConversationView';
@@ -15,7 +16,13 @@ interface LeaChatProps {
 }
 
 export default function LeaChat({ onClose, className = '', initialMessage }: LeaChatProps) {
-  const { messages, isLoading, error, sendMessage, clearChat } = useLea();
+  const { messages, isLoading, error, sendMessage, sendVoiceMessage, clearChat } = useLea();
+  const {
+    isRecording,
+    startRecording,
+    stopRecording,
+    supported: recordSupported,
+  } = useVoiceRecording();
   const {
     isListening,
     transcript,
@@ -113,6 +120,15 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
     setInput('');
   };
 
+  const handleVoiceRecordToggle = async () => {
+    if (isRecording) {
+      const blob = await stopRecording();
+      if (blob) await sendVoiceMessage(blob);
+    } else {
+      await startRecording();
+    }
+  };
+
   // Determine which view to show based on whether there are messages
   const hasMessages = messages.length > 0;
 
@@ -129,6 +145,9 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
           onVoiceToggle={toggleListening}
           voiceSupported={voiceSupported}
           isLoading={isLoading}
+          recordSupported={recordSupported}
+          isRecording={isRecording}
+          onVoiceRecordToggle={handleVoiceRecordToggle}
         />
       ) : (
         // Conversation View - Messages present
@@ -149,6 +168,9 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
           soundEnabled={autoSpeak}
           soundSupported={ttsSupported}
           onToggleSound={handleToggleSound}
+          recordSupported={recordSupported}
+          isRecording={isRecording}
+          onVoiceRecordToggle={handleVoiceRecordToggle}
         />
       )}
     </div>

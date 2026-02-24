@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect } from 'react';
-import { Mic, MicOff, ArrowUp, Paperclip } from 'lucide-react';
+import { Mic, MicOff, ArrowUp, Paperclip, Square, AudioLines } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface LeaChatInputProps {
@@ -13,6 +13,9 @@ interface LeaChatInputProps {
   onVoiceToggle?: () => void;
   voiceSupported?: boolean;
   placeholder?: string;
+  recordSupported?: boolean;
+  isRecording?: boolean;
+  onVoiceRecordToggle?: () => Promise<void>;
 }
 
 export default function LeaChatInput({
@@ -24,6 +27,9 @@ export default function LeaChatInput({
   onVoiceToggle,
   voiceSupported = false,
   placeholder = "Écrivez votre message...",
+  recordSupported = false,
+  isRecording = false,
+  onVoiceRecordToggle,
 }: LeaChatInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -58,6 +64,13 @@ export default function LeaChatInput({
             <span className="font-medium">Écoute en cours...</span>
           </div>
         )}
+        {/* Voice recording indicator */}
+        {isRecording && (
+          <div className="flex items-center gap-2 text-sm text-red-500 bg-red-50 dark:bg-red-950/20 rounded-lg p-2.5 mb-3">
+            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+            <span className="font-medium">Enregistrement en cours... Cliquez pour envoyer</span>
+          </div>
+        )}
 
         {/* Input container */}
         <div className="flex items-end gap-2">
@@ -90,25 +103,47 @@ export default function LeaChatInput({
             />
           </div>
 
-          {/* Voice button */}
-          {voiceSupported && onVoiceToggle && (
+          {/* Voice recording: envoie l'audio à /lea/chat/voice (nécessite agent configuré) */}
+          {recordSupported && onVoiceRecordToggle && (
             <button
               type="button"
-              onClick={onVoiceToggle}
-              disabled={isLoading}
+              onClick={onVoiceRecordToggle}
+              disabled={isLoading || isListening}
               className={clsx(
                 'p-3 rounded-xl transition-all flex-shrink-0',
-                isListening
+                isRecording
                   ? 'bg-red-500 hover:bg-red-600 text-white'
                   : 'bg-muted hover:bg-muted/80 text-foreground',
                 'disabled:opacity-50 disabled:cursor-not-allowed'
               )}
-              title={isListening ? 'Arrêter l\'écoute' : 'Parler à Léa'}
+              title={isRecording ? 'Arrêter et envoyer' : 'Message vocal'}
+            >
+              {isRecording ? (
+                <Square className="w-5 h-5" />
+              ) : (
+                <Mic className="w-5 h-5" />
+              )}
+            </button>
+          )}
+          {/* Reconnaissance vocale: transcription dans le champ texte */}
+          {voiceSupported && onVoiceToggle && (
+            <button
+              type="button"
+              onClick={onVoiceToggle}
+              disabled={isLoading || isRecording}
+              className={clsx(
+                'p-3 rounded-xl transition-all flex-shrink-0',
+                isListening
+                  ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                  : 'bg-muted hover:bg-muted/80 text-foreground',
+                'disabled:opacity-50 disabled:cursor-not-allowed'
+              )}
+              title={isListening ? 'Arrêter la dictée' : 'Dicter (reconnaissance vocale)'}
             >
               {isListening ? (
                 <MicOff className="w-5 h-5" />
               ) : (
-                <Mic className="w-5 h-5" />
+                <AudioLines className="w-5 h-5" />
               )}
             </button>
           )}

@@ -3,7 +3,7 @@
  */
 
 import { useState, useCallback, useRef } from 'react';
-import { apiClient } from '@/lib/api';
+import { apiClient, leaAPI } from '@/lib/api';
 import { AxiosError } from 'axios';
 
 export interface LeaMessage {
@@ -24,12 +24,22 @@ export interface LeaChatResponse {
   };
 }
 
+export interface LeaVoiceResponse {
+  transcription: string;
+  response: string;
+  conversation_id?: number;
+  session_id?: string;
+  assistant_audio_url?: string;
+  success: boolean;
+}
+
 export interface UseLeaReturn {
   messages: LeaMessage[];
   isLoading: boolean;
   error: string | null;
   sessionId: string | null;
   sendMessage: (message: string) => Promise<void>;
+  sendVoiceMessage: (audioBlob: Blob) => Promise<void>;
   clearChat: () => void;
   resetContext: () => Promise<void>;
 }
@@ -113,6 +123,80 @@ export function useLea(initialSessionId?: string): UseLeaReturn {
     }
   }, [isLoading, sessionId]);
 
+  const sendVoiceMessage = useCallback(
+    async (audioBlob: Blob) => {
+      if (isLoading) return;
+
+      setIsLoading(true);
+      setError(null);
+
+      const userPlaceholder: LeaMessage = {
+        role: 'user',
+        content: '[Message vocal...]',
+        timestamp: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, userPlaceholder]);
+
+      try {
+        const response = await leaAPI.chatVoice(audioBlob, sessionId ?? undefined);
+        const data = response.data as LeaVoiceResponse;
+
+        if (!data.success) {
+          throw new Error(data.response || 'Erreur du chat vocal');
+        }
+
+        if (data.session_id && !sessionId) {
+          setSessionId(data.session_id);
+        }
+
+        setMessages((prev) => {
+          const withoutPlaceholder = prev.filter((m) => m.content !== '[Message vocal...]');
+          return [
+            ...withoutPlaceholder,
+            { role: 'user', content: data.transcription, timestamp: new Date().toISOString() },
+            {
+              role: 'assistant',
+              content: data.response,
+              timestamp: new Date().toISOString(),
+            },
+          ];
+        });
+
+        if (data.assistant_audio_url) {
+          const audio = new Audio(data.assistant_audio_url);
+          audio.play().catch(() => {});
+        }
+      } catch (err) {
+        const axiosError = err as AxiosError<{ detail?: string }>;
+        const errorMessage =
+          axiosError.response?.data?.detail ||
+          axiosError.message ||
+          'Erreur lors du chat vocal';
+
+        setError(errorMessage);
+        setMessages((prev) => {
+          const withoutPlaceholder = prev.filter((m) => m.content !== '[Message vocal...]');
+          return [
+            ...withoutPlaceholder,
+            {
+              role: 'user',
+              content: 'Message vocal',
+              timestamp: new Date().toISOString(),
+            },
+            {
+              role: 'assistant',
+              content: `❌ ${errorMessage}`,
+              timestamp: new Date().toISOString(),
+            },
+          ];
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [isLoading, sessionId]
+  );
+
   const clearChat = useCallback(() => {
     setMessages([]);
     setError(null);
@@ -144,6 +228,7 @@ export function useLea(initialSessionId?: string): UseLeaReturn {
     error,
     sessionId,
     sendMessage,
+    sendVoiceMessage,
     clearChat,
     resetContext,
   };

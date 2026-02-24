@@ -102,7 +102,8 @@ apiClient.interceptors.request.use(
         config.url?.includes('/auth/me') ||
         config.url?.includes('/admin/') ||
         config.url?.includes('/v1/users/me') ||
-        config.url?.includes('/v1/auth/me');
+        config.url?.includes('/v1/auth/me') ||
+        config.url?.includes('/v1/lea/');
 
       if (isAuthenticatedEndpoint && !token) {
         // Reject the request immediately if it's an authenticated endpoint without token
@@ -311,6 +312,13 @@ export const leaAPI = {
       session_id: sessionId,
       provider,
     });
+  },
+  chatVoice: (audioBlob: Blob, sessionId?: string, conversationId?: number) => {
+    const formData = new FormData();
+    formData.append('audio', audioBlob, 'recording.webm');
+    if (sessionId) formData.append('session_id', sessionId);
+    if (conversationId != null) formData.append('conversation_id', String(conversationId));
+    return apiClient.post('/v1/lea/chat/voice', formData);
   },
   getContext: (sessionId?: string) => {
     return apiClient.get('/v1/lea/context', {
