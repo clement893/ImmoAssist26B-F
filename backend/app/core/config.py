@@ -339,6 +339,16 @@ class Settings(BaseSettings):
         description="Temperature for Anthropic responses",
     )
 
+    # Agent API externe (immoassist Django)
+    AGENT_API_URL: str = Field(
+        default="",
+        description="URL de base de l'API agent externe (immoassist Django)",
+    )
+    AGENT_API_KEY: str = Field(
+        default="",
+        description="Clé API pour l'agent externe (identique à AGENT_API_KEY côté Django)",
+    )
+
     # SendGrid Marketing Lists
     SENDGRID_NEWSLETTER_LIST_ID: str = Field(
         default="",

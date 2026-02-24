@@ -2,8 +2,11 @@
 Léa AI Assistant Endpoints
 """
 
+import os
 from typing import Optional, Literal
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+
+import httpx
+from fastapi import APIRouter, Depends, File, Form, HTTPException, status, UploadFile
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -49,6 +52,35 @@ class LeaSynthesizeRequest(BaseModel):
     voice: Optional[str] = Field("alloy", description="Voice to use")
 
 
+def _use_external_agent() -> bool:
+    """Retourne True si l'API agent externe est configurée."""
+    url = os.getenv("AGENT_API_URL", "")
+    key = os.getenv("AGENT_API_KEY", "")
+    return bool(url and key)
+
+
+async def _call_external_agent_chat(message: str, session_id: str | None, conversation_id: int | None) -> dict:
+    """
+    Appelle l'API agent externe (Django) pour le chat texte.
+    Retourne {"response", "conversation_id", "session_id", "assistant_audio_url", "success"}.
+    """
+    url = os.getenv("AGENT_API_URL", "").rstrip("/")
+    key = os.getenv("AGENT_API_KEY", "")
+    payload = {"message": message}
+    if session_id:
+        payload["session_id"] = session_id
+    if conversation_id:
+        payload["conversation_id"] = conversation_id
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        r = await client.post(
+            f"{url}/api/external/agent/chat",
+            json=payload,
+            headers={"X-API-Key": key},
+        )
+    r.raise_for_status()
+    return r.json()
+
+
 @router.post("/chat", response_model=LeaChatResponse)
 async def lea_chat(
     request: LeaChatRequest,
@@ -57,28 +89,93 @@ async def lea_chat(
 ):
     """
     Chat with Léa AI assistant.
+    Si AGENT_API_URL + AGENT_API_KEY sont configurés, utilise l'agent externe (immoassist).
     """
     try:
+        if _use_external_agent():
+            data = await _call_external_agent_chat(
+                message=request.message,
+                session_id=request.session_id,
+                conversation_id=None,
+            )
+            if not data.get("success"):
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail=data.get("error", "External agent error"),
+                )
+            return LeaChatResponse(
+                content=data["response"],
+                session_id=data.get("session_id", request.session_id or ""),
+                model="gpt-4o-mini",
+                provider="openai",
+                usage={},
+            )
+
+        # Fallback : LeaService local
         provider = AIProvider(request.provider) if request.provider != "auto" else AIProvider.AUTO
         lea_service = LeaService(db=db, user_id=current_user.id, provider=provider)
-        
         response = await lea_service.chat(
             user_message=request.message,
-            session_id=request.session_id
+            session_id=request.session_id,
         )
-        
         return LeaChatResponse(**response)
-        
-    except ValueError as e:
+
+    except httpx.HTTPError as e:
+        logger.error(f"External agent HTTP error: {e}", exc_info=True)
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"External agent unavailable: {str(e)}",
         )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         logger.error(f"Error in Léa chat: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Léa service error: {str(e)}",
+        )
+
+
+@router.post("/chat/voice")
+async def lea_chat_voice(
+    audio: UploadFile = File(...),
+    session_id: Optional[str] = Form(None),
+    conversation_id: Optional[int] = Form(None),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Message vocal → transcription + réponse agent + TTS.
+    Nécessite AGENT_API_URL + AGENT_API_KEY.
+    """
+    if not _use_external_agent():
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Voice chat requires AGENT_API_URL and AGENT_API_KEY to point to the external agent.",
+        )
+    try:
+        url = os.getenv("AGENT_API_URL", "").rstrip("/")
+        key = os.getenv("AGENT_API_KEY", "")
+        content = await audio.read()
+        files = {"audio": (audio.filename or "audio.webm", content, audio.content_type)}
+        data_form = {}
+        if session_id:
+            data_form["session_id"] = session_id
+        if conversation_id is not None:
+            data_form["conversation_id"] = str(conversation_id)
+        async with httpx.AsyncClient(timeout=90.0) as client:
+            r = await client.post(
+                f"{url}/api/external/agent/chat/voice",
+                files=files,
+                data=data_form,
+                headers={"X-API-Key": key},
+            )
+        r.raise_for_status()
+        return r.json()
+    except httpx.HTTPError as e:
+        logger.error(f"External agent voice HTTP error: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"External agent unavailable: {str(e)}",
         )
 
 
