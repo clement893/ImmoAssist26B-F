@@ -186,17 +186,16 @@ async def lea_chat_voice(
         except Exception:
             detail_msg = body or str(e)
         logger.error(
-            "External agent voice 400: %s | body=%s",
-            e,
-            body[:500] if body else "-",
-            exc_info=True,
+            f"External agent voice 400: {e} | body={body[:500] if body else '-'}",
+            context={"agent_response": body[:500] if body else None},
+            exc_info=e,
         )
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=f"Agent a refusé la requête (400): {detail_msg}",
         )
     except httpx.HTTPError as e:
-        logger.error(f"External agent voice HTTP error: {e}", exc_info=True)
+        logger.error(f"External agent voice HTTP error: {e}", exc_info=e)
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=f"External agent unavailable: {str(e)}",
