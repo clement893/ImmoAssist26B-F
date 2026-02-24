@@ -93,6 +93,10 @@ const apiClient = axios.create({
  */
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    // FormData: do not set Content-Type so browser sets multipart/form-data with boundary
+    if (config.data instanceof FormData && config.headers) {
+      delete config.headers['Content-Type'];
+    }
     if (typeof window !== 'undefined' && config.headers) {
       const token = TokenStorage.getToken();
 
