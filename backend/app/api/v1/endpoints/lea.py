@@ -14,7 +14,6 @@ from app.dependencies import get_current_user
 from app.models import User
 from app.database import get_db
 from app.services.lea_service import LeaService
-from app.services.ai_service import AIProvider
 from app.core.logging import logger
 
 router = APIRouter(prefix="/lea", tags=["lea"])
@@ -89,36 +88,31 @@ async def lea_chat(
 ):
     """
     Chat with Léa AI assistant.
-    Si AGENT_API_URL + AGENT_API_KEY sont configurés, utilise l'agent externe (immoassist).
+    Utilise l'agent externe (AGENT_API_URL + AGENT_API_KEY) pour les réponses texte.
     """
-    try:
-        if _use_external_agent():
-            data = await _call_external_agent_chat(
-                message=request.message,
-                session_id=request.session_id,
-                conversation_id=None,
-            )
-            if not data.get("success"):
-                raise HTTPException(
-                    status_code=status.HTTP_502_BAD_GATEWAY,
-                    detail=data.get("error", "External agent error"),
-                )
-            return LeaChatResponse(
-                content=data["response"],
-                session_id=data.get("session_id", request.session_id or ""),
-                model="gpt-4o-mini",
-                provider="openai",
-                usage={},
-            )
-
-        # Fallback : LeaService local
-        provider = AIProvider(request.provider) if request.provider != "auto" else AIProvider.AUTO
-        lea_service = LeaService(db=db, user_id=current_user.id, provider=provider)
-        response = await lea_service.chat(
-            user_message=request.message,
-            session_id=request.session_id,
+    if not _use_external_agent():
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="AGENT_API_URL and AGENT_API_KEY must be configured for Léa chat.",
         )
-        return LeaChatResponse(**response)
+    try:
+        data = await _call_external_agent_chat(
+            message=request.message,
+            session_id=request.session_id,
+            conversation_id=None,
+        )
+        if not data.get("success"):
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=data.get("error", "External agent error"),
+            )
+        return LeaChatResponse(
+            content=data["response"],
+            session_id=data.get("session_id", request.session_id or ""),
+            model=data.get("model", "gpt-4o-mini"),
+            provider=data.get("provider", "openai"),
+            usage=data.get("usage", {}),
+        )
 
     except httpx.HTTPError as e:
         logger.error(f"External agent HTTP error: {e}", exc_info=True)
