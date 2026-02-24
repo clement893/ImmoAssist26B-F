@@ -39,7 +39,7 @@ export function useVoiceRecording(): UseVoiceRecordingReturn {
         : MediaRecorder.isTypeSupported('audio/mp4')
           ? 'audio/mp4'
           : 'audio/ogg';
-      const recorder = new MediaRecorder(stream);
+      const recorder = new MediaRecorder(stream, { mimeType });
       chunksRef.current = [];
 
       recorder.ondataavailable = (e) => {
