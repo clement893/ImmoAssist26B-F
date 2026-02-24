@@ -321,24 +321,6 @@ export default function Sidebar({
         )}
       </nav>
 
-      {/* Pro Badge - Gradient card with upgrade call-to-action */}
-      {!collapsed && (
-        <div className="px-4 py-4 border-t border-gray-100 flex-shrink-0">
-          <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl p-4 shadow-md">
-            <div className="flex items-center gap-3 mb-2">
-              <Sparkles className="w-5 h-5 text-white" />
-              <div>
-                <p className="text-sm font-medium text-white">Upgrade to Pro</p>
-                <p className="text-xs font-light text-white/80">Unlock all features</p>
-              </div>
-            </div>
-            <button className="w-full mt-2 px-4 py-2 bg-white text-blue-600 rounded-lg text-sm font-medium hover:bg-gray-50 transition-all duration-200">
-              Upgrade Now
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Footer: User Section */}
       {user && !collapsed && (
         <div className="border-t border-gray-100 flex-shrink-0 p-4">
