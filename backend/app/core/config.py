@@ -348,6 +348,10 @@ class Settings(BaseSettings):
         default="",
         description="Clé API pour l'agent externe (identique à AGENT_API_KEY côté Django)",
     )
+    AGENT_VOICE_FIELD: str = Field(
+        default="audio",
+        description="Nom du champ multipart pour l'audio vocal: 'audio' ou 'file' (selon l'API agent)",
+    )
 
     # SendGrid Marketing Lists
     SENDGRID_NEWSLETTER_LIST_ID: str = Field(

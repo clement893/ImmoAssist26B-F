@@ -2,7 +2,6 @@
 Léa AI Assistant Endpoints
 """
 
-import os
 from typing import Optional, Literal
 
 import httpx
@@ -14,7 +13,13 @@ from app.dependencies import get_current_user
 from app.models import User
 from app.database import get_db
 from app.services.lea_service import LeaService
+from app.core.config import get_settings
 from app.core.logging import logger
+
+AGENT_ERR_MSG = (
+    "AGENT_API_URL and AGENT_API_KEY must be set in the Backend service (Railway → Backend → Variables). "
+    "Example: AGENT_API_URL=https://immoassist-agent.railway.app"
+)
 
 router = APIRouter(prefix="/lea", tags=["lea"])
 
@@ -53,9 +58,8 @@ class LeaSynthesizeRequest(BaseModel):
 
 def _use_external_agent() -> bool:
     """Retourne True si l'API agent externe est configurée."""
-    url = os.getenv("AGENT_API_URL", "")
-    key = os.getenv("AGENT_API_KEY", "")
-    return bool(url and key)
+    settings = get_settings()
+    return bool(settings.AGENT_API_URL and settings.AGENT_API_KEY)
 
 
 async def _call_external_agent_chat(message: str, session_id: str | None, conversation_id: int | None) -> dict:
@@ -63,8 +67,9 @@ async def _call_external_agent_chat(message: str, session_id: str | None, conver
     Appelle l'API agent externe (Django) pour le chat texte.
     Retourne {"response", "conversation_id", "session_id", "assistant_audio_url", "success"}.
     """
-    url = os.getenv("AGENT_API_URL", "").rstrip("/")
-    key = os.getenv("AGENT_API_KEY", "")
+    settings = get_settings()
+    url = settings.AGENT_API_URL.rstrip("/")
+    key = settings.AGENT_API_KEY
     payload = {"message": message}
     if session_id:
         payload["session_id"] = session_id
@@ -93,7 +98,7 @@ async def lea_chat(
     if not _use_external_agent():
         raise HTTPException(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail="AGENT_API_URL and AGENT_API_KEY must be configured for Léa chat.",
+            detail=AGENT_ERR_MSG,
         )
     try:
         data = await _call_external_agent_chat(
@@ -144,14 +149,21 @@ async def lea_chat_voice(
     if not _use_external_agent():
         raise HTTPException(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail="Voice chat requires AGENT_API_URL and AGENT_API_KEY to point to the external agent.",
+            detail=AGENT_ERR_MSG,
         )
     try:
-        url = os.getenv("AGENT_API_URL", "").rstrip("/")
-        key = os.getenv("AGENT_API_KEY", "")
+        settings = get_settings()
+        url = settings.AGENT_API_URL.rstrip("/")
+        key = settings.AGENT_API_KEY
         content = await audio.read()
-        files = {"audio": (audio.filename or "audio.webm", content, audio.content_type)}
-        data_form = {}
+        # Nom du champ configurable (audio ou file selon l'API agent)
+        field_name = settings.AGENT_VOICE_FIELD or "audio"
+        content_type = audio.content_type or "audio/webm"
+        files = {field_name: (audio.filename or "recording.webm", content, content_type)}
+        data_form = {
+            "user_id": str(current_user.id),
+            "user_email": current_user.email or "",
+        }
         if session_id:
             data_form["session_id"] = session_id
         if conversation_id is not None:
@@ -165,6 +177,24 @@ async def lea_chat_voice(
             )
         r.raise_for_status()
         return r.json()
+    except httpx.HTTPStatusError as e:
+        # 400: format refusé - inclure la réponse agent pour débogage
+        body = e.response.text
+        try:
+            err_json = e.response.json()
+            detail_msg = err_json.get("detail", str(err_json))
+        except Exception:
+            detail_msg = body or str(e)
+        logger.error(
+            "External agent voice 400: %s | body=%s",
+            e,
+            body[:500] if body else "-",
+            exc_info=True,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Agent a refusé la requête (400): {detail_msg}",
+        )
     except httpx.HTTPError as e:
         logger.error(f"External agent voice HTTP error: {e}", exc_info=True)
         raise HTTPException(

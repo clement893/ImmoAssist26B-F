@@ -72,7 +72,12 @@ This guide explains how to deploy your monorepo as **3 separate services** on Ra
    SECRET_KEY=your-production-secret-key-min-32-chars
    FRONTEND_URL=https://your-frontend.railway.app
    BOOTSTRAP_SUPERADMIN_KEY=your-bootstrap-key
+   # Léa AI - Agent externe (obligatoire pour chat texte + vocal)
+   AGENT_API_URL=https://immoassist-agent.railway.app
+   AGENT_API_KEY=your-agent-api-key
    ```
+
+   > **Important pour Léa** : `AGENT_API_URL` et `AGENT_API_KEY` doivent être définis **dans le service Backend** (pas le Frontend). Railway → projet → service Backend → Variables.
 
 ---
 
