@@ -86,7 +86,7 @@ export function navigationConfigToSidebarItems(config: NavigationConfig): Sideba
  * Clients (is_client) see a reduced menu; courtiers see the full menu.
  */
 export function getNavigationConfig(isAdmin?: boolean, isClient?: boolean): NavigationConfig {
-  // Menu pour un client (portail client) : Dashboard, Formulaire, Profil uniquement
+  // Menu pour un client (portail client) : Dashboard, Léa, Formulaire, Profil
   if (isClient) {
     return {
       items: [
@@ -94,6 +94,11 @@ export function getNavigationConfig(isAdmin?: boolean, isClient?: boolean): Navi
           name: 'Dashboard',
           href: '/dashboard',
           icon: <LayoutDashboard className="w-5 h-5" />,
+        },
+        {
+          name: 'Léa',
+          href: '/dashboard/lea',
+          icon: <MessageSquare className="w-5 h-5" />,
         },
         {
           name: 'Formulaire',
@@ -158,19 +163,11 @@ export function getNavigationConfig(isAdmin?: boolean, isClient?: boolean): Navi
         href: '/dashboard',
         icon: <LayoutDashboard className="w-5 h-5" />,
       },
-      // Module Léa - Assistant IA
+      // Léa - Assistant IA (lien direct pour visibilité maximale)
       {
         name: 'Léa',
+        href: '/dashboard/lea',
         icon: <MessageSquare className="w-5 h-5" />,
-        items: [
-          {
-            name: 'Assistant IA',
-            href: '/dashboard/lea',
-            icon: <MessageSquare className="w-5 h-5" />,
-          },
-        ],
-        collapsible: true,
-        defaultOpen: true,
       },
       // Module Transactions
       {
