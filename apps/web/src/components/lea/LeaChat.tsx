@@ -94,12 +94,21 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
   }, [messages, autoSpeak, ttsSupported, isSpeaking, speak]);
 
   const toggleListening = async () => {
+    console.log('toggleListening called, isListening:', isListening, 'voiceSupported:', voiceSupported);
     if (isListening) {
+      console.log('Stopping listening...');
       stopListening();
     } else {
-      // startListening now handles permission request internally
-      await startListening();
-      setInput(''); // Clear input when starting to listen
+      try {
+        console.log('Starting listening...');
+        // startListening now handles permission request internally
+        await startListening();
+        console.log('Listening started successfully');
+        setInput(''); // Clear input when starting to listen
+      } catch (err) {
+        console.error('Error in toggleListening:', err);
+        // Error is already set by startListening hook
+      }
     }
   };
 
@@ -148,6 +157,7 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
           recordSupported={recordSupported}
           isRecording={isRecording}
           onVoiceRecordToggle={handleVoiceRecordToggle}
+          voiceError={voiceError}
         />
       ) : (
         // Conversation View - Messages present

@@ -21,6 +21,8 @@ interface LeaWelcomeScreenProps {
   recordSupported?: boolean;
   isRecording?: boolean;
   onVoiceRecordToggle?: () => Promise<void>;
+  // Error handling
+  voiceError?: string | null;
 }
 
 const exampleCards = [
@@ -68,6 +70,7 @@ export default function LeaWelcomeScreen({
   recordSupported = false,
   isRecording = false,
   onVoiceRecordToggle,
+  voiceError = null,
 }: LeaWelcomeScreenProps) {
   const { user } = useAuthStore();
 
@@ -126,21 +129,53 @@ export default function LeaWelcomeScreen({
           </>
         )}
       </h2>
-      {voiceSupported && (
+      {voiceSupported ? (
         <p className="text-muted-foreground text-lg mb-12">
           Cliquez sur le bouton ci-dessous pour commencer à parler avec Léa
+        </p>
+      ) : (
+        <p className="text-muted-foreground text-lg mb-12">
+          La reconnaissance vocale n'est pas disponible dans votre navigateur. Utilisez le champ de texte ci-dessous.
         </p>
       )}
 
       {/* Large Voice-First Input Field */}
       <div className="w-full mb-8">
+        {/* Debug info in development */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mb-4 p-2 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded text-xs">
+            <p>Debug: voiceSupported={voiceSupported ? 'true' : 'false'}, isListening={isListening ? 'true' : 'false'}</p>
+          </div>
+        )}
+
+        {/* Error Alert */}
+        {voiceError && (
+          <div className="mb-4 p-4 bg-red-50 dark:bg-red-950/20 border-2 border-red-200 dark:border-red-800 rounded-xl">
+            <p className="text-red-600 dark:text-red-400 font-semibold mb-2">Erreur de reconnaissance vocale</p>
+            <p className="text-sm text-red-700 dark:text-red-300">{voiceError}</p>
+            {voiceError.includes('Permission') && (
+              <p className="text-xs text-red-600 dark:text-red-400 mt-2">
+                Veuillez autoriser l'accès au microphone dans les paramètres de votre navigateur.
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Voice Action Button - Prominent for voice-first experience */}
         {(voiceSupported || recordSupported) && (
           <div className="flex justify-center mb-6">
             {voiceSupported && (
               <button
                 type="button"
-                onClick={onVoiceToggle}
+                onClick={async () => {
+                  console.log('Voice button clicked, isListening:', isListening);
+                  try {
+                    await onVoiceToggle();
+                    console.log('Voice toggle completed');
+                  } catch (err) {
+                    console.error('Error clicking voice button:', err);
+                  }
+                }}
                 disabled={isLoading || isRecording}
                 className={clsx(
                   'px-8 py-4 rounded-2xl transition-all transform hover:scale-105 shadow-standard-xl',
