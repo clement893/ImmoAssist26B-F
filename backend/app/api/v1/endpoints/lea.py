@@ -70,19 +70,44 @@ async def _call_external_agent_chat(message: str, session_id: str | None, conver
     settings = get_settings()
     url = settings.AGENT_API_URL.rstrip("/")
     key = settings.AGENT_API_KEY
+    endpoint_url = f"{url}/api/external/agent/chat"
+    
     payload = {"message": message}
     if session_id:
         payload["session_id"] = session_id
     if conversation_id:
         payload["conversation_id"] = conversation_id
+    
     async with httpx.AsyncClient(timeout=60.0) as client:
-        r = await client.post(
-            f"{url}/api/external/agent/chat",
-            json=payload,
-            headers={"X-API-Key": key},
-        )
-    r.raise_for_status()
-    return r.json()
+        try:
+            r = await client.post(
+                endpoint_url,
+                json=payload,
+                headers={"X-API-Key": key},
+            )
+            r.raise_for_status()
+            return r.json()
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 404:
+                error_msg = (
+                    f"Agent endpoint not found (404): {endpoint_url}. "
+                    "Please verify that the agent server has the endpoint "
+                    "POST /api/external/agent/chat implemented. "
+                    f"Agent base URL: {url}"
+                )
+                logger.error(error_msg)
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail=error_msg,
+                )
+            # Re-raise other HTTP errors to be handled by the caller
+            raise
+        except httpx.RequestError as e:
+            logger.error(f"Agent request error: {e} for URL: {endpoint_url}")
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Failed to connect to agent server: {str(e)}",
+            )
 
 
 @router.post("/chat", response_model=LeaChatResponse)
