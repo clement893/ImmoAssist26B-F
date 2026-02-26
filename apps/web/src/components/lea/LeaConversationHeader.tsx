@@ -1,6 +1,6 @@
 'use client';
 
-import { Sparkles, Volume2, VolumeX, Trash2, X } from 'lucide-react';
+import { Sparkles, Volume2, VolumeX, Trash2, X, Square } from 'lucide-react';
 import Button from '@/components/ui/Button';
 
 interface LeaConversationHeaderProps {
@@ -9,6 +9,8 @@ interface LeaConversationHeaderProps {
   onClose?: () => void;
   soundEnabled: boolean;
   soundSupported: boolean;
+  isSpeaking?: boolean;
+  onStopSpeaking?: () => void;
 }
 
 export default function LeaConversationHeader({
@@ -17,6 +19,8 @@ export default function LeaConversationHeader({
   onClose,
   soundEnabled,
   soundSupported,
+  isSpeaking = false,
+  onStopSpeaking,
 }: LeaConversationHeaderProps) {
   return (
     <div className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
@@ -35,6 +39,19 @@ export default function LeaConversationHeader({
 
           {/* Right: Actions */}
           <div className="flex items-center gap-2">
+            {/* Bouton d'arrêt de la lecture - visible uniquement quand Léa parle */}
+            {soundSupported && isSpeaking && onStopSpeaking && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onStopSpeaking}
+                title="Arrêter la lecture"
+                className="text-red-600 dark:text-red-400 animate-pulse"
+              >
+                <Square className="w-4 h-4 mr-2" />
+                Arrêter
+              </Button>
+            )}
             {soundSupported && (
               <Button
                 variant="ghost"
@@ -42,6 +59,7 @@ export default function LeaConversationHeader({
                 onClick={onToggleSound}
                 title={soundEnabled ? 'Désactiver la lecture automatique' : 'Activer la lecture automatique'}
                 className={soundEnabled ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}
+                disabled={isSpeaking}
               >
                 {soundEnabled ? (
                   <Volume2 className="w-4 h-4 mr-2" />

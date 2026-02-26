@@ -27,6 +27,8 @@ interface LeaConversationViewProps {
   soundEnabled: boolean;
   soundSupported: boolean;
   onToggleSound: () => void;
+  isSpeaking?: boolean;
+  onStopSpeaking?: () => void;
   // Voice recording (for /lea/chat/voice API)
   recordSupported?: boolean;
   isRecording?: boolean;
@@ -50,6 +52,8 @@ export default function LeaConversationView({
   soundEnabled,
   soundSupported,
   onToggleSound,
+  isSpeaking = false,
+  onStopSpeaking,
   recordSupported = false,
   isRecording = false,
   onVoiceRecordToggle,
@@ -65,6 +69,8 @@ export default function LeaConversationView({
         onClose={onClose}
         soundEnabled={soundEnabled}
         soundSupported={soundSupported}
+        isSpeaking={isSpeaking}
+        onStopSpeaking={onStopSpeaking}
       />
 
       {/* Messages List */}
@@ -127,6 +133,8 @@ export default function LeaConversationView({
         recordSupported={recordSupported}
         isRecording={isRecording}
         onVoiceRecordToggle={onVoiceRecordToggle}
+        isSpeaking={isSpeaking}
+        onStopSpeaking={onStopSpeaking}
       />
     </div>
   );

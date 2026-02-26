@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect } from 'react';
-import { Mic, MicOff, ArrowUp, Paperclip, Square, AudioLines } from 'lucide-react';
+import { Mic, MicOff, ArrowUp, Paperclip, Square, AudioLines, Volume2 } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface LeaChatInputProps {
@@ -16,6 +16,8 @@ interface LeaChatInputProps {
   recordSupported?: boolean;
   isRecording?: boolean;
   onVoiceRecordToggle?: () => Promise<void>;
+  isSpeaking?: boolean;
+  onStopSpeaking?: () => void;
 }
 
 export default function LeaChatInput({
@@ -30,6 +32,8 @@ export default function LeaChatInput({
   recordSupported = false,
   isRecording = false,
   onVoiceRecordToggle,
+  isSpeaking = false,
+  onStopSpeaking,
 }: LeaChatInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -75,6 +79,24 @@ export default function LeaChatInput({
               <div className="absolute inset-0 rounded-full bg-red-500/50 animate-ping" />
             </div>
             <span className="font-semibold text-base">Enregistrement en cours... Cliquez pour envoyer</span>
+          </div>
+        )}
+        {/* Speaking indicator - Léa parle */}
+        {isSpeaking && onStopSpeaking && (
+          <div className="flex items-center justify-center gap-3 text-green-500 bg-green-50 dark:bg-green-950/20 rounded-xl p-4 mb-4 border-2 border-green-200 dark:border-green-800">
+            <div className="relative">
+              <Volume2 className="w-5 h-5 animate-pulse" />
+            </div>
+            <span className="font-semibold text-base">Léa parle...</span>
+            <button
+              type="button"
+              onClick={onStopSpeaking}
+              className="ml-2 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+              title="Arrêter la lecture"
+            >
+              <Square className="w-4 h-4" />
+              Arrêter
+            </button>
           </div>
         )}
 
