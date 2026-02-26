@@ -41,14 +41,14 @@ export default function LeaConversationHeader({
                 size="sm"
                 onClick={onToggleSound}
                 title={soundEnabled ? 'Désactiver la lecture automatique' : 'Activer la lecture automatique'}
-                className="text-muted-foreground"
+                className={soundEnabled ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}
               >
                 {soundEnabled ? (
                   <Volume2 className="w-4 h-4 mr-2" />
                 ) : (
                   <VolumeX className="w-4 h-4 mr-2" />
                 )}
-                {soundEnabled ? 'Son activé' : 'Son désactivé'}
+                {soundEnabled ? 'Léa parle' : 'Son désactivé'}
               </Button>
             )}
             <Button

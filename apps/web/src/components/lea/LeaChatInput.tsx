@@ -57,18 +57,64 @@ export default function LeaChatInput({
   return (
     <div className="border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="max-w-4xl mx-auto px-4 py-4">
-        {/* Voice listening indicator */}
+        {/* Voice listening indicator - Enhanced for voice-first */}
         {isListening && (
-          <div className="flex items-center gap-2 text-sm text-green-500 bg-green-50 dark:bg-green-950/20 rounded-lg p-2.5 mb-3">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            <span className="font-medium">Écoute en cours...</span>
+          <div className="flex items-center justify-center gap-3 text-amber-500 bg-amber-50 dark:bg-amber-950/20 rounded-xl p-4 mb-4 border-2 border-amber-200 dark:border-amber-800">
+            <div className="relative">
+              <div className="w-3 h-3 bg-amber-500 rounded-full animate-pulse" />
+              <div className="absolute inset-0 rounded-full bg-amber-500/50 animate-ping" />
+            </div>
+            <span className="font-semibold text-base">Léa vous écoute... Parlez maintenant</span>
           </div>
         )}
-        {/* Voice recording indicator */}
+        {/* Voice recording indicator - Enhanced */}
         {isRecording && (
-          <div className="flex items-center gap-2 text-sm text-red-500 bg-red-50 dark:bg-red-950/20 rounded-lg p-2.5 mb-3">
-            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-            <span className="font-medium">Enregistrement en cours... Cliquez pour envoyer</span>
+          <div className="flex items-center justify-center gap-3 text-red-500 bg-red-50 dark:bg-red-950/20 rounded-xl p-4 mb-4 border-2 border-red-200 dark:border-red-800">
+            <div className="relative">
+              <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+              <div className="absolute inset-0 rounded-full bg-red-500/50 animate-ping" />
+            </div>
+            <span className="font-semibold text-base">Enregistrement en cours... Cliquez pour envoyer</span>
+          </div>
+        )}
+
+        {/* Voice-first button - Prominent */}
+        {(voiceSupported || recordSupported) && !isListening && !isRecording && (
+          <div className="flex justify-center mb-4">
+            {voiceSupported && onVoiceToggle && (
+              <button
+                type="button"
+                onClick={onVoiceToggle}
+                disabled={isLoading || isRecording}
+                className={clsx(
+                  'px-6 py-3 rounded-xl transition-all transform hover:scale-105 shadow-standard-lg',
+                  'flex items-center gap-2 text-base font-semibold',
+                  'bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white',
+                  'disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none'
+                )}
+                title="Parlez à Léa"
+              >
+                <Mic className="w-5 h-5" />
+                <span>Parlez à Léa</span>
+              </button>
+            )}
+            {recordSupported && onVoiceRecordToggle && !voiceSupported && (
+              <button
+                type="button"
+                onClick={onVoiceRecordToggle}
+                disabled={isLoading || isListening}
+                className={clsx(
+                  'px-6 py-3 rounded-xl transition-all transform hover:scale-105 shadow-standard-lg',
+                  'flex items-center gap-2 text-base font-semibold',
+                  'bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white',
+                  'disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none'
+                )}
+                title="Message vocal"
+              >
+                <Mic className="w-5 h-5" />
+                <span>Message vocal</span>
+              </button>
+            )}
           </div>
         )}
 

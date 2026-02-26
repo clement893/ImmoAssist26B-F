@@ -35,7 +35,7 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
   const { speak, stop: stopSpeaking, isSpeaking, supported: ttsSupported } = useVoiceSynthesis();
   
   const [input, setInput] = useState('');
-  const [autoSpeak, setAutoSpeak] = useState(false); // Mute par défaut
+  const [autoSpeak, setAutoSpeak] = useState(true); // Activé par défaut pour une expérience vocale optimale
   const [initialMessageSent, setInitialMessageSent] = useState(false);
   const lastSpokenMessageRef = useRef<string | null>(null); // Track last spoken message to prevent repetition
 

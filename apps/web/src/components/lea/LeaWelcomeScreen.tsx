@@ -108,23 +108,126 @@ export default function LeaWelcomeScreen({
         {getGreeting()}, {user?.name?.split(' ')[0] || 'Utilisateur'}
       </h1>
       
-      {/* Question with gradient */}
-      <h2 className="text-2xl md:text-3xl font-semibold mb-12">
-        Comment puis-je vous aider avec{' '}
-        <span className="bg-gradient-to-r from-green-500 to-blue-500 bg-clip-text text-transparent">
-          votre activité immobilière ?
-        </span>
+      {/* Question with gradient - Voice-first messaging */}
+      <h2 className="text-2xl md:text-3xl font-semibold mb-6">
+        {voiceSupported ? (
+          <>
+            Parlez-moi de{' '}
+            <span className="bg-gradient-to-r from-green-500 to-blue-500 bg-clip-text text-transparent">
+              votre activité immobilière
+            </span>
+          </>
+        ) : (
+          <>
+            Comment puis-je vous aider avec{' '}
+            <span className="bg-gradient-to-r from-green-500 to-blue-500 bg-clip-text text-transparent">
+              votre activité immobilière ?
+            </span>
+          </>
+        )}
       </h2>
+      {voiceSupported && (
+        <p className="text-muted-foreground text-lg mb-12">
+          Cliquez sur le bouton ci-dessous pour commencer à parler avec Léa
+        </p>
+      )}
 
-      {/* Large Input Field */}
+      {/* Large Voice-First Input Field */}
       <div className="w-full mb-8">
+        {/* Voice Action Button - Prominent for voice-first experience */}
+        {(voiceSupported || recordSupported) && (
+          <div className="flex justify-center mb-6">
+            {voiceSupported && (
+              <button
+                type="button"
+                onClick={onVoiceToggle}
+                disabled={isLoading || isRecording}
+                className={clsx(
+                  'px-8 py-4 rounded-2xl transition-all transform hover:scale-105 shadow-standard-xl',
+                  'flex items-center gap-3 text-lg font-semibold',
+                  isListening
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white animate-pulse'
+                    : 'bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white',
+                  'disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none'
+                )}
+                title={isListening ? 'Arrêter la dictée' : 'Parlez à Léa'}
+              >
+                {isListening ? (
+                  <>
+                    <div className="relative">
+                      <MicOff className="w-6 h-6" />
+                      <div className="absolute inset-0 rounded-full bg-white/30 animate-ping" />
+                    </div>
+                    <span>Écoute en cours...</span>
+                  </>
+                ) : (
+                  <>
+                    <Mic className="w-6 h-6" />
+                    <span>Parlez à Léa</span>
+                  </>
+                )}
+              </button>
+            )}
+            {recordSupported && onVoiceRecordToggle && !voiceSupported && (
+              <button
+                type="button"
+                onClick={onVoiceRecordToggle}
+                disabled={isLoading || isListening}
+                className={clsx(
+                  'px-8 py-4 rounded-2xl transition-all transform hover:scale-105 shadow-standard-xl',
+                  'flex items-center gap-3 text-lg font-semibold',
+                  isRecording
+                    ? 'bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white animate-pulse'
+                    : 'bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white',
+                  'disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none'
+                )}
+                title={isRecording ? 'Arrêter et envoyer' : 'Message vocal'}
+              >
+                {isRecording ? (
+                  <>
+                    <Square className="w-6 h-6" />
+                    <span>Enregistrement...</span>
+                  </>
+                ) : (
+                  <>
+                    <Mic className="w-6 h-6" />
+                    <span>Message vocal</span>
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Listening Indicator */}
+        {isListening && (
+          <div className="mb-4 flex items-center justify-center gap-3 text-amber-500 bg-amber-50 dark:bg-amber-950/20 rounded-xl p-4 border-2 border-amber-200 dark:border-amber-800">
+            <div className="relative">
+              <div className="w-3 h-3 bg-amber-500 rounded-full animate-pulse" />
+              <div className="absolute inset-0 rounded-full bg-amber-500/50 animate-ping" />
+            </div>
+            <span className="font-semibold text-lg">Léa vous écoute... Parlez maintenant</span>
+          </div>
+        )}
+
+        {/* Recording Indicator */}
+        {isRecording && (
+          <div className="mb-4 flex items-center justify-center gap-3 text-red-500 bg-red-50 dark:bg-red-950/20 rounded-xl p-4 border-2 border-red-200 dark:border-red-800">
+            <div className="relative">
+              <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+              <div className="absolute inset-0 rounded-full bg-red-500/50 animate-ping" />
+            </div>
+            <span className="font-semibold text-lg">Enregistrement en cours... Cliquez pour envoyer</span>
+          </div>
+        )}
+
         <div className="relative bg-background border-2 border-border rounded-2xl p-4 shadow-standard-lg hover:shadow-standard-xl transition-modern focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20"> {/* UI Revamp - Nouveau système d'ombres et transition moderne */}
           <input
             type="text"
             value={inputValue}
             onChange={(e) => onInputChange(e.target.value)}
             onKeyPress={handleInputKeyPress}
-            placeholder="Posez une question sur l'immobilier, les transactions, les formulaires OACIQ..."
+            placeholder={voiceSupported ? "Ou tapez votre message ici..." : "Posez une question sur l'immobilier, les transactions, les formulaires OACIQ..."}
             disabled={isLoading || isListening}
             className="w-full bg-transparent text-foreground placeholder:text-muted-foreground text-lg outline-none pr-24"
           />
@@ -189,18 +292,6 @@ export default function LeaWelcomeScreen({
                 )}
               </button>
             )}
-            <button
-              className="p-2 rounded-lg hover:bg-muted transition-modern" // UI Revamp - Transition moderne
-              title="Citation"
-            >
-              <Quote className="w-5 h-5 text-green-500" />
-            </button>
-            <button
-              className="p-2 rounded-lg hover:bg-muted transition-modern" // UI Revamp - Transition moderne
-              title="Ajouter"
-            >
-              <Plus className="w-5 h-5 text-foreground" />
-            </button>
           </div>
         </div>
 
