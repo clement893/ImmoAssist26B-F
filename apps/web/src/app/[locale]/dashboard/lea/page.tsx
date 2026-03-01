@@ -1,20 +1,13 @@
-'use client';
-
-export const dynamic = 'force-dynamic';
-export const dynamicParams = true;
-
-import LeaChat from '@/components/lea/LeaChat';
+import { redirect } from 'next/navigation';
 
 /**
- * Page dédiée à Léa - Agent vocal AI
- * 
- * Interface optimisée pour une conversation vocale naturelle.
- * Léa parle automatiquement et l'interface met l'accent sur l'interaction vocale.
+ * Page /dashboard/lea supprimée — redirection vers Léa2.
  */
-export default function LeaPage() {
-  return (
-    <div className="h-[calc(100vh-4rem)] min-h-[400px] w-full bg-background">
-      <LeaChat />
-    </div>
-  );
+export default function LeaPageRedirect({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  redirect(`/${locale}/dashboard/lea2`);
 }

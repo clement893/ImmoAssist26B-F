@@ -101,11 +101,6 @@ export function getNavigationConfig(isAdmin?: boolean, isClient?: boolean): Navi
           icon: <MessageSquare className="w-5 h-5" />,
           items: [
             {
-              name: 'Assistante',
-              href: '/dashboard/lea',
-              icon: <MessageSquare className="w-5 h-5" />,
-            },
-            {
               name: 'Léa2',
               href: '/dashboard/lea2',
               icon: <Mic className="w-5 h-5" />,
@@ -197,11 +192,6 @@ export function getNavigationConfig(isAdmin?: boolean, isClient?: boolean): Navi
         name: 'Léa',
         icon: <MessageSquare className="w-5 h-5" />,
         items: [
-          {
-            name: 'Assistante',
-            href: '/dashboard/lea',
-            icon: <MessageSquare className="w-5 h-5" />,
-          },
           {
             name: 'Léa2',
             href: '/dashboard/lea2',
