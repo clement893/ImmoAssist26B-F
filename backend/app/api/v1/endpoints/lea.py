@@ -56,7 +56,8 @@ LEA_SYSTEM_PROMPT = (
     "dis-lui que tu ne peux pas encore faire cela automatiquement et invite-le à aller dans la section Transactions pour le faire. "
     "Ne invente jamais une confirmation du type « c'est fait » ou « j'ai créé » sans que « Action effectuée » le confirme.\n\n"
     "Quand « Action effectuée » indique une ou plusieurs actions (ex: transaction créée, adresse ajoutée, promesse d'achat enregistrée), "
-    "confirme uniquement ce qui est indiqué et invite l'utilisateur à compléter dans la section Transactions si pertinent.\n\n"
+    "confirme uniquement ce qui est indiqué et invite l'utilisateur à compléter dans la section Transactions si pertinent. "
+    "Tu peux aussi effectuer une **recherche en ligne** (géocodage) pour compléter une adresse (ville, code postal, province) : si l'utilisateur demande de « trouver le code postal en ligne », « chercher l'adresse sur internet » ou « ajouter le code postal trouvé en ligne », le bloc « Action effectuée » indiquera le résultat ; confirme-le alors à l'utilisateur (ne dis pas que tu ne peux pas).\n\n"
     "** INFORMATIONS CLÉS À COLLECTER – POSE LES BONNES QUESTIONS : **\n"
     "Quand l'utilisateur crée une transaction ou travaille sur un dossier, aide-le à le compléter en posant des questions pertinentes, une à la fois ou par thème. "
     "Ordre logique des informations clés :\n"
@@ -212,6 +213,12 @@ async def get_lea_user_context(db: AsyncSession, user_id: int) -> str:
             if detail_parts:
                 lines.append(f"  → Dernière transaction ({latest.dossier_number or f'#{latest.id}'}) : {'; '.join(detail_parts)}.")
                 lines.append(f"  → Ne pas redemander les informations déjà enregistrées pour cette transaction.")
+                if any("vendeurs:" in p for p in detail_parts):
+                    lines.append("  → Ne jamais redemander « Qui sont les vendeurs ? » pour cette transaction.")
+                if any("acheteurs:" in p for p in detail_parts):
+                    lines.append("  → Ne jamais redemander « Qui sont les acheteurs ? » pour cette transaction.")
+                if any("prix:" in p for p in detail_parts):
+                    lines.append("  → Ne jamais redemander le prix pour cette transaction.")
             # Infos manquantes pour guider les questions
             missing = []
             if not (latest.property_address or latest.property_city):
@@ -275,7 +282,7 @@ def _wants_to_create_transaction(message: str) -> tuple[bool, str]:
         return "".join(c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn")
     nt = n(t)
 
-    # Réponse courte après « Est-ce une vente ou un achat ? » : "achat", "vente", "c'est un achat", "une vente"
+    # Réponse courte après « Est-ce une vente ou un achat ? » : "achat", "vente", "c'est un achat", "une vente", "c'est un", "c'est une" (tronqué)
     if len(t) <= 40:
         if t.strip() in ("achat", "vente"):
             return True, t.strip()
@@ -283,6 +290,13 @@ def _wants_to_create_transaction(message: str) -> tuple[bool, str]:
             return True, "achat" if "achat" in t else "vente"
         if ("un achat" in t or "une vente" in t) and len(t) <= 25:
             return True, "achat" if "achat" in t else "vente"
+        # "c'est un" (tronqué) = achat, "c'est une" (tronqué) = vente
+        if t.strip() in ("c'est un", "c'est une"):
+            return True, "vente" if "une" in t else "achat"
+        if re.match(r"^c'est\s+un\s*$", t, re.I):
+            return True, "achat"
+        if re.match(r"^c'est\s+une\s*$", t, re.I):
+            return True, "vente"
 
     # Phrase très courte : "et une transaction", "une transaction" (sous-entendu : créer)
     if len(t) <= 35:
@@ -864,7 +878,7 @@ async def maybe_update_transaction_address_from_lea(db: AsyncSession, user_id: i
 
 
 def _wants_to_geocode_existing_address(message: str) -> bool:
-    """True si l'utilisateur demande de chercher l'adresse complète sur Internet (géocodage sur la transaction déjà enregistrée)."""
+    """True si l'utilisateur demande de chercher l'adresse / code postal / ville sur Internet (géocodage sur la transaction déjà enregistrée)."""
     t = (message or "").strip().lower()
     if not t:
         return False
@@ -872,8 +886,13 @@ def _wants_to_geocode_existing_address(message: str) -> bool:
         "chercher" in t or "cherche" in t or "trouve" in t or "trouver" in t
         or "recherche" in t or "rechercher" in t
         or "écris" in t or "écrire" in t
+        or "ajout" in t  # "ajouter le code postal", "ajoutons le code postal"
     )
-    has_address = "adresse" in t or "l'adresse" in t
+    # Adresse complète, code postal ou ville (recherche en ligne)
+    has_address = (
+        "adresse" in t or "l'adresse" in t
+        or "code postal" in t or "ville" in t
+    )
     has_trigger = (
         "internet" in t or "en ligne" in t or "ligne" in t
         or "complète" in t or "code postal" in t or "ville" in t
@@ -981,6 +1000,14 @@ def _extract_seller_buyer_names_list(
         m = re.search(r"les\s+vendeurs\s+sont\s+(.+?)(?:\.|$|\s+pour\s+)", t, re.I | re.DOTALL)
         if not m and role == "Acheteur":
             m = re.search(r"les\s+acheteurs\s+sont\s+(.+?)(?:\.|$|\s+pour\s+)", t, re.I | re.DOTALL)
+        if not m:
+            # "ils sont X et Y" (vocal) après une question sur les vendeurs/acheteurs
+            if "vendeur" in last_lower and re.search(r"ils\s+sont\s+", t, re.I):
+                role = "Vendeur"
+                m = re.search(r"ils\s+sont\s+(.+?)(?:\.|$|\s+pour\s+)", t, re.I | re.DOTALL)
+            elif "acheteur" in last_lower and re.search(r"ils\s+sont\s+", t, re.I):
+                role = "Acheteur"
+                m = re.search(r"ils\s+sont\s+(.+?)(?:\.|$|\s+pour\s+)", t, re.I | re.DOTALL)
         if not m:
             return None
         raw = m.group(1).strip()
@@ -1333,6 +1360,15 @@ def _get_lea_guidance_lines(message: str) -> list[str]:
         lines.append(
             "L'utilisateur a peut-être dit « local terminé » (artefact de fin de phrase vocale). "
             "Rester sur la transaction en cours (la plus récente) ; ne pas mentionner une autre transaction. Demander de clarifier ou poursuivre (ex. qui sont les acheteurs, quel est le prix)."
+        )
+
+    # "Je t'ai déjà donné les vendeurs" / "je t'ai déjà dit" (prix, vendeurs, etc.) — ne pas redemander
+    if any(
+        phrase in t
+        for phrase in ("déjà donné", "déjà dit", "je t'ai dit", "j'ai déjà")
+    ) and any(word in t for word in ("vendeur", "acheteur", "prix", "adresse")):
+        lines.append(
+            "L'utilisateur indique avoir déjà fourni cette information. Confirme que c'est noté, présente tes excuses si besoin, et ne redemande pas cette information."
         )
 
     # Pas d'acheteurs / mise en vente — ne pas redemander les acheteurs

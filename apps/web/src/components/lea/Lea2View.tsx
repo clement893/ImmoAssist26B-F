@@ -244,13 +244,15 @@ export default function Lea2View() {
       /^\s*envoyer\s*$/.test(t);
     if (!hasTrigger) return;
     vocalTermineSentRef.current = true;
+    stopSpeaking();
+    lastSpokenMessageRef.current = null;
     const messageToSend = transcript.replace(VOCAL_TERMINE_REGEX, ' ').replace(/\s+/g, ' ').trim();
     stopListening();
     justSentFromVoiceRef.current = true;
     setInput('');
     if (messageToSend) sendMessage(messageToSend);
     restartListeningAfterResponseRef.current = true;
-  }, [isListening, transcript, stopListening, sendMessage]);
+  }, [isListening, transcript, stopListening, stopSpeaking, sendMessage]);
 
   // Auto-speak assistant responses
   useEffect(() => {
@@ -311,6 +313,8 @@ export default function Lea2View() {
       const text = transcript.trim();
       stopListening();
       if (text) {
+        stopSpeaking();
+        lastSpokenMessageRef.current = null;
         justSentFromVoiceRef.current = true;
         setInput('');
         sendMessage(text);
@@ -347,6 +351,8 @@ export default function Lea2View() {
 
   const handleMessageSend = async (message: string) => {
     if (!message.trim() || isLoading) return;
+    stopSpeaking();
+    lastSpokenMessageRef.current = null;
     restartListeningAfterResponseRef.current = true; // réactiver le micro après la réponse de Léa
     await sendMessage(message.trim());
     setInput('');
