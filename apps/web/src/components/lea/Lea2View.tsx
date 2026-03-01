@@ -172,6 +172,7 @@ export default function Lea2View() {
     try {
       await leaAPI.resetContext(sid);
       if (sessionId === sid) startNewConversation();
+      setConversations((prev) => prev.filter((c) => c.session_id !== sid));
       await fetchConversations();
     } catch {
       // error already in hook or show toast
