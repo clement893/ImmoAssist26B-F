@@ -5,7 +5,7 @@ Pydantic v2 models for real estate contacts
 
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel, Field, ConfigDict, field_validator, EmailStr
+from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator, EmailStr
 from app.models.real_estate_contact import ContactType
 
 
@@ -69,7 +69,8 @@ class RealEstateContactListResponse(BaseModel):
 # Transaction Contact Schemas
 class TransactionContactCreate(BaseModel):
     """Schema for associating a contact to a transaction"""
-    contact_id: int = Field(..., description="ID du contact existant")
+    contact_id: Optional[int] = Field(None, description="ID du contact real_estate_contacts existant")
+    reseau_contact_id: Optional[int] = Field(None, description="ID du contact réseau (reseau/contacts) à lier")
     role: str = Field(..., min_length=1, max_length=100, description="Rôle du contact dans la transaction")
     
     @field_validator('role')
@@ -79,6 +80,13 @@ class TransactionContactCreate(BaseModel):
         if not v or not v.strip():
             raise ValueError("Le rôle ne peut pas être vide")
         return v.strip()
+    
+    @model_validator(mode='after')
+    def require_contact_id_or_reseau(self):
+        """Exactly one of contact_id or reseau_contact_id must be set"""
+        if (self.contact_id is None) == (self.reseau_contact_id is None):
+            raise ValueError("Préciser soit contact_id (contact immobilier) soit reseau_contact_id (contact réseau)")
+        return self
     
     model_config = ConfigDict(from_attributes=True)
 

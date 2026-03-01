@@ -16,6 +16,8 @@ from datetime import datetime
 from app.core.database import get_db
 from app.dependencies import get_current_user
 from app.models import User, RealEstateTransaction, RealEstateContact, TransactionContact
+from app.models.contact import Contact
+from app.models.real_estate_contact import ContactType
 from app.schemas.real_estate_transaction import (
     RealEstateTransactionCreate,
     RealEstateTransactionUpdate,
@@ -479,7 +481,9 @@ async def add_contact_to_transaction(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Associate a contact to a transaction with a specific role
+    Associate a contact to a transaction with a specific role.
+    Accepts either contact_id (real_estate_contacts) or reseau_contact_id (reseau/contacts).
+    When reseau_contact_id is provided, the contact is resolved to a RealEstateContact (created if needed).
     """
     try:
         # Verify transaction exists and belongs to user
@@ -498,12 +502,74 @@ async def add_contact_to_transaction(
                 detail="Transaction not found",
             )
         
-        # Verify contact exists
-        contact_query = select(RealEstateContact).where(RealEstateContact.id == contact_data.contact_id)
+        # Resolve contact_id: either direct or from reseau contact
+        contact_id_to_use: int
+        if contact_data.reseau_contact_id is not None:
+            # Load reseau contact (commercial Contact)
+            reseau_query = select(Contact).where(Contact.id == contact_data.reseau_contact_id)
+            reseau_result = await db.execute(reseau_query)
+            reseau_contact = reseau_result.scalar_one_or_none()
+            if not reseau_contact:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Contact not found",
+                )
+            # Get or create RealEstateContact from reseau contact (same user)
+            # Look up by user_id + email if email set, else by user_id + first_name + last_name + email null
+            if reseau_contact.email:
+                lookup = and_(
+                    RealEstateContact.user_id == current_user.id,
+                    RealEstateContact.email == reseau_contact.email,
+                )
+            else:
+                lookup = and_(
+                    RealEstateContact.user_id == current_user.id,
+                    RealEstateContact.first_name == reseau_contact.first_name,
+                    RealEstateContact.last_name == reseau_contact.last_name,
+                    RealEstateContact.email.is_(None),
+                )
+            existing_rec = await db.execute(select(RealEstateContact).where(lookup))
+            real_contact = existing_rec.scalar_one_or_none()
+            if not real_contact:
+                # Map reseau circle to ContactType where possible
+                contact_type = ContactType.OTHER
+                if reseau_contact.circle:
+                    circle_lower = reseau_contact.circle.lower()
+                    if circle_lower == "client":
+                        contact_type = ContactType.CLIENT
+                    elif "courtier" in circle_lower or "broker" in circle_lower:
+                        contact_type = ContactType.REAL_ESTATE_BROKER
+                    elif "notaire" in circle_lower or "notary" in circle_lower:
+                        contact_type = ContactType.NOTARY
+                real_contact = RealEstateContact(
+                    first_name=reseau_contact.first_name,
+                    last_name=reseau_contact.last_name,
+                    email=reseau_contact.email,
+                    phone=reseau_contact.phone,
+                    company=reseau_contact.company or getattr(reseau_contact, "position", None),
+                    type=contact_type,
+                    user_id=current_user.id,
+                )
+                db.add(real_contact)
+                await db.flush()
+                await db.refresh(real_contact)
+            contact_id_to_use = real_contact.id
+        else:
+            contact_id_to_use = contact_data.contact_id  # type: ignore[assignment]
+        
+        # Verify contact exists (for direct contact_id path or after resolve)
+        contact_query = select(RealEstateContact).where(RealEstateContact.id == contact_id_to_use)
         contact_result = await db.execute(contact_query)
         contact = contact_result.scalar_one_or_none()
         
         if not contact:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Contact not found",
+            )
+        
+        # Ensure contact belongs to current user when using real_estate_contacts
+        if contact.user_id is not None and contact.user_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Contact not found",
@@ -514,7 +580,7 @@ async def add_contact_to_transaction(
             select(TransactionContact).where(
                 and_(
                     TransactionContact.transaction_id == transaction_id,
-                    TransactionContact.contact_id == contact_data.contact_id,
+                    TransactionContact.contact_id == contact_id_to_use,
                     TransactionContact.role == contact_data.role
                 )
             )
@@ -522,13 +588,13 @@ async def add_contact_to_transaction(
         if existing.scalar_one_or_none():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Contact {contact_data.contact_id} already has role '{contact_data.role}' in this transaction",
+                detail=f"Contact already has role '{contact_data.role}' in this transaction",
             )
         
         # Create association
         transaction_contact = TransactionContact(
             transaction_id=transaction_id,
-            contact_id=contact_data.contact_id,
+            contact_id=contact_id_to_use,
             role=contact_data.role
         )
         db.add(transaction_contact)

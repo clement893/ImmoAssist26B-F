@@ -156,7 +156,7 @@ export default function LinkContactToTransactionModal({
 
     try {
       await realEstateContactsAPI.addToTransaction(selectedTransaction.id, {
-        contact_id: contactId,
+        reseau_contact_id: contactId,
         role: role,
       });
       onLinked?.();

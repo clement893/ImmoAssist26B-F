@@ -55,7 +55,10 @@ export interface TransactionContact {
 }
 
 export interface TransactionContactCreate {
-  contact_id: number;
+  /** ID du contact real_estate_contacts (utiliser depuis la section Contacts immobiliers) */
+  contact_id?: number;
+  /** ID du contact réseau reseau/contacts (utiliser depuis la section Réseau) */
+  reseau_contact_id?: number;
   role: string;
 }
 
