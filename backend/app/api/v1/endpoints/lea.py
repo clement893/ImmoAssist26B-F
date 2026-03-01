@@ -85,6 +85,22 @@ class LeaSynthesizeRequest(BaseModel):
     voice: Optional[str] = Field("nova", description="Voix TTS: alloy, echo, fable, onyx, nova, shimmer")
 
 
+class LeaSettingsResponse(BaseModel):
+    """Léa settings (admin)"""
+    system_prompt: str
+    max_tokens: int
+    tts_model: str
+    tts_voice: str
+
+
+class LeaSettingsUpdate(BaseModel):
+    """Léa settings update (admin)"""
+    system_prompt: Optional[str] = None
+    max_tokens: Optional[int] = Field(None, ge=64, le=1024)
+    tts_model: Optional[str] = None
+    tts_voice: Optional[str] = None
+
+
 def _use_external_agent() -> bool:
     """Retourne True si l'API agent externe est configurée."""
     settings = get_settings()
@@ -537,6 +553,41 @@ async def reset_lea_context(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error resetting context: {str(e)}",
         )
+
+
+@router.get("/settings", response_model=LeaSettingsResponse)
+async def get_lea_settings(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    _: None = Depends(require_admin_or_superadmin),
+):
+    """
+    Get Léa settings (admin/superadmin). Returns current config from environment and defaults.
+    """
+    settings = get_settings()
+    return LeaSettingsResponse(
+        system_prompt=LEA_SYSTEM_PROMPT,
+        max_tokens=getattr(settings, "LEA_MAX_TOKENS", 256),
+        tts_model=getattr(settings, "LEA_TTS_MODEL", "tts-1-hd"),
+        tts_voice=getattr(settings, "LEA_TTS_VOICE", "nova"),
+    )
+
+
+@router.put("/settings", response_model=LeaSettingsResponse)
+async def update_lea_settings(
+    payload: LeaSettingsUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    _: None = Depends(require_admin_or_superadmin),
+):
+    """
+    Update Léa settings (admin/superadmin). Persistence not implemented yet; returns 501.
+    When implemented, store in global_settings and use in chat/voice endpoints.
+    """
+    raise HTTPException(
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        detail="L'enregistrement des paramètres Léa n'est pas encore implémenté. Utilisez les variables d'environnement LEA_MAX_TOKENS, LEA_TTS_MODEL, LEA_TTS_VOICE et le prompt dans le code (LEA_SYSTEM_PROMPT) pour l'instant.",
+    )
 
 
 @router.post("/voice/transcribe")
