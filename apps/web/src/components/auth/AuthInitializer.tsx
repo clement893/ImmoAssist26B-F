@@ -188,60 +188,24 @@ export function AuthInitializer() {
           logger.debug('Token and user exist, verifying token in background');
           // Deferred to avoid blocking first paint; errors handled in background
           window.setTimeout(() => {
-              usersAPI.getMe().then(() => logger.debug('Token verified successfully')).catch((verifyErr) => {
-                const statusCode = getErrorStatus(verifyErr);
-                if (statusCode !== 401 && statusCode !== 403 && statusCode !== 422) return;
-                if (currentRefreshToken) {
-                  authAPI.refresh(currentRefreshToken).then((r) => {
-                    const { access_token, refresh_token: newRefreshToken, user: userData } = r.data;
-                    TokenStorage.setToken(access_token, newRefreshToken);
-                    setToken(access_token);
-                    if (newRefreshToken) setRefreshToken(newRefreshToken);
-                    if (userData) setUser(transformApiUserToStoreUser(userData));
-                    logger.info('Token refreshed after verification failure');
-                  }).catch(() => { TokenStorage.removeTokens(); logout(); });
-                } else {
-                  TokenStorage.removeTokens();
-                  logout();
-                }
-              });
-            }, 0);
-          } catch (verifyErr) {
-            const statusCode = getErrorStatus(verifyErr);
-
-            // If token is invalid, try refresh
-            if (statusCode === 401 || statusCode === 403 || statusCode === 422) {
+            usersAPI.getMe().then(() => logger.debug('Token verified successfully')).catch((verifyErr) => {
+              const statusCode = getErrorStatus(verifyErr);
+              if (statusCode !== 401 && statusCode !== 403 && statusCode !== 422) return;
               if (currentRefreshToken) {
-                try {
-                  const refreshResponse = await authAPI.refresh(currentRefreshToken);
-                  const { access_token, refresh_token: newRefreshToken, user: userData } = refreshResponse.data;
-
-                  await TokenStorage.setToken(access_token, newRefreshToken);
-                  await setToken(access_token);
-                  if (newRefreshToken) {
-                    await setRefreshToken(newRefreshToken);
-                  }
-
-                  if (userData) {
-                    const userForStore = transformApiUserToStoreUser(userData);
-                    setUser(userForStore);
-                  }
-
+                authAPI.refresh(currentRefreshToken).then((r) => {
+                  const { access_token, refresh_token: newRefreshToken, user: userData } = r.data;
+                  TokenStorage.setToken(access_token, newRefreshToken);
+                  setToken(access_token);
+                  if (newRefreshToken) setRefreshToken(newRefreshToken);
+                  if (userData) setUser(transformApiUserToStoreUser(userData));
                   logger.info('Token refreshed after verification failure');
-                } catch (refreshErr) {
-                  logger.warn('Token refresh failed after verification failure, logging out', {
-                    error: refreshErr instanceof Error ? refreshErr.message : String(refreshErr),
-                  });
-                  await TokenStorage.removeTokens();
-                  logout();
-                }
+                }).catch(() => { TokenStorage.removeTokens(); logout(); });
               } else {
-                logger.warn('Token invalid and no refresh token, logging out');
-                await TokenStorage.removeTokens();
+                TokenStorage.removeTokens();
                 logout();
               }
-            }
-          }
+            });
+          }, 0);
         }
 
         setIsInitialized(true);
