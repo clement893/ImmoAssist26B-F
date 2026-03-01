@@ -317,6 +317,83 @@ export const leaAPI = {
       provider,
     });
   },
+  /**
+   * Chat with Léa in streaming mode (SSE). Calls onDelta for each chunk, onDone when finished.
+   * Returns true if streaming was used, false if backend does not support streaming (fallback to chat).
+   */
+  chatStream: async (
+    params: { message: string; sessionId?: string },
+    callbacks: {
+      onDelta: (delta: string) => void;
+      onDone: (sessionId: string) => void;
+      onError: (message: string) => void;
+    }
+  ): Promise<boolean> => {
+    const token = TokenStorage.getToken();
+    const url = `${getApiUrl().replace(/\/$/, '')}/api/v1/lea/chat/stream`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        message: params.message,
+        session_id: params.sessionId ?? null,
+      }),
+    });
+    if (res.status === 501 || res.status === 404) return false;
+    if (!res.ok) {
+      const text = await res.text();
+      try {
+        const j = JSON.parse(text);
+        callbacks.onError(j.detail ?? text);
+      } catch {
+        callbacks.onError(text || res.statusText);
+      }
+      return true; // we "used" streaming (got an error response)
+    }
+    const reader = res.body?.getReader();
+    if (!reader) {
+      callbacks.onError('Stream non disponible');
+      return true;
+    }
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let sessionId = params.sessionId ?? '';
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.error) {
+                callbacks.onError(data.error);
+                return true;
+              }
+              if (typeof data.delta === 'string') callbacks.onDelta(data.delta);
+              if (data.done && data.session_id) {
+                sessionId = data.session_id;
+                callbacks.onDone(data.session_id);
+              }
+            } catch {
+              /* ignore parse errors */
+            }
+          }
+        }
+      }
+      if (sessionId) callbacks.onDone(sessionId);
+    } catch (e) {
+      callbacks.onError(e instanceof Error ? e.message : 'Erreur de lecture du flux');
+    }
+    return true;
+  },
   chatVoice: (audioBlob: Blob, sessionId?: string, conversationId?: number) => {
     const formData = new FormData();
     formData.append('audio', audioBlob, 'recording.webm');

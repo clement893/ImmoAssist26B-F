@@ -7,6 +7,7 @@ interface LeaMessageBubbleProps {
   role: 'user' | 'assistant';
   timestamp?: string;
   className?: string;
+  isStreaming?: boolean;
 }
 
 export default function LeaMessageBubble({
@@ -14,6 +15,7 @@ export default function LeaMessageBubble({
   role,
   timestamp,
   className = '',
+  isStreaming = false,
 }: LeaMessageBubbleProps) {
   const isUser = role === 'user';
 
@@ -33,7 +35,12 @@ export default function LeaMessageBubble({
             : 'bg-muted text-foreground border border-border'
         )}
       >
-        <p className="text-sm whitespace-pre-wrap leading-relaxed">{content}</p>
+        <p className="text-sm whitespace-pre-wrap leading-relaxed">
+          {content}
+          {isStreaming && (
+            <span className="inline-block w-2 h-4 ml-0.5 bg-primary-500 animate-pulse align-middle" aria-hidden />
+          )}
+        </p>
         {timestamp && (
           <p
             className={clsx(

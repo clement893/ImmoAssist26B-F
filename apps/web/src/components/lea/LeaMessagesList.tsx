@@ -38,24 +38,33 @@ export default function LeaMessagesList({
   return (
     <div className={`flex-1 overflow-y-auto px-4 py-6 ${className}`}>
       <div className="max-w-4xl mx-auto space-y-4">
-        {messages
-          .filter((message) => message.role === 'user' || message.role === 'assistant')
-          .map((message, index) => (
-            <LeaMessageBubble
-              key={index}
-              content={message.content}
-              role={message.role as 'user' | 'assistant'}
-              timestamp={message.timestamp}
-            />
-          ))}
-
-        {isLoading && (
-          <div className="flex justify-start">
-            <div className="bg-muted rounded-xl px-4 py-3 border border-border">
-              <Loading size="sm" />
-            </div>
-          </div>
-        )}
+        {(() => {
+          const visible = messages.filter((m) => m.role === 'user' || m.role === 'assistant');
+          return (
+            <>
+              {visible.map((message, index) => {
+                const isLast = index === visible.length - 1;
+                const isStreaming = isLoading && isLast && message.role === 'assistant';
+                return (
+                  <LeaMessageBubble
+                    key={index}
+                    content={message.content}
+                    role={message.role as 'user' | 'assistant'}
+                    timestamp={message.timestamp}
+                    isStreaming={isStreaming}
+                  />
+                );
+              })}
+              {isLoading && (visible.length === 0 || visible[visible.length - 1]?.role !== 'assistant') && (
+                <div className="flex justify-start">
+                  <div className="bg-muted rounded-xl px-4 py-3 border border-border">
+                    <Loading size="sm" />
+                  </div>
+                </div>
+              )}
+            </>
+          );
+        })()}
 
         <div ref={messagesEndRef} />
       </div>

@@ -27,6 +27,7 @@ import {
   Receipt,
   UserCheck,
   UserPlus,
+  Mic,
 } from 'lucide-react';
 
 export interface NavigationItem {
@@ -101,6 +102,11 @@ export function getNavigationConfig(isAdmin?: boolean, isClient?: boolean): Navi
           icon: <MessageSquare className="w-5 h-5" />,
         },
         {
+          name: 'Léa2',
+          href: '/dashboard/lea2',
+          icon: <Mic className="w-5 h-5" />,
+        },
+        {
           name: 'Formulaire',
           icon: <ClipboardList className="w-5 h-5" />,
           items: [
@@ -168,6 +174,11 @@ export function getNavigationConfig(isAdmin?: boolean, isClient?: boolean): Navi
         name: 'Léa',
         href: '/dashboard/lea',
         icon: <MessageSquare className="w-5 h-5" />,
+      },
+      {
+        name: 'Léa2',
+        href: '/dashboard/lea2',
+        icon: <Mic className="w-5 h-5" />,
       },
       // Module Transactions
       {

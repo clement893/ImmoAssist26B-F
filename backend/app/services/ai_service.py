@@ -1,10 +1,10 @@
 """
 Unified AI Service
-Supports both OpenAI and Anthropic (Claude) APIs
+Supports both OpenAI and Anthropic (Claude) APIs with optional streaming
 """
 
 import os
-from typing import Optional, List, Dict, Any, Literal
+from typing import Optional, List, Dict, Any, Literal, AsyncGenerator
 from enum import Enum
 
 try:
@@ -241,6 +241,57 @@ class AIService:
             system_prompt=system_prompt,
         )
         return response["content"]
+    
+    async def stream_chat_completion(
+        self,
+        messages: List[Dict[str, str]],
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        system_prompt: Optional[str] = None,
+    ) -> AsyncGenerator[str, None]:
+        """
+        Stream chat completion token by token.
+        Yields content deltas (OpenAI). For Anthropic, yields full content when done.
+        """
+        if self.provider == AIProvider.OPENAI:
+            async for delta in self._openai_stream(
+                messages, model, temperature, max_tokens, system_prompt
+            ):
+                yield delta
+        elif self.provider == AIProvider.ANTHROPIC:
+            result = await self._anthropic_chat_completion(
+                messages, model, temperature, max_tokens, system_prompt
+            )
+            if result.get("content"):
+                yield result["content"]
+        else:
+            raise ValueError(f"Unsupported provider: {self.provider}")
+    
+    async def _openai_stream(
+        self,
+        messages: List[Dict[str, str]],
+        model: Optional[str],
+        temperature: Optional[float],
+        max_tokens: Optional[int],
+        system_prompt: Optional[str],
+    ) -> AsyncGenerator[str, None]:
+        """OpenAI streaming: yield content deltas."""
+        if system_prompt:
+            if not messages or messages[0].get("role") != "system":
+                messages = [{"role": "system", "content": system_prompt}] + list(messages)
+        stream = await self.client.chat.completions.create(
+            model=model or self.model,
+            messages=messages,
+            temperature=temperature or self.temperature,
+            max_tokens=max_tokens or self.max_tokens,
+            stream=True,
+        )
+        async for chunk in stream:
+            if chunk.choices and len(chunk.choices) > 0:
+                delta = chunk.choices[0].delta
+                if getattr(delta, "content", None):
+                    yield delta.content
     
     @staticmethod
     def is_configured(provider: Optional[AIProvider] = None) -> bool:

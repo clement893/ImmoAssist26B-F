@@ -353,6 +353,16 @@ class Settings(BaseSettings):
         description="Nom du champ multipart pour l'audio vocal: 'audio' ou 'file' (selon l'API agent)",
     )
 
+    # Léa TTS (voix de l'assistante)
+    LEA_TTS_MODEL: str = Field(
+        default="tts-1-hd",
+        description="Modèle OpenAI TTS: tts-1 (rapide) ou tts-1-hd (meilleure qualité)",
+    )
+    LEA_TTS_VOICE: str = Field(
+        default="nova",
+        description="Voix OpenAI TTS: alloy, echo, fable, onyx, nova, shimmer (nova = voix féminine claire)",
+    )
+
     # SendGrid Marketing Lists
     SENDGRID_NEWSLETTER_LIST_ID: str = Field(
         default="",

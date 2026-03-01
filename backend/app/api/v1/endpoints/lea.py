@@ -2,10 +2,16 @@
 Léa AI Assistant Endpoints
 """
 
+import base64
+import io
+import json
+import os
+import uuid
 from typing import Optional, Literal
 
 import httpx
 from fastapi import APIRouter, Depends, File, Form, HTTPException, status, UploadFile
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,12 +19,27 @@ from app.dependencies import get_current_user
 from app.models import User
 from app.database import get_db
 from app.services.lea_service import LeaService
+from app.services.ai_service import AIService, AIProvider
 from app.core.config import get_settings
 from app.core.logging import logger
+
+try:
+    from openai import AsyncOpenAI
+    _OPENAI_AVAILABLE = True
+except ImportError:
+    _OPENAI_AVAILABLE = False
+    AsyncOpenAI = None
 
 AGENT_ERR_MSG = (
     "AGENT_API_URL and AGENT_API_KEY must be set in the Backend service (Railway → Backend → Variables). "
     "Example: AGENT_API_URL=https://agentia-immo-production.up.railway.app"
+)
+
+LEA_SYSTEM_PROMPT = (
+    "Tu es Léa, une assistante immobilière experte au Québec. "
+    "Tu aides les courtiers immobiliers et les particuliers avec leurs questions sur les transactions, "
+    "les formulaires OACIQ, les procédures, la vente et l'achat. Sois professionnelle, claire et concise. "
+    "Réponds en français."
 )
 
 router = APIRouter(prefix="/lea", tags=["lea"])
@@ -53,7 +74,7 @@ class LeaContextResponse(BaseModel):
 class LeaSynthesizeRequest(BaseModel):
     """Léa text-to-speech synthesis request"""
     text: str = Field(..., min_length=1, description="Text to synthesize")
-    voice: Optional[str] = Field("alloy", description="Voice to use")
+    voice: Optional[str] = Field("nova", description="Voix TTS: alloy, echo, fable, onyx, nova, shimmer")
 
 
 def _use_external_agent() -> bool:
@@ -62,6 +83,35 @@ def _use_external_agent() -> bool:
     url = (settings.AGENT_API_URL or "").strip().rstrip("/")
     key = (settings.AGENT_API_KEY or "").strip()
     return bool(url and key)
+
+
+def _use_integrated_lea() -> bool:
+    """Retourne True si l'IA intégrée (OpenAI/Anthropic) est configurée pour Léa en mode rapide."""
+    return AIService.is_configured()
+
+
+def _use_integrated_voice() -> bool:
+    """True si on peut faire le vocal intégré (Whisper + LLM + TTS) avec OpenAI."""
+    return bool(_OPENAI_AVAILABLE and os.getenv("OPENAI_API_KEY") and AIService.is_configured())
+
+
+async def _transcribe_whisper(audio_bytes: bytes, content_type: str) -> str:
+    """Transcrit l'audio avec OpenAI Whisper."""
+    client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    f = io.BytesIO(audio_bytes)
+    f.name = "audio.webm" if "webm" in (content_type or "") else "audio.mp4"
+    resp = await client.audio.transcriptions.create(model="whisper-1", file=f, language="fr")
+    return (resp.text or "").strip()
+
+
+async def _synthesize_tts(text: str, voice: str | None = None) -> bytes:
+    """Synthèse vocale avec OpenAI TTS (qualité HD, voix configurable). Retourne les bytes audio (mp3)."""
+    settings = get_settings()
+    model = (settings.LEA_TTS_MODEL or "tts-1-hd").strip() or "tts-1-hd"
+    voice_name = (voice or settings.LEA_TTS_VOICE or "nova").strip() or "nova"
+    client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    resp = await client.audio.speech.create(model=model, voice=voice_name, input=text)
+    return resp.content
 
 
 async def _call_external_agent_chat(message: str, session_id: str | None, conversation_id: int | None) -> dict:
@@ -115,6 +165,48 @@ async def _call_external_agent_chat(message: str, session_id: str | None, conver
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail=f"Failed to connect to agent server: {str(e)}",
             )
+
+
+async def _stream_lea_sse(message: str, session_id: str | None):
+    """Génère les événements SSE pour le chat Léa intégré (streaming)."""
+    sid = session_id or str(uuid.uuid4())
+    try:
+        service = AIService(provider=AIProvider.AUTO)
+        messages = [{"role": "user", "content": message}]
+        async for delta in service.stream_chat_completion(
+            messages=messages,
+            system_prompt=LEA_SYSTEM_PROMPT,
+        ):
+            yield f"data: {json.dumps({'delta': delta})}\n\n"
+        yield f"data: {json.dumps({'done': True, 'session_id': sid})}\n\n"
+    except Exception as e:
+        logger.error(f"Léa stream error: {e}", exc_info=True)
+        yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+
+@router.post("/chat/stream")
+async def lea_chat_stream(
+    request: LeaChatRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Chat with Léa in streaming mode (SSE).
+    Used when OPENAI_API_KEY or ANTHROPIC_API_KEY is set for fast, fluid responses.
+    """
+    if not _use_integrated_lea():
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Streaming requires OPENAI_API_KEY or ANTHROPIC_API_KEY in the Backend.",
+        )
+    return StreamingResponse(
+        _stream_lea_sse(request.message, request.session_id),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @router.post("/chat", response_model=LeaChatResponse)
@@ -175,20 +267,68 @@ async def lea_chat_voice(
     current_user: User = Depends(get_current_user),
 ):
     """
-    Message vocal → transcription + réponse agent + TTS.
-    Nécessite AGENT_API_URL + AGENT_API_KEY.
+    Message vocal → transcription + réponse Léa + TTS.
+    Si OPENAI_API_KEY est défini : flux intégré (Whisper + LLM + TTS) sur la plateforme.
+    Sinon : proxy vers l'agent externe (AGENT_API_URL + AGENT_API_KEY).
     """
+    # 1. Voix intégrée (plateforme) : Whisper + AIService + TTS
+    if _use_integrated_voice():
+        try:
+            sid = session_id or str(uuid.uuid4())
+            content = await audio.read()
+            content_type = audio.content_type or "audio/webm"
+
+            transcription = await _transcribe_whisper(content, content_type)
+            if not transcription:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Impossible de transcrire l'audio. Parlez plus distinctement ou vérifiez le format.",
+                )
+
+            service = AIService(provider=AIProvider.AUTO)
+            messages = [{"role": "user", "content": transcription}]
+            result = await service.chat_completion(
+                messages=messages,
+                system_prompt=LEA_SYSTEM_PROMPT,
+            )
+            response_text = result.get("content") or ""
+
+            audio_bytes: bytes | None = None
+            if response_text:
+                try:
+                    audio_bytes = await _synthesize_tts(response_text)
+                except Exception as tts_err:
+                    logger.warning(f"TTS failed, response text only: {tts_err}")
+
+            return {
+                "success": True,
+                "transcription": transcription,
+                "response": response_text,
+                "session_id": sid,
+                "conversation_id": conversation_id,
+                "assistant_audio_url": None,
+                "assistant_audio_base64": base64.b64encode(audio_bytes).decode() if audio_bytes else None,
+            }
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Léa voice integrated error: {e}", exc_info=True)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Erreur agent vocal: {str(e)}",
+            )
+
+    # 2. Agent externe (Django)
     if not _use_external_agent():
         raise HTTPException(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail=AGENT_ERR_MSG,
+            detail="Vocal nécessite OPENAI_API_KEY (plateforme) ou AGENT_API_URL + AGENT_API_KEY (agent externe).",
         )
     try:
         settings = get_settings()
         url = (settings.AGENT_API_URL or "").strip().rstrip("/")
         key = (settings.AGENT_API_KEY or "").strip()
         content = await audio.read()
-        # Nom du champ configurable (audio ou file selon l'API agent)
         field_name = settings.AGENT_VOICE_FIELD or "audio"
         content_type = audio.content_type or "audio/webm"
         files = {field_name: (audio.filename or "recording.webm", content, content_type)}
@@ -305,24 +445,25 @@ async def transcribe_audio(
     current_user: User = Depends(get_current_user),
 ):
     """
-    Transcribe audio to text using OpenAI Whisper API.
-    Note: This is a placeholder. For production, implement proper audio transcription.
+    Transcrit l'audio en texte (OpenAI Whisper).
+    Nécessite OPENAI_API_KEY.
     """
-    try:
-        # TODO: Implement actual audio transcription
-        # For now, return a placeholder response
+    if not _OPENAI_AVAILABLE or not os.getenv("OPENAI_API_KEY"):
         raise HTTPException(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail="Audio transcription not yet implemented. Use Web Speech API on frontend for now.",
+            detail="Transcription nécessite OPENAI_API_KEY.",
         )
-        
+    try:
+        content = await audio.read()
+        text = await _transcribe_whisper(content, audio.content_type or "audio/webm")
+        return {"text": text}
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error transcribing audio: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error transcribing audio: {str(e)}",
+            detail=f"Erreur transcription: {str(e)}",
         )
 
 
@@ -332,22 +473,22 @@ async def synthesize_speech(
     current_user: User = Depends(get_current_user),
 ):
     """
-    Synthesize text to speech using OpenAI TTS API.
-    Note: This is a placeholder. For production, implement proper TTS.
+    Synthèse vocale (OpenAI TTS). Retourne l'audio en base64.
+    Nécessite OPENAI_API_KEY.
     """
-    try:
-        # TODO: Implement actual TTS
-        # For now, return a placeholder response
+    if not _OPENAI_AVAILABLE or not os.getenv("OPENAI_API_KEY"):
         raise HTTPException(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail="Text-to-speech not yet implemented. Use Web Speech Synthesis API on frontend for now.",
+            detail="TTS nécessite OPENAI_API_KEY.",
         )
-        
+    try:
+        audio_bytes = await _synthesize_tts(request.text, voice=request.voice)
+        return {"audio_base64": base64.b64encode(audio_bytes).decode(), "content_type": "audio/mpeg"}
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error synthesizing speech: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error synthesizing speech: {str(e)}",
+            detail=f"Erreur TTS: {str(e)}",
         )

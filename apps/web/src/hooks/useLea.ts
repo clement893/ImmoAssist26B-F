@@ -1,5 +1,6 @@
 /**
  * Hook for Léa AI Assistant
+ * Uses streaming when available for fast, fluid responses.
  */
 
 import { useState, useCallback, useRef } from 'react';
@@ -30,6 +31,8 @@ export interface LeaVoiceResponse {
   conversation_id?: number;
   session_id?: string;
   assistant_audio_url?: string;
+  /** Audio MP3 en base64 (retourné par la plateforme quand vocal intégré) */
+  assistant_audio_base64?: string;
   success: boolean;
 }
 
@@ -71,55 +74,92 @@ export function useLea(initialSessionId?: string): UseLeaReturn {
     }
     abortControllerRef.current = new AbortController();
 
-    try {
-      const response = await apiClient.post<LeaChatResponse>(
-        '/v1/lea/chat',
-        {
-          message,
-          session_id: sessionId,
-          provider: 'openai', // Force OpenAI provider
+    // Placeholder assistant message for streaming (content will grow)
+    const assistantPlaceholder: LeaMessage = {
+      role: 'assistant',
+      content: '',
+      timestamp: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, assistantPlaceholder]);
+
+    const usedStream = await leaAPI.chatStream(
+      { message, sessionId: sessionId ?? undefined },
+      {
+        onDelta: (delta) => {
+          setMessages((prev) => {
+            const next = [...prev];
+            const last = next[next.length - 1];
+            if (last?.role === 'assistant') {
+              next[next.length - 1] = { ...last, content: last.content + delta };
+            }
+            return next;
+          });
         },
-        {
-          signal: abortControllerRef.current.signal,
+        onDone: (newSessionId) => {
+          if (newSessionId && !sessionId) setSessionId(newSessionId);
+          setIsLoading(false);
+          abortControllerRef.current = null;
+        },
+        onError: (errMsg) => {
+          setError(errMsg);
+          setMessages((prev) => {
+            const next = [...prev];
+            const last = next[next.length - 1];
+            if (last?.role === 'assistant') {
+              next[next.length - 1] = { ...last, content: `❌ Erreur: ${errMsg}` };
+            }
+            return next;
+          });
+          setIsLoading(false);
+          abortControllerRef.current = null;
+        },
+      }
+    );
+
+    // Fallback: backend does not support streaming (501/404)
+    if (!usedStream) {
+      setMessages((prev) => prev.slice(0, -1)); // remove placeholder
+      try {
+        const response = await apiClient.post<LeaChatResponse>(
+          '/v1/lea/chat',
+          {
+            message,
+            session_id: sessionId,
+            provider: 'openai',
+          },
+          { signal: abortControllerRef.current.signal }
+        );
+
+        if (response.data.session_id && !sessionId) {
+          setSessionId(response.data.session_id);
         }
-      );
 
-      // Update session ID if new
-      if (response.data.session_id && !sessionId) {
-        setSessionId(response.data.session_id);
+        const assistantMessage: LeaMessage = {
+          role: 'assistant',
+          content: response.data.content,
+          timestamp: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, assistantMessage]);
+      } catch (err) {
+        if (err instanceof Error && err.name === 'CanceledError') return;
+
+        const axiosError = err as AxiosError<{ detail?: string }>;
+        const errorMessage =
+          axiosError.response?.data?.detail ||
+          axiosError.message ||
+          'Erreur lors de la communication avec Léa';
+
+        setError(errorMessage);
+        const errorMsg: LeaMessage = {
+          role: 'assistant',
+          content: `❌ Erreur: ${errorMessage}`,
+          timestamp: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, errorMsg]);
+      } finally {
+        setIsLoading(false);
+        abortControllerRef.current = null;
       }
-
-      // Add assistant response
-      const assistantMessage: LeaMessage = {
-        role: 'assistant',
-        content: response.data.content,
-        timestamp: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
-    } catch (err) {
-      if (err instanceof Error && err.name === 'CanceledError') {
-        // Request was cancelled, ignore
-        return;
-      }
-
-      const axiosError = err as AxiosError<{ detail?: string }>;
-      const errorMessage =
-        axiosError.response?.data?.detail ||
-        axiosError.message ||
-        'Erreur lors de la communication avec Léa';
-
-      setError(errorMessage);
-
-      // Add error message to chat
-      const errorMsg: LeaMessage = {
-        role: 'assistant',
-        content: `❌ Erreur: ${errorMessage}`,
-        timestamp: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, errorMsg]);
-    } finally {
-      setIsLoading(false);
-      abortControllerRef.current = null;
     }
   }, [isLoading, sessionId]);
 
@@ -164,6 +204,10 @@ export function useLea(initialSessionId?: string): UseLeaReturn {
 
         if (data.assistant_audio_url) {
           const audio = new Audio(data.assistant_audio_url);
+          audio.play().catch(() => {});
+        } else if (data.assistant_audio_base64) {
+          const dataUrl = `data:audio/mpeg;base64,${data.assistant_audio_base64}`;
+          const audio = new Audio(dataUrl);
           audio.play().catch(() => {});
         }
       } catch (err) {
