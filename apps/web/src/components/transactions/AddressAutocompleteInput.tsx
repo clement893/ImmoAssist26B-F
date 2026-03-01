@@ -100,6 +100,7 @@ export default function AddressAutocompleteInput({
 
   useEffect(() => {
     if (!key || !inputRef.current || disabled) return;
+    let cleanup: (() => void) | null = null;
     loadGoogleMapsScript(key).then((ok) => {
       setScriptLoaded(ok);
       if (!ok || !inputRef.current) return;
@@ -120,7 +121,7 @@ export default function AddressAutocompleteInput({
           }
         });
         autocompleteRef.current = ac;
-        return () => {
+        cleanup = () => {
           try {
             if (listener && typeof listener.remove === 'function') listener.remove();
           } catch (_) {}
@@ -130,6 +131,9 @@ export default function AddressAutocompleteInput({
         setScriptLoaded(false);
       }
     });
+    return () => {
+      cleanup?.();
+    };
   }, [key, disabled, onChange, onSelect]);
 
   return (

@@ -6,7 +6,7 @@ import Textarea from '@/components/ui/Textarea';
 import Select from '@/components/ui/Select';
 import Button from '@/components/ui/Button';
 import { Plus, X } from 'lucide-react';
-import AddressAutocompleteInput, { type AddressResult } from '@/components/transactions/AddressAutocompleteInput';
+import AddressAutocompleteInput from '@/components/transactions/AddressAutocompleteInput';
 
 interface Person {
   name: string;
