@@ -145,7 +145,8 @@ function TransactionsContent() {
 
     try {
       await transactionsAPI.update(transactionId, { pipeline_stage: newPipelineStage });
-      await loadTransactions();
+      // Do not refetch after success: optimistic state is already correct.
+      // Refetching can overwrite with stale/cached data and make the card snap back.
     } catch (err) {
       if (transactionToUpdate) {
         setTransactions(prev =>

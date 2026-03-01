@@ -5,11 +5,12 @@ import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigat
 import Container from '@/components/ui/Container';
 import Loading from '@/components/ui/Loading';
 import Alert from '@/components/ui/Alert';
-import { transactionsAPI } from '@/lib/api';
+import { transactionsAPI, realEstateContactsAPI } from '@/lib/api';
 import TransactionTimeline from '@/components/transactions/TransactionTimeline';
 import StatusStepper from '@/components/transactions/StatusStepper';
 import TransactionStepsV2 from '@/components/transactions/TransactionStepsV2';
 import TransactionFormsTab from '@/components/transactions/TransactionFormsTab';
+import AddContactToTransactionModal from '@/components/transactions/AddContactToTransactionModal';
 import { calculateTransactionSteps } from '@/lib/transactions/progression';
 import { useToast } from '@/components/ui';
 import { 
@@ -26,6 +27,7 @@ import {
   Trash2,
   ClipboardList,
   FileCheck,
+  Users,
 } from 'lucide-react';
 
 interface Transaction {
@@ -114,7 +116,7 @@ interface Transaction {
 }
 
 
-const TAB_IDS = ['steps', 'documents', 'activity', 'photos', 'forms'] as const;
+const TAB_IDS = ['steps', 'documents', 'activity', 'photos', 'forms', 'contacts'] as const;
 
 export default function TransactionDetailPage() {
   const params = useParams();
@@ -130,6 +132,9 @@ export default function TransactionDetailPage() {
   const [saving, setSaving] = useState<Record<string, boolean>>({});
   const [activeTab, setActiveTab] = useState('steps');
   const [newComment, setNewComment] = useState('');
+  const [transactionContacts, setTransactionContacts] = useState<Array<{ transaction_id: number; contact_id: number; role: string; created_at: string; contact: { id: number; first_name: string; last_name: string; email?: string; phone?: string; company?: string } }>>([]);
+  const [contactsLoading, setContactsLoading] = useState(false);
+  const [showAddContactModal, setShowAddContactModal] = useState(false);
 
   // Sync active tab with URL ?tab=...
   useEffect(() => {
@@ -142,6 +147,25 @@ export default function TransactionDetailPage() {
   useEffect(() => {
     loadTransaction();
   }, [transactionId]);
+
+  const loadTransactionContacts = async () => {
+    if (!transactionId) return;
+    try {
+      setContactsLoading(true);
+      const res = await realEstateContactsAPI.getTransactionContacts(parseInt(transactionId));
+      setTransactionContacts(res.data?.contacts ?? []);
+    } catch {
+      setTransactionContacts([]);
+    } finally {
+      setContactsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'contacts') {
+      loadTransactionContacts();
+    }
+  }, [activeTab, transactionId]);
 
   const loadTransaction = async () => {
     try {
@@ -249,6 +273,7 @@ export default function TransactionDetailPage() {
     { id: 'activity', label: 'Activity', icon: MessageSquare },
     { id: 'photos', label: 'Photos', icon: ImageIcon },
     { id: 'forms', label: 'Formulaire', icon: FileCheck },
+    { id: 'contacts', label: 'Contacts', icon: Users },
   ];
 
   // Filter documents
@@ -490,6 +515,96 @@ export default function TransactionDetailPage() {
               </div>
             )}
 
+            {/* Contacts Tab */}
+            {activeTab === 'contacts' && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900">Intervenants de la transaction</h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddContactModal(true)}
+                    className="px-4 py-2 bg-blue-500 text-white rounded-2xl text-sm font-medium hover:bg-blue-600 transition-colors inline-flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Ajouter un contact
+                  </button>
+                </div>
+
+                {contactsLoading ? (
+                  <div className="flex items-center justify-center py-12 text-gray-500">
+                    <Loading />
+                  </div>
+                ) : transactionContacts.length > 0 ? (
+                  <div className="space-y-3">
+                    {transactionContacts.map((tc) => (
+                      <div
+                        key={`${tc.contact_id}-${tc.role}`}
+                        className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                            <Users className="w-6 h-6 text-blue-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">
+                              {tc.contact.first_name} {tc.contact.last_name}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {tc.role}
+                              {tc.contact.company && ` · ${tc.contact.company}`}
+                            </p>
+                            {(tc.contact.email || tc.contact.phone) && (
+                              <p className="text-xs text-gray-400 mt-0.5">
+                                {tc.contact.email}
+                                {tc.contact.email && tc.contact.phone && ' · '}
+                                {tc.contact.phone}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!confirm('Retirer ce contact de la transaction ?')) return;
+                            try {
+                              await realEstateContactsAPI.removeFromTransaction(
+                                parseInt(transactionId),
+                                tc.contact_id,
+                                tc.role
+                              );
+                              await loadTransactionContacts();
+                              showToast({ message: 'Contact retiré', type: 'success' });
+                            } catch (err) {
+                              showToast({
+                                message: err instanceof Error ? err.message : 'Erreur',
+                                type: 'error',
+                              });
+                            }
+                          }}
+                          className="p-2 hover:bg-gray-200 rounded-xl transition-colors text-gray-500 hover:text-red-600"
+                          title="Retirer de la transaction"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-gray-500">
+                    <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p className="mb-2">Aucun intervenant lié à cette transaction</p>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddContactModal(true)}
+                      className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                    >
+                      Ajouter un contact
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Photos Tab */}
             {activeTab === 'photos' && (
               <div className="space-y-6">
@@ -705,6 +820,18 @@ export default function TransactionDetailPage() {
 
           </div>
         </div>
+
+        {/* Modal: Add contact to transaction */}
+        <AddContactToTransactionModal
+          isOpen={showAddContactModal}
+          onClose={() => setShowAddContactModal(false)}
+          transactionId={parseInt(transactionId)}
+          onContactAdded={() => {
+            loadTransactionContacts();
+            setShowAddContactModal(false);
+            showToast({ message: 'Contact ajouté à la transaction', type: 'success' });
+          }}
+        />
       </div>
     </div>
   );

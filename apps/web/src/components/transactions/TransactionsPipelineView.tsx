@@ -113,6 +113,8 @@ export default function TransactionsPipelineView({
   const [draggedTransaction, setDraggedTransaction] = useState<number | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  // Ignore the next click after a drop (browser often fires click after drop)
+  const [ignoreNextClick, setIgnoreNextClick] = useState(false);
   // État local pour les mises à jour optimistes
   const [localTransactions, setLocalTransactions] = useState<Transaction[]>(transactions);
   
@@ -147,6 +149,9 @@ export default function TransactionsPipelineView({
 
       setDraggedTransaction(null);
       setDragOverColumn(null);
+      // Prevent the drop from triggering a click on the card (browser often fires click after drop)
+      setIgnoreNextClick(true);
+      setTimeout(() => setIgnoreNextClick(false), 300);
 
       try {
         await onStatusChange(draggedTransaction, columnStageId);
@@ -276,6 +281,7 @@ export default function TransactionsPipelineView({
                       draggable={!!onStatusChange}
                       onDragStart={() => handleDragStart(transaction.id)}
                       onClick={() => {
+                        if (ignoreNextClick) return;
                         if (onTransactionClick) {
                           onTransactionClick(transaction);
                         } else {
