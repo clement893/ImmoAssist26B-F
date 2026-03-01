@@ -30,6 +30,14 @@ function formatConversationDate(iso: string | null): string {
   }
 }
 
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h >= 18) return 'Bonsoir';
+  if (h >= 12) return 'Bon après-midi';
+  if (h >= 5) return 'Bonjour';
+  return 'Bonsoir';
+}
+
 /** Formate la discussion + actions backend pour copie (logs complets). */
 function formatConversationForCopy(messages: LeaMessage[]): string {
   const lines: string[] = [
@@ -316,11 +324,13 @@ export default function Lea2View() {
 
   return (
     <div className="flex flex-col h-full min-h-0 bg-slate-950 text-white overflow-hidden">
-      {/* Gradient background (no grain) */}
+      {/* Fond sombre avec gradient et légère texture */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-indigo-950/95 to-violet-950" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(99,102,241,0.15),transparent)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_80%,rgba(139,92,246,0.12),transparent)]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-slate-900/98 to-slate-950" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(59,130,246,0.12),transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_80%_60%,rgba(99,102,241,0.08),transparent_50%)]" />
+        {/* Légers points type sparkle */}
+        <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '24px 24px' }} />
       </div>
 
       <div className="relative flex flex-col md:flex-row flex-1 min-h-0 z-10">
@@ -379,7 +389,7 @@ export default function Lea2View() {
           </div>
         </aside>
 
-        {/* Main: header + conversation + voice */}
+        {/* Main: header + (conversation | voice) */}
         <div className="flex-1 min-w-0 flex flex-col min-h-0">
         {/* Header minimal */}
         <header className="flex items-center justify-between px-4 py-3 border-b border-white/10 shrink-0 md:col-span-2">
@@ -432,10 +442,12 @@ export default function Lea2View() {
           </div>
         </header>
 
-        {/* ——— CONVERSATION (centrée, feed scrollable pour remonter) ——— */}
+        {/* Row: conversation (gauche) | micro/voice (droite) — toujours côte à côte */}
+        <div className="flex-1 flex flex-row min-h-0 min-w-0">
+        {/* ——— CONVERSATION (zone scrollable à gauche) ——— */}
         <div className={clsx(
-          'flex flex-col min-h-0',
-          hasMessages ? 'flex-1 md:min-w-0 min-h-[220px] max-h-[55vh] md:max-h-none' : 'hidden md:flex md:flex-1 md:min-w-0'
+          'flex flex-col min-h-0 min-w-0',
+          hasMessages ? 'flex-1 min-h-[200px]' : 'hidden md:flex md:flex-1'
         )}>
           <div className="flex-1 min-h-0 flex flex-col h-full">
             <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden rounded-2xl mx-3 mt-3 md:mx-4 md:mt-4 md:mr-2 bg-white/5 border border-white/10 shadow-inner overscroll-contain scrollbar-hide">
@@ -478,8 +490,8 @@ export default function Lea2View() {
           </div>
         </div>
 
-        {/* ——— VOICE PANEL (droite sur desktop, en bas sur mobile) ——— */}
-        <div className="shrink-0 flex flex-col md:w-[380px] md:border-l md:border-white/10 px-4 pb-6 pt-4">
+        {/* ——— VOICE PANEL (style Ombrion : barre centrale + micro à droite) ——— */}
+        <div className="shrink-0 flex flex-col w-[320px] sm:w-[360px] md:w-[380px] border-l border-white/10 px-3 sm:px-4 pb-6 pt-6 overflow-y-auto">
           {/* Error */}
           {displayError && (
             <div className="mb-3 px-4 py-2 rounded-xl bg-red-500/20 border border-red-400/40 text-red-200 text-sm">
@@ -498,128 +510,117 @@ export default function Lea2View() {
               )}
             </div>
           )}
-          {/* Greeting + CTA vocal */}
-          <div className="text-center mb-6">
-            <p className="text-white/90 text-lg">
-              {isListening ? (
-                <>
-                  Je vous écoute, <span className="font-semibold text-white">{firstName}</span>…
-                </>
-              ) : (
-                <>
-                  Bonjour {firstName},{' '}
-                  <span className="bg-gradient-to-r from-violet-300 to-cyan-300 bg-clip-text text-transparent font-semibold">
-                    comment puis-je vous aider ?
-                  </span>
-                </>
-              )}
+
+          {/* Salutation type Ombrion — bien mise en avant */}
+          <div className="text-center mb-8 mt-4">
+            <p className="text-white text-xl sm:text-2xl font-medium tracking-tight">
+              {getGreeting()}{' '}
+              <span className="font-semibold text-white">{firstName}</span>
             </p>
-            {!isListening && (voiceSupported || recordSupported) && (
-              <p className="text-white/50 text-sm mt-1">
-                Appuyez sur le micro pour parler
-              </p>
-            )}
+            <p className="text-white/70 text-base sm:text-lg mt-1">
+              {isListening ? 'Je vous écoute…' : 'Comment puis-je vous aider ?'}
+            </p>
           </div>
 
-          {/* Central big voice button / visualizer */}
-          <div className="flex justify-center mb-6">
-            <button
-              type="button"
-              onClick={handleCentralVoiceAction}
-              disabled={isLoading || (!voiceSupported && !recordSupported)}
-              className={clsx(
-                'relative w-40 h-40 rounded-full flex items-center justify-center transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-white/30',
-                'disabled:opacity-50 disabled:cursor-not-allowed',
-                isCentralActive
-                  ? 'bg-gradient-to-br from-amber-500/90 to-orange-600/90 shadow-2xl shadow-amber-500/40 scale-105'
-                  : 'bg-gradient-to-br from-violet-500 to-indigo-600 shadow-2xl shadow-violet-500/40 hover:scale-105 hover:shadow-violet-500/50'
-              )}
-              title={isListening ? 'Arrêter l\'écoute' : isRecording ? 'Arrêter et envoyer' : 'Parler à Léa'}
-            >
-              {/* Glow ring */}
-              <div
-                className={clsx(
-                  'absolute inset-0 rounded-full border-4 border-white/20',
-                  isCentralActive && 'animate-pulse border-amber-300/40'
-                )}
-              />
-              <div className="absolute inset-2 rounded-full bg-gradient-to-br from-white/10 to-transparent" />
-              {isListening ? (
-                <MicOff className="w-16 h-16 text-white drop-shadow-lg relative z-10" />
-              ) : isRecording ? (
-                <Square className="w-16 h-16 text-white drop-shadow-lg relative z-10" />
-              ) : (
-                <Mic className="w-16 h-16 text-white drop-shadow-lg relative z-10" />
-              )}
-            </button>
-          </div>
-
-          {/* Listening / Recording indicator */}
-          {(isListening || isRecording) && (
-            <div className="flex justify-center gap-2 mb-4">
-              <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/15 text-sm">
-                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                {isListening ? 'Léa vous écoute... Dites « Vocal terminé » pour envoyer.' : 'Enregistrement... Cliquez pour envoyer.'}
-              </span>
-            </div>
-          )}
-
-          {/* Transcription en direct pendant que vous parlez */}
-          {isListening && (
-            <div className="max-w-xl mx-auto mb-4 min-h-[4rem] px-4 py-3 rounded-2xl bg-white/10 border border-white/20">
-              <p className="text-white/60 text-xs uppercase tracking-wider mb-1">En direct</p>
-              <p className="text-white text-lg leading-relaxed min-h-[1.5rem]">
-                {transcript ? (
-                  <span>{transcript}</span>
-                ) : (
-                  <span className="text-white/40">Parlez, le texte s&apos;affichera ici…</span>
-                )}
-              </p>
-            </div>
-          )}
-
-          {/* Bottom pill: Cancel when listening */}
-          <div className="flex justify-center gap-3 mb-4">
+          {/* Barre de saisie unique + micro à droite (bouton micro assez grand) */}
+          <div className="flex flex-col gap-3 flex-1 min-h-0">
+            {/* Transcription en direct au-dessus de la barre quand on parle */}
             {isListening && (
-              <button
-                type="button"
-                onClick={stopListening}
-                className="p-3 rounded-full bg-white/15 hover:bg-white/25 text-white transition-colors"
-                title="Annuler"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="rounded-2xl bg-white/10 border border-white/20 px-4 py-3">
+                <p className="text-white/60 text-xs uppercase tracking-wider mb-1">En direct</p>
+                <p className="text-white text-base leading-relaxed min-h-[1.5rem]">
+                  {transcript ? (
+                    <span>{transcript}</span>
+                  ) : (
+                    <span className="text-white/40">Parlez…</span>
+                  )}
+                </p>
+                <div className="flex items-center justify-between mt-2">
+                  <span className="inline-flex items-center gap-2 text-amber-400/90 text-sm">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                    Léa vous écoute. Dites « Vocal terminé » pour envoyer.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={stopListening}
+                    className="p-2 rounded-full bg-white/15 hover:bg-white/25 text-white transition-colors"
+                    title="Annuler"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
             )}
-          </div>
 
-          {/* Text input (secondary) */}
-          <div className="max-w-xl mx-auto">
-            <div className="flex gap-2 rounded-2xl bg-white/10 border border-white/20 p-2 focus-within:border-violet-400/50 focus-within:ring-2 focus-within:ring-violet-400/20 transition-all">
+            {(isListening || isRecording) && !displayError && (
+              <div className="flex justify-center">
+                <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 text-white/80 text-sm">
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                  {isListening ? 'Écoute en cours…' : 'Enregistrement…'}
+                </span>
+              </div>
+            )}
+
+            {/* Grande barre type Ombrion : input + micro à droite */}
+            <div className="flex items-stretch gap-2 rounded-2xl bg-white/10 border border-white/20 p-2 focus-within:border-blue-400/50 focus-within:ring-2 focus-within:ring-blue-400/20 transition-all shadow-lg">
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Ou tapez votre message..."
+                placeholder="Posez votre question…"
                 disabled={isLoading || isListening}
-                className="flex-1 bg-transparent text-white placeholder:text-white/40 px-3 py-2 outline-none"
+                className="flex-1 min-w-0 bg-transparent text-white placeholder:text-white/40 px-4 py-3 outline-none text-base"
               />
-              <button
-                type="button"
-                onClick={() => input.trim() && handleMessageSend(input.trim())}
-                disabled={!input.trim() || isLoading || isListening}
-                className={clsx(
-                  'p-2 rounded-xl transition-colors',
-                  input.trim() && !isLoading && !isListening
-                    ? 'bg-violet-500 hover:bg-violet-400 text-white'
-                    : 'text-white/40 cursor-not-allowed'
-                )}
-                title="Envoyer"
-              >
-                <ArrowUp className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => input.trim() && handleMessageSend(input.trim())}
+                  disabled={!input.trim() || isLoading || isListening}
+                  className={clsx(
+                    'p-2 rounded-xl transition-colors',
+                    input.trim() && !isLoading && !isListening
+                      ? 'bg-blue-500 hover:bg-blue-400 text-white'
+                      : 'text-white/40 cursor-not-allowed'
+                  )}
+                  title="Envoyer"
+                >
+                  <ArrowUp className="w-5 h-5" />
+                </button>
+                {/* Bouton micro bien visible, type Ombrion (cercle bleu clair) */}
+                <button
+                  type="button"
+                  onClick={handleCentralVoiceAction}
+                  disabled={isLoading || (!voiceSupported && !recordSupported)}
+                  className={clsx(
+                    'flex items-center justify-center rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/40',
+                    'disabled:opacity-50 disabled:cursor-not-allowed',
+                    'w-14 h-14 shrink-0',
+                    isCentralActive
+                      ? 'bg-amber-500 hover:bg-amber-400 text-white shadow-lg shadow-amber-500/30'
+                      : 'bg-blue-500/90 hover:bg-blue-400 text-white shadow-lg shadow-blue-500/20'
+                  )}
+                  title={isListening ? 'Arrêter l\'écoute' : isRecording ? 'Arrêter et envoyer' : 'Parler à Léa'}
+                >
+                  {isListening ? (
+                    <MicOff className="w-7 h-7" />
+                  ) : isRecording ? (
+                    <Square className="w-7 h-7" />
+                  ) : (
+                    <Mic className="w-7 h-7" />
+                  )}
+                </button>
+              </div>
             </div>
+
+            {/* Rappel court */}
+            {(voiceSupported || recordSupported) && !isListening && !isRecording && (
+              <p className="text-center text-white/45 text-sm">
+                Tapez ou appuyez sur le micro pour parler
+              </p>
+            )}
           </div>
+        </div>
         </div>
         </div>
       </div>

@@ -49,7 +49,8 @@ LEA_SYSTEM_PROMPT = (
     "** RÈGLE CRUCIALE - ACTIONS RÉELLES : **\n"
     "Tu ne dois JAMAIS prétendre avoir fait une action (créer une transaction, mettre à jour une adresse, créer une promesse d'achat, etc.) "
     "si le bloc « Action effectuée » ci-dessous ne le mentionne pas explicitement. "
-    "Si l'utilisateur demande quelque chose et qu'il n'y a AUCUN « Action effectuée » pour cette demande, "
+    "** Quand le bloc « Action effectuée » est présent et indique qu'une action a été faite (ex: transaction créée), tu DOIS confirmer à l'utilisateur que c'est fait — ne dis pas que tu ne peux pas. ** "
+    "Si l'utilisateur demande quelque chose et qu'il n'y a AUCUN bloc « Action effectuée » pour cette demande, "
     "dis-lui que tu ne peux pas encore faire cela automatiquement et invite-le à aller dans la section Transactions pour le faire. "
     "Ne invente jamais une confirmation du type « c'est fait » ou « j'ai créé » sans que « Action effectuée » le confirme.\n\n"
     "Quand « Action effectuée » indique une ou plusieurs actions (ex: transaction créée, adresse ajoutée, promesse d'achat enregistrée), "
@@ -268,8 +269,15 @@ def _wants_to_create_transaction(message: str) -> tuple[bool, str]:
         if "vente" in t or "de vente" in t:
             return True, "vente"
         return True, "achat"
-    # "créer une nouvelle transaction" / "nouvelle transaction" (explicite en premier)
-    if "créer une nouvelle transaction" in t or "créer un nouveau dossier" in t:
+    # "créer une nouvelle transaction" / "nouvelle transaction" (explicite, avec ou sans accents pour vocal)
+    if (
+        "créer une nouvelle transaction" in t
+        or "creer une nouvelle transaction" in t
+        or "creer une nouvelle transaction" in nt
+        or "créer un nouveau dossier" in t
+        or "creer un nouveau dossier" in t
+        or "creer un nouveau dossier" in nt
+    ):
         if "vente" in t or "de vente" in t:
             return True, "vente"
         return True, "achat"
@@ -301,8 +309,17 @@ def _wants_to_create_transaction(message: str) -> tuple[bool, str]:
         if "vente" in t or "de vente" in t:
             return True, "vente"
         return True, "achat"
-    # Intentions explicites avec "créer (une) transaction" ou "créer un dossier"
-    if "créer une transaction" in t or "créer un dossier" in t or "créer la transaction" in t:
+    # Intentions explicites avec "créer (une) transaction" ou "créer un dossier" (avec ou sans accents)
+    if (
+        "créer une transaction" in t
+        or "creer une transaction" in t
+        or "creer une transaction" in nt
+        or "créer un dossier" in t
+        or "creer un dossier" in t
+        or "creer un dossier" in nt
+        or "créer la transaction" in t
+        or "creer la transaction" in nt
+    ):
         if "achat" in t:
             return True, "achat"
         if "vente" in t:
