@@ -195,6 +195,25 @@ def _wants_to_create_transaction(message: str) -> tuple[bool, str]:
     t = (message or "").strip().lower()
     if not t:
         return False, ""
+    # "aide-moi à créer (une) transaction" / "aide-moi à créer un dossier"
+    if "aide-moi" in t or "aide-moi " in t or "aidez-moi" in t or "m'aider" in t or "m’aider" in t:
+        if "créer" in t and ("transaction" in t or "dossier" in t):
+            if "achat" in t or "d'achat" in t:
+                return True, "achat"
+            if "vente" in t or "de vente" in t:
+                return True, "vente"
+            return True, "achat"
+        if "créer une transaction" in t or "créer un dossier" in t:
+            return True, "achat"
+    # "peux-tu créer" / "tu peux créer" / "pourrais-tu créer"
+    if ("peux-tu" in t or "tu peux" in t or "pourrais-tu" in t or "pourrais tu" in t) and "créer" in t and (
+        "transaction" in t or "dossier" in t
+    ):
+        if "achat" in t or "d'achat" in t:
+            return True, "achat"
+        if "vente" in t or "de vente" in t:
+            return True, "vente"
+        return True, "achat"
     # Intentions explicites avec "créer (une) transaction" ou "créer un dossier"
     if "créer une transaction" in t or "créer un dossier" in t or "créer la transaction" in t:
         if "achat" in t:
@@ -304,9 +323,68 @@ async def get_user_latest_transaction(db: AsyncSession, user_id: int):
     return r.scalar_one_or_none()
 
 
+def _extract_transaction_ref_from_message(message: str) -> Optional[str]:
+    """
+    Extrait une référence à une transaction (numéro de dossier ou id) du message.
+    Ex: "transaction 4", "transaction #4", "#4", "dossier 4", "la transaction 4".
+    Retourne "4" ou None.
+    """
+    if not message or len(message.strip()) < 2:
+        return None
+    t = message.strip()
+    # #4 ou # 4
+    m = re.search(r"#\s*(\d+)", t, re.I)
+    if m:
+        return m.group(1)
+    # "transaction 4" / "transaction #4" / "la transaction 4" / "pour la transaction 4"
+    m = re.search(r"(?:pour\s+)?(?:la\s+)?transaction\s+#?\s*(\d+)", t, re.I)
+    if m:
+        return m.group(1)
+    # "dossier 4"
+    m = re.search(r"dossier\s+#?\s*(\d+)", t, re.I)
+    if m:
+        return m.group(1)
+    return None
+
+
+async def get_user_transaction_by_ref(
+    db: AsyncSession, user_id: int, ref: str
+) -> Optional[RealEstateTransaction]:
+    """
+    Retourne une transaction de l'utilisateur par id ou numéro de dossier.
+    ref peut être "4" -> on cherche id=4 ou dossier_number="4".
+    """
+    if not ref or not ref.strip():
+        return None
+    ref = ref.strip()
+    # Essayer par id
+    try:
+        tid = int(ref)
+        q = select(RealEstateTransaction).where(
+            RealEstateTransaction.user_id == user_id,
+            RealEstateTransaction.id == tid,
+        )
+        r = await db.execute(q)
+        tx = r.scalar_one_or_none()
+        if tx:
+            return tx
+    except ValueError:
+        pass
+    # Essayer par dossier_number
+    q = (
+        select(RealEstateTransaction)
+        .where(
+            RealEstateTransaction.user_id == user_id,
+            RealEstateTransaction.dossier_number == ref,
+        )
+    )
+    r = await db.execute(q)
+    return r.scalar_one_or_none()
+
+
 def _extract_address_from_message(message: str) -> Optional[str]:
     """Extrait une adresse du message (ex: 'l'adresse est le 6/840 avenue Papineau', 'qui est le 6/840 avenue Papineau')."""
-    if not message or len(message.strip()) < 10:
+    if not message or len(message.strip()) < 5:
         return None
     t = message.strip()
     # "est le X" / "est X" / "c'est le X" / "l'adresse est X" / "qui est le X"
@@ -316,6 +394,24 @@ def _extract_address_from_message(message: str) -> Optional[str]:
             addr = m.group(1).strip()
             if len(addr) >= 5 and any(c.isdigit() for c in addr):
                 return addr
+    # "ajoute(l')adresse 123 rue X" / "ajouter l'adresse 123 rue X"
+    m = re.search(
+        r"ajout(?:er?|es?)\s+(?:l')?adresse\s+([^\n.]+?)(?:\.|$|\s+pour\s+)",
+        t,
+        re.I | re.DOTALL,
+    )
+    if m:
+        addr = m.group(1).strip()
+        if len(addr) >= 5 and any(c.isdigit() for c in addr):
+            return addr
+    # "adresse 123 rue X" (sans préfixe verbe)
+    m = re.search(
+        r"(?:l')?adresse\s+(?:est\s+)?(\d+(?:/\d+)?\s+(?:avenue|av\.?|rue|boulevard|blvd\.?|boul\.?)\s+[\w\s-]+)",
+        t,
+        re.I,
+    )
+    if m:
+        return m.group(1).strip()
     # Fallback: cherche un motif type "123 rue X" ou "6/840 avenue X"
     m = re.search(r"(\d+(?:/\d+)?\s+(?:avenue|av\.?|rue|boulevard|blvd\.?|boul\.?)\s+[\w\s-]+)", t, re.I)
     if m:
@@ -328,7 +424,19 @@ def _wants_to_update_address(message: str) -> bool:
     if not t:
         return False
     return (
-        "adresse" in t and ("mettre" in t or "rentrer" in t or "rentre" in t or "est le" in t or "est " in t or "c'est " in t or "enregistrer" in t or "ajouter" in t)
+        "adresse" in t
+        and (
+            "mettre" in t
+            or "rentrer" in t
+            or "rentre" in t
+            or "est le" in t
+            or "est " in t
+            or "c'est " in t
+            or "enregistrer" in t
+            or "ajouter" in t
+            or "ajoutes" in t
+            or "ajoute " in t
+        )
     ) and _extract_address_from_message(message) is not None
 
 
@@ -342,14 +450,18 @@ def _wants_to_set_promise(message: str) -> bool:
     )
 
 
-async def maybe_update_transaction_address_from_lea(db: AsyncSession, user_id: int, message: str) -> Optional[str]:
-    """Si le message demande d'ajouter/mettre à jour l'adresse, met à jour la dernière transaction. Retourne l'adresse si mise à jour."""
+async def maybe_update_transaction_address_from_lea(db: AsyncSession, user_id: int, message: str) -> Optional[tuple[str, RealEstateTransaction]]:
+    """Si le message demande d'ajouter/mettre à jour l'adresse, met à jour la transaction (par ref ou la plus récente). Retourne (adresse, transaction) si mise à jour."""
     if not _wants_to_update_address(message):
         return None
     addr = _extract_address_from_message(message)
     if not addr:
         return None
-    transaction = await get_user_latest_transaction(db, user_id)
+    ref = _extract_transaction_ref_from_message(message)
+    if ref:
+        transaction = await get_user_transaction_by_ref(db, user_id, ref)
+    else:
+        transaction = await get_user_latest_transaction(db, user_id)
     if not transaction:
         return None
     try:
@@ -357,7 +469,7 @@ async def maybe_update_transaction_address_from_lea(db: AsyncSession, user_id: i
         await db.commit()
         await db.refresh(transaction)
         logger.info(f"Lea updated transaction id={transaction.id} address to {addr[:50]}...")
-        return addr
+        return (addr, transaction)
     except Exception as e:
         logger.warning(f"Lea update address failed: {e}", exc_info=True)
         await db.rollback()
@@ -395,11 +507,13 @@ async def run_lea_actions(db: AsyncSession, user_id: int, message: str) -> list:
             f"Tu viens de créer une nouvelle transaction pour l'utilisateur : « {created.name} » (id {created.id}). "
             "Confirme-lui que c'est fait et qu'il peut la compléter dans la section Transactions."
         )
-    addr = await maybe_update_transaction_address_from_lea(db, user_id, message)
-    if addr:
+    addr_result = await maybe_update_transaction_address_from_lea(db, user_id, message)
+    if addr_result:
+        addr, tx = addr_result
+        ref = tx.dossier_number or f"#{tx.id}"
         lines.append(
-            f"L'adresse a été ajoutée à la dernière transaction : « {addr} ». "
-            "Confirme à l'utilisateur que c'est fait."
+            f"L'adresse a été ajoutée à la transaction {ref} : « {addr} ». "
+            "Confirme à l'utilisateur que c'est fait et qu'il peut voir la transaction dans la section Transactions."
         )
     promise_tx = await maybe_set_promise_from_lea(db, user_id, message)
     if promise_tx:

@@ -1,6 +1,9 @@
 'use client';
 
+import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import { clsx } from 'clsx';
+import { useMemo } from 'react';
 
 interface LeaMessageBubbleProps {
   content: string;
@@ -10,6 +13,51 @@ interface LeaMessageBubbleProps {
   isStreaming?: boolean;
   /** When true, use styles suited for dark background (e.g. Lea2 view) */
   variant?: 'default' | 'dark';
+}
+
+/** Transform assistant text into segments with links to Transactions and transaction detail */
+function useLeaContentWithLinks(content: string, role: 'user' | 'assistant') {
+  const params = useParams();
+  const locale = (params?.locale as string) || 'fr';
+
+  return useMemo(() => {
+    if (role !== 'assistant' || !content) return [{ type: 'text' as const, value: content }];
+    const segments: { type: 'text' | 'link'; value: string; href?: string }[] = [];
+    // Match "section Transactions" or "la section Transactions"
+    const sectionRegex = /((?:la\s+)?section\s+Transactions)(?=\s|\.|,|$|\))/gi;
+    // Match "transaction #4" or "transaction # 4"
+    const txRegex = /(transaction\s+#\s*(\d+))(?=\s|\.|,|$|\))/gi;
+
+    const allMatches: { index: number; length: number; type: 'section' | 'tx'; text: string; id?: string }[] = [];
+    let m;
+    sectionRegex.lastIndex = 0;
+    while ((m = sectionRegex.exec(content)) !== null) {
+      allMatches.push({ index: m.index, length: m[0].length, type: 'section', text: m[1] });
+    }
+    txRegex.lastIndex = 0;
+    while ((m = txRegex.exec(content)) !== null) {
+      allMatches.push({ index: m.index, length: m[0].length, type: 'tx', text: m[1], id: m[2] });
+    }
+    allMatches.sort((a, b) => a.index - b.index);
+
+    let lastIndex = 0;
+    for (const seg of allMatches) {
+      if (seg.index > lastIndex) {
+        segments.push({ type: 'text', value: content.slice(lastIndex, seg.index) });
+      }
+      segments.push({
+        type: 'link',
+        value: seg.text,
+        href: seg.type === 'section' ? `/${locale}/dashboard/transactions` : `/${locale}/dashboard/transactions/${seg.id}`,
+      });
+      lastIndex = seg.index + seg.length;
+    }
+    if (lastIndex < content.length) {
+      segments.push({ type: 'text', value: content.slice(lastIndex) });
+    }
+    if (segments.length === 0) return [{ type: 'text' as const, value: content }];
+    return segments;
+  }, [content, role, locale]);
 }
 
 export default function LeaMessageBubble({
@@ -22,6 +70,7 @@ export default function LeaMessageBubble({
 }: LeaMessageBubbleProps) {
   const isUser = role === 'user';
   const isDark = variant === 'dark';
+  const segments = useLeaContentWithLinks(content, role);
 
   return (
     <div
@@ -44,7 +93,21 @@ export default function LeaMessageBubble({
         )}
       >
         <p className="text-sm whitespace-pre-wrap leading-relaxed">
-          {content}
+          {isUser
+            ? content
+            : segments.map((seg, i) =>
+                seg.type === 'link' && seg.href ? (
+                  <Link
+                    key={i}
+                    href={seg.href}
+                    className="underline font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
+                  >
+                    {seg.value}
+                  </Link>
+                ) : (
+                  <span key={i}>{seg.value}</span>
+                )
+              )}
           {isStreaming && (
             <span className="inline-block w-2 h-4 ml-0.5 bg-primary-500 animate-pulse align-middle" aria-hidden />
           )}
