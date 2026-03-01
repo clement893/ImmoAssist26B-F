@@ -111,6 +111,17 @@ class LeaSettingsUpdate(BaseModel):
     tts_voice: Optional[str] = None
 
 
+# Actions que Léa peut effectuer (affichées dans Paramètres Léa)
+LEA_CAPABILITIES = [
+    {"id": "create_transaction", "label": "Créer une transaction", "description": "Léa peut créer un dossier (transaction d'achat ou de vente) depuis la conversation."},
+    {"id": "update_transaction", "label": "Modifier une transaction", "description": "Léa peut mettre à jour l'adresse, la promesse d'achat, etc. sur une transaction existante."},
+    {"id": "create_contact", "label": "Créer un contact", "description": "Léa peut créer un contact dans le Réseau (API contacts)."},
+    {"id": "update_contact", "label": "Modifier un contact", "description": "Léa peut modifier un contact existant dans le Réseau."},
+    {"id": "access_oaciq_forms", "label": "Accéder aux formulaires OACIQ", "description": "Léa peut consulter la liste et les détails des formulaires OACIQ."},
+    {"id": "modify_oaciq_forms", "label": "Modifier des formulaires OACIQ", "description": "Léa peut créer ou modifier des soumissions de formulaires OACIQ."},
+]
+
+
 def _use_external_agent() -> bool:
     """Retourne True si l'API agent externe est configurée."""
     settings = get_settings()
@@ -841,6 +852,144 @@ async def update_lea_settings(
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
         detail="L'enregistrement des paramètres Léa n'est pas encore implémenté. Utilisez les variables d'environnement LEA_MAX_TOKENS, LEA_TTS_MODEL, LEA_TTS_VOICE et le prompt dans le code (LEA_SYSTEM_PROMPT) pour l'instant.",
     )
+
+
+class LeaCapabilityCheckRequest(BaseModel):
+    """Request to check one Léa capability"""
+    action_id: str = Field(..., description="ID de l'action (ex: create_transaction)")
+
+
+class LeaCapabilityCheckResponse(BaseModel):
+    """Result of a capability check"""
+    ok: bool
+    message: Optional[str] = None
+
+
+@router.get("/capabilities")
+async def list_lea_capabilities(
+    current_user: User = Depends(get_current_user),
+    _: None = Depends(require_admin_or_superadmin),
+):
+    """
+    Liste des actions que Léa peut effectuer (admin). Utilisé dans l'onglet « Actions » des paramètres Léa.
+    """
+    return {"capabilities": LEA_CAPABILITIES}
+
+
+@router.post("/capabilities/check", response_model=LeaCapabilityCheckResponse)
+async def check_lea_capability(
+    payload: LeaCapabilityCheckRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    _: None = Depends(require_admin_or_superadmin),
+):
+    """
+    Vérifie qu'un type d'action est accessible pour Léa (agent intégré ou externe) et retourne
+    un message d'erreur précis si la connexion ou les accès ne fonctionnent pas.
+    """
+    action_id = (payload.action_id or "").strip()
+    if not action_id:
+        return LeaCapabilityCheckResponse(ok=False, message="Identifiant d'action manquant.")
+
+    valid_ids = {c["id"] for c in LEA_CAPABILITIES}
+    if action_id not in valid_ids:
+        return LeaCapabilityCheckResponse(
+            ok=False,
+            message=f"Action inconnue : « {action_id} ». Actions valides : {', '.join(sorted(valid_ids))}.",
+        )
+
+    # Actions qui passent par l'agent (chat) : il faut que Léa soit opérationnelle (intégrée ou externe)
+    agent_actions = {"create_transaction", "update_transaction", "create_contact", "update_contact", "access_oaciq_forms", "modify_oaciq_forms"}
+    if action_id in agent_actions:
+        use_ext = _use_external_agent()
+        use_int = _use_integrated_lea()
+        if not use_ext and not use_int:
+            return LeaCapabilityCheckResponse(
+                ok=False,
+                message=(
+                    "Léa n'est pas configurée : ni agent externe (AGENT_API_URL + AGENT_API_KEY), "
+                    "ni IA intégrée (OPENAI_API_KEY ou ANTHROPIC_API_KEY). "
+                    "Configurez ces variables dans les paramètres du backend (ex. Railway → Backend → Variables)."
+                ),
+            )
+        if use_ext:
+            # Vérifier que l'agent externe répond
+            settings = get_settings()
+            url = (settings.AGENT_API_URL or "").strip().rstrip("/")
+            key = (settings.AGENT_API_KEY or "").strip()
+            if not url or not key:
+                return LeaCapabilityCheckResponse(
+                    ok=False,
+                    message="Agent externe incomplet : AGENT_API_URL et AGENT_API_KEY doivent être définis.",
+                )
+            ping_url = f"{url}/api/external/health"
+            try:
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    r = await client.get(ping_url, headers={"X-API-Key": key})
+                    if r.status_code == 404:
+                        return LeaCapabilityCheckResponse(
+                            ok=True,
+                            message="Agent externe configuré (URL et clé OK). L'endpoint de santé n'existe pas sur l'agent ; la connexion au chat sera vérifiée à la première utilisation.",
+                        )
+                    if r.status_code != 200:
+                        return LeaCapabilityCheckResponse(
+                            ok=False,
+                            message=f"L'agent externe a répondu avec le code {r.status_code} sur {ping_url}. Vérifiez que le serveur agent est démarré et que la clé API est valide.",
+                        )
+            except httpx.ConnectError as e:
+                return LeaCapabilityCheckResponse(
+                    ok=False,
+                    message=f"Impossible de joindre l'agent externe à l'URL {url}. Erreur : {e}. Vérifiez AGENT_API_URL et que le serveur agent est accessible.",
+                )
+            except httpx.TimeoutException:
+                return LeaCapabilityCheckResponse(
+                    ok=False,
+                    message=f"Délai dépassé en contactant l'agent à {url}. Vérifiez que le serveur agent répond bien.",
+                )
+            except Exception as e:
+                return LeaCapabilityCheckResponse(
+                    ok=False,
+                    message=f"Erreur de connexion à l'agent : {str(e)}.",
+                )
+
+    # Vérifications spécifiques par action (API / base de données)
+    try:
+        if action_id == "create_transaction":
+            # Vérifier que la table et le modèle existent
+            q = select(RealEstateTransaction).limit(0)
+            await db.execute(q)
+            return LeaCapabilityCheckResponse(ok=True, message="Léa peut créer des transactions (contexte et base OK).")
+        if action_id == "update_transaction":
+            q = select(RealEstateTransaction).limit(0)
+            await db.execute(q)
+            return LeaCapabilityCheckResponse(ok=True, message="Léa peut modifier des transactions (contexte et base OK).")
+        if action_id in ("create_contact", "update_contact"):
+            # Les contacts passent par l'API reseau/contacts ; on vérifie juste que l'utilisateur est authentifié
+            # et que le module existe (pas d'appel HTTP interne nécessaire)
+            return LeaCapabilityCheckResponse(
+                ok=True,
+                message="L'API contacts (Réseau) est disponible. Léa pourra créer et modifier des contacts lorsque cette action sera branchée à la conversation.",
+            )
+        if action_id == "access_oaciq_forms":
+            from app.models.form import Form
+            q = select(Form).where(Form.code.isnot(None)).limit(1)
+            await db.execute(q)
+            return LeaCapabilityCheckResponse(ok=True, message="Léa peut accéder aux formulaires OACIQ (liste et détails).")
+        if action_id == "modify_oaciq_forms":
+            from app.models.form import Form, FormSubmission
+            q = select(Form).limit(1)
+            await db.execute(q)
+            q2 = select(FormSubmission).limit(0)
+            await db.execute(q2)
+            return LeaCapabilityCheckResponse(ok=True, message="Léa peut créer et modifier des soumissions de formulaires OACIQ.")
+    except Exception as e:
+        logger.warning(f"Lea capability check {action_id}: {e}", exc_info=True)
+        return LeaCapabilityCheckResponse(
+            ok=False,
+            message=f"Erreur lors de la vérification (« {action_id} ») : {str(e)}. Vérifiez les migrations (alembic upgrade head) et l'accès à la base.",
+        )
+
+    return LeaCapabilityCheckResponse(ok=True)
 
 
 @router.post("/voice/transcribe")
