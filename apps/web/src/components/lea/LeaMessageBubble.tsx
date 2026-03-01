@@ -13,6 +13,8 @@ interface LeaMessageBubbleProps {
   isStreaming?: boolean;
   /** When true, use styles suited for dark background (e.g. Lea2 view) */
   variant?: 'default' | 'dark';
+  /** When true, the message is currently being read aloud by TTS (visual highlight) */
+  isBeingRead?: boolean;
 }
 
 /** Transform assistant text into segments with links to Transactions and transaction detail */
@@ -67,6 +69,7 @@ export default function LeaMessageBubble({
   className = '',
   isStreaming = false,
   variant = 'default',
+  isBeingRead = false,
 }: LeaMessageBubbleProps) {
   const isUser = role === 'user';
   const isDark = variant === 'dark';
@@ -82,16 +85,24 @@ export default function LeaMessageBubble({
     >
       <div
         className={clsx(
-          'max-w-[85%] rounded-2xl px-4 py-3 shadow-subtle-sm',
+          'max-w-[85%] rounded-2xl px-4 py-3 shadow-subtle-sm transition-colors duration-300',
           isUser
             ? isDark
               ? 'bg-gradient-to-r from-violet-500 to-indigo-600 text-white'
               : 'bg-gradient-to-r from-green-600 to-blue-600 text-white'
             : isDark
               ? 'bg-white/10 text-white/95 border border-white/20'
-              : 'bg-muted text-foreground border border-border'
+              : 'bg-muted text-foreground border border-border',
+          !isUser && isBeingRead && isDark && 'ring-2 ring-blue-400/60 bg-blue-500/20 border-blue-400/50',
+          !isUser && isBeingRead && !isDark && 'ring-2 ring-primary-400/50 bg-primary-500/10 border-primary-400/40'
         )}
       >
+        {!isUser && isBeingRead && (
+          <p className="text-xs font-medium text-blue-400 dark:text-primary-400 mb-1 flex items-center gap-1.5" aria-live="polite">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400 dark:bg-primary-400 animate-pulse" />
+            Léa parle
+          </p>
+        )}
         <p className="text-sm whitespace-pre-wrap leading-relaxed">
           {isUser
             ? content

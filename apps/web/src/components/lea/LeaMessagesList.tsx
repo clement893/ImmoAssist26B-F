@@ -11,6 +11,8 @@ interface LeaMessagesListProps {
   className?: string;
   /** If false, list doesn't grow to fill space (e.g. for vertically centered layout) */
   grow?: boolean;
+  /** When true, the last assistant message is shown as "being read" (TTS) */
+  isSpeaking?: boolean;
 }
 
 export default function LeaMessagesList({
@@ -18,6 +20,7 @@ export default function LeaMessagesList({
   isLoading = false,
   className = '',
   grow = true,
+  isSpeaking = false,
 }: LeaMessagesListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -50,6 +53,8 @@ export default function LeaMessagesList({
               {visible.map((message, index) => {
                 const isLast = index === visible.length - 1;
                 const isStreaming = isLoading && isLast && message.role === 'assistant';
+                const lastAssistantIndex = visible.reduce((acc, m, idx) => (m.role === 'assistant' || m.role === 'system' ? idx : acc), -1);
+                const isBeingRead = isSpeaking && (message.role === 'assistant' || message.role === 'system') && index === lastAssistantIndex;
                 return (
                   <LeaMessageBubble
                     key={index}
@@ -57,6 +62,7 @@ export default function LeaMessagesList({
                     role={message.role as 'user' | 'assistant'}
                     timestamp={message.timestamp}
                     isStreaming={isStreaming}
+                    isBeingRead={isBeingRead}
                   />
                 );
               })}

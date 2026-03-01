@@ -13,6 +13,14 @@ export interface LeaMessage {
   timestamp?: string;
   /** Actions effectuées par le backend pour ce tour (logs). */
   actions?: string[];
+  /** Logs IA : modèle, fournisseur, usage (pour debug / copier-coller). */
+  model?: string;
+  provider?: string;
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+  };
 }
 
 export interface LeaChatResponse {
@@ -153,6 +161,9 @@ export function useLea(initialSessionId?: string): UseLeaReturn {
           content: response.data.content,
           timestamp: new Date().toISOString(),
           actions: (response.data as { actions?: string[] }).actions ?? undefined,
+          model: response.data.model,
+          provider: response.data.provider,
+          usage: response.data.usage,
         };
         setMessages((prev) => [...prev, assistantMessage]);
       } catch (err) {
@@ -211,6 +222,9 @@ export function useLea(initialSessionId?: string): UseLeaReturn {
             content: data.response,
             timestamp: new Date().toISOString(),
             actions: (data as LeaVoiceResponse & { actions?: string[] }).actions,
+            model: (data as LeaVoiceResponse & { model?: string }).model,
+            provider: (data as LeaVoiceResponse & { provider?: string }).provider,
+            usage: (data as LeaVoiceResponse & { usage?: LeaMessage['usage'] }).usage,
           };
           return [
             ...withoutPlaceholder,

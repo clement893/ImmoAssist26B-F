@@ -38,11 +38,12 @@ function getGreeting(): string {
   return 'Bonsoir';
 }
 
-/** Formate la discussion + actions backend pour copie (logs complets). */
-function formatConversationForCopy(messages: LeaMessage[]): string {
+/** Formate la discussion + logs IA (actions backend, modèle, usage) pour copier-coller. */
+function formatConversationForCopy(messages: LeaMessage[], sessionId: string | null): string {
   const lines: string[] = [
     '--- Conversation Léa ---',
     `Exporté le ${new Date().toLocaleString('fr-CA', { dateStyle: 'medium', timeStyle: 'short' })}`,
+    sessionId ? `Session ID: ${sessionId}` : '',
     '',
   ];
   for (const msg of messages) {
@@ -51,9 +52,30 @@ function formatConversationForCopy(messages: LeaMessage[]): string {
       continue;
     }
     if (msg.role === 'assistant' || msg.role === 'system') {
-      if (msg.actions?.length) {
-        lines.push('--- Actions effectuées (backend) ---');
-        msg.actions.forEach((a) => lines.push(a));
+      const hasLogs =
+        (msg.actions?.length ?? 0) > 0 ||
+        msg.model != null ||
+        msg.provider != null ||
+        (msg.usage && (msg.usage.prompt_tokens != null || msg.usage.completion_tokens != null));
+      if (hasLogs) {
+        lines.push('--- Logs IA (interne) ---');
+        if (msg.timestamp) {
+          lines.push(`  Heure: ${new Date(msg.timestamp).toLocaleString('fr-CA', { dateStyle: 'short', timeStyle: 'medium' })}`);
+        }
+        if (msg.actions?.length) {
+          lines.push('  Actions backend:');
+          msg.actions.forEach((a) => lines.push(`    - ${a}`));
+        }
+        if (msg.model) lines.push(`  Modèle: ${msg.model}`);
+        if (msg.provider) lines.push(`  Fournisseur: ${msg.provider}`);
+        if (msg.usage) {
+          const u = msg.usage;
+          const parts = [];
+          if (u.prompt_tokens != null) parts.push(`prompt=${u.prompt_tokens}`);
+          if (u.completion_tokens != null) parts.push(`completion=${u.completion_tokens}`);
+          if (u.total_tokens != null) parts.push(`total=${u.total_tokens}`);
+          if (parts.length) lines.push(`  Usage: ${parts.join(', ')}`);
+        }
         lines.push('');
       }
       lines.push('Léa:', msg.content.trim(), '');
@@ -158,7 +180,7 @@ export default function Lea2View() {
 
   const handleCopyConversation = async () => {
     if (messages.length === 0) return;
-    const text = formatConversationForCopy(messages);
+    const text = formatConversationForCopy(messages, sessionId);
     try {
       await navigator.clipboard.writeText(text);
       setCopyFeedback(true);
@@ -425,7 +447,7 @@ export default function Lea2View() {
                     'p-2 rounded-lg transition-colors',
                     copyFeedback ? 'text-green-400' : 'text-white/60 hover:text-white hover:bg-white/10'
                   )}
-                  title="Copier la discussion (avec actions backend)"
+                  title="Copier la discussion (avec logs IA : actions backend, modèle, usage)"
                 >
                   <Copy className="w-5 h-5" />
                 </button>
@@ -459,15 +481,55 @@ export default function Lea2View() {
                       Discussion
                     </p>
                     <div className="space-y-4 flex-1">
-                      {messages.map((msg, i) => (
-                        <LeaMessageBubble
-                          key={i}
-                          content={msg.content}
-                          role={msg.role === 'system' ? 'assistant' : msg.role}
-                          isStreaming={false}
-                          variant="dark"
-                        />
-                      ))}
+                      {messages.map((msg, i) => {
+                        const isAssistant = msg.role === 'assistant' || msg.role === 'system';
+                        const lastAssistantIndex = messages.reduce((acc, m, idx) => (m.role === 'assistant' || m.role === 'system' ? idx : acc), -1);
+                        const isBeingRead = isSpeaking && isAssistant && i === lastAssistantIndex;
+                        return (
+                        <div key={i} className="space-y-1">
+                          <LeaMessageBubble
+                            content={msg.content}
+                            role={msg.role === 'system' ? 'assistant' : msg.role}
+                            isStreaming={false}
+                            variant="dark"
+                            isBeingRead={isBeingRead}
+                          />
+                          {/* Logs IA internes (actions backend, modèle, usage) pour comprendre le cheminement */}
+                          {(msg.role === 'assistant' || msg.role === 'system') &&
+                            ((msg.actions?.length ?? 0) > 0 || msg.model != null || msg.provider != null || (msg.usage && (msg.usage.prompt_tokens != null || msg.usage.completion_tokens != null))) && (
+                              <div className="pl-2 py-2 rounded-lg bg-white/5 border border-white/10 text-white/50 text-xs font-mono space-y-1 max-w-[85%]">
+                                <span className="text-white/40 font-sans font-medium">Logs IA</span>
+                                {msg.timestamp && (
+                                  <div>Heure: {new Date(msg.timestamp).toLocaleString('fr-CA', { dateStyle: 'short', timeStyle: 'medium' })}</div>
+                                )}
+                                {msg.actions?.length ? (
+                                  <div>
+                                    <div className="text-white/40">Actions backend:</div>
+                                    <ul className="list-disc list-inside ml-1">
+                                      {msg.actions.map((a, j) => (
+                                        <li key={j}>{a}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                ) : null}
+                                {(msg.model || msg.provider) && (
+                                  <div>
+                                    {msg.model && <span>Modèle: {msg.model}</span>}
+                                    {msg.model && msg.provider && ' · '}
+                                    {msg.provider && <span>Fournisseur: {msg.provider}</span>}
+                                  </div>
+                                )}
+                                {msg.usage && (msg.usage.prompt_tokens != null || msg.usage.completion_tokens != null) && (
+                                  <div>
+                                    Usage: prompt={msg.usage.prompt_tokens ?? '—'}, completion={msg.usage.completion_tokens ?? '—'}
+                                    {msg.usage.total_tokens != null && `, total=${msg.usage.total_tokens}`}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                        </div>
+                      );
+                      })}
                       {isLoading && (
                         <div className="flex justify-start">
                           <div className="px-4 py-2.5 rounded-2xl bg-white/10 text-white/80 text-sm border border-white/20">

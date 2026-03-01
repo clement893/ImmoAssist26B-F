@@ -17,7 +17,7 @@ interface LeaChatProps {
 }
 
 export default function LeaChat({ onClose, className = '', initialMessage }: LeaChatProps) {
-  const { messages, isLoading, error, sendMessage, sendVoiceMessage, clearChat } = useLea();
+  const { messages, isLoading, error, sendMessage, sendVoiceMessage, clearChat, sessionId } = useLea();
   const {
     isRecording,
     startRecording,
@@ -236,6 +236,7 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
           onMessageSend={handleMessageSend}
           onClear={handleClear}
           onClose={onClose}
+          sessionId={sessionId}
           isListening={isListening}
           transcript={transcript}
           onVoiceToggle={toggleListening}

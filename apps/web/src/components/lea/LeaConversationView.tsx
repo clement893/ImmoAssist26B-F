@@ -8,11 +8,12 @@ import LeaMessagesList from './LeaMessagesList';
 import LeaChatInput from './LeaChatInput';
 import type { LeaMessage } from '@/hooks/useLea';
 
-/** Formate la discussion + actions backend pour copie (logs complets). */
-function formatConversationForCopy(messages: LeaMessage[]): string {
+/** Formate la discussion + logs IA (actions backend, modèle, usage) pour copier-coller. */
+function formatConversationForCopy(messages: LeaMessage[], sessionId?: string | null): string {
   const lines: string[] = [
     '--- Conversation Léa ---',
     `Exporté le ${new Date().toLocaleString('fr-CA', { dateStyle: 'medium', timeStyle: 'short' })}`,
+    sessionId ? `Session ID: ${sessionId}` : '',
     '',
   ];
   for (const msg of messages) {
@@ -21,9 +22,30 @@ function formatConversationForCopy(messages: LeaMessage[]): string {
       continue;
     }
     if (msg.role === 'assistant' || msg.role === 'system') {
-      if (msg.actions?.length) {
-        lines.push('--- Actions effectuées (backend) ---');
-        msg.actions.forEach((a) => lines.push(a));
+      const hasLogs =
+        (msg.actions?.length ?? 0) > 0 ||
+        msg.model != null ||
+        msg.provider != null ||
+        (msg.usage && (msg.usage.prompt_tokens != null || msg.usage.completion_tokens != null));
+      if (hasLogs) {
+        lines.push('--- Logs IA (interne) ---');
+        if (msg.timestamp) {
+          lines.push(`  Heure: ${new Date(msg.timestamp).toLocaleString('fr-CA', { dateStyle: 'short', timeStyle: 'medium' })}`);
+        }
+        if (msg.actions?.length) {
+          lines.push('  Actions backend:');
+          msg.actions.forEach((a) => lines.push(`    - ${a}`));
+        }
+        if (msg.model) lines.push(`  Modèle: ${msg.model}`);
+        if (msg.provider) lines.push(`  Fournisseur: ${msg.provider}`);
+        if (msg.usage) {
+          const u = msg.usage;
+          const parts = [];
+          if (u.prompt_tokens != null) parts.push(`prompt=${u.prompt_tokens}`);
+          if (u.completion_tokens != null) parts.push(`completion=${u.completion_tokens}`);
+          if (u.total_tokens != null) parts.push(`total=${u.total_tokens}`);
+          if (parts.length) lines.push(`  Usage: ${parts.join(', ')}`);
+        }
         lines.push('');
       }
       lines.push('Léa:', msg.content.trim(), '');
@@ -40,6 +62,8 @@ interface LeaConversationViewProps {
   onMessageSend: (message: string) => Promise<void>;
   onClear: () => void;
   onClose?: () => void;
+  /** Session ID pour les logs IA dans le copier-coller */
+  sessionId?: string | null;
   // Voice props
   isListening: boolean;
   transcript: string | null;
@@ -67,6 +91,7 @@ export default function LeaConversationView({
   onMessageSend,
   onClear,
   onClose,
+  sessionId,
   isListening,
   transcript,
   onVoiceToggle,
@@ -86,7 +111,7 @@ export default function LeaConversationView({
 
   const handleCopyConversation = async () => {
     if (messages.length === 0) return;
-    const text = formatConversationForCopy(messages);
+    const text = formatConversationForCopy(messages, sessionId);
     try {
       await navigator.clipboard.writeText(text);
     } catch {
@@ -119,7 +144,7 @@ export default function LeaConversationView({
       <div className="flex-1 flex flex-col justify-center min-h-0 min-w-0">
         <div className="flex flex-col w-full max-h-full overflow-y-auto px-4">
           {/* Messages List */}
-          <LeaMessagesList messages={messages} isLoading={isLoading} grow={false} />
+          <LeaMessagesList messages={messages} isLoading={isLoading} grow={false} isSpeaking={isSpeaking} />
 
           {/* Error Alert */}
           {(error || voiceError) && (
