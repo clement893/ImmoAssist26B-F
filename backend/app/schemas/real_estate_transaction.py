@@ -34,6 +34,7 @@ class RealEstateTransactionCreate(BaseModel):
     name: str = Field(..., min_length=1, description="Nom de la transaction")
     dossier_number: Optional[str] = Field(None, description="Numéro de dossier interne")
     status: str = Field(default="En cours", description="Statut de la transaction")
+    transaction_kind: Optional[str] = Field(None, description="Type de pipeline: vente, achat")
     expected_closing_date: Optional[date] = None
     actual_closing_date: Optional[date] = None
 
@@ -157,6 +158,7 @@ class RealEstateTransactionUpdate(BaseModel):
     """Schéma pour mettre à jour une transaction - tous les champs sont optionnels"""
     status: Optional[str] = None
     pipeline_stage: Optional[str] = None
+    transaction_kind: Optional[str] = None
     expected_closing_date: Optional[date] = None
     actual_closing_date: Optional[date] = None
     property_address: Optional[str] = None
@@ -240,6 +242,7 @@ class RealEstateTransactionUpdate(BaseModel):
     seller_quittance_confirmed: Optional[bool] = None
     notes: Optional[str] = None
     documents: Optional[List[Dict[str, Any]]] = None
+    cover_photo_id: Optional[int] = Field(None, description="ID du document (photo) à la une")
 
 
 class RealEstateTransactionResponse(BaseModel):
@@ -249,6 +252,7 @@ class RealEstateTransactionResponse(BaseModel):
     dossier_number: Optional[str] = None
     status: str
     pipeline_stage: Optional[str] = None
+    transaction_kind: Optional[str] = None
     created_at: datetime
     expected_closing_date: Optional[date] = None
     actual_closing_date: Optional[date] = None
@@ -287,6 +291,7 @@ class RealEstateTransactionResponse(BaseModel):
     
     # Documents
     documents: Optional[List[Dict[str, Any]]] = None
+    cover_photo_id: Optional[int] = None
     
     user_id: int
     

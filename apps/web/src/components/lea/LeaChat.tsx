@@ -42,6 +42,9 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
   const prevListeningRef = useRef(false);
   const restartListeningAfterResponseRef = useRef(false);
   const prevIsSpeakingRef = useRef(false);
+  /** True quand l'audio backend (TTS) est en cours de lecture — pour réactiver le micro à la fin */
+  const [isPlayingBackendAudio, setIsPlayingBackendAudio] = useState(false);
+  const backendAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Send initial message if provided
   useEffect(() => {
@@ -94,7 +97,21 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
               const base64 = data?.audio_base64;
               if (base64) {
                 const audio = new Audio(`data:audio/mpeg;base64,${base64}`);
-                audio.play().catch(() => speak(textToSpeak, { lang: 'fr-FR', rate: 0.82, pitch: 1.06, volume: 1.0 }));
+                backendAudioRef.current = audio;
+                audio.onended = () => {
+                  backendAudioRef.current = null;
+                  setIsPlayingBackendAudio(false);
+                };
+                audio.onerror = () => {
+                  backendAudioRef.current = null;
+                  setIsPlayingBackendAudio(false);
+                };
+                setIsPlayingBackendAudio(true);
+                audio.play().catch(() => {
+                  backendAudioRef.current = null;
+                  setIsPlayingBackendAudio(false);
+                  speak(textToSpeak, { lang: 'fr-FR', rate: 0.82, pitch: 1.06, volume: 1.0 });
+                });
               } else {
                 speak(textToSpeak, { lang: 'fr-FR', rate: 0.82, pitch: 1.06, volume: 1.0 });
               }
@@ -113,6 +130,7 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
   }, [messages, autoSpeak, ttsSupported, isSpeaking, speak]);
 
   // Réactiver le micro après la réponse de Léa (quand l'utilisateur a envoyé au micro)
+  const isAudioPlaying = isSpeaking || isPlayingBackendAudio;
   useEffect(() => {
     if (!voiceSupported || isListening || isLoading) return;
     const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
@@ -120,10 +138,12 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
     if (!lastIsAssistant || !restartListeningAfterResponseRef.current) return;
 
     if (autoSpeak && ttsSupported) {
-      if (prevIsSpeakingRef.current && !isSpeaking) {
+      // Réactiver le micro dès que la lecture (TTS navigateur ou audio backend) est terminée
+      if (prevIsSpeakingRef.current && !isAudioPlaying) {
         restartListeningAfterResponseRef.current = false;
         startListening().catch(() => {});
-      } else if (!isSpeaking) {
+      } else if (!isAudioPlaying) {
+        // Filet de sécurité : si après 2,5 s le TTS n'a pas démarré ou a échoué, réactiver quand même le micro
         const t = setTimeout(() => {
           if (restartListeningAfterResponseRef.current && !isListening) {
             restartListeningAfterResponseRef.current = false;
@@ -136,9 +156,8 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
       restartListeningAfterResponseRef.current = false;
       startListening().catch(() => {});
     }
-    prevIsSpeakingRef.current = isSpeaking;
-    return;
-  }, [isLoading, messages, isSpeaking, autoSpeak, ttsSupported, voiceSupported, isListening, startListening]);
+    prevIsSpeakingRef.current = isAudioPlaying;
+  }, [isLoading, messages, isAudioPlaying, autoSpeak, ttsSupported, voiceSupported, isListening, startListening]);
 
   const toggleListening = async () => {
     console.log('toggleListening called, isListening:', isListening, 'voiceSupported:', voiceSupported);
@@ -226,8 +245,16 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
           soundEnabled={autoSpeak}
           soundSupported={ttsSupported}
           onToggleSound={handleToggleSound}
-          isSpeaking={isSpeaking}
-          onStopSpeaking={stopSpeaking}
+          isSpeaking={isSpeaking || isPlayingBackendAudio}
+          onStopSpeaking={() => {
+            stopSpeaking();
+            if (backendAudioRef.current) {
+              backendAudioRef.current.pause();
+              backendAudioRef.current.currentTime = 0;
+              backendAudioRef.current = null;
+            }
+            setIsPlayingBackendAudio(false);
+          }}
           recordSupported={recordSupported}
           isRecording={isRecording}
           onVoiceRecordToggle={handleVoiceRecordToggle}

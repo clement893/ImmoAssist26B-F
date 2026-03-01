@@ -19,6 +19,7 @@ class RealEstateTransaction(Base):
     dossier_number = Column(String, unique=True, nullable=True, index=True, comment="Numéro de dossier interne")
     status = Column(String, nullable=False, default="En cours", comment="Statut: En cours, Conditionnelle, Ferme, Annulée, Conclue")
     pipeline_stage = Column(String(80), nullable=True, index=True, comment="Étape du pipeline kanban (creation_dossier, promesse_achat, inspection_batiment, etc.)")
+    transaction_kind = Column(String(20), nullable=True, index=True, comment="Type de pipeline: vente (mandat vente), achat (mandat achat)")
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     expected_closing_date = Column(Date, nullable=True, comment="Date de clôture prévue")
     actual_closing_date = Column(Date, nullable=True, comment="Date de clôture réelle")
@@ -164,6 +165,7 @@ class RealEstateTransaction(Base):
     
     # 11. Documents associés
     documents = Column(JSON, nullable=True, comment="Liste des documents associés (PDF, images, etc.)")
+    cover_photo_id = Column(Integer, nullable=True, comment="ID du document (photo) utilisé comme photo à la une")
 
     # Relations
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)

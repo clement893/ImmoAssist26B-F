@@ -28,6 +28,7 @@ import {
   ClipboardList,
   FileCheck,
   Users,
+  Star,
 } from 'lucide-react';
 
 interface Transaction {
@@ -113,6 +114,7 @@ interface Transaction {
     uploaded_by?: number;
     type?: string; // 'photo' or 'document'
   }>;
+  cover_photo_id?: number | null;
 }
 
 
@@ -620,14 +622,8 @@ export default function TransactionDetailPage() {
                       onChange={async (e) => {
                         const selectedFile = e.target.files?.[0];
                         if (selectedFile && transaction && transactionId) {
-                          // Capturer le nombre de photos avant l'ajout
-                          const photosBeforeAdd = (transaction.documents || []).filter(d => d.type === 'photo').length;
-                          
-                          // Créer une URL d'aperçu immédiate
                           const previewUrl = URL.createObjectURL(selectedFile);
-                          
-                          // Mise à jour optimiste : ajouter la photo immédiatement à l'UI
-                          const tempPhotoId = Date.now(); // ID temporaire
+                          const tempPhotoId = Date.now();
                           const optimisticPhoto = {
                             id: tempPhotoId,
                             filename: selectedFile.name,
@@ -639,8 +635,7 @@ export default function TransactionDetailPage() {
                             uploaded_by: undefined,
                             type: 'photo' as const,
                           };
-                          
-                          // Mettre à jour la transaction immédiatement avec la photo optimiste
+                          // Mise à jour optimiste immédiate : ajouter la photo à l'UI tout de suite
                           setTransaction((prev) => {
                             if (!prev) return prev;
                             return {
@@ -648,92 +643,46 @@ export default function TransactionDetailPage() {
                               documents: [...(prev.documents || []), optimisticPhoto],
                             };
                           });
-                          
+                          e.target.value = '';
                           try {
                             setSaving((prev) => ({ ...prev, photos: true }));
                             const id = parseInt(transactionId);
-                            if (isNaN(id)) {
-                              throw new Error('ID de transaction invalide');
-                            }
-                            
+                            if (isNaN(id)) throw new Error('ID de transaction invalide');
                             const response = await transactionsAPI.addPhoto(id, selectedFile);
-                            
                             if (response?.data) {
                               const serverTransaction = response.data;
                               const serverPhotos = (serverTransaction.documents || []).filter((d: { type?: string }) => d.type === 'photo') || [];
-                              
-                              // Vérifier si le serveur a une nouvelle photo (plus de photos qu'avant)
-                              const hasNewPhoto = serverPhotos.length > photosBeforeAdd;
-                              
-                              // Vérifier si une photo correspond au fichier uploadé (même nom ou timestamp récent)
-                              const matchingPhoto = serverPhotos.find((p: { filename?: string; uploaded_at?: string }) => 
-                                p.filename === selectedFile.name || 
-                                (p.uploaded_at && new Date(p.uploaded_at).getTime() > Date.now() - 5000)
+                              const matchingPhoto = serverPhotos.find((p: { filename?: string; uploaded_at?: string }) =>
+                                p.filename === selectedFile.name ||
+                                (p.uploaded_at && new Date(p.uploaded_at).getTime() > Date.now() - 10000)
                               );
-                              
-                              if (hasNewPhoto && matchingPhoto) {
-                                // Le serveur a confirmé la photo, remplacer l'optimiste par la vraie
+                              if (matchingPhoto) {
                                 URL.revokeObjectURL(previewUrl);
                                 setTransaction(serverTransaction);
                               } else {
-                                // Le serveur n'a pas encore confirmé la photo, garder l'optimiste
-                                // Fusionner : garder la photo optimiste + tous les documents du serveur
                                 setTransaction((prev) => {
                                   if (!prev) return serverTransaction;
-                                  
-                                  const optimisticPhoto = (prev.documents || []).find((doc: { id?: number }) => doc.id === tempPhotoId);
-                                  if (!optimisticPhoto) {
-                                    return serverTransaction;
-                                  }
-                                  
-                                  // Garder tous les documents du serveur sauf les photos, puis ajouter les photos du serveur + l'optimiste
                                   const serverDocsWithoutPhotos = (serverTransaction.documents || []).filter((d: { type?: string }) => d.type !== 'photo');
-                                  const existingServerPhotos = (serverTransaction.documents || []).filter((d: { type?: string }) => d.type === 'photo');
-                                  
+                                  const serverPhotosList = (serverTransaction.documents || []).filter((d: { type?: string }) => d.type === 'photo');
                                   return {
                                     ...serverTransaction,
-                                    documents: [
-                                      ...serverDocsWithoutPhotos,
-                                      ...existingServerPhotos,
-                                      optimisticPhoto, // Garder la photo optimiste en dernier pour qu'elle soit visible
-                                    ],
+                                    documents: [...serverDocsWithoutPhotos, ...serverPhotosList, optimisticPhoto],
                                   };
                                 });
-                                
-                                // Ne PAS recharger automatiquement - laisser la photo optimiste visible
-                                // L'utilisateur peut recharger manuellement si nécessaire, ou la photo sera chargée au prochain refresh de page
                               }
-                              
-                              showToast({
-                                message: 'Photo ajoutée avec succès',
-                                type: 'success',
-                              });
+                              showToast({ message: 'Photo ajoutée avec succès', type: 'success' });
                             } else {
-                              // Réponse invalide mais on garde la photo optimiste visible
-                              // Ne pas recharger pour éviter d'écraser la photo optimiste
-                              showToast({
-                                message: 'Photo ajoutée avec succès',
-                                type: 'success',
-                              });
+                              showToast({ message: 'Photo ajoutée avec succès', type: 'success' });
                             }
                           } catch (err) {
-                            // En cas d'erreur, retirer la photo optimiste et recharger
                             URL.revokeObjectURL(previewUrl);
                             setTransaction((prev) => {
                               if (!prev) return prev;
-                              return {
-                                ...prev,
-                                documents: (prev.documents || []).filter(doc => doc.id !== tempPhotoId),
-                              };
+                              return { ...prev, documents: (prev.documents || []).filter((doc: { id?: number }) => doc.id !== tempPhotoId) };
                             });
-                            await reloadTransaction();
-                            showToast({
-                              message: err instanceof Error ? err.message : 'Erreur lors de l\'ajout de la photo',
-                              type: 'error',
-                            });
+                            showToast({ message: err instanceof Error ? err.message : 'Erreur lors de l\'ajout de la photo', type: 'error' });
                           } finally {
                             setSaving((prev) => ({ ...prev, photos: false }));
-                            e.target.value = '';
                           }
                         }
                       }}
@@ -744,8 +693,16 @@ export default function TransactionDetailPage() {
 
                 {photos.length > 0 ? (
                   <div className="grid grid-cols-2 gap-6">
-                    {photos.map((photo) => (
+                    {photos.map((photo) => {
+                      const isCover = transaction.cover_photo_id === photo.id;
+                      return (
                       <div key={photo.id} className="group relative aspect-video rounded-2xl overflow-hidden">
+                        {isCover && (
+                          <div className="absolute top-3 left-3 z-10 px-2 py-1 bg-amber-500 text-white text-xs font-semibold rounded-lg flex items-center gap-1">
+                            <Star className="w-3.5 h-3.5 fill-current" />
+                            Photo à la une
+                          </div>
+                        )}
                         <img
                           src={photo.url}
                           alt={photo.description || photo.filename}
@@ -755,44 +712,82 @@ export default function TransactionDetailPage() {
                           }}
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div className="absolute top-4 right-4">
+                          <div className="absolute top-4 right-4 flex gap-2">
                             <button
+                              type="button"
                               onClick={async () => {
                                 if (!transaction || !transactionId) return;
-                                
-                                // Confirmation avant suppression
-                                if (!confirm('Êtes-vous sûr de vouloir supprimer cette photo ?')) {
-                                  return;
-                                }
-                                
                                 try {
-                                  setSaving((prev) => ({ ...prev, [`photo-${photo.id}`]: true }));
+                                  setSaving((prev) => ({ ...prev, [`cover-${photo.id}`]: true }));
                                   const id = parseInt(transactionId);
-                                  if (isNaN(id)) {
-                                    throw new Error('ID de transaction invalide');
-                                  }
-                                  const response = await transactionsAPI.removeDocument(id, photo.id);
+                                  if (isNaN(id)) return;
+                                  const response = await transactionsAPI.update(id, {
+                                    cover_photo_id: isCover ? null : photo.id,
+                                  });
                                   if (response?.data) {
                                     setTransaction(response.data);
                                     showToast({
-                                      message: 'Photo supprimée avec succès',
-                                      type: 'success',
-                                    });
-                                  } else {
-                                    // Recharger la transaction silencieusement si la réponse est invalide
-                                    await reloadTransaction();
-                                    showToast({
-                                      message: 'Photo supprimée avec succès',
+                                      message: isCover ? 'Photo à la une retirée' : 'Photo définie comme photo à la une',
                                       type: 'success',
                                     });
                                   }
                                 } catch (err) {
                                   showToast({
+                                    message: err instanceof Error ? err.message : 'Erreur lors de la mise à jour',
+                                    type: 'error',
+                                  });
+                                } finally {
+                                  setSaving((prev) => ({ ...prev, [`cover-${photo.id}`]: false }));
+                                }
+                              }}
+                              disabled={saving[`cover-${photo.id}`]}
+                              className={`p-2 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                                isCover
+                                  ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                                  : 'bg-white/90 hover:bg-white text-gray-700'
+                              }`}
+                              title={isCover ? 'Retirer la photo à la une' : 'Définir comme photo à la une'}
+                            >
+                              <Star className={`w-4 h-4 ${isCover ? 'fill-current' : ''}`} />
+                            </button>
+                            <button
+                              onClick={async () => {
+                                if (!transaction || !transactionId) return;
+                                if (!confirm('Êtes-vous sûr de vouloir supprimer cette photo ?')) return;
+                                const photoIdToRemove = photo.id;
+                                const previousDocuments = transaction.documents || [];
+                                const previousCoverId = transaction.cover_photo_id;
+                                setTransaction((prev) => {
+                                  if (!prev) return prev;
+                                  const nextDocs = (prev.documents || []).filter((d: { id?: number }) => d.id !== photoIdToRemove);
+                                  return {
+                                    ...prev,
+                                    documents: nextDocs,
+                                    cover_photo_id: prev.cover_photo_id === photoIdToRemove ? null : prev.cover_photo_id,
+                                  };
+                                });
+                                try {
+                                  setSaving((prev) => ({ ...prev, [`photo-${photoIdToRemove}`]: true }));
+                                  const id = parseInt(transactionId);
+                                  if (isNaN(id)) throw new Error('ID de transaction invalide');
+                                  const response = await transactionsAPI.removeDocument(id, photoIdToRemove);
+                                  if (response?.data) {
+                                    setTransaction(response.data);
+                                    showToast({ message: 'Photo supprimée avec succès', type: 'success' });
+                                  } else {
+                                    showToast({ message: 'Photo supprimée avec succès', type: 'success' });
+                                  }
+                                } catch (err) {
+                                  setTransaction((prev) => {
+                                    if (!prev) return prev;
+                                    return { ...prev, documents: previousDocuments, cover_photo_id: previousCoverId };
+                                  });
+                                  showToast({
                                     message: err instanceof Error ? err.message : 'Erreur lors de la suppression de la photo',
                                     type: 'error',
                                   });
                                 } finally {
-                                  setSaving((prev) => ({ ...prev, [`photo-${photo.id}`]: false }));
+                                  setSaving((prev) => ({ ...prev, [`photo-${photoIdToRemove}`]: false }));
                                 }
                               }}
                               disabled={saving[`photo-${photo.id}`]}
@@ -807,7 +802,8 @@ export default function TransactionDetailPage() {
                           </div>
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="text-center py-12 text-gray-500">

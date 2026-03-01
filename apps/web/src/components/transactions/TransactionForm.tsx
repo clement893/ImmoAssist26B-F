@@ -29,6 +29,7 @@ interface TransactionFormData {
   name: string;
   dossier_number?: string;
   status: string;
+  transaction_kind?: string;
   expected_closing_date?: string;
   actual_closing_date?: string;
   property_address: string;
@@ -127,6 +128,12 @@ const STATUS_OPTIONS = [
   { label: 'Conclue', value: 'Conclue' },
 ];
 
+const TRANSACTION_KIND_OPTIONS = [
+  { label: 'Vente (mandat vente)', value: 'vente' },
+  { label: 'Achat (mandat achat)', value: 'achat' },
+  { label: 'Non spécifié', value: '' },
+];
+
 const PROPERTY_TYPE_OPTIONS = [
   { label: 'Unifamiliale', value: 'Unifamiliale' },
   { label: 'Condo', value: 'Condo' },
@@ -157,6 +164,7 @@ export default function TransactionForm({ onSubmit, onCancel, initialData, isLoa
     name: initialData?.name || '',
     dossier_number: initialData?.dossier_number || '',
     status: initialData?.status || 'En cours',
+    transaction_kind: initialData?.transaction_kind ?? undefined,
     property_address: initialData?.property_address || '',
     property_city: initialData?.property_city || '',
     property_postal_code: initialData?.property_postal_code || '',
@@ -266,6 +274,12 @@ export default function TransactionForm({ onSubmit, onCancel, initialData, isLoa
         {/* 1. Identification */}
         {activeTab === 'identification' && (
           <div className="space-y-4">
+            <Select
+              label="Type de pipeline"
+              options={TRANSACTION_KIND_OPTIONS}
+              value={formData.transaction_kind ?? ''}
+              onChange={(e) => setFormData({ ...formData, transaction_kind: e.target.value || undefined })}
+            />
             <Input
               label="Nom de la transaction *"
               value={formData.name}

@@ -91,6 +91,8 @@ export interface Transaction {
   name: string;
   dossier_number?: string;
   status: string;
+  pipeline_stage?: string | null;
+  transaction_kind?: string | null;
   created_at: string;
   updated_at: string;
   expected_closing_date?: string;

@@ -16,7 +16,7 @@ import TransactionForm from '@/components/transactions/TransactionForm';
 import PDFImportModal from '@/components/transactions/PDFImportModal';
 import TransactionsPipelineView from '@/components/transactions/TransactionsPipelineView';
 import { transactionsAPI } from '@/lib/api';
-import { FileText, Plus, Search, MapPin, Calendar, DollarSign, Users, Trash2, Eye, Upload, LayoutGrid, List, Home } from 'lucide-react';
+import { FileText, Plus, Search, MapPin, Calendar, DollarSign, Users, Trash2, Eye, Upload, LayoutGrid, List, Home, TrendingUp, ShoppingCart } from 'lucide-react';
 import TransactionImage from '@/components/transactions/TransactionImage';
 // Simple date formatting function
 const formatDate = (dateString?: string) => {
@@ -35,6 +35,7 @@ interface Transaction {
   dossier_number?: string;
   status: string;
   pipeline_stage?: string | null;
+  transaction_kind?: string | null;
   created_at: string;
   property_address?: string;
   property_city?: string;
@@ -74,6 +75,8 @@ function TransactionsContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [viewMode, setViewMode] = useState<'list' | 'pipeline'>('pipeline');
+  const [pipelineKind, setPipelineKind] = useState<'vente' | 'achat'>('vente');
+  const [defaultTransactionKind, setDefaultTransactionKind] = useState<'vente' | 'achat' | null>(null);
 
   const loadTransactions = async () => {
     setLoading(true);
@@ -275,15 +278,55 @@ function TransactionsContent() {
 
         {/* Pipeline View */}
         {viewMode === 'pipeline' ? (
-          <TransactionsPipelineView
-            transactions={transactions}
-            isLoading={loading}
-            onStatusChange={handleStatusChange}
-            onAddTransaction={() => setShowCreateModal(true)}
-            onTransactionClick={(transaction) => {
-              window.location.href = `/dashboard/transactions/${transaction.id}`;
-            }}
-          />
+          <div className="space-y-6">
+            {/* Pipeline type tabs: Vente | Achat */}
+            <div className="flex gap-2 p-1 bg-white rounded-2xl shadow-sm w-fit">
+              <button
+                type="button"
+                onClick={() => setPipelineKind('vente')}
+                className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-colors ${
+                  pipelineKind === 'vente' ? 'bg-amber-500 text-white shadow' : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <TrendingUp className="w-4 h-4" />
+                Pipeline Vente
+                <span className="ml-1 text-xs opacity-90">
+                  ({transactions.filter(t => t.transaction_kind !== 'achat').length})
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPipelineKind('achat')}
+                className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-colors ${
+                  pipelineKind === 'achat' ? 'bg-emerald-500 text-white shadow' : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <ShoppingCart className="w-4 h-4" />
+                Pipeline Achat
+                <span className="ml-1 text-xs opacity-90">
+                  ({transactions.filter(t => t.transaction_kind === 'achat').length})
+                </span>
+              </button>
+            </div>
+
+            <TransactionsPipelineView
+              key={pipelineKind}
+              transactions={
+                pipelineKind === 'vente'
+                  ? transactions.filter((t) => t.transaction_kind !== 'achat')
+                  : transactions.filter((t) => t.transaction_kind === 'achat')
+              }
+              isLoading={loading}
+              onStatusChange={handleStatusChange}
+              onAddTransaction={() => {
+                setDefaultTransactionKind(pipelineKind);
+                setShowCreateModal(true);
+              }}
+              onTransactionClick={(transaction) => {
+                window.location.href = `/dashboard/transactions/${transaction.id}`;
+              }}
+            />
+          </div>
         ) : (
           <>
             {/* Transactions Grid - List View */}
@@ -470,13 +513,21 @@ function TransactionsContent() {
         {/* Create Modal */}
         <Modal
           isOpen={showCreateModal}
-          onClose={() => setShowCreateModal(false)}
+          onClose={() => {
+            setShowCreateModal(false);
+            setDefaultTransactionKind(null);
+          }}
           title="Nouvelle transaction immobilière"
           size="xl"
         >
           <TransactionForm
+            key={`create-${defaultTransactionKind ?? 'none'}`}
+            initialData={defaultTransactionKind ? { transaction_kind: defaultTransactionKind } : undefined}
             onSubmit={handleCreate}
-            onCancel={() => setShowCreateModal(false)}
+            onCancel={() => {
+              setShowCreateModal(false);
+              setDefaultTransactionKind(null);
+            }}
             isLoading={loading}
           />
         </Modal>

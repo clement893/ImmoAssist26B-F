@@ -85,6 +85,7 @@ async def list_transactions(
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of records"),
     status_filter: Optional[str] = Query(None, alias="status", description="Filter by status"),
+    transaction_kind: Optional[str] = Query(None, alias="transaction_kind", description="Filter by pipeline type: vente, achat"),
     search: Optional[str] = Query(None, description="Search in dossier number, address, city"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -100,6 +101,10 @@ async def list_transactions(
         # Apply status filter
         if status_filter:
             query = query.where(RealEstateTransaction.status == status_filter)
+        
+        # Apply transaction_kind filter (vente / achat)
+        if transaction_kind and transaction_kind in ("vente", "achat"):
+            query = query.where(RealEstateTransaction.transaction_kind == transaction_kind)
         
         # Apply search filter
         if search:

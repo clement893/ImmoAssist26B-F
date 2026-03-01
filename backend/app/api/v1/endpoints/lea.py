@@ -18,14 +18,14 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies import get_current_user, require_admin_or_superadmin
-from app.models import User, RealEstateTransaction, PortailTransaction
+from app.models import User, RealEstateTransaction, PortailTransaction, RealEstateContact, TransactionContact, ContactType
 from app.database import get_db
 from app.services.lea_service import LeaService
 from app.services.ai_service import AIService, AIProvider
 from app.core.config import get_settings
 from app.core.logging import logger
 
-from sqlalchemy import select
+from sqlalchemy import select, and_
 
 try:
     from openai import AsyncOpenAI
@@ -57,11 +57,12 @@ LEA_SYSTEM_PROMPT = (
     "Quand l'utilisateur crée une transaction ou travaille sur un dossier, aide-le à le compléter en posant des questions pertinentes, une à la fois ou par thème. "
     "Ordre logique des informations clés :\n"
     "1. **Adresse du bien** : « Quelle est l'adresse du bien ? » (ex. 123 rue Principale, Montréal). Tu peux enregistrer l'adresse si l'utilisateur la donne dans sa réponse.\n"
-    "2. **Vendeur(s)** : « Qui sont les vendeurs ? » (nom, téléphone, courriel). Propose d'ajouter ces infos dans la section Transactions si tu ne peux pas les enregistrer toi-même.\n"
+    "2. **Vendeur(s)** : « Qui sont les vendeurs ? » (nom, téléphone, courriel). Tu peux enregistrer ces infos si l'utilisateur les donne.\n"
     "3. **Acheteur(s)** : « Qui sont les acheteurs ? » (nom, téléphone, courriel). Idem.\n"
     "4. **Prix et dates** : « Quel est le prix demandé ? » ou « le prix offert ? », « Date de clôture prévue ? »\n"
     "5. **Notaire, courtiers** : si pertinent, « As-tu les coordonnées du notaire ? du courtier vendeur/acheteur ? »\n"
-    "Après avoir créé une transaction ou enregistré une info, propose **la prochaine question logique** (ex. après l'adresse : « Parfait. Qui sont les vendeurs pour ce dossier ? »). "
+    "Après avoir créé une transaction ou enregistré une info, propose **la prochaine question logique** (ex. après l'adresse : « Qui sont les vendeurs pour ce dossier ? »). "
+    "**Ne redemande jamais une information déjà fournie** (ex. le prix, l'adresse, les coordonnées d'un vendeur/acheteur déjà donnés). Utilise le bloc « Données plateforme » et l'historique pour proposer la prochaine étape (ex. coordonnées acheteur si le vendeur est fait, ou date de clôture). "
     "Reste concise : une question à la fois, ou deux maximum si le contexte s'y prête.\n\n"
     "Règles générales:\n"
     "- Réponds en français, de façon courtoise et professionnelle.\n"
@@ -584,6 +585,106 @@ async def maybe_set_promise_from_lea(db: AsyncSession, user_id: int, message: st
         return None
 
 
+def _extract_seller_buyer_contact_from_message(message: str) -> Optional[tuple[str, str, Optional[str], Optional[str], str]]:
+    """
+    Détecte si l'utilisateur donne les coordonnées d'un vendeur ou d'un acheteur.
+    Retourne (first_name, last_name, phone, email, role) où role est "Vendeur" ou "Acheteur", ou None.
+    Ex: "ajoute la coordonnée du vendeur il s'appelle Michael Jordan son numéro est le 514 266-5543"
+    """
+    if not message or len(message.strip()) < 10:
+        return None
+    t = message.strip()
+    role: Optional[str] = None
+    if re.search(r"\bvendeur(s?)\b", t, re.I) or "coordonnée du vendeur" in t.lower() or "coordonnées du vendeur" in t.lower():
+        role = "Vendeur"
+    elif re.search(r"\bacheteur(s?)\b", t, re.I) or "coordonnée de l'acheteur" in t.lower() or "coordonnées de l'acheteur" in t.lower():
+        role = "Acheteur"
+    if not role:
+        return None
+    # Nom : "il s'appelle X" / "s'appelle X" / "c'est X"
+    name_match = re.search(
+        r"(?:il\s+)?s['']appelle\s+([A-Za-zÀ-ÿ\s\-]+?)(?:\s+son\s+numéro|\s+numéro|\s+téléphone|\s+phone|\s+courriel|\s+email|$|,)",
+        t,
+        re.I,
+    )
+    if not name_match:
+        name_match = re.search(r"c'est\s+([A-Za-zÀ-ÿ\s\-]+?)(?:\s+son\s+numéro|\s+numéro|\s+téléphone|$|,)", t, re.I)
+    name = name_match.group(1).strip() if name_match else None
+    if not name or len(name) < 2:
+        return None
+    parts = name.split()
+    if len(parts) >= 2:
+        first_name, last_name = parts[0], " ".join(parts[1:])
+    else:
+        first_name = last_name = parts[0]
+    # Téléphone : 514-266-5543, 514 266 5543, 5142665543
+    phone_match = re.search(r"(?:numéro|téléphone|phone)\s*(?:est\s*)?(?:le\s*)?[:\s]*(\d{3}[\s.\-]*\d{3}[\s.\-]*\d{4})", t, re.I)
+    if not phone_match:
+        phone_match = re.search(r"\b(\d{3}[\s.\-]\d{3}[\s.\-]\d{4})\b", t)
+    phone = phone_match.group(1).replace(" ", "").replace(".", "").replace("-", "") if phone_match else None
+    if phone and len(phone) == 10:
+        phone = f"{phone[0:3]}-{phone[3:6]}-{phone[6:10]}"
+    # Email optionnel
+    email_match = re.search(r"(?:courriel|email)\s*(?:est\s*)?[:\s]*([^\s,\.]+@[^\s,\.]+)", t, re.I)
+    email = email_match.group(1).strip() if email_match else None
+    return (first_name.strip(), last_name.strip(), phone, email, role)
+
+
+async def maybe_add_seller_buyer_contact_from_lea(
+    db: AsyncSession, user_id: int, message: str
+) -> Optional[str]:
+    """
+    Si le message contient les coordonnées d'un vendeur ou acheteur, crée le contact et l'ajoute à la transaction.
+    Retourne une ligne pour « Action effectuée » ou None.
+    """
+    extracted = _extract_seller_buyer_contact_from_message(message)
+    if not extracted:
+        return None
+    first_name, last_name, phone, email, role = extracted
+    transaction = await get_user_latest_transaction(db, user_id)
+    if not transaction:
+        return None
+    try:
+        contact = RealEstateContact(
+            first_name=first_name,
+            last_name=last_name,
+            phone=phone,
+            email=email,
+            type=ContactType.CLIENT,
+            user_id=user_id,
+        )
+        db.add(contact)
+        await db.flush()
+        await db.refresh(contact)
+        tc = TransactionContact(
+            transaction_id=transaction.id,
+            contact_id=contact.id,
+            role=role,
+        )
+        db.add(tc)
+        sellers = list(transaction.sellers) if transaction.sellers else []
+        buyers = list(transaction.buyers) if transaction.buyers else []
+        entry = {"name": f"{first_name} {last_name}".strip(), "phone": phone, "email": email}
+        if role == "Vendeur":
+            sellers.append(entry)
+            transaction.sellers = sellers
+        else:
+            buyers.append(entry)
+            transaction.buyers = buyers
+        await db.commit()
+        await db.refresh(transaction)
+        ref = transaction.dossier_number or f"#{transaction.id}"
+        logger.info(f"Lea added {role} contact {first_name} {last_name} to transaction id={transaction.id}")
+        return (
+            f"Les coordonnées du {role.lower()} ({first_name} {last_name}) ont été ajoutées à la transaction {ref}. "
+            "Confirme à l'utilisateur que c'est enregistré et qu'il peut voir la transaction dans la section Transactions."
+        )
+    except Exception as e:
+        logger.warning(f"Lea add seller/buyer contact failed: {e}", exc_info=True)
+        await db.rollback()
+        return None
+
+
 async def run_lea_actions(db: AsyncSession, user_id: int, message: str) -> tuple[list, Optional[RealEstateTransaction]]:
     """
     Exécute les actions Léa (création transaction, mise à jour adresse, promesse d'achat).
@@ -611,6 +712,9 @@ async def run_lea_actions(db: AsyncSession, user_id: int, message: str) -> tuple
             "La date de promesse d'achat a été enregistrée sur la dernière transaction. "
             "Confirme à l'utilisateur que la promesse d'achat est enregistrée et qu'il peut compléter le formulaire dans la section Transactions."
         )
+    contact_line = await maybe_add_seller_buyer_contact_from_lea(db, user_id, message)
+    if contact_line:
+        lines.append(contact_line)
     return (lines, created)
 
 
