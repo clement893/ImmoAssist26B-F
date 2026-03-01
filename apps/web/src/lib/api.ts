@@ -323,7 +323,7 @@ export const leaAPI = {
    * Returns true if streaming was used, false if backend does not support streaming (fallback to chat).
    */
   chatStream: async (
-    params: { message: string; sessionId?: string },
+    params: { message: string; sessionId?: string; lastAssistantMessage?: string },
     callbacks: {
       onDelta: (delta: string) => void;
       onDone: (sessionId: string, meta?: { actions?: string[]; model?: string; provider?: string; usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } }) => void;
@@ -342,6 +342,7 @@ export const leaAPI = {
       body: JSON.stringify({
         message: params.message,
         session_id: params.sessionId ?? null,
+        last_assistant_message: params.lastAssistantMessage ?? null,
       }),
     });
     if (res.status === 501 || res.status === 404) return false;

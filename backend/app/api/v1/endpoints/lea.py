@@ -85,6 +85,7 @@ class LeaChatRequest(BaseModel):
     """Léa chat request"""
     message: str = Field(..., min_length=1, description="User message")
     session_id: Optional[str] = Field(None, description="Conversation session ID")
+    last_assistant_message: Optional[str] = Field(None, description="Dernier message assistant (pour confirmer « oui enregistrez » avec les noms)")
     provider: Optional[Literal["openai", "anthropic", "auto"]] = Field(
         default="auto",
         description="AI provider to use"
@@ -310,6 +311,9 @@ def _wants_to_create_transaction(message: str) -> tuple[bool, str]:
             return True, "vente"
         return True, "achat"
 
+    # "créer la transaction" + "montant/prix/mettre" = finaliser la transaction en cours, ne pas en créer une nouvelle
+    if "créer la transaction" in t and ("montant" in t or "prix" in t or "mettre" in t):
+        return False, ""
     # "créer une transaction de vente" / "créer une transaction d'achat" (explicite, avec ou sans "pour [adresse]")
     if "créer une transaction de vente" in t or "créer une transaction d'achat" in t:
         if "vente" in t or "de vente" in t:
@@ -605,6 +609,13 @@ def _extract_address_from_message(message: str) -> Optional[str]:
             addr = normalize_address(m.group(1).strip())
             if len(addr) >= 5 and any(c.isdigit() for c in addr):
                 return addr
+    # "le bien est au X" / "est au X" / "c'est au X" (vocal: "le biais est au 56 26 de Lorimier")
+    for prefix in (r"le\s+bien\s+est\s+au\s+", r"le\s+biais\s+est\s+au\s+", r"est\s+au\s+", r"c'est\s+au\s+"):
+        m = re.search(prefix + r"(.+?)(?:\s+(?:poker|vocal|vacal)\s+terminé|\.|$)", t, re.I | re.DOTALL)
+        if m:
+            addr = normalize_address(m.group(1).strip())
+            if len(addr) >= 5 and any(c.isdigit() for c in addr):
+                return addr
     # "ajoute(l')adresse 123 rue X" / "ajouter l'adresse 123 rue X"
     m = re.search(
         r"ajout(?:er?|es?)\s+(?:l')?adresse\s+([^\n.]+?)(?:\.|$|\s+pour\s+|\s+vocal)",
@@ -641,6 +652,12 @@ def _extract_address_from_message(message: str) -> Optional[str]:
         addr = normalize_address(m.group(1).strip())
         if len(addr) >= 5:
             return addr
+    # "56 26 de Lorimier" / "6 26 de Lorimier" (numéro + "de" + nom de rue, sans "rue/avenue")
+    m = re.search(r"(\d(?:\s*\d)*\s+de\s+[A-Za-zÀ-ÿ\s\-]+?)(?:\s+(?:poker|vocal|vacal)\s+terminé|\.|$|\s+toi\s+|\s+trouve)", t, re.I)
+    if m:
+        addr = normalize_address(m.group(1).strip())
+        if len(addr) >= 8:
+            return addr
     return None
 
 
@@ -648,6 +665,13 @@ def _wants_to_update_address(message: str) -> bool:
     t = (message or "").strip().lower()
     if not t:
         return False
+    # "le bien est au X" / "est au X" sans le mot "adresse"
+    if "est au" in t or "c'est au" in t or "bien est" in t or "biais est" in t:
+        if _extract_address_from_message(message):
+            return True
+    # "56 26 de Lorimier toi trouve en ligne le reste" — adresse + demande de compléter en ligne
+    if ("trouve" in t or "en ligne" in t or "reste" in t) and _extract_address_from_message(message):
+        return True
     if "adresse" not in t:
         return False
     # Correction / mise à jour explicite (incl. "l'adresse du bien et le X" — typo "et" pour "est")
@@ -903,15 +927,66 @@ def _extract_seller_buyer_contact_from_message(message: str) -> Optional[tuple[s
     return (first_name.strip(), last_name.strip(), phone, email, role)
 
 
+def _extract_seller_buyer_names_from_assistant_question(assistant_message: str) -> Optional[tuple[str, List[tuple[str, str]]]]:
+    """
+    Quand l'assistant a demandé « Souhaitez-vous enregistrer X et Y comme vendeurs ? »
+    et l'utilisateur répond « oui enregistrez les », extrait X et Y du message assistant.
+    Retourne (role, [(first_name, last_name), ...]) ou None.
+    """
+    if not assistant_message or len(assistant_message.strip()) < 10:
+        return None
+    t = assistant_message.strip()
+    role: Optional[str] = None
+    if "comme vendeurs" in t.lower() or "comme vendeur" in t.lower():
+        role = "Vendeur"
+    elif "comme acheteurs" in t.lower() or "comme acheteur" in t.lower():
+        role = "Acheteur"
+    if not role:
+        return None
+    # "enregistrer Michel et Lucie Zapata comme vendeurs" / "X et Y comme vendeurs"
+    m = re.search(r"(?:enregistrer\s+)?(.+?)\s+comme\s+" + ("vendeurs?" if role == "Vendeur" else "acheteurs?"), t, re.I | re.DOTALL)
+    if not m:
+        return None
+    raw = m.group(1).strip()
+    raw = re.sub(r"\s+vocales?\s+terminées?.*$", "", raw, flags=re.I).strip()
+    if not raw or len(raw) < 3:
+        return None
+    parts = re.split(r"\s+et\s+|\s*,\s*", raw)
+    names: List[tuple[str, str]] = []
+    for part in parts:
+        part = part.strip()
+        if not part or len(part) < 2:
+            continue
+        words = part.split()
+        if len(words) >= 2:
+            first_name, last_name = words[0], " ".join(words[1:])
+        else:
+            first_name = last_name = part
+        if len(first_name) >= 1 and len(last_name) >= 1:
+            names.append((first_name.strip(), last_name.strip()))
+    if not names:
+        return None
+    return (role, names)
+
+
 async def maybe_add_seller_buyer_contact_from_lea(
-    db: AsyncSession, user_id: int, message: str
+    db: AsyncSession, user_id: int, message: str, last_assistant_message: Optional[str] = None
 ) -> Optional[str]:
     """
     Si le message contient les coordonnées d'un vendeur ou acheteur (ou une liste "les vendeurs sont A et B"),
+    ou si l'utilisateur confirme "oui enregistrez" et le dernier message assistant contient "X et Y comme vendeurs",
     crée le(s) contact(s) et l'ajoute à la transaction. Retourne une ligne pour « Action effectuée » ou None.
     """
     # Cas "les vendeurs sont Joseph Perrault et Matthieu Dufour"
     names_list = _extract_seller_buyer_names_list(message)
+    # Cas "oui enregistrez les" après « Souhaitez-vous enregistrer Michel et Lucie Zapata comme vendeurs ? »
+    if not names_list and last_assistant_message:
+        t_msg = (message or "").strip().lower()
+        if any(
+            t_msg.startswith(p) or p in t_msg
+            for p in ("oui", "oui enregistrez", "oui enregistrez-les", "oui enregistrez les", "oui enregistrer")
+        ) and len(t_msg) < 80:
+            names_list = _extract_seller_buyer_names_from_assistant_question(last_assistant_message)
     if names_list:
         role, names = names_list
         transaction = await get_user_latest_transaction(db, user_id)
@@ -1164,10 +1239,13 @@ def _get_lea_guidance_lines(message: str) -> list[str]:
     return lines
 
 
-async def run_lea_actions(db: AsyncSession, user_id: int, message: str) -> tuple[list, Optional[RealEstateTransaction]]:
+async def run_lea_actions(
+    db: AsyncSession, user_id: int, message: str, last_assistant_message: Optional[str] = None
+) -> tuple[list, Optional[RealEstateTransaction]]:
     """
     Exécute les actions Léa (création transaction, mise à jour adresse, promesse d'achat).
     Retourne (liste de lignes pour « Action effectuée », transaction créée si création).
+    last_assistant_message : dernier message de Léa (pour confirmer « oui enregistrez » avec les noms).
     """
     lines = []
     created: Optional[RealEstateTransaction] = None
@@ -1216,7 +1294,7 @@ async def run_lea_actions(db: AsyncSession, user_id: int, message: str) -> tuple
             "La date de promesse d'achat a été enregistrée sur la dernière transaction. "
             "Confirme à l'utilisateur que la promesse d'achat est enregistrée et qu'il peut compléter le formulaire dans la section Transactions."
         )
-    contact_line = await maybe_add_seller_buyer_contact_from_lea(db, user_id, message)
+    contact_line = await maybe_add_seller_buyer_contact_from_lea(db, user_id, message, last_assistant_message)
     if contact_line:
         lines.append(contact_line)
     price_result = await maybe_update_transaction_price_from_lea(db, user_id, message)
@@ -1406,7 +1484,7 @@ async def lea_chat_stream(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
             detail="Streaming requires OPENAI_API_KEY or ANTHROPIC_API_KEY in the Backend.",
         )
-    action_lines, created_tx = await run_lea_actions(db, current_user.id, request.message)
+    action_lines, created_tx = await run_lea_actions(db, current_user.id, request.message, request.last_assistant_message)
     user_context = await get_lea_user_context(db, current_user.id)
     if action_lines:
         user_context += "\n\n--- Action effectuée ---\n" + "\n".join(action_lines)
@@ -1455,7 +1533,7 @@ async def lea_chat(
     # 1) IA intégrée en priorité : contexte + actions sont injectés dans le prompt → Léa peut confirmer les actions
     if _use_integrated_lea():
         try:
-            action_lines, created_tx = await run_lea_actions(db, current_user.id, request.message)
+            action_lines, created_tx = await run_lea_actions(db, current_user.id, request.message, request.last_assistant_message)
             if request.session_id and action_lines:
                 tx_to_link = created_tx if created_tx else await get_user_latest_transaction(db, current_user.id)
                 if tx_to_link:
@@ -1510,7 +1588,7 @@ async def lea_chat(
             detail=AGENT_ERR_MSG,
         )
     try:
-        action_lines, created_tx = await run_lea_actions(db, current_user.id, request.message)
+        action_lines, created_tx = await run_lea_actions(db, current_user.id, request.message, request.last_assistant_message)
         if request.session_id and action_lines:
             tx_to_link = created_tx if created_tx else await get_user_latest_transaction(db, current_user.id)
             if tx_to_link:

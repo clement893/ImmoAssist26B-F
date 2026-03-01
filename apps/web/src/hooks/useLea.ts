@@ -96,8 +96,14 @@ export function useLea(initialSessionId?: string): UseLeaReturn {
     };
     setMessages((prev) => [...prev, assistantPlaceholder]);
 
+    const lastAssistantContent = messages.filter((m) => m.role === 'assistant').pop()?.content ?? undefined;
+
     const usedStream = await leaAPI.chatStream(
-      { message, sessionId: sessionId ?? undefined },
+      {
+        message,
+        sessionId: sessionId ?? undefined,
+        lastAssistantMessage: lastAssistantContent,
+      },
       {
         onDelta: (delta) => {
           setMessages((prev) => {
@@ -166,6 +172,7 @@ export function useLea(initialSessionId?: string): UseLeaReturn {
           {
             message,
             session_id: sessionId,
+            last_assistant_message: lastAssistantContent,
             provider: 'openai',
           },
           { signal: abortControllerRef.current.signal }
