@@ -118,6 +118,7 @@ export function useVoiceSynthesis(): UseVoiceSynthesisReturn {
         'amelie', 'amélie', 'marie', 'sylvie', 'veronique', 'véronique', 'jolie', 'melanie', 'mélanie',
         'hortense', 'alice', 'claire', 'elise', 'léa', 'lea', 'victoire', 'valerie', 'valérie',
         'virginie', 'sabina', 'julie', 'anne', 'louise', 'charlotte', 'aria', 'eva', 'camille',
+        'samantha', 'karen', 'moira', 'tessa', 'veena', 'linda', 'susan', 'laura', 'emma',
         'neural', 'premium', 'enhanced', 'google français', 'microsoft hortense',
       ];
       const maleKeywords = [
@@ -172,6 +173,13 @@ export function useVoiceSynthesis(): UseVoiceSynthesisReturn {
       const anyFemale = availableVoices.find((v) => isLikelyFemale(v) && !isLikelyMale(v));
       if (anyFemale) {
         setSelectedVoice(anyFemale);
+        return;
+      }
+
+      // 7) Dernier recours : une voix qui n'est pas clairement homme (éviter Thomas, Paul, etc.)
+      const notMale = availableVoices.find((v) => !isLikelyMale(v));
+      if (notMale) {
+        setSelectedVoice(notMale);
         return;
       }
 

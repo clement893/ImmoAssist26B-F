@@ -9,6 +9,9 @@ import { logger } from '@/lib/logger';
 import { getErrorStatus } from '@/lib/errors';
 import { useHydrated } from '@/hooks/useHydrated';
 
+/** Max time to wait for auth check before redirecting (avoids infinite "Verifying authentication..."). */
+const AUTH_CHECK_TIMEOUT_MS = 15000;
+
 /**
  * Protected Route Component
  *
@@ -178,7 +181,7 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Prote
 
       // If we just became authenticated (transition from unauthenticated to authenticated),
       // authorize immediately without additional checks
-      if (!wasAuthenticated && isNowAuthenticated) {
+      if (!wasAuthenticated && isAuth) {
         logger.debug('User just authenticated, authorizing immediately', {
           pathname,
         });
@@ -339,8 +342,21 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Prote
       setIsChecking(false);
     };
 
-    // Check immediately
-    checkAuth();
+    // Run auth check with timeout to avoid infinite "Verifying authentication..." if API hangs
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('AUTH_TIMEOUT')), AUTH_CHECK_TIMEOUT_MS);
+    });
+
+    Promise.race([checkAuth(), timeoutPromise]).catch((err: unknown) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg === 'AUTH_TIMEOUT') {
+        logger.warn('Auth check timed out, redirecting to login', { pathname });
+        checkingRef.current = false;
+        setIsChecking(false);
+        setIsAuthorized(false);
+        router.replace(`/auth/login?redirect=${encodeURIComponent(pathname)}&error=timeout`);
+      }
+    });
   }, [isHydrated, user, token, requireAdmin, isAuthorized]);
 
   // Show loader during verification

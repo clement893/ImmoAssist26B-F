@@ -360,7 +360,7 @@ class Settings(BaseSettings):
     )
     LEA_TTS_VOICE: str = Field(
         default="nova",
-        description="Voix OpenAI TTS: alloy, echo, fable, onyx, nova, shimmer (nova = voix féminine claire)",
+        description="Voix OpenAI TTS pour Léa (féminine uniquement): nova, shimmer (éviter alloy, echo, onyx = masculins)",
     )
     LEA_MAX_TOKENS: int = Field(
         default=256,

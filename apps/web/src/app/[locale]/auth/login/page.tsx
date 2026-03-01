@@ -34,6 +34,8 @@ function LoginContent() {
         unauthorized:
           "Votre session a expiré ou vous n'êtes pas autorisé. Veuillez vous reconnecter.",
         session_expired: 'Votre session a expiré. Veuillez vous reconnecter.',
+        timeout:
+          'La vérification a pris trop de temps. Vérifiez votre connexion et réessayez.',
         unauthorized_superadmin: 'Vous devez être superadmin pour accéder à cette page.',
         forbidden: "Accès refusé. Vous n'avez pas les permissions nécessaires.",
       };

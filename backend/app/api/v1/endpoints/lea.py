@@ -6,7 +6,9 @@ import base64
 import io
 import json
 import os
+import re
 import uuid
+from datetime import date
 from typing import Optional, Literal
 
 import httpx
@@ -42,12 +44,16 @@ LEA_SYSTEM_PROMPT = (
     "Tu aides les courtiers et les particuliers : transactions, formulaires OACIQ, vente, achat.\n\n"
     "Tu as TOUJOURS accès aux données de la plateforme pour l'utilisateur connecté. "
     "Un bloc « Données plateforme » est fourni ci-dessous avec ses transactions et dossiers. "
-    "Base-toi UNIQUEMENT sur ces données pour répondre aux questions sur ses transactions en cours, ses dossiers, etc. "
-    "Si l'utilisateur te demande de CRÉER une transaction ou un dossier (ex. « je veux créer une transaction d'achat », « crée le formulaire »), "
-    "la plateforme peut créer une nouvelle transaction pour lui ; si un bloc « Action effectuée » indique qu'une transaction a été créée, "
-    "tu DOIS confirmer à l'utilisateur que c'est fait et l'inviter à la compléter dans la section Transactions. "
-    "Si les listes sont vides et qu'il n'a pas demandé de création, dis qu'il n'a pas encore de transaction et propose d'en créer une (il peut le faire via toi ou via la section Transactions).\n\n"
-    "Règles importantes:\n"
+    "Base-toi UNIQUEMENT sur ces données pour répondre aux questions sur ses transactions en cours, ses dossiers, etc.\n\n"
+    "** RÈGLE CRUCIALE - ACTIONS RÉELLES : **\n"
+    "Tu ne dois JAMAIS prétendre avoir fait une action (créer une transaction, mettre à jour une adresse, créer une promesse d'achat, etc.) "
+    "si le bloc « Action effectuée » ci-dessous ne le mentionne pas explicitement. "
+    "Si l'utilisateur demande quelque chose et qu'il n'y a AUCUN « Action effectuée » pour cette demande, "
+    "dis-lui que tu ne peux pas encore faire cela automatiquement et invite-le à aller dans la section Transactions pour le faire. "
+    "Ne invente jamais une confirmation du type « c'est fait » ou « j'ai créé » sans que « Action effectuée » le confirme.\n\n"
+    "Quand « Action effectuée » indique une ou plusieurs actions (ex: transaction créée, adresse ajoutée, promesse d'achat enregistrée), "
+    "confirme uniquement ce qui est indiqué et invite l'utilisateur à compléter dans la section Transactions si pertinent.\n\n"
+    "Règles générales:\n"
     "- Réponds en français, de façon courtoise et professionnelle.\n"
     "- Garde tes réponses **courtes** (2 à 4 phrases max), sauf si l'utilisateur demande explicitement plus de détails.\n"
     "- Pour faire avancer la conversation, **pose une question pertinente** ou propose la prochaine étape quand c'est naturel.\n"
@@ -84,9 +90,9 @@ class LeaContextResponse(BaseModel):
 
 
 class LeaSynthesizeRequest(BaseModel):
-    """Léa text-to-speech synthesis request"""
+    """Léa text-to-speech synthesis request (voix féminine)"""
     text: str = Field(..., min_length=1, description="Text to synthesize")
-    voice: Optional[str] = Field("nova", description="Voix TTS: alloy, echo, fable, onyx, nova, shimmer")
+    voice: Optional[str] = Field("nova", description="Voix TTS: nova ou shimmer (féminines)")
 
 
 class LeaSettingsResponse(BaseModel):
@@ -197,10 +203,17 @@ def _wants_to_create_transaction(message: str) -> tuple[bool, str]:
         if "vente" in t:
             return True, "vente"
         return True, "achat"
-    if "transaction d'achat" in t and ("créer" in t or "créé" in t or "veux" in t or "voudrais" in t):
+    if "transaction d'achat" in t and ("créer" in t or "créé" in t or "veux" in t or "voudrais" in t or "réer" in t):
         return True, "achat"
-    if "transaction de vente" in t and ("créer" in t or "créé" in t or "veux" in t or "voudrais" in t):
+    if "transaction de vente" in t and ("créer" in t or "créé" in t or "veux" in t or "voudrais" in t or "réer" in t):
         return True, "vente"
+    # Typo courant: "réer" au lieu de "créer"
+    if "réer une transaction" in t or "réer la transaction" in t:
+        if "achat" in t:
+            return True, "achat"
+        if "vente" in t:
+            return True, "vente"
+        return True, "achat"
     return False, ""
 
 
@@ -232,19 +245,136 @@ async def maybe_create_transaction_from_lea(db: AsyncSession, user_id: int, mess
         logger.warning(f"Lea create transaction failed: {e}", exc_info=True)
         await db.rollback()
         return None
-    """Transcrit l'audio avec OpenAI Whisper."""
-    client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    f = io.BytesIO(audio_bytes)
-    f.name = "audio.webm" if "webm" in (content_type or "") else "audio.mp4"
-    resp = await client.audio.transcriptions.create(model="whisper-1", file=f, language="fr")
-    return (resp.text or "").strip()
+
+
+async def get_user_latest_transaction(db: AsyncSession, user_id: int):
+    """Retourne la transaction la plus récente de l'utilisateur, ou None."""
+    q = (
+        select(RealEstateTransaction)
+        .where(RealEstateTransaction.user_id == user_id)
+        .order_by(RealEstateTransaction.updated_at.desc())
+        .limit(1)
+    )
+    r = await db.execute(q)
+    return r.scalar_one_or_none()
+
+
+def _extract_address_from_message(message: str) -> Optional[str]:
+    """Extrait une adresse du message (ex: 'l'adresse est le 6/840 avenue Papineau', 'qui est le 6/840 avenue Papineau')."""
+    if not message or len(message.strip()) < 10:
+        return None
+    t = message.strip()
+    # "est le X" / "est X" / "c'est le X" / "l'adresse est X" / "qui est le X"
+    for prefix in (r"l'adresse est le\s+", r"l'adresse est\s+", r"qui est le\s+", r"est le\s+", r"c'est le\s+", r"adresse\s*:\s*"):
+        m = re.search(prefix + r"(.+?)(?:\.|$|\s+et\s+)", t, re.I | re.DOTALL)
+        if m:
+            addr = m.group(1).strip()
+            if len(addr) >= 5 and any(c.isdigit() for c in addr):
+                return addr
+    # Fallback: cherche un motif type "123 rue X" ou "6/840 avenue X"
+    m = re.search(r"(\d+(?:/\d+)?\s+(?:avenue|av\.?|rue|boulevard|blvd\.?|boul\.?)\s+[\w\s-]+)", t, re.I)
+    if m:
+        return m.group(1).strip()
+    return None
+
+
+def _wants_to_update_address(message: str) -> bool:
+    t = (message or "").strip().lower()
+    if not t:
+        return False
+    return (
+        "adresse" in t and ("mettre" in t or "rentrer" in t or "rentre" in t or "est le" in t or "est " in t or "c'est " in t or "enregistrer" in t or "ajouter" in t)
+    ) and _extract_address_from_message(message) is not None
+
+
+def _wants_to_set_promise(message: str) -> bool:
+    t = (message or "").strip().lower()
+    if not t:
+        return False
+    return (
+        "promesse" in t and ("achat" in t or "d'achat" in t) and
+        ("créer" in t or "crée" in t or "crééz" in t or "générer" in t or "faire" in t or "créez" in t)
+    )
+
+
+async def maybe_update_transaction_address_from_lea(db: AsyncSession, user_id: int, message: str) -> Optional[str]:
+    """Si le message demande d'ajouter/mettre à jour l'adresse, met à jour la dernière transaction. Retourne l'adresse si mise à jour."""
+    if not _wants_to_update_address(message):
+        return None
+    addr = _extract_address_from_message(message)
+    if not addr:
+        return None
+    transaction = await get_user_latest_transaction(db, user_id)
+    if not transaction:
+        return None
+    try:
+        transaction.property_address = addr
+        await db.commit()
+        await db.refresh(transaction)
+        logger.info(f"Lea updated transaction id={transaction.id} address to {addr[:50]}...")
+        return addr
+    except Exception as e:
+        logger.warning(f"Lea update address failed: {e}", exc_info=True)
+        await db.rollback()
+        return None
+
+
+async def maybe_set_promise_from_lea(db: AsyncSession, user_id: int, message: str):
+    """Si le message demande de créer la promesse d'achat, enregistre la date sur la dernière transaction."""
+    if not _wants_to_set_promise(message):
+        return None
+    transaction = await get_user_latest_transaction(db, user_id)
+    if not transaction:
+        return None
+    try:
+        transaction.promise_to_purchase_date = date.today()
+        await db.commit()
+        await db.refresh(transaction)
+        logger.info(f"Lea set promise_to_purchase_date on transaction id={transaction.id}")
+        return transaction
+    except Exception as e:
+        logger.warning(f"Lea set promise failed: {e}", exc_info=True)
+        await db.rollback()
+        return None
+
+
+async def run_lea_actions(db: AsyncSession, user_id: int, message: str) -> list:
+    """
+    Exécute les actions Léa (création transaction, mise à jour adresse, promesse d'achat).
+    Retourne une liste de lignes à injecter dans « Action effectuée » (une par action réellement faite).
+    """
+    lines = []
+    created = await maybe_create_transaction_from_lea(db, user_id, message)
+    if created:
+        lines.append(
+            f"Tu viens de créer une nouvelle transaction pour l'utilisateur : « {created.name} » (id {created.id}). "
+            "Confirme-lui que c'est fait et qu'il peut la compléter dans la section Transactions."
+        )
+    addr = await maybe_update_transaction_address_from_lea(db, user_id, message)
+    if addr:
+        lines.append(
+            f"L'adresse a été ajoutée à la dernière transaction : « {addr} ». "
+            "Confirme à l'utilisateur que c'est fait."
+        )
+    promise_tx = await maybe_set_promise_from_lea(db, user_id, message)
+    if promise_tx:
+        lines.append(
+            "La date de promesse d'achat a été enregistrée sur la dernière transaction. "
+            "Confirme à l'utilisateur que la promesse d'achat est enregistrée et qu'il peut compléter le formulaire dans la section Transactions."
+        )
+    return lines
+
+
+# Voix OpenAI TTS considérées féminines pour Léa (alloy, echo, onyx = masculins)
+LEA_TTS_FEMALE_VOICES = ("nova", "shimmer")
 
 
 async def _synthesize_tts(text: str, voice: str | None = None) -> bytes:
-    """Synthèse vocale avec OpenAI TTS (qualité HD, voix configurable). Retourne les bytes audio (mp3)."""
+    """Synthèse vocale avec OpenAI TTS (qualité HD). Léa utilise une voix féminine (nova ou shimmer)."""
     settings = get_settings()
     model = (settings.LEA_TTS_MODEL or "tts-1-hd").strip() or "tts-1-hd"
-    voice_name = (voice or settings.LEA_TTS_VOICE or "nova").strip() or "nova"
+    raw = (voice or settings.LEA_TTS_VOICE or "nova").strip() or "nova"
+    voice_name = raw if raw.lower() in LEA_TTS_FEMALE_VOICES else "nova"
     client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     resp = await client.audio.speech.create(model=model, voice=voice_name, input=text)
     return resp.content
@@ -341,10 +471,10 @@ async def lea_chat_stream(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
             detail="Streaming requires OPENAI_API_KEY or ANTHROPIC_API_KEY in the Backend.",
         )
-    created = await maybe_create_transaction_from_lea(db, current_user.id, request.message)
+    action_lines = await run_lea_actions(db, current_user.id, request.message)
     user_context = await get_lea_user_context(db, current_user.id)
-    if created:
-        user_context += "\n\n--- Action effectuée ---\nTu viens de créer une nouvelle transaction pour l'utilisateur : « " + created.name + " » (id " + str(created.id) + "). Confirme-lui que c'est fait et qu'il peut la compléter dans la section Transactions."
+    if action_lines:
+        user_context += "\n\n--- Action effectuée ---\n" + "\n".join(action_lines)
     return StreamingResponse(
         _stream_lea_sse(request.message, request.session_id, user_context=user_context),
         media_type="text/event-stream",
@@ -369,10 +499,10 @@ async def lea_chat(
     # 1) IA intégrée (avec contexte plateforme) si pas d'agent externe
     if not _use_external_agent() and _use_integrated_lea():
         try:
-            created = await maybe_create_transaction_from_lea(db, current_user.id, request.message)
+            action_lines = await run_lea_actions(db, current_user.id, request.message)
             user_context = await get_lea_user_context(db, current_user.id)
-            if created:
-                user_context += "\n\n--- Action effectuée ---\nTu viens de créer une nouvelle transaction pour l'utilisateur : « " + created.name + " » (id " + str(created.id) + "). Confirme-lui que c'est fait et qu'il peut la compléter dans la section Transactions."
+            if action_lines:
+                user_context += "\n\n--- Action effectuée ---\n" + "\n".join(action_lines)
             system_prompt = LEA_SYSTEM_PROMPT
             if user_context:
                 system_prompt += "\n\n--- Informations actuelles de l'utilisateur (plateforme) ---\n" + user_context
@@ -465,10 +595,10 @@ async def lea_chat_voice(
                     detail="Impossible de transcrire l'audio. Parlez plus distinctement ou vérifiez le format.",
                 )
 
-            created = await maybe_create_transaction_from_lea(db, current_user.id, transcription)
+            action_lines = await run_lea_actions(db, current_user.id, transcription)
             user_context = await get_lea_user_context(db, current_user.id)
-            if created:
-                user_context += "\n\n--- Action effectuée ---\nTu viens de créer une nouvelle transaction pour l'utilisateur : « " + created.name + " » (id " + str(created.id) + "). Confirme-lui que c'est fait et qu'il peut la compléter dans la section Transactions."
+            if action_lines:
+                user_context += "\n\n--- Action effectuée ---\n" + "\n".join(action_lines)
             system_prompt = LEA_SYSTEM_PROMPT
             if user_context:
                 system_prompt += "\n\n--- Informations actuelles de l'utilisateur (plateforme) ---\n" + user_context
