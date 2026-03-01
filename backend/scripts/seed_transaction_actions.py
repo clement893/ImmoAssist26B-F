@@ -32,7 +32,10 @@ async def seed_actions():
         async with async_session() as db:
             service = TransactionActionService(db)
             count = await service.seed_actions()
-            print(f"✅ {count} transaction actions initialized successfully")
+            if count > 0:
+                print(f"✅ {count} transaction actions initialized successfully")
+            else:
+                print("✅ Transaction actions already up to date (0 new)")
         
         await engine.dispose()
         

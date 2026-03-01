@@ -254,39 +254,56 @@ async def get_lea_user_context(db: AsyncSession, user_id: int) -> str:
 def _wants_to_create_transaction(message: str) -> tuple[bool, str]:
     """
     Détecte si l'utilisateur demande de créer une transaction (achat ou vente).
-    Retourne (True, "achat"|"vente") ou (False, "").
-    Utilise une version normalisée (sans accents) pour tolérer les transcriptions vocales.
+    Retourne (True, "achat"|"vente") si type explicite, (True, "") si création demandée mais type non précisé, (False, "") sinon.
+    Quand le type n'est pas précisé, Léa doit demander « Est-ce une vente ou un achat ? » avant de créer.
     """
     t = (message or "").strip().lower()
     if not t:
         return False, ""
+
+    def default_type() -> str:
+        """Retourne le type explicite dans le message ('achat'|'vente') ou '' si non précisé."""
+        if "vente" in t or "de vente" in t:
+            return "vente"
+        if "achat" in t or "d'achat" in t:
+            return "achat"
+        return ""
 
     def n(s: str) -> str:
         """Normalise pour comparaison insensible aux accents (ex: transcription vocale)."""
         return "".join(c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn")
     nt = n(t)
 
+    # Réponse courte après « Est-ce une vente ou un achat ? » : "achat", "vente", "c'est un achat", "une vente"
+    if len(t) <= 40:
+        if t.strip() in ("achat", "vente"):
+            return True, t.strip()
+        if "c'est un achat" in t or "c'est une vente" in t or "ce sera un achat" in t or "ce sera une vente" in t:
+            return True, "achat" if "achat" in t else "vente"
+        if ("un achat" in t or "une vente" in t) and len(t) <= 25:
+            return True, "achat" if "achat" in t else "vente"
+
     # Phrase très courte : "et une transaction", "une transaction" (sous-entendu : créer)
     if len(t) <= 35:
         if "et une transaction" in t or "et un dossier" in t:
             if "vente" in t or "de vente" in t:
                 return True, "vente"
-            return True, "achat"
+            return True, default_type()
         if ("une transaction" in t or "un dossier" in t) and ("veux" in t or "donne" in t or "crée" in t or "cree" in nt or "ajoute" in t):
             if "vente" in t or "de vente" in t:
                 return True, "vente"
-            return True, "achat"
+            return True, default_type()
 
     # Phrase courte explicite : "Créer une transaction" (bouton, saisie ou vocal)
     if len(t) <= 60 and ("créer une transaction" in t or "creer une transaction" in nt):
         if "vente" in t or "de vente" in t:
             return True, "vente"
-        return True, "achat"
+        return True, default_type()
     # Idem pour "créer un dossier"
     if len(t) <= 60 and ("créer un dossier" in t or "creer un dossier" in nt):
         if "vente" in t or "de vente" in t:
             return True, "vente"
-        return True, "achat"
+        return True, default_type()
 
     # "je veux que tu crées/cree/crees une nouvelle transaction" (+ optionnel "tout de suite")
     if "nouvelle transaction" in t or "nouvelle transaction" in nt:
@@ -296,21 +313,21 @@ def _wants_to_create_transaction(message: str) -> tuple[bool, str]:
         ):
             if "vente" in t or "de vente" in t:
                 return True, "vente"
-            return True, "achat"
+            return True, default_type()
         if "tout de suite" in t and ("crée" in t or "crées" in t or "creer" in nt or "cree " in nt or "crees" in nt):
             if "vente" in t or "de vente" in t:
                 return True, "vente"
-            return True, "achat"
+            return True, default_type()
         if "crée une nouvelle" in t or "crées une nouvelle" in t or "creer une nouvelle" in nt or "crees une nouvelle" in nt:
             if "vente" in t or "de vente" in t:
                 return True, "vente"
-            return True, "achat"
+            return True, default_type()
 
     # "crée-moi une (nouvelle) transaction" / "crée moi une transaction"
     if ("crée-moi" in t or "cree-moi" in nt or "crée moi" in t or "cree moi" in nt) and ("transaction" in t or "dossier" in t):
         if "vente" in t or "de vente" in t:
             return True, "vente"
-        return True, "achat"
+        return True, default_type()
 
     # "créer la transaction" + "montant/prix/mettre" = finaliser la transaction en cours, ne pas en créer une nouvelle
     if "créer la transaction" in t and ("montant" in t or "prix" in t or "mettre" in t):
@@ -319,7 +336,7 @@ def _wants_to_create_transaction(message: str) -> tuple[bool, str]:
     if "créer une transaction de vente" in t or "créer une transaction d'achat" in t:
         if "vente" in t or "de vente" in t:
             return True, "vente"
-        return True, "achat"
+        return True, default_type()
     # "créer une nouvelle transaction" / "nouvelle transaction" (explicite, avec ou sans accents pour vocal)
     if (
         "créer une nouvelle transaction" in t
@@ -331,7 +348,7 @@ def _wants_to_create_transaction(message: str) -> tuple[bool, str]:
     ):
         if "vente" in t or "de vente" in t:
             return True, "vente"
-        return True, "achat"
+        return True, default_type()
     # "créer de nouvelles transactions" / "créer des nouvelles transactions" (pluriel, vocal ou clavier)
     if (
         "créer de nouvelles transactions" in t
@@ -343,42 +360,42 @@ def _wants_to_create_transaction(message: str) -> tuple[bool, str]:
     ):
         if "vente" in t or "de vente" in t:
             return True, "vente"
-        return True, "achat"
+        return True, default_type()
     # "créer une transaction avec toi" / "créer une transaction avec Léa"
     if "créer une transaction" in t and ("avec toi" in t or "avec léa" in t or "avec lea" in t):
         if "vente" in t or "de vente" in t:
             return True, "vente"
-        return True, "achat"
+        return True, default_type()
     # "dans ce site une nouvelle transaction avec une adresse différente" / "nouvelle transaction" + adresse
     if "nouvelle transaction" in t and (
         "adresse" in t or "avec" in t or "dans ce site" in t or "différente" in t or "different" in nt
     ):
         if "vente" in t or "de vente" in t:
             return True, "vente"
-        return True, "achat"
+        return True, default_type()
     if "nouvelle transaction" in t and ("créer" in t or "voudrais" in t or "veux" in t or "aimerais" in t or "souhaite" in t or "voulons" in t):
         if "vente" in t or "de vente" in t:
             return True, "vente"
-        return True, "achat"
+        return True, default_type()
     # "aide-moi à créer (une) transaction" / "aide-moi à créer un dossier"
     if "aide-moi" in t or "aide-moi " in t or "aidez-moi" in t or "m'aider" in t or "m’aider" in t:
         if "créer" in t and ("transaction" in t or "dossier" in t):
             if "achat" in t or "d'achat" in t:
-                return True, "achat"
+                return True, default_type()
             if "vente" in t or "de vente" in t:
                 return True, "vente"
-            return True, "achat"
+            return True, default_type()
         if "créer une transaction" in t or "créer un dossier" in t:
-            return True, "achat"
+            return True, default_type()
     # "peux-tu créer" / "tu peux créer" / "pourrais-tu créer"
     if ("peux-tu" in t or "tu peux" in t or "pourrais-tu" in t or "pourrais tu" in t) and "créer" in t and (
         "transaction" in t or "dossier" in t
     ):
         if "achat" in t or "d'achat" in t:
-            return True, "achat"
+            return True, default_type()
         if "vente" in t or "de vente" in t:
             return True, "vente"
-        return True, "achat"
+        return True, default_type()
     # Intentions explicites avec "créer (une) transaction" ou "créer un dossier" (avec ou sans accents)
     if (
         "créer une transaction" in t
@@ -391,44 +408,44 @@ def _wants_to_create_transaction(message: str) -> tuple[bool, str]:
         or "creer la transaction" in nt
     ):
         if "achat" in t:
-            return True, "achat"
+            return True, default_type()
         if "vente" in t:
             return True, "vente"
-        return True, "achat"  # défaut
+        return True, default_type()  # défaut
     # "nous voulons / on veut créer (une) transaction" / "créer une transaction ensemble"
     if ("voulons" in t or "vouloir" in t) and "créer" in t and ("transaction" in t or "dossier" in t):
         if "achat" in t or "d'achat" in t:
-            return True, "achat"
+            return True, default_type()
         if "vente" in t or "de vente" in t:
             return True, "vente"
-        return True, "achat"
+        return True, default_type()
     if "créer" in t and "transaction" in t and (
         "ensemble" in t or "voulons" in t or "veux" in t or "aimerais" in t or "voudrais" in t
         or "souhaite" in t or "souhaites" in t or "souhaitons" in t
     ):
         if "achat" in t or "d'achat" in t:
-            return True, "achat"
+            return True, default_type()
         if "vente" in t or "de vente" in t:
             return True, "vente"
-        return True, "achat"
+        return True, default_type()
     # "nouvelle transaction" + volonté (aimerais, voudrais, veux, etc.)
     if "nouvelle transaction" in t and (
         "créer" in t or "aimerais" in t or "voudrais" in t or "veux" in t or "souhaite" in t or "souhaites" in t or "voulons" in t
     ):
         if "achat" in t or "d'achat" in t:
-            return True, "achat"
+            return True, default_type()
         if "vente" in t or "de vente" in t:
             return True, "vente"
-        return True, "achat"
+        return True, default_type()
     # Formulations du type "j'aimerais / je voudrais créer..."
     if ("aimerais créer" in t or "voudrais créer" in t or "veux créer" in t or "souhaite créer" in t) and (
         "transaction" in t or "dossier" in t
     ):
         if "achat" in t or "d'achat" in t:
-            return True, "achat"
+            return True, default_type()
         if "vente" in t or "de vente" in t:
             return True, "vente"
-        return True, "achat"
+        return True, default_type()
     # "que tu crées" / "que tu crée" (subjonctif) / "crée une transaction" — avec ou sans accents (vocal)
     if (
         "que tu crées" in t or "que tu crée" in t or "que tu crees" in nt or "que tu cree " in nt
@@ -437,37 +454,38 @@ def _wants_to_create_transaction(message: str) -> tuple[bool, str]:
         or "que tu create" in t  # transcription anglaise
     ):
         if "achat" in t:
-            return True, "achat"
+            return True, default_type()
         if "vente" in t:
             return True, "vente"
-        return True, "achat"
+        return True, default_type()
     if "crée la transaction" in t or "crées la transaction" in t or "crée une transaction" in t:
         if "achat" in t:
-            return True, "achat"
+            return True, default_type()
         if "vente" in t:
             return True, "vente"
-        return True, "achat"
+        return True, default_type()
     if "transaction d'achat" in t and ("créer" in t or "créé" in t or "veux" in t or "voudrais" in t or "réer" in t or "voulons" in t):
-        return True, "achat"
+        return True, default_type()
     if "transaction de vente" in t and ("créer" in t or "créé" in t or "veux" in t or "voudrais" in t or "réer" in t or "voulons" in t):
         return True, "vente"
     # Typo courant: "réer" au lieu de "créer"
     if "réer une transaction" in t or "réer la transaction" in t:
         if "achat" in t:
-            return True, "achat"
+            return True, default_type()
         if "vente" in t:
             return True, "vente"
-        return True, "achat"
+        return True, default_type()
     return False, ""
 
 
 async def maybe_create_transaction_from_lea(db: AsyncSession, user_id: int, message: str):
     """
-    Si le message indique une demande de création de transaction, crée une transaction minimale
-    (achat ou vente) et retourne la transaction créée. Sinon retourne None.
+    Si le message indique une demande de création de transaction avec type explicite (achat/vente),
+    crée la transaction et la retourne. Si la demande est sans type (ex. « créer une transaction »),
+    retourne None pour que Léa demande d'abord « Est-ce une vente ou un achat ? ».
     """
     ok, tx_type = _wants_to_create_transaction(message)
-    if not ok:
+    if not ok or not tx_type:
         return None
     try:
         name = f"Transaction {tx_type.capitalize()}"
@@ -520,12 +538,16 @@ def _extract_transaction_ref_from_message(message: str) -> Optional[str]:
     m = re.search(r"#\s*(\d+)", t, re.I)
     if m:
         return m.group(1)
-    # "transaction 4" / "transaction #4" / "la transaction 4" / "pour la transaction 4"
-    m = re.search(r"(?:pour\s+)?(?:la\s+)?transaction\s+#?\s*(\d+)", t, re.I)
+    # "transaction 4" / "transaction #4" / "la transaction 4" / "pour la transaction 4" / "de la transaction 4"
+    m = re.search(r"(?:pour\s+|de\s+)?(?:la\s+)?transaction\s+#?\s*(\d+)", t, re.I)
     if m:
         return m.group(1)
     # "dossier 4"
     m = re.search(r"dossier\s+#?\s*(\d+)", t, re.I)
+    if m:
+        return m.group(1)
+    # "transaction numéro 4" / "la transaction numéro 4"
+    m = re.search(r"(?:la\s+)?transaction\s+numéro\s+#?\s*(\d+)", t, re.I)
     if m:
         return m.group(1)
     return None
@@ -573,9 +595,13 @@ def _extract_address_from_message(message: str) -> Optional[str]:
     t = message.strip()
 
     def normalize_address(raw: str) -> str:
-        """Normalise espaces dans les chiffres (6 8 4 0 -> 6840) et code postal (h2g2x7 -> H2G 2X7). Supprime artefacts vocaux en fin."""
+        """Normalise espaces dans les chiffres (6 8 4 0 -> 6840) et code postal. Supprime artefacts vocaux en fin."""
         s = raw.strip()
-        # Artefacts vocaux en fin : "local terminé", "locales terminé", "elle terminé", "vocal terminé"
+        # "l'adresse est de 6254 rue X" -> enlever le "de " initial
+        s = re.sub(r"^de\s+", "", s, flags=re.I).strip()
+        # Artefacts vocaux en fin : "terminé", "à terminer", "donc à terminer", "local terminé", etc.
+        s = re.sub(r"\s+(?:donc\s+)?à\s+terminer\s*$", "", s, flags=re.I).strip()
+        s = re.sub(r"\s+terminé\s*$", "", s, flags=re.I).strip()
         s = re.sub(r"\s+(?:local|locales|elle|vocal|vacal)\s+terminé\s*$", "", s, flags=re.I).strip()
         # Collapse digits separated by spaces: "6 8 4 0" -> "6840"
         s = re.sub(r'\b(\d)\s+(\d)\s+(\d)\s+(\d)\b', r'\1\2\3\4', s)
@@ -818,18 +844,32 @@ def _wants_to_geocode_existing_address(message: str) -> bool:
     t = (message or "").strip().lower()
     if not t:
         return False
-    return (
-        ("chercher" in t or "cherche" in t or "trouve" in t or "trouver" in t)
-        and ("adresse" in t or "l'adresse" in t)
-        and ("internet" in t or "en ligne" in t or "ligne" in t or "complète" in t or "code postal" in t or "ville" in t)
+    has_verb = (
+        "chercher" in t or "cherche" in t or "trouve" in t or "trouver" in t
+        or "recherche" in t or "rechercher" in t
+        or "écris" in t or "écrire" in t
     )
+    has_address = "adresse" in t or "l'adresse" in t
+    has_trigger = (
+        "internet" in t or "en ligne" in t or "ligne" in t
+        or "complète" in t or "code postal" in t or "ville" in t
+    )
+    return has_verb and has_address and (has_trigger or "recherche" in t or "écris" in t or "écrire" in t)
 
 
-async def maybe_geocode_existing_transaction_address(db: AsyncSession, user_id: int, message: str) -> Optional[Tuple[str, RealEstateTransaction, dict]]:
-    """Si la dernière transaction a une adresse mais pas (ou à compléter) ville/code postal, lance le géocodage et met à jour."""
+async def maybe_geocode_existing_transaction_address(
+    db: AsyncSession, user_id: int, message: str, last_assistant_message: Optional[str] = None
+) -> Optional[Tuple[str, RealEstateTransaction, dict]]:
+    """Géocode l'adresse de la transaction indiquée (ou la plus récente si pas de ref). Utilise la ref du message ou du dernier message assistant (ex. « transaction 26 »)."""
     if not _wants_to_geocode_existing_address(message):
         return None
-    transaction = await get_user_latest_transaction(db, user_id)
+    ref = _extract_transaction_ref_from_message(message)
+    if not ref and last_assistant_message:
+        ref = _extract_transaction_ref_from_message(last_assistant_message)
+    if ref:
+        transaction = await get_user_transaction_by_ref(db, user_id, ref)
+    else:
+        transaction = await get_user_latest_transaction(db, user_id)
     if not transaction or not (transaction.property_address and transaction.property_address.strip()):
         return None
     addr = transaction.property_address.strip()
@@ -897,17 +937,27 @@ def _extract_seller_buyer_names_list(message: str) -> Optional[tuple[str, List[t
     if not m:
         return None
     raw = m.group(1).strip()
+    # Transcription vocale : "est" pour "et" dans les listes de noms ("Christian est abatti" -> "Christian et abatti")
+    raw = re.sub(r"\s+est\s+", " et ", raw, flags=re.I)
     # Artefact vocal en fin de phrase : "vocal terminé", "local terminé", "elle terminé", "e" (coupure)
     raw = re.sub(r"\s+(?:vocal|vacal|cale|local|locales|elle)\s+terminé.*$", "", raw, flags=re.I).strip()
     raw = re.sub(r"\s+e\s*$", "", raw, flags=re.I).strip()
     if not raw:
         return None
-    # Séparateurs : " et ", virgule, ou " les " (vocal dit parfois "A les B" au lieu de "A et B")
+    # Séparateurs : " et ", virgule, " les " ou " à " (vocal "A à B" = deux noms ou prénom à nom)
     parts = re.split(r"\s+et\s+|\s*,\s*|\s+les\s+", raw)
     names: List[tuple[str, str]] = []
     for part in parts:
         part = part.strip()
         if not part or len(part) < 2:
+            continue
+        # "Abatti à Titi" (vocal) = prénom Abatti, nom Titi
+        if " à " in part:
+            sub = part.split(" à ", 1)
+            first_name = sub[0].strip()
+            last_name = sub[1].strip() if len(sub) > 1 else first_name
+            if first_name and last_name:
+                names.append((first_name, last_name))
             continue
         words = part.split()
         if len(words) >= 2:
@@ -1321,13 +1371,20 @@ async def run_lea_actions(
             f"Tu viens de créer une nouvelle transaction pour l'utilisateur : « {created.name} » (id {created.id}). "
             "Confirme-lui que c'est fait et qu'il peut la compléter dans la section Transactions."
         )
+    else:
+        ok_create, tx_type = _wants_to_create_transaction(message)
+        if ok_create and not tx_type:
+            lines.append(
+                "L'utilisateur souhaite créer une transaction mais n'a pas précisé si c'est une vente ou un achat. "
+                "Demande-lui : « Est-ce une vente ou un achat ? » Puis crée la transaction une fois qu'il a répondu (achat ou vente)."
+            )
     addr_result = await maybe_update_transaction_address_from_lea(db, user_id, message)
     if addr_result:
         addr, tx, validation = addr_result[0], addr_result[1], addr_result[2] if len(addr_result) >= 3 else None
         ref = tx.dossier_number or f"#{tx.id}"
         lines.append(
             f"L'adresse a été ajoutée à la transaction {ref} : « {addr} ». "
-            "Confirme à l'utilisateur que c'est fait et qu'il peut voir la transaction dans la section Transactions."
+            "Confirme à l'utilisateur que c'est fait. Ne redemande pas l'adresse dans ta réponse."
         )
         if validation:
             parts = []
@@ -1356,13 +1413,13 @@ async def run_lea_actions(
                     )
     # Géocodage de l'adresse déjà enregistrée sur la dernière transaction (sans nouvelle adresse dans le message)
     if not addr_result and _wants_to_geocode_existing_address(message):
-        geocode_result = await maybe_geocode_existing_transaction_address(db, user_id, message)
+        geocode_result = await maybe_geocode_existing_transaction_address(db, user_id, message, last_assistant_message)
         if geocode_result:
             _addr, _tx, validation = geocode_result
             ref = _tx.dossier_number or f"#{_tx.id}"
             lines.append(
-                f"Recherche en ligne (géocodage) effectuée pour l'adresse de la transaction {ref}. "
-                "Confirme à l'utilisateur les informations trouvées (ville, code postal, province)."
+                f"Tu viens d'effectuer la recherche en ligne (géocodage) pour la transaction {ref}. "
+                "Confirme à l'utilisateur les informations trouvées (ville, code postal, province). Ne dis pas que tu ne peux pas le faire."
             )
             if validation:
                 parts = []
