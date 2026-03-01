@@ -210,6 +210,7 @@ async def get_lea_user_context(db: AsyncSession, user_id: int) -> str:
                 detail_parts.append(f"prix: {p:,.0f} $")
             if detail_parts:
                 lines.append(f"  → Dernière transaction ({latest.dossier_number or f'#{latest.id}'}) : {'; '.join(detail_parts)}.")
+                lines.append(f"  → Ne pas redemander les informations déjà enregistrées pour cette transaction.")
             # Infos manquantes pour guider les questions
             missing = []
             if not (latest.property_address or latest.property_city):
@@ -572,8 +573,10 @@ def _extract_address_from_message(message: str) -> Optional[str]:
     t = message.strip()
 
     def normalize_address(raw: str) -> str:
-        """Normalise espaces dans les chiffres (6 8 4 0 -> 6840) et code postal (h2g2x7 -> H2G 2X7)."""
+        """Normalise espaces dans les chiffres (6 8 4 0 -> 6840) et code postal (h2g2x7 -> H2G 2X7). Supprime artefacts vocaux en fin."""
         s = raw.strip()
+        # Artefacts vocaux en fin : "local terminé", "locales terminé", "elle terminé", "vocal terminé"
+        s = re.sub(r"\s+(?:local|locales|elle|vocal|vacal)\s+terminé\s*$", "", s, flags=re.I).strip()
         # Collapse digits separated by spaces: "6 8 4 0" -> "6840"
         s = re.sub(r'\b(\d)\s+(\d)\s+(\d)\s+(\d)\b', r'\1\2\3\4', s)
         s = re.sub(r'\b(\d)\s+(\d)\s+(\d)\b', r'\1\2\3', s)
@@ -810,6 +813,50 @@ async def maybe_update_transaction_address_from_lea(db: AsyncSession, user_id: i
         return None
 
 
+def _wants_to_geocode_existing_address(message: str) -> bool:
+    """True si l'utilisateur demande de chercher l'adresse complète sur Internet (géocodage sur la transaction déjà enregistrée)."""
+    t = (message or "").strip().lower()
+    if not t:
+        return False
+    return (
+        ("chercher" in t or "cherche" in t or "trouve" in t or "trouver" in t)
+        and ("adresse" in t or "l'adresse" in t)
+        and ("internet" in t or "en ligne" in t or "ligne" in t or "complète" in t or "code postal" in t or "ville" in t)
+    )
+
+
+async def maybe_geocode_existing_transaction_address(db: AsyncSession, user_id: int, message: str) -> Optional[Tuple[str, RealEstateTransaction, dict]]:
+    """Si la dernière transaction a une adresse mais pas (ou à compléter) ville/code postal, lance le géocodage et met à jour."""
+    if not _wants_to_geocode_existing_address(message):
+        return None
+    transaction = await get_user_latest_transaction(db, user_id)
+    if not transaction or not (transaction.property_address and transaction.property_address.strip()):
+        return None
+    addr = transaction.property_address.strip()
+    validation = await _validate_address_via_geocode(addr)
+    if not validation:
+        return None
+    try:
+        if validation.get("state"):
+            state = validation["state"]
+            if "québec" in state.lower() or "quebec" in state.lower() or state.upper() == "QC":
+                transaction.property_province = "QC"
+            elif state.upper() in ("ON", "ONTARIO"):
+                transaction.property_province = "ON"
+        if validation.get("city"):
+            transaction.property_city = validation["city"]
+        if validation.get("postcode"):
+            transaction.property_postal_code = validation["postcode"]
+        await db.commit()
+        await db.refresh(transaction)
+        logger.info(f"Lea geocoded existing transaction id={transaction.id} address")
+        return (addr, transaction, validation)
+    except Exception as e:
+        logger.warning(f"Lea geocode existing address failed: {e}", exc_info=True)
+        await db.rollback()
+        return None
+
+
 async def maybe_set_promise_from_lea(db: AsyncSession, user_id: int, message: str):
     """Si le message demande de créer la promesse d'achat, enregistre la date sur la dernière transaction."""
     if not _wants_to_set_promise(message):
@@ -850,8 +897,9 @@ def _extract_seller_buyer_names_list(message: str) -> Optional[tuple[str, List[t
     if not m:
         return None
     raw = m.group(1).strip()
-    # Artifact vocal en fin de phrase : "vocal terminé", "local terminé" (faute de reconnaissance)
-    raw = re.sub(r"\s+(?:vocal|vacal|cale|local)\s+terminé.*$", "", raw, flags=re.I).strip()
+    # Artefact vocal en fin de phrase : "vocal terminé", "local terminé", "elle terminé", "e" (coupure)
+    raw = re.sub(r"\s+(?:vocal|vacal|cale|local|locales|elle)\s+terminé.*$", "", raw, flags=re.I).strip()
+    raw = re.sub(r"\s+e\s*$", "", raw, flags=re.I).strip()
     if not raw:
         return None
     # Séparateurs : " et ", virgule, ou " les " (vocal dit parfois "A les B" au lieu de "A et B")
@@ -1182,6 +1230,24 @@ def _get_lea_guidance_lines(message: str) -> list[str]:
         return []
     lines = []
 
+    # Pas d'acheteurs / mise en vente — ne pas redemander les acheteurs
+    if any(
+        phrase in t
+        for phrase in (
+            "pas d'acheteurs",
+            "pas encore d'acheteurs",
+            "aucun acheteur",
+            "mettons la maison en vente",
+            "on met en vente",
+            "mise en vente",
+            "pas d acheteurs",
+        )
+    ):
+        lines.append(
+            "L'utilisateur a indiqué qu'il n'y a pas encore d'acheteurs (mise en vente). "
+            "Ne pas redemander les acheteurs ; passer à la suite (ex. prix demandé, autres détails)."
+        )
+
     # Modifier une transaction (en cours) — demander quoi modifier
     if any(
         phrase in t
@@ -1288,6 +1354,36 @@ async def run_lea_actions(
                         f"Recherche web (géocodage) : « {geocode_str} ». "
                         "Confirme à l'utilisateur que l'adresse a été vérifiée (ville, code postal, province)."
                     )
+    # Géocodage de l'adresse déjà enregistrée sur la dernière transaction (sans nouvelle adresse dans le message)
+    if not addr_result and _wants_to_geocode_existing_address(message):
+        geocode_result = await maybe_geocode_existing_transaction_address(db, user_id, message)
+        if geocode_result:
+            _addr, _tx, validation = geocode_result
+            ref = _tx.dossier_number or f"#{_tx.id}"
+            lines.append(
+                f"Recherche en ligne (géocodage) effectuée pour l'adresse de la transaction {ref}. "
+                "Confirme à l'utilisateur les informations trouvées (ville, code postal, province)."
+            )
+            if validation:
+                parts = []
+                if validation.get("postcode"):
+                    parts.append(f"code postal {validation['postcode']}")
+                if validation.get("city"):
+                    parts.append(validation["city"])
+                if validation.get("state"):
+                    parts.append(validation["state"])
+                if validation.get("country_code"):
+                    parts.append(validation["country_code"])
+                if parts:
+                    geocode_str = " — ".join(parts)
+                    city = validation.get("city") or ""
+                    postcode = validation.get("postcode") or ""
+                    state = validation.get("state") or ""
+                    if city and postcode:
+                        lines.append(
+                            f"Résultat géocodage : « {geocode_str} ». "
+                            f"Dans ta réponse, indique explicitement : ville {city}, code postal {postcode}" + (f", {state}" if state else "") + "."
+                        )
     promise_tx = await maybe_set_promise_from_lea(db, user_id, message)
     if promise_tx:
         lines.append(
@@ -1297,6 +1393,22 @@ async def run_lea_actions(
     contact_line = await maybe_add_seller_buyer_contact_from_lea(db, user_id, message, last_assistant_message)
     if contact_line:
         lines.append(contact_line)
+    # Toujours rappeler à Léa de ne pas redemander les acheteurs si l'utilisateur a dit « pas d'acheteurs » / mise en vente
+    if any(
+        phrase in (message or "").strip().lower()
+        for phrase in (
+            "pas d'acheteurs",
+            "pas encore d'acheteurs",
+            "aucun acheteur",
+            "mettons la maison en vente",
+            "on met en vente",
+            "mise en vente",
+        )
+    ):
+        lines.append(
+            "L'utilisateur a indiqué qu'il n'y a pas encore d'acheteurs (mise en vente). "
+            "Ne pas redemander les acheteurs ; passer à la suite."
+        )
     price_result = await maybe_update_transaction_price_from_lea(db, user_id, message)
     if price_result:
         amount, tx, kind = price_result
