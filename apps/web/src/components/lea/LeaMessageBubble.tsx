@@ -11,6 +11,8 @@ interface LeaMessageBubbleProps {
   timestamp?: string;
   className?: string;
   isStreaming?: boolean;
+  /** If provided, show "Actions effectuées par Léa" (included in copy and visible in UI) */
+  actions?: string[];
   /** When true, use styles suited for dark background (e.g. Lea2 view) */
   variant?: 'default' | 'dark';
   /** When true, the message is currently being read aloud by TTS (visual highlight) */
@@ -68,6 +70,7 @@ export default function LeaMessageBubble({
   timestamp,
   className = '',
   isStreaming = false,
+  actions,
   variant = 'default',
   isBeingRead = false,
 }: LeaMessageBubbleProps) {
@@ -123,6 +126,16 @@ export default function LeaMessageBubble({
             <span className="inline-block w-2 h-4 ml-0.5 bg-primary-500 animate-pulse align-middle" aria-hidden />
           )}
         </p>
+        {!isUser && actions && actions.length > 0 && (
+          <div className="text-xs text-muted-foreground border-t border-border/50 pt-2 mt-2 space-y-1">
+            <p className="font-medium text-foreground/80">Actions effectuées par Léa:</p>
+            <ul className="list-disc list-inside space-y-0.5">
+              {actions.map((a, i) => (
+                <li key={i}>{a}</li>
+              ))}
+            </ul>
+          </div>
+        )}
         {timestamp && (
           <p
             className={clsx(

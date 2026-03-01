@@ -8,7 +8,7 @@ import LeaMessagesList from './LeaMessagesList';
 import LeaChatInput from './LeaChatInput';
 import type { LeaMessage } from '@/hooks/useLea';
 
-/** Formate la discussion + logs IA (actions backend, modèle, usage) pour copier-coller. */
+/** Formate la discussion + logs IA (raisonnement/actions backend, modèle, usage) pour copier-coller. */
 function formatConversationForCopy(messages: LeaMessage[], sessionId?: string | null): string {
   const lines: string[] = [
     '--- Conversation Léa ---',
@@ -22,32 +22,27 @@ function formatConversationForCopy(messages: LeaMessage[], sessionId?: string | 
       continue;
     }
     if (msg.role === 'assistant' || msg.role === 'system') {
-      const hasLogs =
-        (msg.actions?.length ?? 0) > 0 ||
-        msg.model != null ||
-        msg.provider != null ||
-        (msg.usage && (msg.usage.prompt_tokens != null || msg.usage.completion_tokens != null));
-      if (hasLogs) {
-        lines.push('--- Logs IA (interne) ---');
-        if (msg.timestamp) {
-          lines.push(`  Heure: ${new Date(msg.timestamp).toLocaleString('fr-CA', { dateStyle: 'short', timeStyle: 'medium' })}`);
-        }
-        if (msg.actions?.length) {
-          lines.push('  Actions backend:');
-          msg.actions.forEach((a) => lines.push(`    - ${a}`));
-        }
-        if (msg.model) lines.push(`  Modèle: ${msg.model}`);
-        if (msg.provider) lines.push(`  Fournisseur: ${msg.provider}`);
-        if (msg.usage) {
-          const u = msg.usage;
-          const parts = [];
-          if (u.prompt_tokens != null) parts.push(`prompt=${u.prompt_tokens}`);
-          if (u.completion_tokens != null) parts.push(`completion=${u.completion_tokens}`);
-          if (u.total_tokens != null) parts.push(`total=${u.total_tokens}`);
-          if (parts.length) lines.push(`  Usage: ${parts.join(', ')}`);
-        }
-        lines.push('');
+      lines.push('--- Logs IA (raisonnement / actions backend) ---');
+      if (msg.timestamp) {
+        lines.push(`  Heure: ${new Date(msg.timestamp).toLocaleString('fr-CA', { dateStyle: 'short', timeStyle: 'medium' })}`);
       }
+      if (msg.actions?.length) {
+        lines.push('  Actions effectuées par Léa:');
+        msg.actions.forEach((a) => lines.push(`    - ${a}`));
+      } else {
+        lines.push('  Actions effectuées par Léa: (aucune action enregistrée pour ce message)');
+      }
+      if (msg.model) lines.push(`  Modèle: ${msg.model}`);
+      if (msg.provider) lines.push(`  Fournisseur: ${msg.provider}`);
+      if (msg.usage) {
+        const u = msg.usage;
+        const parts = [];
+        if (u.prompt_tokens != null) parts.push(`prompt=${u.prompt_tokens}`);
+        if (u.completion_tokens != null) parts.push(`completion=${u.completion_tokens}`);
+        if (u.total_tokens != null) parts.push(`total=${u.total_tokens}`);
+        if (parts.length) lines.push(`  Usage: ${parts.join(', ')}`);
+      }
+      lines.push('');
       lines.push('Léa:', msg.content.trim(), '');
     }
   }

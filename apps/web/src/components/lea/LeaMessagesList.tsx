@@ -63,6 +63,7 @@ export default function LeaMessagesList({
                     timestamp={message.timestamp}
                     isStreaming={isStreaming}
                     isBeingRead={isBeingRead}
+                    actions={message.role === 'assistant' || message.role === 'system' ? message.actions : undefined}
                   />
                 );
               })}

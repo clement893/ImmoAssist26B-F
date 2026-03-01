@@ -363,6 +363,7 @@ export const leaAPI = {
     const decoder = new TextDecoder();
     let buffer = '';
     let sessionId = params.sessionId ?? '';
+    let receivedDone = false;
     try {
       while (true) {
         const { done, value } = await reader.read();
@@ -380,6 +381,7 @@ export const leaAPI = {
               }
               if (typeof data.delta === 'string') callbacks.onDelta(data.delta);
               if (data.done && data.session_id) {
+                receivedDone = true;
                 sessionId = data.session_id;
                 callbacks.onDone(data.session_id, data.actions);
               }
@@ -389,7 +391,7 @@ export const leaAPI = {
           }
         }
       }
-      if (sessionId) callbacks.onDone(sessionId);
+      if (sessionId && !receivedDone) callbacks.onDone(sessionId);
     } catch (e) {
       callbacks.onError(e instanceof Error ? e.message : 'Erreur de lecture du flux');
     }
