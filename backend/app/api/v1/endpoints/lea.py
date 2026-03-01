@@ -119,7 +119,7 @@ class LeaSynthesizeRequest(BaseModel):
     """Léa text-to-speech synthesis request (voix féminine, douce et naturelle)"""
     text: str = Field(..., min_length=1, description="Text to synthesize")
     voice: Optional[str] = Field("shimmer", description="Voix TTS: shimmer (chaleureuse) ou nova (neutre)")
-    speed: Optional[float] = Field(1.2, ge=0.25, le=2.0, description="Vitesse de parole (1.0 = normal, 1.2 = un peu plus rapide)")
+    speed: Optional[float] = Field(1.35, ge=0.25, le=2.0, description="Vitesse de parole (1.0 = normal, 1.35 = lecture accélérée)")
 
 
 class LeaSettingsResponse(BaseModel):
@@ -185,6 +185,10 @@ async def get_lea_user_context(db: AsyncSession, user_id: int) -> str:
         re_list = res_re.scalars().all()
         if re_list:
             lines.append("Transactions immobilières (dossiers) :")
+            # Indiquer explicitement la transaction la plus récente (priorité pour Léa)
+            latest = re_list[0]
+            ref_latest = latest.dossier_number or f"#{latest.id}"
+            lines.append(f"  → Transaction la plus récente (à utiliser par défaut) : {ref_latest}.")
             for t in re_list:
                 addr = t.property_address or t.property_city or "Sans adresse"
                 num = t.dossier_number or f"#{t.id}"
@@ -337,6 +341,13 @@ def _wants_to_create_transaction(message: str) -> tuple[bool, str]:
         return True, "achat"
     # "créer une transaction avec toi" / "créer une transaction avec Léa"
     if "créer une transaction" in t and ("avec toi" in t or "avec léa" in t or "avec lea" in t):
+        if "vente" in t or "de vente" in t:
+            return True, "vente"
+        return True, "achat"
+    # "dans ce site une nouvelle transaction avec une adresse différente" / "nouvelle transaction" + adresse
+    if "nouvelle transaction" in t and (
+        "adresse" in t or "avec" in t or "dans ce site" in t or "différente" in t or "different" in nt
+    ):
         if "vente" in t or "de vente" in t:
             return True, "vente"
         return True, "achat"
@@ -1259,7 +1270,7 @@ async def _synthesize_tts(text: str, voice: str | None = None, speed: float | No
     model = (settings.LEA_TTS_MODEL or "tts-1-hd").strip() or "tts-1-hd"
     raw = (voice or settings.LEA_TTS_VOICE or "shimmer").strip() or "shimmer"
     voice_name = raw if raw.lower() in LEA_TTS_FEMALE_VOICES else "shimmer"
-    speed_val = speed if speed is not None else getattr(settings, "LEA_TTS_SPEED", 1.2)
+    speed_val = speed if speed is not None else getattr(settings, "LEA_TTS_SPEED", 1.35)
     speed_val = max(0.25, min(2.0, float(speed_val)))
     client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     resp = await client.audio.speech.create(
@@ -1375,6 +1386,8 @@ async def _stream_lea_sse(
     except Exception as e:
         logger.error(f"Léa stream error: {e}", exc_info=True)
         yield f"data: {json.dumps({'error': str(e)})}\n\n"
+        payload = {"done": True, "session_id": sid}
+        yield f"data: {json.dumps(payload)}\n\n"
 
 
 @router.post("/chat/stream")

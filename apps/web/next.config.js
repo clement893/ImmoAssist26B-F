@@ -323,6 +323,20 @@ const nextConfig = {
           },
         ],
       },
+      {
+        // Ensure JS chunks are never served as other MIME types (avoids 503/CDN serving wrong body)
+        source: '/_next/static/chunks/:path*',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'application/javascript; charset=utf-8',
+          },
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
     ];
   },
 };

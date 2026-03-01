@@ -189,7 +189,7 @@ export function useVoiceSynthesis(): UseVoiceSynthesisReturn {
       }
 
       const utterance = new SpeechSynthesisUtterance(cleanedText);
-      utterance.rate = options.rate ?? 0.82;
+      utterance.rate = options.rate ?? 1.15;
       utterance.pitch = options.pitch ?? 1.06;
       utterance.volume = options.volume ?? 1.0;
       utterance.lang = options.lang ?? 'fr-FR';

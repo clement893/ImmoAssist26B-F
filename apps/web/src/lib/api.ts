@@ -397,7 +397,7 @@ export const leaAPI = {
           }
         }
       }
-      if (sessionId && !receivedDone) callbacks.onDone(sessionId);
+      if (!receivedDone) callbacks.onDone(sessionId || params.sessionId || '', {});
     } catch (e) {
       callbacks.onError(e instanceof Error ? e.message : 'Erreur de lecture du flux');
     }

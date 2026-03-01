@@ -127,6 +127,17 @@ export function useLea(initialSessionId?: string): UseLeaReturn {
               return next;
             });
           }
+          setMessages((prev) => {
+            const next = [...prev];
+            const last = next[next.length - 1];
+            if (last?.role === 'assistant' && !last.content.trim()) {
+              next[next.length - 1] = {
+                ...last,
+                content: "Je n'ai pas pu générer de réponse. Vous pouvez reformuler ou réessayer.",
+              };
+            }
+            return next;
+          });
           setIsLoading(false);
           abortControllerRef.current = null;
         },

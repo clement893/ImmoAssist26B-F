@@ -363,10 +363,10 @@ class Settings(BaseSettings):
         description="Voix OpenAI TTS pour Léa (féminine, douce): shimmer (chaleureuse), nova (neutre). Éviter alloy, echo, onyx = masculins)",
     )
     LEA_TTS_SPEED: float = Field(
-        default=1.2,
+        default=1.35,
         ge=0.25,
         le=2.0,
-        description="Vitesse de parole Léa (1.0 = normal, 1.2 = un peu plus rapide, plus naturel)",
+        description="Vitesse de parole Léa (1.0 = normal, 1.35 = lecture accélérée)",
     )
     LEA_MAX_TOKENS: int = Field(
         default=256,

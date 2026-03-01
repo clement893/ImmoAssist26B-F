@@ -16,6 +16,7 @@ import { WebVitalsReporter } from '@/components/performance/WebVitalsReporter';
 import { PerformanceScripts } from '@/components/performance/PerformanceScripts';
 import { ResourceHints } from '@/lib/performance/resourceHints';
 import { ErrorBoundary } from '@/components/errors/ErrorBoundary';
+import ChunkLoadErrorHandler from '@/components/errors/ChunkLoadErrorHandler';
 import { SchemaMarkup } from '@/components/seo';
 import { GoogleAnalytics } from '@/components/marketing/GoogleAnalytics';
 import RTLProvider from '@/components/i18n/RTLProvider';
@@ -266,6 +267,7 @@ export default async function LocaleLayout({
         )}
         <NextIntlClientProvider messages={messages}>
           <RTLProvider>
+            <ChunkLoadErrorHandler />
             <PerformanceScripts />
             <ResourceHints />
             <ErrorBoundary>
