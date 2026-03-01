@@ -413,6 +413,7 @@ async def maybe_create_transaction_from_lea(db: AsyncSession, user_id: int, mess
         return None
     try:
         name = f"Transaction {tx_type.capitalize()}"
+        # DB may still have NOT NULL on property_* from initial migration
         transaction = RealEstateTransaction(
             user_id=user_id,
             name=name,
@@ -421,6 +422,9 @@ async def maybe_create_transaction_from_lea(db: AsyncSession, user_id: int, mess
             sellers=[],
             buyers=[],
             property_province="QC",
+            property_address="À compléter",
+            property_city="À compléter",
+            property_postal_code="À compléter",
         )
         db.add(transaction)
         await db.commit()
@@ -682,6 +686,9 @@ async def maybe_update_transaction_address_from_lea(db: AsyncSession, user_id: i
                 sellers=[],
                 buyers=[],
                 property_province="QC",
+                property_address=addr,
+                property_city="À compléter",
+                property_postal_code="À compléter",
             )
             db.add(transaction)
             await db.flush()
@@ -1054,10 +1061,24 @@ async def _stream_lea_sse(
     session_id: str | None,
     user_context: str | None = None,
     action_lines: list | None = None,
+    confirmation_text: str | None = None,
 ):
-    """Génère les événements SSE pour le chat Léa intégré (streaming)."""
+    """
+    Génère les événements SSE pour le chat Léa intégré (streaming).
+    Si confirmation_text est fourni (ex: transaction créée), on envoie ce texte en stream
+    sans appeler l'IA, pour garantir que l'utilisateur voit la confirmation.
+    """
     sid = session_id or str(uuid.uuid4())
     try:
+        if confirmation_text:
+            # Réponse directe sans appeler l'IA (ex: transaction créée)
+            for i in range(0, len(confirmation_text), 1):
+                yield f"data: {json.dumps({'delta': confirmation_text[i]})}\n\n"
+            payload = {"done": True, "session_id": sid}
+            if action_lines:
+                payload["actions"] = action_lines
+            yield f"data: {json.dumps(payload)}\n\n"
+            return
         settings = get_settings()
         system = LEA_SYSTEM_PROMPT
         if user_context:
@@ -1105,12 +1126,22 @@ async def lea_chat_stream(
     user_context = await get_lea_user_context(db, current_user.id)
     if action_lines:
         user_context += "\n\n--- Action effectuée ---\n" + "\n".join(action_lines)
+    # Quand une transaction vient d'être créée, confirmation directe en stream (comme pour l'agent externe)
+    confirmation_text = None
+    if created_tx and action_lines:
+        ref = created_tx.dossier_number or f"#{created_tx.id}"
+        confirmation_text = (
+            f"C'est fait ! J'ai créé la transaction {ref} pour vous. "
+            "Vous pouvez la voir et la compléter dans la section Transactions. "
+            "Quelle est l'adresse du bien ?"
+        )
     return StreamingResponse(
         _stream_lea_sse(
             request.message,
             request.session_id,
             user_context=user_context,
             action_lines=action_lines if action_lines else None,
+            confirmation_text=confirmation_text,
         ),
         media_type="text/event-stream",
         headers={
@@ -1139,6 +1170,21 @@ async def lea_chat(
             user_context = await get_lea_user_context(db, current_user.id)
             if action_lines:
                 user_context += "\n\n--- Action effectuée ---\n" + "\n".join(action_lines)
+            # Quand une transaction vient d'être créée, renvoyer une confirmation directe (sans appeler l'IA)
+            if created_tx and action_lines:
+                ref = created_tx.dossier_number or f"#{created_tx.id}"
+                return LeaChatResponse(
+                    content=(
+                        f"C'est fait ! J'ai créé la transaction {ref} pour vous. "
+                        "Vous pouvez la voir et la compléter dans la section Transactions. "
+                        "Quelle est l'adresse du bien ?"
+                    ),
+                    session_id=request.session_id or "",
+                    model=None,
+                    provider=None,
+                    usage={},
+                    actions=action_lines,
+                )
             system_prompt = LEA_SYSTEM_PROMPT
             if user_context:
                 system_prompt += "\n\n--- Informations actuelles de l'utilisateur (plateforme) ---\n" + user_context
