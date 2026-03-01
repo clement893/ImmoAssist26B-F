@@ -165,7 +165,19 @@ function LoginContent() {
                 title="Erreur"
                 className="rounded-xl border-danger-200 dark:border-danger-800 bg-danger-50 dark:bg-danger-950/50"
               >
-                {error}
+                <div className="space-y-2">
+                  <span>{error}</span>
+                  {searchParams.get('error') === 'timeout' && searchParams.get('redirect') && (
+                    <div className="pt-2">
+                      <Link
+                        href={decodeURIComponent(searchParams.get('redirect') ?? '/dashboard')}
+                        className="text-sm font-medium text-primary-600 dark:text-primary-400 hover:underline"
+                      >
+                        Réessayer →
+                      </Link>
+                    </div>
+                  )}
+                </div>
               </Alert>
             )}
 
