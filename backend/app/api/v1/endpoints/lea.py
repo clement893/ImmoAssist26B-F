@@ -541,7 +541,7 @@ def _wants_to_set_promise(message: str) -> bool:
 
 
 async def maybe_update_transaction_address_from_lea(db: AsyncSession, user_id: int, message: str) -> Optional[tuple[str, RealEstateTransaction]]:
-    """Si le message demande d'ajouter/mettre à jour l'adresse, met à jour la transaction (par ref ou la plus récente). Retourne (adresse, transaction) si mise à jour."""
+    """Si le message demande d'ajouter/mettre à jour l'adresse, met à jour la transaction (par ref ou la plus récente). Si aucune transaction n'existe, en crée une puis y met l'adresse. Retourne (adresse, transaction) si mise à jour."""
     if not _wants_to_update_address(message):
         return None
     addr = _extract_address_from_message(message)
@@ -553,7 +553,24 @@ async def maybe_update_transaction_address_from_lea(db: AsyncSession, user_id: i
     else:
         transaction = await get_user_latest_transaction(db, user_id)
     if not transaction:
-        return None
+        try:
+            transaction = RealEstateTransaction(
+                user_id=user_id,
+                name="Transaction Vente",
+                dossier_number=None,
+                status="En cours",
+                sellers=[],
+                buyers=[],
+                property_province="QC",
+            )
+            db.add(transaction)
+            await db.flush()
+            await db.refresh(transaction)
+            logger.info(f"Lea created transaction id={transaction.id} (from address) for user_id={user_id}")
+        except Exception as e:
+            logger.warning(f"Lea create transaction from address failed: {e}", exc_info=True)
+            await db.rollback()
+            return None
     try:
         transaction.property_address = addr
         await db.commit()
@@ -617,8 +634,12 @@ def _extract_seller_buyer_contact_from_message(message: str) -> Optional[tuple[s
         first_name, last_name = parts[0], " ".join(parts[1:])
     else:
         first_name = last_name = parts[0]
-    # Téléphone : 514-266-5543, 514 266 5543, 5142665543
-    phone_match = re.search(r"(?:numéro|téléphone|phone)\s*(?:est\s*)?(?:le\s*)?[:\s]*(\d{3}[\s.\-]*\d{3}[\s.\-]*\d{4})", t, re.I)
+    # Téléphone : 514-266-5543, 514 266 5543, 5142665543, "son numéro de téléphone est le 514 266-5543"
+    phone_match = re.search(
+        r"(?:numéro|téléphone|phone)(?:\s+de\s+(?:téléphone|phone))?\s*(?:est\s*)?(?:le\s*)?[:\s]*(\d{3}[\s.\-]*\d{3}[\s.\-]*\d{4})",
+        t,
+        re.I,
+    )
     if not phone_match:
         phone_match = re.search(r"\b(\d{3}[\s.\-]\d{3}[\s.\-]\d{4})\b", t)
     phone = phone_match.group(1).replace(" ", "").replace(".", "").replace("-", "") if phone_match else None
