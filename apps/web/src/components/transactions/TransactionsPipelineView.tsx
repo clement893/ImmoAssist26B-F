@@ -342,12 +342,12 @@ export default function TransactionsPipelineView({
                         </div>
                       )}
 
-                      {/* Price */}
-                      {transaction.final_sale_price && (
+                      {/* Price: final_sale_price > offered_price > listing_price */}
+                      {(transaction.final_sale_price ?? transaction.offered_price ?? transaction.listing_price) != null && (
                         <div className="flex items-center gap-1 mb-3">
                           <DollarSign className="w-4 h-4 text-gray-400" />
                           <span className="text-sm font-semibold text-gray-900">
-                            {formatCurrency(transaction.final_sale_price)}
+                            {formatCurrency(transaction.final_sale_price ?? transaction.offered_price ?? transaction.listing_price)}
                           </span>
                         </div>
                       )}

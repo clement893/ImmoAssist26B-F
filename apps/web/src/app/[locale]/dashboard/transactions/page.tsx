@@ -184,6 +184,10 @@ function TransactionsContent() {
     }).format(amount);
   };
 
+  // Prix à afficher : final_sale_price > offered_price > listing_price
+  const getDisplayPrice = (t: Transaction) =>
+    t.final_sale_price ?? t.offered_price ?? t.listing_price;
+
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
@@ -449,10 +453,10 @@ function TransactionsContent() {
                   </div>
 
                   {/* Financial Info */}
-                  {transaction.final_sale_price && (
+                  {(transaction.final_sale_price ?? transaction.offered_price ?? transaction.listing_price) != null && (
                     <div className="flex items-center gap-2 text-lg font-semibold text-primary">
                       <DollarSign className="w-5 h-5" />
-                      {formatCurrency(transaction.final_sale_price)}
+                      {formatCurrency(getDisplayPrice(transaction))}
                     </div>
                   )}
 
@@ -565,10 +569,10 @@ function TransactionsContent() {
                 </p>
               </div>
 
-              {selectedTransaction.final_sale_price && (
+              {getDisplayPrice(selectedTransaction) != null && (
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Prix de vente final</label>
-                  <p className="text-lg font-semibold">{formatCurrency(selectedTransaction.final_sale_price)}</p>
+                  <label className="text-sm font-medium text-muted-foreground">Prix</label>
+                  <p className="text-lg font-semibold">{formatCurrency(getDisplayPrice(selectedTransaction)!)}</p>
                 </div>
               )}
 

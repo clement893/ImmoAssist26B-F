@@ -30,6 +30,7 @@ import {
   Users,
   Star,
   Bot,
+  DollarSign,
 } from 'lucide-react';
 
 interface Transaction {
@@ -250,6 +251,14 @@ export default function TransactionDetailPage() {
     buyers: transaction.buyers || [],
   });
 
+  // Prix affiché : priorité final_sale_price > offered_price > listing_price
+  const displayPrice =
+    transaction.final_sale_price ?? transaction.offered_price ?? transaction.listing_price;
+  const formatPrice = (amount?: number) =>
+    amount != null
+      ? new Intl.NumberFormat('fr-CA', { style: 'currency', currency: 'CAD' }).format(amount)
+      : null;
+
   // Format expected closing date
   const formatExpectedClosing = (dateString?: string): string => {
     if (!dateString) return '-';
@@ -321,6 +330,12 @@ export default function TransactionDetailPage() {
               <h1 className="text-2xl font-semibold text-gray-900">{transaction.name}</h1>
             </div>
             <p className="text-sm text-gray-500 ml-8">Transaction #{transaction.id}</p>
+            {formatPrice(displayPrice) && (
+              <p className="text-base font-semibold text-gray-900 ml-8 mt-1 flex items-center gap-1">
+                <DollarSign className="w-4 h-4 text-gray-500" />
+                {formatPrice(displayPrice)}
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-3">
             <button className="px-4 py-2 bg-white rounded-2xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
