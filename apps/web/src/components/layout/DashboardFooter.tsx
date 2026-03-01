@@ -36,7 +36,7 @@ export default function DashboardFooter() {
           </div>{' '}
           <div className="text-sm text-muted-foreground">
             {' '}
-            <p>© {currentYear} MODELEFULLSTACK. Tous droits réservés.</p>{' '}
+            <p>© {currentYear} ImmoAssist. Tous droits réservés.</p>
           </div>{' '}
         </div>{' '}
       </div>{' '}

@@ -1,7 +1,7 @@
 {
   "name": "@modele/types",
   "version": "1.0.0",
-  "description": "Shared TypeScript types for MODELE-NEXTJS-FULLSTACK",
+  "description": "Shared TypeScript types for ImmoAssist",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {

@@ -18,7 +18,7 @@ from app.core.logging import logger
 
 AGENT_ERR_MSG = (
     "AGENT_API_URL and AGENT_API_KEY must be set in the Backend service (Railway → Backend → Variables). "
-    "Example: AGENT_API_URL=https://immoassist-agent.railway.app"
+    "Example: AGENT_API_URL=https://agentia-immo-production.up.railway.app"
 )
 
 router = APIRouter(prefix="/lea", tags=["lea"])

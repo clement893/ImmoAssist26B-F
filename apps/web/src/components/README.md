@@ -325,7 +325,7 @@ When contributing components:
 
 ## 📄 License
 
-This component library is part of the MODELE-NEXTJS-FULLSTACK project.
+This component library is part of the ImmoAssist project.
 
 ---
 

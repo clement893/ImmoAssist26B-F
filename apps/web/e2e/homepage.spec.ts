@@ -5,7 +5,7 @@ test.describe('Homepage', () => {
     await page.goto('/');
 
     // Check if the main heading is visible
-    await expect(page.getByRole('heading', { name: /MODELE-NEXTJS/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /ImmoAssist/i })).toBeVisible();
   });
 
   test('should navigate to components page', async ({ page }) => {

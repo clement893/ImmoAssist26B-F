@@ -75,7 +75,7 @@ async function renameProject() {
   console.log("\n🔄 Project Renaming Tool\n");
 
   const oldName =
-    (await question("Current project name (default: MODELE): ")) || "MODELE";
+    (await question("Current project name (default: ImmoAssist): ")) || "ImmoAssist";
   const newName = await question("New project name: ");
 
   if (!newName) {
@@ -96,6 +96,7 @@ async function renameProject() {
     [oldNameLower]: newNameLower,
     [oldNameKebab]: newNameKebab,
     "modele-nextjs-fullstack": newNameKebab + "-nextjs-fullstack",
+    "immoassist": newNameKebab,
     "@modele/web": "@" + newNameKebab + "/web",
     "@modele/types": "@" + newNameKebab + "/types",
   };

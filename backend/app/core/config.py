@@ -16,7 +16,7 @@ class Settings(BaseSettings):
 
     # Project
     PROJECT_NAME: str = Field(
-        default=os.getenv("PROJECT_NAME", "API"),
+        default=os.getenv("PROJECT_NAME", "ImmoAssist"),
         description="Project name"
     )
     VERSION: str = "1.0.0"
@@ -186,7 +186,7 @@ class Settings(BaseSettings):
         description="Default sender email address",
     )
     SENDGRID_FROM_NAME: str = Field(
-        default=os.getenv("PROJECT_NAME", "App"),
+        default=os.getenv("PROJECT_NAME", "ImmoAssist"),
         description="Default sender name",
     )
 

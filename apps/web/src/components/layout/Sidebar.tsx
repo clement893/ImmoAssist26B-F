@@ -238,7 +238,7 @@ export default function Sidebar({ isOpen: controlledIsOpen, onClose }: SidebarPr
         {/* Header with Hamburger Menu - Dashboard V2 Style */}
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-100 flex-shrink-0">
           <Link href="/dashboard" className="flex items-center">
-            <span className="text-xl font-semibold text-gray-900">MODELE</span>
+            <span className="text-xl font-semibold text-gray-900">ImmoAssist</span>
           </Link>
 
           {/* Hamburger Menu Button (Mobile only) */}

@@ -38,7 +38,7 @@ export function generateOpenGraphMetadata(data: OpenGraphData): Metadata {
       title: data.title,
       description: data.description,
       url: data.url.startsWith('http') ? data.url : `${baseUrl}${data.url}`,
-      siteName: data.siteName || process.env.NEXT_PUBLIC_APP_NAME || 'App',
+      siteName: data.siteName || process.env.NEXT_PUBLIC_APP_NAME || 'ImmoAssist',
       images: data.images || [
         {
           url: `${baseUrl}/og-image.png`,
@@ -69,9 +69,9 @@ export function generateOpenGraphMetadata(data: OpenGraphData): Metadata {
  */
 export function getDefaultOpenGraphMetadata(): Metadata {
   return generateOpenGraphMetadata({
-    title: process.env.NEXT_PUBLIC_APP_NAME || 'MODELE-NEXTJS-FULLSTACK',
-    description: 'Full-stack template with Next.js 16 frontend and FastAPI backend',
+    title: process.env.NEXT_PUBLIC_APP_NAME || 'ImmoAssist',
+    description: 'Plateforme immobilière avec assistant IA Léa',
     url: '/',
-    siteName: process.env.NEXT_PUBLIC_APP_NAME || 'App',
+    siteName: process.env.NEXT_PUBLIC_APP_NAME || 'ImmoAssist',
   });
 }

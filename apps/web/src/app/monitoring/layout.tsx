@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Monitoring & Observability | MODELE',
+  title: 'Monitoring & Observability | ImmoAssist',
   description: 'Dashboard de monitoring, métriques de performance, logs et alertes',
 };
 

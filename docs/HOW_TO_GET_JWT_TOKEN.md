@@ -4,7 +4,7 @@
 
 ### Étape 1 : Se Connecter dans l'Application
 
-1. Allez sur votre application frontend : `https://modele-nextjs-fullstack-production-1e92.up.railway.app`
+1. Allez sur votre application frontend ImmoAssist (ex. votre URL Railway ou locale)
 2. Connectez-vous avec votre email : `clement@nukleo.com`
 3. Une fois connecté, ouvrez les **Outils de Développeur** (F12)
 

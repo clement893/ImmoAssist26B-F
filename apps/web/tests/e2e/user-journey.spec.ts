@@ -8,7 +8,7 @@ test.describe('User Registration and Onboarding Journey', () => {
   test('complete user registration and onboarding flow', async ({ page }) => {
     // 1. Visit homepage
     await page.goto('/');
-    await expect(page).toHaveTitle(/MODELE/);
+    await expect(page).toHaveTitle(/ImmoAssist/);
 
     // 2. Navigate to registration
     await page.click('text=Sign Up');

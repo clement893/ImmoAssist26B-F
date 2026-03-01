@@ -183,7 +183,7 @@ export function downloadContactTemplate(): void {
   const url = window.URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `modele-import-contacts-${new Date().toISOString().split('T')[0]}.xlsx`;
+  link.download = `immoassist-import-contacts-${new Date().toISOString().split('T')[0]}.xlsx`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -293,7 +293,7 @@ export async function downloadContactZipTemplate(): Promise<void> {
   const url = window.URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `modele-import-contacts-avec-photos-${new Date().toISOString().split('T')[0]}.zip`;
+  link.download = `immoassist-import-contacts-avec-photos-${new Date().toISOString().split('T')[0]}.zip`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);

@@ -1,7 +1,7 @@
 {
   "name": "@modele/web",
   "version": "1.0.0",
-  "description": "Next.js 16 frontend for MODELE-NEXTJS-FULLSTACK",
+  "description": "Next.js 16 frontend for ImmoAssist",
   "private": true,
   "scripts": {
     "dev": "next dev",

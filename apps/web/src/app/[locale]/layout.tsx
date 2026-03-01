@@ -35,8 +35,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'MODELE-NEXTJS-FULLSTACK',
-  description: 'Full-stack template with Next.js 16 frontend and FastAPI backend',
+  title: 'ImmoAssist',
+  description: 'Plateforme immobilière avec assistant IA Léa',
   icons: {
     icon: '/favicon.ico',
   },
@@ -80,10 +80,10 @@ export default async function LocaleLayout({
 
   // Generate default Open Graph metadata
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  const appName = process.env.NEXT_PUBLIC_APP_NAME || 'MODELE-NEXTJS-FULLSTACK';
+  const appName = process.env.NEXT_PUBLIC_APP_NAME || 'ImmoAssist';
   const appDescription =
     process.env.NEXT_PUBLIC_APP_DESCRIPTION ||
-    'Full-stack template with Next.js 16 frontend and FastAPI backend';
+    'Plateforme immobilière avec assistant IA Léa';
 
   return (
     <html lang={locale} className={inter.variable} data-api-url={apiUrl} suppressHydrationWarning>
