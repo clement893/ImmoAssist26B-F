@@ -74,7 +74,7 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
     prevListeningRef.current = isListening;
   }, [isListening, transcript, sendMessage]);
 
-  // Auto-speak assistant responses: priorité TTS backend (voix féminine OpenAI nova), sinon navigateur
+  // Auto-speak assistant responses: priorité TTS backend (voix shimmer, douce et plus rapide), sinon navigateur
   useEffect(() => {
     if (autoSpeak && ttsSupported && messages.length > 0) {
       const lastMessage = messages[messages.length - 1];
@@ -90,8 +90,8 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
         
         const textToSpeak = lastMessage.content;
         setTimeout(() => {
-          // 1) Essayer la TTS du backend (voix féminine OpenAI nova/shimmer)
-          leaAPI.synthesizeSpeech(textToSpeak, 'nova')
+          // 1) TTS backend : voix shimmer (douce, humaine), débit 1.2 (un peu plus rapide)
+          leaAPI.synthesizeSpeech(textToSpeak, 'shimmer', 1.2)
             .then((res) => {
               const data = res.data as { audio_base64?: string; content_type?: string } | undefined;
               const base64 = data?.audio_base64;
@@ -110,15 +110,14 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
                 audio.play().catch(() => {
                   backendAudioRef.current = null;
                   setIsPlayingBackendAudio(false);
-                  speak(textToSpeak, { lang: 'fr-FR', rate: 0.82, pitch: 1.06, volume: 1.0 });
+                  speak(textToSpeak, { lang: 'fr-FR', rate: 1.15, pitch: 1.02, volume: 1.0 });
                 });
               } else {
-                speak(textToSpeak, { lang: 'fr-FR', rate: 0.82, pitch: 1.06, volume: 1.0 });
+                speak(textToSpeak, { lang: 'fr-FR', rate: 1.15, pitch: 1.02, volume: 1.0 });
               }
             })
             .catch(() => {
-              // Backend TTS non dispo (501) ou erreur → voix navigateur (sélection féminine renforcée)
-              speak(textToSpeak, { lang: 'fr-FR', rate: 0.82, pitch: 1.06, volume: 1.0 });
+              speak(textToSpeak, { lang: 'fr-FR', rate: 1.15, pitch: 1.02, volume: 1.0 });
             });
         }, 300);
       }

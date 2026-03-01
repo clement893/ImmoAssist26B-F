@@ -411,11 +411,12 @@ export const leaAPI = {
       params: { session_id: sessionId },
     });
   },
-  /** Synthèse vocale (OpenAI TTS, voix féminine nova/shimmer). Retourne l'audio en base64. */
-  synthesizeSpeech: (text: string, voice?: 'nova' | 'shimmer') => {
+  /** Synthèse vocale (OpenAI TTS, voix féminine douce shimmer). Retourne l'audio en base64. */
+  synthesizeSpeech: (text: string, voice?: 'nova' | 'shimmer', speed?: number) => {
     return apiClient.post<{ audio_base64: string; content_type: string }>('/v1/lea/voice/synthesize', {
       text,
-      voice: voice ?? 'nova',
+      voice: voice ?? 'shimmer',
+      speed: speed ?? 1.2,
     });
   },
 };

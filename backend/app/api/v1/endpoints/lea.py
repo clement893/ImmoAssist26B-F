@@ -101,9 +101,10 @@ class LeaContextResponse(BaseModel):
 
 
 class LeaSynthesizeRequest(BaseModel):
-    """Léa text-to-speech synthesis request (voix féminine)"""
+    """Léa text-to-speech synthesis request (voix féminine, douce et naturelle)"""
     text: str = Field(..., min_length=1, description="Text to synthesize")
-    voice: Optional[str] = Field("nova", description="Voix TTS: nova ou shimmer (féminines)")
+    voice: Optional[str] = Field("shimmer", description="Voix TTS: shimmer (chaleureuse) ou nova (neutre)")
+    speed: Optional[float] = Field(1.2, ge=0.25, le=2.0, description="Vitesse de parole (1.0 = normal, 1.2 = un peu plus rapide)")
 
 
 class LeaSettingsResponse(BaseModel):
@@ -739,18 +740,25 @@ async def run_lea_actions(db: AsyncSession, user_id: int, message: str) -> tuple
     return (lines, created)
 
 
-# Voix OpenAI TTS considérées féminines pour Léa (alloy, echo, onyx = masculins)
+# Voix OpenAI TTS considérées féminines pour Léa (shimmer = chaleureuse/douce, nova = neutre)
 LEA_TTS_FEMALE_VOICES = ("nova", "shimmer")
 
 
-async def _synthesize_tts(text: str, voice: str | None = None) -> bytes:
-    """Synthèse vocale avec OpenAI TTS (qualité HD). Léa utilise une voix féminine (nova ou shimmer)."""
+async def _synthesize_tts(text: str, voice: str | None = None, speed: float | None = None) -> bytes:
+    """Synthèse vocale avec OpenAI TTS (qualité HD). Léa utilise une voix féminine (shimmer par défaut, plus douce et humaine) et un débit légèrement plus rapide."""
     settings = get_settings()
     model = (settings.LEA_TTS_MODEL or "tts-1-hd").strip() or "tts-1-hd"
-    raw = (voice or settings.LEA_TTS_VOICE or "nova").strip() or "nova"
-    voice_name = raw if raw.lower() in LEA_TTS_FEMALE_VOICES else "nova"
+    raw = (voice or settings.LEA_TTS_VOICE or "shimmer").strip() or "shimmer"
+    voice_name = raw if raw.lower() in LEA_TTS_FEMALE_VOICES else "shimmer"
+    speed_val = speed if speed is not None else getattr(settings, "LEA_TTS_SPEED", 1.2)
+    speed_val = max(0.25, min(2.0, float(speed_val)))
     client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    resp = await client.audio.speech.create(model=model, voice=voice_name, input=text)
+    resp = await client.audio.speech.create(
+        model=model,
+        voice=voice_name,
+        input=text,
+        speed=speed_val,
+    )
     return resp.content
 
 
@@ -1169,7 +1177,7 @@ async def get_lea_settings(
         system_prompt=LEA_SYSTEM_PROMPT,
         max_tokens=getattr(settings, "LEA_MAX_TOKENS", 256),
         tts_model=getattr(settings, "LEA_TTS_MODEL", "tts-1-hd"),
-        tts_voice=getattr(settings, "LEA_TTS_VOICE", "nova"),
+        tts_voice=getattr(settings, "LEA_TTS_VOICE", "shimmer"),
     )
 
 
@@ -1371,7 +1379,7 @@ async def synthesize_speech(
             detail="TTS nécessite OPENAI_API_KEY.",
         )
     try:
-        audio_bytes = await _synthesize_tts(request.text, voice=request.voice)
+        audio_bytes = await _synthesize_tts(request.text, voice=request.voice, speed=request.speed)
         return {"audio_base64": base64.b64encode(audio_bytes).decode(), "content_type": "audio/mpeg"}
     except HTTPException:
         raise

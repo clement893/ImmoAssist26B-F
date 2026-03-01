@@ -38,7 +38,7 @@ const DEFAULT_SETTINGS: LeaSettingsData = {
   system_prompt: DEFAULT_SYSTEM_PROMPT,
   max_tokens: 256,
   tts_model: 'tts-1-hd',
-  tts_voice: 'nova',
+  tts_voice: 'shimmer',
 };
 
 const TTS_VOICES = [
@@ -47,7 +47,7 @@ const TTS_VOICES = [
   { value: 'fable', label: 'Fable' },
   { value: 'onyx', label: 'Onyx' },
   { value: 'nova', label: 'Nova (féminine)' },
-  { value: 'shimmer', label: 'Shimmer' },
+  { value: 'shimmer', label: 'Shimmer (douce, chaleureuse – défaut)' },
 ];
 
 const TTS_MODELS = [
