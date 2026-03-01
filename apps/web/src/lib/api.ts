@@ -411,6 +411,13 @@ export const leaAPI = {
       params: { session_id: sessionId },
     });
   },
+  /** Synthèse vocale (OpenAI TTS, voix féminine nova/shimmer). Retourne l'audio en base64. */
+  synthesizeSpeech: (text: string, voice?: 'nova' | 'shimmer') => {
+    return apiClient.post<{ audio_base64: string; content_type: string }>('/v1/lea/voice/synthesize', {
+      text,
+      voice: voice ?? 'nova',
+    });
+  },
 };
 
 // transactionsAPI est maintenant exporté depuis les adaptateurs du module Transactions

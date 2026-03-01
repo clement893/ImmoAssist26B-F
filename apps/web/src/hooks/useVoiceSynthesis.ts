@@ -1,6 +1,6 @@
 /**
  * Hook for Voice Synthesis (Text-to-Speech)
- * Uses Web Speech Synthesis API
+ * Uses Web Speech Synthesis API — Léa uses a feminine voice (French preferred).
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
@@ -22,6 +22,53 @@ export interface SpeechOptions {
   pitch?: number; // 0 to 2, default 1
   volume?: number; // 0 to 1, default 1
   lang?: string; // Language code, default 'fr-FR'
+}
+
+const FEMALE_KEYWORDS = [
+  'female', 'woman', 'femme', 'zira', 'hazel', 'catherine', 'helen', 'denise',
+  'amelie', 'amélie', 'marie', 'sylvie', 'veronique', 'véronique', 'jolie', 'melanie', 'mélanie',
+  'hortense', 'alice', 'claire', 'elise', 'léa', 'lea', 'victoire', 'valerie', 'valérie',
+  'virginie', 'sabina', 'julie', 'anne', 'louise', 'charlotte', 'aria', 'eva', 'camille',
+  'samantha', 'karen', 'moira', 'tessa', 'veena', 'linda', 'susan', 'laura', 'emma',
+  'neural', 'premium', 'enhanced', 'microsoft hortense', 'microsoft virginie',
+];
+const MALE_KEYWORDS = [
+  'thomas', 'paul', 'antoine', 'pierre', 'michel', 'jean', 'male', 'homme', 'marc', 'nicolas',
+  'daniel', 'david', 'adam', 'alain', 'bertrand', 'guillaume', 'henri', 'hugo', 'fred', 'alex',
+  'bruce', 'ralph', 'frank', 'andre', 'bernard', 'eric', 'gerard', 'philippe', 'roger', 'simon',
+  'stephane', 'vincent', 'microsoft paul',
+];
+
+function isLikelyFemale(v: SpeechSynthesisVoice): boolean {
+  const n = v.name.toLowerCase();
+  return FEMALE_KEYWORDS.some((k) => n.includes(k)) && !MALE_KEYWORDS.some((k) => n.includes(k));
+}
+
+function isLikelyMale(v: SpeechSynthesisVoice): boolean {
+  return MALE_KEYWORDS.some((k) => v.name.toLowerCase().includes(k));
+}
+
+function pickFrenchFemaleVoice(availableVoices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
+  if (!availableVoices.length) return null;
+  const frenchVoices = availableVoices.filter((v) => v.lang.startsWith('fr') || v.lang.startsWith('FR'));
+  const frenchFemaleNeural = frenchVoices.find(
+    (v) => isLikelyFemale(v) && ['neural', 'premium', 'enhanced'].some((k) => v.name.toLowerCase().includes(k))
+  );
+  if (frenchFemaleNeural) return frenchFemaleNeural;
+  const hortenseOrVirginie = frenchVoices.find(
+    (v) => !isLikelyMale(v) && (v.name.toLowerCase().includes('hortense') || v.name.toLowerCase().includes('virginie'))
+  );
+  if (hortenseOrVirginie) return hortenseOrVirginie;
+  const frenchFemale = frenchVoices.find((v) => isLikelyFemale(v));
+  if (frenchFemale) return frenchFemale;
+  const frenchNotMale = frenchVoices.find((v) => !isLikelyMale(v));
+  if (frenchNotMale) return frenchNotMale;
+  // Ne pas prendre la première voix française si c'est un homme (ex. Paul)
+  const anyFemale = availableVoices.find((v) => isLikelyFemale(v));
+  if (anyFemale) return anyFemale;
+  const notMale = availableVoices.find((v) => !isLikelyMale(v));
+  if (notMale) return notMale;
+  return availableVoices[0] ?? null;
 }
 
 /**
@@ -106,86 +153,8 @@ export function useVoiceSynthesis(): UseVoiceSynthesisReturn {
     const loadVoices = () => {
       const availableVoices = window.speechSynthesis.getVoices();
       setVoices(availableVoices);
-      
-      // Prefer French female voice for Léa (assistante) — voix douce de femme
-      const frenchVoices = availableVoices.filter(
-        (v) => v.lang.startsWith('fr') || v.lang.startsWith('FR')
-      );
-
-      // Mots-clés voix féminines (noms courants Windows / macOS / Chrome)
-      const femaleKeywords = [
-        'female', 'woman', 'femme', 'zira', 'hazel', 'catherine', 'helen', 'denise', 'claude',
-        'amelie', 'amélie', 'marie', 'sylvie', 'veronique', 'véronique', 'jolie', 'melanie', 'mélanie',
-        'hortense', 'alice', 'claire', 'elise', 'léa', 'lea', 'victoire', 'valerie', 'valérie',
-        'virginie', 'sabina', 'julie', 'anne', 'louise', 'charlotte', 'aria', 'eva', 'camille',
-        'samantha', 'karen', 'moira', 'tessa', 'veena', 'linda', 'susan', 'laura', 'emma',
-        'neural', 'premium', 'enhanced', 'google français', 'microsoft hortense',
-      ];
-      const maleKeywords = [
-        'thomas', 'paul', 'antoine', 'pierre', 'michel', 'jean', 'male', 'homme', 'marc', 'nicolas',
-        'daniel', 'david', 'adam', 'alain', 'bertrand', 'guillaume', 'henri', 'hugo',
-      ];
-      const isLikelyFemale = (voice: SpeechSynthesisVoice) =>
-        femaleKeywords.some((k) => voice.name.toLowerCase().includes(k));
-      const isLikelyMale = (voice: SpeechSynthesisVoice) =>
-        maleKeywords.some((k) => voice.name.toLowerCase().includes(k));
-
-      // 1) Voix française féminine (neural / premium en priorité)
-      const frenchFemaleNeural = frenchVoices.find(
-        (v) => isLikelyFemale(v) && !isLikelyMale(v) &&
-          ['neural', 'premium', 'enhanced'].some((k) => v.name.toLowerCase().includes(k))
-      );
-      if (frenchFemaleNeural) {
-        setSelectedVoice(frenchFemaleNeural);
-        return;
-      }
-
-      // 2) Hortense / Virginie (Windows français femme, souvent douce)
-      const hortenseOrVirginie = frenchVoices.find(
-        (v) => !isLikelyMale(v) && (v.name.toLowerCase().includes('hortense') || v.name.toLowerCase().includes('virginie'))
-      );
-      if (hortenseOrVirginie) {
-        setSelectedVoice(hortenseOrVirginie);
-        return;
-      }
-
-      // 3) Toute voix française marquée féminine
-      const frenchFemale = frenchVoices.find((v) => isLikelyFemale(v) && !isLikelyMale(v));
-      if (frenchFemale) {
-        setSelectedVoice(frenchFemale);
-        return;
-      }
-
-      // 4) Première voix française qui n'est pas clairement homme
-      const frenchNotMale = frenchVoices.find((v) => !isLikelyMale(v));
-      if (frenchNotMale) {
-        setSelectedVoice(frenchNotMale);
-        return;
-      }
-
-      // 5) Première voix française (dernier recours)
-      if (frenchVoices.length > 0 && frenchVoices[0]) {
-        setSelectedVoice(frenchVoices[0]);
-        return;
-      }
-
-      // 6) Une voix féminine dans une autre langue (ex: en-GB female)
-      const anyFemale = availableVoices.find((v) => isLikelyFemale(v) && !isLikelyMale(v));
-      if (anyFemale) {
-        setSelectedVoice(anyFemale);
-        return;
-      }
-
-      // 7) Dernier recours : une voix qui n'est pas clairement homme (éviter Thomas, Paul, etc.)
-      const notMale = availableVoices.find((v) => !isLikelyMale(v));
-      if (notMale) {
-        setSelectedVoice(notMale);
-        return;
-      }
-
-      if (availableVoices.length > 0 && availableVoices[0]) {
-        setSelectedVoice(availableVoices[0]);
-      }
+      const preferred = pickFrenchFemaleVoice(availableVoices);
+      if (preferred) setSelectedVoice(preferred);
     };
 
     loadVoices();
@@ -209,36 +178,31 @@ export function useVoiceSynthesis(): UseVoiceSynthesisReturn {
       // Stop any ongoing speech
       window.speechSynthesis.cancel();
 
-      // Clean text for better speech synthesis
       const cleanedText = cleanTextForSpeech(text);
-      
       if (!cleanedText.trim()) return;
 
+      // Resolve voice: use selected (female) or resolve again at speak-time (voices may load late)
+      let voiceToUse = selectedVoice;
+      if (!voiceToUse && 'speechSynthesis' in window) {
+        const list = window.speechSynthesis.getVoices();
+        voiceToUse = pickFrenchFemaleVoice(list);
+      }
+
       const utterance = new SpeechSynthesisUtterance(cleanedText);
-      
-      // Options par défaut : voix douce (rate un peu lent, pitch légèrement aigu pour femme)
       utterance.rate = options.rate ?? 0.82;
       utterance.pitch = options.pitch ?? 1.06;
       utterance.volume = options.volume ?? 1.0;
       utterance.lang = options.lang ?? 'fr-FR';
-      
-      // Set voice if selected
-      if (selectedVoice) {
-        utterance.voice = selectedVoice;
+      if (voiceToUse) {
+        utterance.voice = voiceToUse;
       }
 
-      // Event handlers
-      utterance.onstart = () => {
-        setIsSpeaking(true);
-      };
-
+      utterance.onstart = () => setIsSpeaking(true);
       utterance.onend = () => {
         setIsSpeaking(false);
         utteranceRef.current = null;
       };
-
-      utterance.onerror = (event) => {
-        console.error('Speech synthesis error:', event);
+      utterance.onerror = () => {
         setIsSpeaking(false);
         utteranceRef.current = null;
       };

@@ -5,6 +5,7 @@ import { useLea } from '@/hooks/useLea';
 import { useVoiceRecognition } from '@/hooks/useVoiceRecognition';
 import { useVoiceSynthesis } from '@/hooks/useVoiceSynthesis';
 import { useVoiceRecording } from '@/hooks/useVoiceRecording';
+import { leaAPI } from '@/lib/api';
 import { clsx } from 'clsx';
 import LeaWelcomeScreen from './LeaWelcomeScreen';
 import LeaConversationView from './LeaConversationView';
@@ -70,16 +71,11 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
     prevListeningRef.current = isListening;
   }, [isListening, transcript, sendMessage]);
 
-  // Auto-speak assistant responses with natural, human-like voice
+  // Auto-speak assistant responses: priorité TTS backend (voix féminine OpenAI nova), sinon navigateur
   useEffect(() => {
     if (autoSpeak && ttsSupported && messages.length > 0) {
       const lastMessage = messages[messages.length - 1];
       
-      // Only speak if:
-      // 1. It's an assistant message
-      // 2. It has content
-      // 3. We're not currently speaking
-      // 4. This message hasn't been spoken yet (prevent repetition)
       if (
         lastMessage && 
         lastMessage.role === 'assistant' && 
@@ -87,23 +83,30 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
         !isSpeaking &&
         lastMessage.content !== lastSpokenMessageRef.current
       ) {
-        // Mark this message as spoken
         lastSpokenMessageRef.current = lastMessage.content;
         
-        // Small delay to ensure UI is updated
+        const textToSpeak = lastMessage.content;
         setTimeout(() => {
-          // Optimized voice settings for natural, human-like speech
-          speak(lastMessage.content, { 
-            lang: 'fr-FR', 
-            rate: 0.82,      // Voix douce
-            pitch: 1.06,     // Voix féminine (légerement plus aigu)
-            volume: 1.0
-          });
+          // 1) Essayer la TTS du backend (voix féminine OpenAI nova/shimmer)
+          leaAPI.synthesizeSpeech(textToSpeak, 'nova')
+            .then((res) => {
+              const data = res.data as { audio_base64?: string; content_type?: string } | undefined;
+              const base64 = data?.audio_base64;
+              if (base64) {
+                const audio = new Audio(`data:audio/mpeg;base64,${base64}`);
+                audio.play().catch(() => speak(textToSpeak, { lang: 'fr-FR', rate: 0.82, pitch: 1.06, volume: 1.0 }));
+              } else {
+                speak(textToSpeak, { lang: 'fr-FR', rate: 0.82, pitch: 1.06, volume: 1.0 });
+              }
+            })
+            .catch(() => {
+              // Backend TTS non dispo (501) ou erreur → voix navigateur (sélection féminine renforcée)
+              speak(textToSpeak, { lang: 'fr-FR', rate: 0.82, pitch: 1.06, volume: 1.0 });
+            });
         }, 300);
       }
     }
     
-    // Reset spoken message tracking when autoSpeak is disabled
     if (!autoSpeak) {
       lastSpokenMessageRef.current = null;
     }
