@@ -1,12 +1,13 @@
 'use client';
 
-import { Sparkles, Volume2, VolumeX, Trash2, X, Square } from 'lucide-react';
+import { Sparkles, Volume2, VolumeX, Trash2, X, Square, Copy } from 'lucide-react';
 import Button from '@/components/ui/Button';
 
 interface LeaConversationHeaderProps {
   onToggleSound: () => void;
   onClear: () => void;
   onClose?: () => void;
+  onCopyConversation?: () => void;
   soundEnabled: boolean;
   soundSupported: boolean;
   isSpeaking?: boolean;
@@ -17,6 +18,7 @@ export default function LeaConversationHeader({
   onToggleSound,
   onClear,
   onClose,
+  onCopyConversation,
   soundEnabled,
   soundSupported,
   isSpeaking = false,
@@ -79,6 +81,18 @@ export default function LeaConversationHeader({
               <Trash2 className="w-4 h-4 mr-2" />
               Effacer
             </Button>
+            {onCopyConversation && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onCopyConversation}
+                title="Copier la discussion (avec actions backend)"
+                className="text-muted-foreground"
+              >
+                <Copy className="w-4 h-4 mr-2" />
+                Copier
+              </Button>
+            )}
             {onClose && (
               <Button
                 variant="ghost"

@@ -177,7 +177,34 @@ Règles importantes:
         await self.db.commit()
         await self.db.refresh(conversation)
         return conversation
-    
+
+    async def list_conversations(self, limit: int = 50) -> List[Dict[str, Any]]:
+        """List user's Léa conversations, most recent first. Each item has session_id, title, updated_at."""
+        from sqlalchemy import desc
+
+        result = await self.db.execute(
+            select(LeaConversation)
+            .where(LeaConversation.user_id == self.user_id)
+            .order_by(desc(LeaConversation.updated_at))
+            .limit(limit)
+        )
+        rows = result.scalars().all()
+        out = []
+        for conv in rows:
+            title = "Nouvelle conversation"
+            if conv.messages:
+                for m in conv.messages:
+                    if isinstance(m, dict) and m.get("role") == "user":
+                        content = m.get("content") or ""
+                        title = (content[:50] + "…") if len(content) > 50 else content or title
+                        break
+            out.append({
+                "session_id": conv.session_id,
+                "title": title,
+                "updated_at": conv.updated_at.isoformat() if conv.updated_at else None,
+            })
+        return out
+
     async def chat(
         self,
         user_message: str,

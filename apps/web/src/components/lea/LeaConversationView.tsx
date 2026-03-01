@@ -8,6 +8,30 @@ import LeaMessagesList from './LeaMessagesList';
 import LeaChatInput from './LeaChatInput';
 import type { LeaMessage } from '@/hooks/useLea';
 
+/** Formate la discussion + actions backend pour copie (logs complets). */
+function formatConversationForCopy(messages: LeaMessage[]): string {
+  const lines: string[] = [
+    '--- Conversation Léa ---',
+    `Exporté le ${new Date().toLocaleString('fr-CA', { dateStyle: 'medium', timeStyle: 'short' })}`,
+    '',
+  ];
+  for (const msg of messages) {
+    if (msg.role === 'user') {
+      lines.push('Utilisateur:', msg.content.trim(), '');
+      continue;
+    }
+    if (msg.role === 'assistant' || msg.role === 'system') {
+      if (msg.actions?.length) {
+        lines.push('--- Actions effectuées (backend) ---');
+        msg.actions.forEach((a) => lines.push(a));
+        lines.push('');
+      }
+      lines.push('Léa:', msg.content.trim(), '');
+    }
+  }
+  return lines.join('\n');
+}
+
 interface LeaConversationViewProps {
   messages: LeaMessage[];
   isLoading: boolean;
@@ -60,6 +84,16 @@ export default function LeaConversationView({
 }: LeaConversationViewProps) {
   const [input, setInput] = useState('');
 
+  const handleCopyConversation = async () => {
+    if (messages.length === 0) return;
+    const text = formatConversationForCopy(messages);
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // ignore
+    }
+  };
+
   // Afficher le transcript en direct dans le champ pendant que l'utilisateur parle
   useEffect(() => {
     if (isListening && transcript !== null) {
@@ -74,6 +108,7 @@ export default function LeaConversationView({
         onToggleSound={onToggleSound}
         onClear={onClear}
         onClose={onClose}
+        onCopyConversation={messages.length > 0 ? handleCopyConversation : undefined}
         soundEnabled={soundEnabled}
         soundSupported={soundSupported}
         isSpeaking={isSpeaking}

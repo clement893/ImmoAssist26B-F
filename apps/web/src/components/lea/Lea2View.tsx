@@ -1,14 +1,58 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuthStore } from '@/lib/store';
 import { useLea } from '@/hooks/useLea';
 import { useVoiceRecognition } from '@/hooks/useVoiceRecognition';
 import { useVoiceSynthesis } from '@/hooks/useVoiceSynthesis';
 import { useVoiceRecording } from '@/hooks/useVoiceRecording';
-import { Mic, MicOff, X, Volume2, Square, ArrowUp, MessageSquare } from 'lucide-react';
+import { leaAPI } from '@/lib/api';
+import { Mic, MicOff, X, Volume2, Square, ArrowUp, MessageSquare, Plus, MessageCircle, Copy } from 'lucide-react';
 import { clsx } from 'clsx';
 import LeaMessageBubble from './LeaMessageBubble';
+import type { LeaMessage } from '@/hooks/useLea';
+
+type ConversationItem = { session_id: string; title: string; updated_at: string | null };
+
+function formatConversationDate(iso: string | null): string {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    const now = new Date();
+    const today = now.toDateString();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (d.toDateString() === today) return "Aujourd'hui";
+    if (d.toDateString() === yesterday.toDateString()) return 'Hier';
+    return d.toLocaleDateString('fr-CA', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch {
+    return iso;
+  }
+}
+
+/** Formate la discussion + actions backend pour copie (logs complets). */
+function formatConversationForCopy(messages: LeaMessage[]): string {
+  const lines: string[] = [
+    '--- Conversation Léa ---',
+    `Exporté le ${new Date().toLocaleString('fr-CA', { dateStyle: 'medium', timeStyle: 'short' })}`,
+    '',
+  ];
+  for (const msg of messages) {
+    if (msg.role === 'user') {
+      lines.push('Utilisateur:', msg.content.trim(), '');
+      continue;
+    }
+    if (msg.role === 'assistant' || msg.role === 'system') {
+      if (msg.actions?.length) {
+        lines.push('--- Actions effectuées (backend) ---');
+        msg.actions.forEach((a) => lines.push(a));
+        lines.push('');
+      }
+      lines.push('Léa:', msg.content.trim(), '');
+    }
+  }
+  return lines.join('\n');
+}
 
 /**
  * Léa2 - Agent AI vocal + texte avec volet vocal mis en avant.
@@ -17,7 +61,20 @@ import LeaMessageBubble from './LeaMessageBubble';
  */
 export default function Lea2View() {
   const { user } = useAuthStore();
-  const { messages, isLoading, error, sendMessage, sendVoiceMessage, clearChat } = useLea();
+  const {
+    messages,
+    isLoading,
+    error,
+    sendMessage,
+    sendVoiceMessage,
+    clearChat,
+    sessionId,
+    loadConversation,
+    startNewConversation,
+  } = useLea();
+  const [conversations, setConversations] = useState<ConversationItem[]>([]);
+  const [loadingConversations, setLoadingConversations] = useState(true);
+  const [copyFeedback, setCopyFeedback] = useState(false);
   const {
     isRecording,
     startRecording,
@@ -47,6 +104,62 @@ export default function Lea2View() {
 
   const hasMessages = messages.length > 0;
   const firstName = user?.name?.split(' ')[0] || 'Vous';
+
+  const fetchConversations = useCallback(async () => {
+    setLoadingConversations(true);
+    try {
+      const res = await leaAPI.listConversations();
+      const data = res.data as ConversationItem[] | { data?: ConversationItem[] };
+      const list = Array.isArray(data) ? data : (data as { data?: ConversationItem[] }).data ?? [];
+      setConversations(list);
+    } catch {
+      setConversations([]);
+    } finally {
+      setLoadingConversations(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchConversations();
+  }, [fetchConversations]);
+
+  useEffect(() => {
+    if (sessionId) fetchConversations();
+  }, [sessionId, fetchConversations]);
+
+  const handleNewConversation = () => {
+    startNewConversation();
+  };
+
+  const handleSelectConversation = (sid: string) => {
+    if (sid === sessionId) return;
+    loadConversation(sid);
+  };
+
+  const handleDeleteConversation = async (e: React.MouseEvent, sid: string) => {
+    e.stopPropagation();
+    if (!window.confirm('Supprimer cette conversation ?')) return;
+    try {
+      await leaAPI.resetContext(sid);
+      if (sessionId === sid) startNewConversation();
+      await fetchConversations();
+    } catch {
+      // error already in hook or show toast
+    }
+  };
+
+  const handleCopyConversation = async () => {
+    if (messages.length === 0) return;
+    const text = formatConversationForCopy(messages);
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopyFeedback(true);
+      setTimeout(() => setCopyFeedback(false), 2000);
+    } catch {
+      // fallback for older browsers
+      setCopyFeedback(false);
+    }
+  };
 
   // Sync transcript to input: en direct pendant l'écoute; à l'arrêt seulement si on n'a pas envoyé
   useEffect(() => {
@@ -211,6 +324,63 @@ export default function Lea2View() {
       </div>
 
       <div className="relative flex flex-col md:flex-row flex-1 min-h-0 z-10">
+        {/* ——— SIDEBAR: Historique des conversations ——— */}
+        <aside className="w-full md:w-64 shrink-0 border-b md:border-b-0 md:border-r border-white/10 flex flex-col bg-slate-900/50">
+          <div className="p-3 border-b border-white/10">
+            <button
+              type="button"
+              onClick={handleNewConversation}
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Nouvelle conversation
+            </button>
+          </div>
+          <div className="flex-1 min-h-0 overflow-y-auto py-2">
+            <p className="px-3 text-white/50 text-xs uppercase tracking-wider mb-2">Historique</p>
+            {loadingConversations ? (
+              <div className="px-3 text-white/40 text-sm">Chargement…</div>
+            ) : conversations.length === 0 ? (
+              <div className="px-3 text-white/40 text-sm">Aucune conversation</div>
+            ) : (
+              <ul className="space-y-0.5">
+                {conversations.map((c) => (
+                  <li key={c.session_id}>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectConversation(c.session_id)}
+                      className={clsx(
+                        'w-full text-left px-3 py-2.5 rounded-lg flex items-center gap-2 group',
+                        sessionId === c.session_id
+                          ? 'bg-violet-600/80 text-white'
+                          : 'text-white/80 hover:bg-white/10 hover:text-white'
+                      )}
+                    >
+                      <MessageCircle className="w-4 h-4 shrink-0 opacity-70" />
+                      <span className="flex-1 min-w-0 truncate text-sm" title={c.title}>
+                        {c.title}
+                      </span>
+                      <span className="text-[10px] text-white/50 shrink-0">
+                        {formatConversationDate(c.updated_at)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeleteConversation(e, c.session_id)}
+                        className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-white/20 text-white/70 hover:text-white"
+                        title="Supprimer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </aside>
+
+        {/* Main: header + conversation + voice */}
+        <div className="flex-1 min-w-0 flex flex-col min-h-0">
         {/* Header minimal */}
         <header className="flex items-center justify-between px-4 py-3 border-b border-white/10 shrink-0 md:col-span-2">
           <div className="flex items-center gap-2">
@@ -237,14 +407,27 @@ export default function Lea2View() {
               </button>
             )}
             {hasMessages && (
-              <button
-                type="button"
-                onClick={() => window.confirm('Effacer la conversation ?') && clearChat()}
-                className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-                title="Effacer"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={handleCopyConversation}
+                  className={clsx(
+                    'p-2 rounded-lg transition-colors',
+                    copyFeedback ? 'text-green-400' : 'text-white/60 hover:text-white hover:bg-white/10'
+                  )}
+                  title="Copier la discussion (avec actions backend)"
+                >
+                  <Copy className="w-5 h-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => window.confirm('Effacer la conversation ?') && clearChat()}
+                  className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                  title="Effacer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </>
             )}
           </div>
         </header>
@@ -437,6 +620,7 @@ export default function Lea2View() {
               </button>
             </div>
           </div>
+        </div>
         </div>
       </div>
     </div>

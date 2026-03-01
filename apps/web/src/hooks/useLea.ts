@@ -11,6 +11,8 @@ export interface LeaMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp?: string;
+  /** Actions effectuées par le backend pour ce tour (logs). */
+  actions?: string[];
 }
 
 export interface LeaChatResponse {
@@ -45,6 +47,10 @@ export interface UseLeaReturn {
   sendVoiceMessage: (audioBlob: Blob) => Promise<void>;
   clearChat: () => void;
   resetContext: () => Promise<void>;
+  /** Load a conversation by session_id (fetches messages from API). */
+  loadConversation: (sessionId: string) => Promise<void>;
+  /** Start a new conversation (clear state; next send will create new session). */
+  startNewConversation: () => void;
 }
 
 export function useLea(initialSessionId?: string): UseLeaReturn {
@@ -95,8 +101,16 @@ export function useLea(initialSessionId?: string): UseLeaReturn {
             return next;
           });
         },
-        onDone: (newSessionId) => {
+        onDone: (newSessionId, actions) => {
           if (newSessionId && !sessionId) setSessionId(newSessionId);
+          if (actions?.length) {
+            setMessages((prev) => {
+              const next = [...prev];
+              const last = next[next.length - 1];
+              if (last?.role === 'assistant') next[next.length - 1] = { ...last, actions };
+              return next;
+            });
+          }
           setIsLoading(false);
           abortControllerRef.current = null;
         },
@@ -138,6 +152,7 @@ export function useLea(initialSessionId?: string): UseLeaReturn {
           role: 'assistant',
           content: response.data.content,
           timestamp: new Date().toISOString(),
+          actions: (response.data as { actions?: string[] }).actions ?? undefined,
         };
         setMessages((prev) => [...prev, assistantMessage]);
       } catch (err) {
@@ -191,14 +206,16 @@ export function useLea(initialSessionId?: string): UseLeaReturn {
 
         setMessages((prev) => {
           const withoutPlaceholder = prev.filter((m) => m.content !== '[Message vocal...]');
+          const assistantMsg: LeaMessage = {
+            role: 'assistant',
+            content: data.response,
+            timestamp: new Date().toISOString(),
+            actions: (data as LeaVoiceResponse & { actions?: string[] }).actions,
+          };
           return [
             ...withoutPlaceholder,
             { role: 'user', content: data.transcription, timestamp: new Date().toISOString() },
-            {
-              role: 'assistant',
-              content: data.response,
-              timestamp: new Date().toISOString(),
-            },
+            assistantMsg,
           ];
         });
 
@@ -247,6 +264,33 @@ export function useLea(initialSessionId?: string): UseLeaReturn {
     // Keep session ID to maintain context
   }, []);
 
+  const loadConversation = useCallback(async (sid: string) => {
+    setError(null);
+    try {
+      const res = await leaAPI.getContext(sid);
+      const data = res.data as { session_id: string; messages?: Array<{ role?: string; content?: string; timestamp?: string }> };
+      const raw = data.messages ?? [];
+      const mapped: LeaMessage[] = raw
+        .filter((m) => m && typeof m.role === 'string' && typeof m.content === 'string')
+        .map((m) => ({
+          role: (m.role === 'user' || m.role === 'assistant' || m.role === 'system' ? m.role : 'assistant') as LeaMessage['role'],
+          content: m.content ?? '',
+          timestamp: m.timestamp,
+        }));
+      setMessages(mapped);
+      setSessionId(data.session_id ?? sid);
+    } catch (err) {
+      const axiosError = err as AxiosError<{ detail?: string }>;
+      setError(axiosError.response?.data?.detail ?? 'Impossible de charger la conversation');
+    }
+  }, []);
+
+  const startNewConversation = useCallback(() => {
+    setMessages([]);
+    setSessionId(null);
+    setError(null);
+  }, []);
+
   const resetContext = useCallback(async () => {
     if (!sessionId) return;
 
@@ -275,5 +319,7 @@ export function useLea(initialSessionId?: string): UseLeaReturn {
     sendVoiceMessage,
     clearChat,
     resetContext,
+    loadConversation,
+    startNewConversation,
   };
 }

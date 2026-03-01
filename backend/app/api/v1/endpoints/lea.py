@@ -7,9 +7,10 @@ import io
 import json
 import os
 import re
+import unicodedata
 import uuid
 from datetime import date
-from typing import Optional, Literal
+from typing import Optional, Literal, List
 
 import httpx
 from fastapi import APIRouter, Depends, File, Form, HTTPException, status, UploadFile
@@ -91,6 +92,7 @@ class LeaChatResponse(BaseModel):
     model: Optional[str] = None
     provider: Optional[str] = None
     usage: Optional[dict] = None
+    actions: Optional[List[str]] = None  # Actions effectuées côté backend (logs)
 
 
 class LeaContextResponse(BaseModel):
@@ -98,6 +100,13 @@ class LeaContextResponse(BaseModel):
     session_id: str
     message_count: int
     messages: list
+
+
+class LeaConversationItem(BaseModel):
+    """Single item in Léa conversations list"""
+    session_id: str
+    title: str
+    updated_at: Optional[str] = None
 
 
 class LeaSynthesizeRequest(BaseModel):
@@ -219,10 +228,41 @@ def _wants_to_create_transaction(message: str) -> tuple[bool, str]:
     """
     Détecte si l'utilisateur demande de créer une transaction (achat ou vente).
     Retourne (True, "achat"|"vente") ou (False, "").
+    Utilise une version normalisée (sans accents) pour tolérer les transcriptions vocales.
     """
     t = (message or "").strip().lower()
     if not t:
         return False, ""
+
+    def n(s: str) -> str:
+        """Normalise pour comparaison insensible aux accents (ex: transcription vocale)."""
+        return "".join(c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn")
+    nt = n(t)
+
+    # "je veux que tu crées/cree/crees une nouvelle transaction" (+ optionnel "tout de suite")
+    if "nouvelle transaction" in t or "nouvelle transaction" in nt:
+        if (
+            "que tu crées" in t or "que tu crée" in t or "que tu crees" in nt or "que tu cree " in nt or "que tu creer" in nt
+            or "que léa crée" in t or "que lea crée" in t or "que lea cree" in nt or "que lea crees" in nt
+        ):
+            if "vente" in t or "de vente" in t:
+                return True, "vente"
+            return True, "achat"
+        if "tout de suite" in t and ("crée" in t or "crées" in t or "creer" in nt or "cree " in nt or "crees" in nt):
+            if "vente" in t or "de vente" in t:
+                return True, "vente"
+            return True, "achat"
+        if "crée une nouvelle" in t or "crées une nouvelle" in t or "creer une nouvelle" in nt or "crees une nouvelle" in nt:
+            if "vente" in t or "de vente" in t:
+                return True, "vente"
+            return True, "achat"
+
+    # "crée-moi une (nouvelle) transaction" / "crée moi une transaction"
+    if ("crée-moi" in t or "cree-moi" in nt or "crée moi" in t or "cree moi" in nt) and ("transaction" in t or "dossier" in t):
+        if "vente" in t or "de vente" in t:
+            return True, "vente"
+        return True, "achat"
+
     # "créer une transaction de vente" / "créer une transaction d'achat" (explicite, avec ou sans "pour [adresse]")
     if "créer une transaction de vente" in t or "créer une transaction d'achat" in t:
         if "vente" in t or "de vente" in t:
@@ -815,7 +855,12 @@ async def _call_external_agent_chat(message: str, session_id: str | None, conver
             )
 
 
-async def _stream_lea_sse(message: str, session_id: str | None, user_context: str | None = None):
+async def _stream_lea_sse(
+    message: str,
+    session_id: str | None,
+    user_context: str | None = None,
+    action_lines: list | None = None,
+):
     """Génère les événements SSE pour le chat Léa intégré (streaming)."""
     sid = session_id or str(uuid.uuid4())
     try:
@@ -831,7 +876,10 @@ async def _stream_lea_sse(message: str, session_id: str | None, user_context: st
             max_tokens=getattr(settings, "LEA_MAX_TOKENS", 256),
         ):
             yield f"data: {json.dumps({'delta': delta})}\n\n"
-        yield f"data: {json.dumps({'done': True, 'session_id': sid})}\n\n"
+        payload = {"done": True, "session_id": sid}
+        if action_lines:
+            payload["actions"] = action_lines
+        yield f"data: {json.dumps(payload)}\n\n"
     except Exception as e:
         logger.error(f"Léa stream error: {e}", exc_info=True)
         yield f"data: {json.dumps({'error': str(e)})}\n\n"
@@ -858,7 +906,12 @@ async def lea_chat_stream(
     if action_lines:
         user_context += "\n\n--- Action effectuée ---\n" + "\n".join(action_lines)
     return StreamingResponse(
-        _stream_lea_sse(request.message, request.session_id, user_context=user_context),
+        _stream_lea_sse(
+            request.message,
+            request.session_id,
+            user_context=user_context,
+            action_lines=action_lines if action_lines else None,
+        ),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
@@ -901,6 +954,7 @@ async def lea_chat(
                 model=result.get("model"),
                 provider=result.get("provider"),
                 usage=result.get("usage", {}),
+                actions=action_lines if action_lines else None,
             )
         except Exception as e:
             logger.error(f"Léa chat integrated error: {e}", exc_info=True)
@@ -1032,6 +1086,7 @@ async def lea_chat_voice(
                 "conversation_id": conversation_id,
                 "assistant_audio_url": None,
                 "assistant_audio_base64": base64.b64encode(audio_bytes).decode() if audio_bytes else None,
+                "actions": action_lines if action_lines else None,
             }
         except HTTPException:
             raise
@@ -1095,6 +1150,25 @@ async def lea_chat_voice(
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=f"External agent unavailable: {str(e)}",
+        )
+
+
+@router.get("/conversations", response_model=List[LeaConversationItem])
+async def list_lea_conversations(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    limit: int = 50,
+):
+    """List current user's Léa conversations (most recent first)."""
+    try:
+        lea_service = LeaService(db=db, user_id=current_user.id)
+        items = await lea_service.list_conversations(limit=limit)
+        return [LeaConversationItem(**x) for x in items]
+    except Exception as e:
+        logger.error(f"Error listing Léa conversations: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
         )
 
 

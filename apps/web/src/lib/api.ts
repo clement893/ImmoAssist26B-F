@@ -319,13 +319,14 @@ export const leaAPI = {
   },
   /**
    * Chat with Léa in streaming mode (SSE). Calls onDelta for each chunk, onDone when finished.
+   * onDone receives optional actions (backend-performed actions for logs).
    * Returns true if streaming was used, false if backend does not support streaming (fallback to chat).
    */
   chatStream: async (
     params: { message: string; sessionId?: string },
     callbacks: {
       onDelta: (delta: string) => void;
-      onDone: (sessionId: string) => void;
+      onDone: (sessionId: string, actions?: string[]) => void;
       onError: (message: string) => void;
     }
   ): Promise<boolean> => {
@@ -380,7 +381,7 @@ export const leaAPI = {
               if (typeof data.delta === 'string') callbacks.onDelta(data.delta);
               if (data.done && data.session_id) {
                 sessionId = data.session_id;
-                callbacks.onDone(data.session_id);
+                callbacks.onDone(data.session_id, data.actions);
               }
             } catch {
               /* ignore parse errors */
@@ -405,6 +406,13 @@ export const leaAPI = {
     return apiClient.get('/v1/lea/context', {
       params: { session_id: sessionId },
     });
+  },
+  /** List user's Léa conversations (most recent first). */
+  listConversations: (limit = 50) => {
+    return apiClient.get<Array<{ session_id: string; title: string; updated_at: string | null }>>(
+      '/v1/lea/conversations',
+      { params: { limit } }
+    );
   },
   resetContext: (sessionId?: string) => {
     return apiClient.delete('/v1/lea/context', {
