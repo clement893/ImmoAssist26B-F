@@ -142,7 +142,7 @@ export function createRealEstateContactsAPI(config: TransactionsAPIConfig) {
       transactionId: number,
       data: TransactionContactCreate
     ): Promise<{ data: TransactionContact }> {
-      const response = await apiClient.post<TransactionContact>(`/transactions/${transactionId}/contacts`, data);
+      const response = await apiClient.post<TransactionContact>(`/v1/transactions/${transactionId}/contacts`, data);
       return { data: extractApiData<TransactionContact>(response.data || response) };
     },
 
@@ -153,7 +153,7 @@ export function createRealEstateContactsAPI(config: TransactionsAPIConfig) {
       transactionId: number,
       role?: string
     ): Promise<{ data: TransactionContactListResponse }> {
-      const response = await apiClient.get<TransactionContactListResponse>(`/transactions/${transactionId}/contacts`, {
+      const response = await apiClient.get<TransactionContactListResponse>(`/v1/transactions/${transactionId}/contacts`, {
         params: role ? { role } : undefined,
       });
       return { data: extractApiData<TransactionContactListResponse>(response.data || response) };
@@ -167,7 +167,7 @@ export function createRealEstateContactsAPI(config: TransactionsAPIConfig) {
       contactId: number,
       role: string
     ): Promise<void> {
-      await apiClient.delete(`/transactions/${transactionId}/contacts/${contactId}/${encodeURIComponent(role)}`);
+      await apiClient.delete(`/v1/transactions/${transactionId}/contacts/${contactId}/${encodeURIComponent(role)}`);
     },
   };
 }
