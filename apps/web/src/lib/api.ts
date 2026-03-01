@@ -420,9 +420,8 @@ export const leaAPI = {
   },
 };
 
-// transactionsAPI est maintenant exporté depuis les adaptateurs du module Transactions
-// Cette exportation est maintenue pour compatibilité mais devrait être importée depuis './api/transactions-adapters'
-export { transactionsAPI } from './api/transactions-adapters';
+// transactionsAPI et realEstateContactsAPI sont exportés depuis les adaptateurs du module Transactions
+export { transactionsAPI, realEstateContactsAPI } from './api/transactions-adapters';
 
 export const usersAPI = {
   getMe: () => {
