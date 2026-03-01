@@ -9,12 +9,15 @@ interface LeaMessagesListProps {
   messages: LeaMessage[];
   isLoading?: boolean;
   className?: string;
+  /** If false, list doesn't grow to fill space (e.g. for vertically centered layout) */
+  grow?: boolean;
 }
 
 export default function LeaMessagesList({
   messages,
   isLoading = false,
   className = '',
+  grow = true,
 }: LeaMessagesListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -23,9 +26,11 @@ export default function LeaMessagesList({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
 
+  const growClass = grow ? 'flex-1 min-h-0' : '';
+
   if (messages.length === 0 && !isLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center text-center px-4">
+      <div className={`flex items-center justify-center text-center px-4 py-6 ${growClass} ${className}`}>
         <div className="max-w-md">
           <p className="text-muted-foreground text-sm">
             Commencez une conversation avec Léa pour voir vos messages ici.
@@ -36,7 +41,7 @@ export default function LeaMessagesList({
   }
 
   return (
-    <div className={`flex-1 overflow-y-auto px-4 py-6 ${className}`}>
+    <div className={`overflow-y-auto px-4 py-6 ${growClass} ${className}`}>
       <div className="max-w-4xl mx-auto space-y-4">
         {(() => {
           const visible = messages.filter((m) => m.role === 'user' || m.role === 'assistant');

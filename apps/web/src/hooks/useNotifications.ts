@@ -48,8 +48,12 @@ interface UseNotificationsOptions {
   pollInterval?: number;
   /** Auto-fetch on mount */
   autoFetch?: boolean;
+  /** Delay before first fetch (ms) - use to avoid blocking first paint. Default 0 */
+  fetchDelayMs?: number;
   /** Enable WebSocket for real-time updates */
   enableWebSocket?: boolean;
+  /** Delay before connecting WebSocket (ms) - use to avoid competing with initial load. Default 5000 */
+  webSocketDelayMs?: number;
 }
 
 interface UseNotificationsReturn {
@@ -87,16 +91,19 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
     initialFilters = { skip: 0, limit: 100 },
     pollInterval,
     autoFetch = true,
+    fetchDelayMs = 0,
     enableWebSocket = true,
+    webSocketDelayMs = 5000,
   } = options;
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState<boolean>(autoFetch);
+  const [loading, setLoading] = useState<boolean>(autoFetch && fetchDelayMs === 0);
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState<number>(0);
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [filters, setFilters] = useState<NotificationFilters>(initialFilters);
   const wsConnectedRef = useRef<boolean>(false);
+  const initialFetchDoneRef = useRef(false);
 
   const fetchNotifications = useCallback(
     async (newFilters?: NotificationFilters) => {
@@ -201,29 +208,25 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
     setError(null);
   }, []);
 
-  // Handle WebSocket connection for real-time updates
+  // Handle WebSocket connection for real-time updates (delayed to avoid blocking initial load)
   useEffect(() => {
     if (!enableWebSocket || typeof window === 'undefined') {
       return;
     }
 
     const handleNotification = (notification: Notification) => {
-      // Add new notification to the list if it matches current filters
       setNotifications((prev) => {
-        // Check if notification matches current filters
         const matchesReadFilter = filters.read === undefined || filters.read === notification.read;
         const matchesTypeFilter =
           !filters.notification_type ||
           filters.notification_type === notification.notification_type;
 
         if (matchesReadFilter && matchesTypeFilter) {
-          // Add to beginning of list (most recent first)
           return [notification, ...prev];
         }
         return prev;
       });
 
-      // Update unread count if notification is unread
       if (!notification.read) {
         setUnreadCount((prev) => prev + 1);
         setTotal((prev) => prev + 1);
@@ -245,27 +248,38 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
       setError(error.message);
     };
 
-    // Connect to WebSocket
-    connectNotificationSocket({
-      onNotification: handleNotification,
-      onConnected: handleConnected,
-      onDisconnected: handleDisconnected,
-      onError: handleError,
-    });
+    const timeoutId = window.setTimeout(() => {
+      connectNotificationSocket({
+        onNotification: handleNotification,
+        onConnected: handleConnected,
+        onDisconnected: handleDisconnected,
+        onError: handleError,
+      });
+    }, webSocketDelayMs);
 
-    // Cleanup on unmount
     return () => {
+      window.clearTimeout(timeoutId);
       disconnectNotificationSocket();
       wsConnectedRef.current = false;
     };
-  }, [enableWebSocket, filters.read, filters.notification_type]);
+  }, [enableWebSocket, webSocketDelayMs, filters.read, filters.notification_type]);
 
-  // Auto-fetch on mount
+  // Auto-fetch on mount (optionally delayed to avoid blocking first paint)
   useEffect(() => {
-    if (autoFetch) {
+    if (!autoFetch || initialFetchDoneRef.current) return;
+    initialFetchDoneRef.current = true;
+
+    if (fetchDelayMs <= 0) {
       fetchNotifications();
+      return;
     }
-  }, [autoFetch]); // Only run on mount
+
+    setLoading(true);
+    const timeoutId = window.setTimeout(() => {
+      fetchNotifications();
+    }, fetchDelayMs);
+    return () => window.clearTimeout(timeoutId);
+  }, [autoFetch, fetchDelayMs, fetchNotifications]);
 
   // Polling
   useEffect(() => {

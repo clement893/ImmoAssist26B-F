@@ -4,12 +4,12 @@
 export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card, Button, LoadingSkeleton } from '@/components/ui';
 import { StatsCard } from '@/components/ui';
 import { Link } from '@/i18n/routing';
 import { ErrorBoundary } from '@/components/errors/ErrorBoundary';
-import { getBrokerDashboardStats, BrokerDashboardStats } from '@/lib/api/dashboard';
+import { getBrokerDashboardStats } from '@/lib/api/dashboard';
 import {
   Receipt,
   Users,
@@ -22,25 +22,20 @@ import {
   BarChart3,
 } from 'lucide-react';
 
-function DashboardContent() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [stats, setStats] = useState<BrokerDashboardStats | null>(null);
-  const [error, setError] = useState<string | null>(null);
+const DASHBOARD_STATS_STALE_MS = 2 * 60 * 1000; // 2 minutes
 
-  useEffect(() => {
-    const loadStats = async () => {
-      try {
-        const data = await getBrokerDashboardStats();
-        setStats(data);
-      } catch (err) {
-        console.error('Error loading dashboard stats:', err);
-        setError(err instanceof Error ? err.message : 'Erreur lors du chargement des statistiques');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadStats();
-  }, []);
+function DashboardContent() {
+  const {
+    data: stats,
+    isLoading,
+    error: queryError,
+  } = useQuery({
+    queryKey: ['dashboard', 'stats'],
+    queryFn: getBrokerDashboardStats,
+    staleTime: DASHBOARD_STATS_STALE_MS,
+    refetchOnWindowFocus: false,
+  });
+  const error = queryError ? (queryError instanceof Error ? queryError.message : 'Erreur lors du chargement des statistiques') : null;
 
   const formatCurrency = (value: string | number) => {
     const num = typeof value === 'string' ? parseFloat(value) : value;
@@ -54,7 +49,7 @@ function DashboardContent() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-100 p-8">
+      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-8">
         <div className="max-w-[1400px] mx-auto">
           <div className="space-y-8">
             <div>
@@ -78,7 +73,7 @@ function DashboardContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-8">
       <div className="max-w-[1400px] mx-auto space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">

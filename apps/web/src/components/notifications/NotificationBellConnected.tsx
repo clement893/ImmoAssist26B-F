@@ -15,6 +15,10 @@ export interface NotificationBellConnectedProps {
   enableWebSocket?: boolean;
   /** Polling interval for notification count (ms) */
   pollInterval?: number;
+  /** Delay before first fetch (ms) to avoid blocking first paint */
+  fetchDelayMs?: number;
+  /** Delay before connecting WebSocket (ms) */
+  webSocketDelayMs?: number;
 }
 
 /**
@@ -27,6 +31,8 @@ export default function NotificationBellConnected({
   className,
   enableWebSocket = true,
   pollInterval = 60000, // Poll every minute
+  fetchDelayMs = 150, // Delay first fetch to avoid blocking first paint
+  webSocketDelayMs = 5000, // Connect WebSocket after 5s to avoid competing with initial load
 }: NotificationBellConnectedProps) {
   const router = useRouter();
 
@@ -46,6 +52,8 @@ export default function NotificationBellConnected({
     enableWebSocket,
     pollInterval,
     autoFetch: true,
+    fetchDelayMs,
+    webSocketDelayMs,
   });
 
   // Convert notifications to NotificationUI format

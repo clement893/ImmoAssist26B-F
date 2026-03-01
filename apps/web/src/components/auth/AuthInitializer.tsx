@@ -185,11 +185,27 @@ export function AuthInitializer() {
 
         // If we have both token and user, verify token is still valid
         if (currentToken && currentUser) {
-          logger.debug('Token and user exist, verifying token validity');
-          try {
-            // Make a lightweight API call to verify token
-            await usersAPI.getMe();
-            logger.debug('Token verified successfully');
+          logger.debug('Token and user exist, verifying token in background');
+          // Deferred to avoid blocking first paint; errors handled in background
+          window.setTimeout(() => {
+              usersAPI.getMe().then(() => logger.debug('Token verified successfully')).catch((verifyErr) => {
+                const statusCode = getErrorStatus(verifyErr);
+                if (statusCode !== 401 && statusCode !== 403 && statusCode !== 422) return;
+                if (currentRefreshToken) {
+                  authAPI.refresh(currentRefreshToken).then((r) => {
+                    const { access_token, refresh_token: newRefreshToken, user: userData } = r.data;
+                    TokenStorage.setToken(access_token, newRefreshToken);
+                    setToken(access_token);
+                    if (newRefreshToken) setRefreshToken(newRefreshToken);
+                    if (userData) setUser(transformApiUserToStoreUser(userData));
+                    logger.info('Token refreshed after verification failure');
+                  }).catch(() => { TokenStorage.removeTokens(); logout(); });
+                } else {
+                  TokenStorage.removeTokens();
+                  logout();
+                }
+              });
+            }, 0);
           } catch (verifyErr) {
             const statusCode = getErrorStatus(verifyErr);
 

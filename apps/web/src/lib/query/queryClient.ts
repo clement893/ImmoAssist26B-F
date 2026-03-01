@@ -12,9 +12,8 @@ import { QueryClient } from '@tanstack/react-query';
  */
 const defaultQueryOptions = {
   queries: {
-    // Stale time: 30 seconds (data is considered fresh for 30 seconds)
-    // Reduced from 5 minutes to improve data freshness and allow immediate refetch after mutations
-    staleTime: 1000 * 30,
+    // Stale time: 2 minutes (data considered fresh, fewer refetches)
+    staleTime: 1000 * 60 * 2,
     // Cache persists for 10 minutes
     gcTime: 1000 * 60 * 10, // Previously cacheTime
     // Retry failed requests
