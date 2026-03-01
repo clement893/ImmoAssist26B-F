@@ -32,11 +32,11 @@ function useLeaContentWithLinks(content: string, role: 'user' | 'assistant') {
     let m;
     sectionRegex.lastIndex = 0;
     while ((m = sectionRegex.exec(content)) !== null) {
-      allMatches.push({ index: m.index, length: m[0].length, type: 'section', text: m[1] });
+      allMatches.push({ index: m.index, length: m[0].length, type: 'section', text: m[1] ?? '' });
     }
     txRegex.lastIndex = 0;
     while ((m = txRegex.exec(content)) !== null) {
-      allMatches.push({ index: m.index, length: m[0].length, type: 'tx', text: m[1], id: m[2] });
+      allMatches.push({ index: m.index, length: m[0].length, type: 'tx', text: m[1] ?? '', id: m[2] ?? '' });
     }
     allMatches.sort((a, b) => a.index - b.index);
 

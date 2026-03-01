@@ -94,6 +94,20 @@ export default function ParametresLeaPage() {
     }
   }, []);
 
+  const loadCapabilities = useCallback(async () => {
+    setCapabilitiesLoading(true);
+    try {
+      const res = await apiClient.get<{ capabilities: LeaCapability[] }>('/v1/lea/capabilities');
+      if (res.data?.capabilities) {
+        setCapabilities(res.data.capabilities);
+      }
+    } catch (e) {
+      setCapabilities([]);
+    } finally {
+      setCapabilitiesLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     loadSettings();
   }, [loadSettings]);
@@ -126,20 +140,6 @@ export default function ParametresLeaPage() {
     setSuccess(null);
     setError(null);
   };
-
-  const loadCapabilities = useCallback(async () => {
-    setCapabilitiesLoading(true);
-    try {
-      const res = await apiClient.get<{ capabilities: LeaCapability[] }>('/v1/lea/capabilities');
-      if (res.data?.capabilities) {
-        setCapabilities(res.data.capabilities);
-      }
-    } catch (e) {
-      setCapabilities([]);
-    } finally {
-      setCapabilitiesLoading(false);
-    }
-  }, []);
 
   const handleCheckAction = async (actionId: string) => {
     setCheckLoading((prev) => ({ ...prev, [actionId]: true }));
@@ -324,22 +324,25 @@ export default function ParametresLeaPage() {
                             Vérifier
                           </Button>
                         </div>
-                        {checkResults[cap.id] !== undefined && (
-                          <div
-                            className={
-                              checkResults[cap.id].ok
-                                ? 'flex items-center gap-2 text-sm text-green-700 dark:text-green-400'
-                                : 'flex items-center gap-2 text-sm text-red-700 dark:text-red-400'
-                            }
-                          >
-                            {checkResults[cap.id].ok ? (
-                              <CheckCircle2 className="w-4 h-4 shrink-0" />
-                            ) : (
-                              <XCircle className="w-4 h-4 shrink-0" />
-                            )}
-                            <span>{checkResults[cap.id].message ?? (checkResults[cap.id].ok ? 'OK' : 'Erreur')}</span>
-                          </div>
-                        )}
+                        {checkResults[cap.id] !== undefined && (() => {
+                          const result = checkResults[cap.id]!;
+                          return (
+                            <div
+                              className={
+                                result.ok
+                                  ? 'flex items-center gap-2 text-sm text-green-700 dark:text-green-400'
+                                  : 'flex items-center gap-2 text-sm text-red-700 dark:text-red-400'
+                              }
+                            >
+                              {result.ok ? (
+                                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                              ) : (
+                                <XCircle className="w-4 h-4 shrink-0" />
+                              )}
+                              <span>{result.message ?? (result.ok ? 'OK' : 'Erreur')}</span>
+                            </div>
+                          );
+                        })()}
                       </li>
                     ))}
                   </ul>
