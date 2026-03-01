@@ -70,6 +70,7 @@ LEA_SYSTEM_PROMPT = (
     "**Ne redemande jamais une information déjà fournie** (ex. le prix, l'adresse, les coordonnées d'un vendeur/acheteur déjà donnés). Utilise le bloc « Données plateforme » et l'historique pour proposer la prochaine étape (ex. coordonnées acheteur si le vendeur est fait, ou date de clôture). "
     "Si le bloc « Données plateforme » indique déjà des vendeurs ou acheteurs pour la dernière transaction, ne redemande pas « Qui sont les vendeurs ? » ou « Qui sont les acheteurs ? » — passe à l'étape suivante (ex. prix). "
     "Si dans l'échange précédent tu as toi-même répondu en listant les vendeurs (ex. « Les vendeurs sont X et Y »), ne redemande jamais « Qui sont les vendeurs ? » : considère que c'est enregistré et passe à la suite (acheteurs ou prix). "
+    "**Quand tu viens de demander « Quelle est la date de clôture prévue ? » ou « date d'écriture prévue »** et que l'utilisateur répond par une date (ex. « le 15 mars 2026 »), considère que c'est la date de clôture pour cette transaction — ne demande pas « à quoi elle se rapporte ».\n"
     "Si l'utilisateur dit qu'il n'y a pas encore d'acheteurs (ex. « en période de vente », « pas encore d'acheteurs », « aucun acheteur pour l'instant »), considère que c'est noté et propose la suite (ex. « Quel est le prix demandé ? »). Ne redemande pas les vendeurs ni les acheteurs dans ce cas.\n\n"
     "Reste concise : une question à la fois, ou deux maximum si le contexte s'y prête.\n\n"
     "Règles générales:\n"
@@ -1344,6 +1345,83 @@ async def maybe_update_transaction_price_from_lea(
         return None
 
 
+def _parse_french_date_from_message(message: str, last_assistant_message: Optional[str] = None) -> Optional[date]:
+    """
+    Parse une date en français dans le message (ex: "le 15 mars 2026", "15 mars 2026").
+    Si last_assistant_message demande la « date de clôture » ou « date d'écriture », accepte une réponse courte (ex: "le 15 mars 2026").
+    Retourne un date ou None.
+    """
+    if not message or len(message.strip()) < 5:
+        return None
+    t = message.strip()
+    # Nettoyer artefacts vocaux
+    t = re.sub(r"\s+(?:vocal|local|locales?)\s+terminé.*$", "", t, flags=re.I).strip()
+    if len(t) < 5:
+        return None
+    # Mois en français (avec et sans accents)
+    months = {
+        "janvier": 1, "février": 2, "fevrier": 2, "mars": 3, "avril": 4, "mai": 5,
+        "juin": 6, "juillet": 7, "août": 8, "aout": 8, "septembre": 9,
+        "octobre": 10, "novembre": 11, "décembre": 12, "decembre": 12,
+    }
+    # Pattern: (le)? 15 mars 2026 ou 15/03/2026
+    m = re.search(
+        r"(?:le\s+)?(\d{1,2})\s+(" + "|".join(months.keys()) + r")\s+(\d{4})",
+        t,
+        re.I,
+    )
+    if m:
+        day, month_name, year = int(m.group(1)), months.get(m.group(2).lower()), int(m.group(3))
+        if month_name and 1 <= day <= 31 and 2000 <= year <= 2100:
+            try:
+                return date(year, month_name, day)
+            except ValueError:
+                return None
+    # Format court 15/03/2026
+    m = re.search(r"(?:le\s+)?(\d{1,2})[/\-](\d{1,2})[/\-](\d{4})", t)
+    if m:
+        day, month, year = int(m.group(1)), int(m.group(2)), int(m.group(3))
+        if 1 <= day <= 31 and 1 <= month <= 12 and 2000 <= year <= 2100:
+            try:
+                return date(year, month, day)
+            except ValueError:
+                return None
+    # Réponse très courte après une question sur la date (ex: "le 15 mars 2026" seul)
+    last_lower = (last_assistant_message or "").strip().lower()
+    if last_assistant_message and (
+        "date de clôture" in last_lower or "date d'écriture" in last_lower
+        or "date d écriture" in last_lower or "clôture prévue" in last_lower
+    ):
+        if len(t) <= 50 and re.search(r"\d{1,2}\s*(?:/|\s)\s*(?:\d{1,2}|(?:janvier|février|fevrier|mars|avril|mai|juin|juillet|août|aout|septembre|octobre|novembre|décembre|decembre))\s*(?:/|\s)\s*\d{4}", t, re.I):
+            return _parse_french_date_from_message(t, None)
+    return None
+
+
+async def maybe_set_expected_closing_date_from_lea(
+    db: AsyncSession, user_id: int, message: str, last_assistant_message: Optional[str] = None
+) -> Optional[Tuple[date, RealEstateTransaction]]:
+    """
+    Si le message contient une date de clôture/écriture prévue, met à jour la dernière transaction.
+    Retourne (date, transaction) ou None.
+    """
+    parsed = _parse_french_date_from_message(message, last_assistant_message)
+    if not parsed:
+        return None
+    transaction = await get_user_latest_transaction(db, user_id)
+    if not transaction:
+        return None
+    try:
+        transaction.expected_closing_date = parsed
+        await db.commit()
+        await db.refresh(transaction)
+        logger.info(f"Lea set expected_closing_date on transaction id={transaction.id} to {parsed}")
+        return (parsed, transaction)
+    except Exception as e:
+        logger.warning(f"Lea set expected_closing_date failed: {e}", exc_info=True)
+        await db.rollback()
+        return None
+
+
 def _get_lea_guidance_lines(message: str) -> list[str]:
     """
     Pour les demandes reconnues mais sans action concrète (modifier transaction, ajouter contact,
@@ -1369,6 +1447,14 @@ def _get_lea_guidance_lines(message: str) -> list[str]:
     ) and any(word in t for word in ("vendeur", "acheteur", "prix", "adresse")):
         lines.append(
             "L'utilisateur indique avoir déjà fourni cette information. Confirme que c'est noté, présente tes excuses si besoin, et ne redemande pas cette information."
+        )
+
+    # "Je viens de parler de cette transaction" — rester sur la même transaction, ne pas redemander les vendeurs/acheteurs
+    if "je viens de parler" in t and "transaction" in t:
+        lines.append(
+            "L'utilisateur parle de la même transaction que dans l'échange précédent. "
+            "Ne redemande pas « Qui sont les vendeurs ? » ni les acheteurs si l'utilisateur vient de les donner. "
+            "Passe à la prochaine étape (ex. date de clôture, prix) ou confirme ce qui a été dit."
         )
 
     # Pas d'acheteurs / mise en vente — ne pas redemander les acheteurs
@@ -1570,6 +1656,18 @@ async def run_lea_actions(
         lines.append(
             f"Le {label} a été enregistré pour la transaction {ref} : {amount:,.0f} $. "
             "Confirme à l'utilisateur que c'est enregistré et qu'il peut voir la transaction dans la section Transactions."
+        )
+    closing_date_result = await maybe_set_expected_closing_date_from_lea(
+        db, user_id, message, last_assistant_message
+    )
+    if closing_date_result:
+        closing_date_val, tx = closing_date_result
+        ref = tx.dossier_number or f"#{tx.id}"
+        mois_fr = ("janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre")
+        date_str = f"{closing_date_val.day} {mois_fr[closing_date_val.month - 1]} {closing_date_val.year}"
+        lines.append(
+            f"La date de clôture prévue a été enregistrée pour la transaction {ref} : {date_str}. "
+            "Confirme à l'utilisateur que c'est enregistré."
         )
     if not lines:
         lines.extend(_get_lea_guidance_lines(message))
