@@ -221,8 +221,18 @@ def _wants_to_create_transaction(message: str) -> tuple[bool, str]:
     t = (message or "").strip().lower()
     if not t:
         return False, ""
+    # "créer une transaction de vente" / "créer une transaction d'achat" (explicite, avec ou sans "pour [adresse]")
+    if "créer une transaction de vente" in t or "créer une transaction d'achat" in t:
+        if "vente" in t or "de vente" in t:
+            return True, "vente"
+        return True, "achat"
     # "créer une nouvelle transaction" / "nouvelle transaction" (explicite en premier)
     if "créer une nouvelle transaction" in t or "créer un nouveau dossier" in t:
+        if "vente" in t or "de vente" in t:
+            return True, "vente"
+        return True, "achat"
+    # "créer une transaction avec toi" / "créer une transaction avec Léa"
+    if "créer une transaction" in t and ("avec toi" in t or "avec léa" in t or "avec lea" in t):
         if "vente" in t or "de vente" in t:
             return True, "vente"
         return True, "achat"
@@ -418,39 +428,76 @@ async def get_user_transaction_by_ref(
 
 
 def _extract_address_from_message(message: str) -> Optional[str]:
-    """Extrait une adresse du message (ex: 'l'adresse est le 6/840 avenue Papineau', 'qui est le 6/840 avenue Papineau')."""
+    """Extrait une adresse du message (ex: 'l'adresse est le 6/840 avenue Papineau', 'l'adresse est le 6 8 4 0 avenue Papineau à Montréal code postal h2g2x7')."""
     if not message or len(message.strip()) < 5:
         return None
     t = message.strip()
-    # "est le X" / "est X" / "c'est le X" / "l'adresse est X" / "qui est le X"
-    for prefix in (r"l'adresse est le\s+", r"l'adresse est\s+", r"qui est le\s+", r"est le\s+", r"c'est le\s+", r"adresse\s*:\s*"):
-        m = re.search(prefix + r"(.+?)(?:\.|$|\s+et\s+)", t, re.I | re.DOTALL)
+
+    def normalize_address(raw: str) -> str:
+        """Normalise espaces dans les chiffres (6 8 4 0 -> 6840) et code postal (h2g2x7 -> H2G 2X7)."""
+        s = raw.strip()
+        # Collapse digits separated by spaces: "6 8 4 0" -> "6840"
+        s = re.sub(r'\b(\d)\s+(\d)\s+(\d)\s+(\d)\b', r'\1\2\3\4', s)
+        s = re.sub(r'\b(\d)\s+(\d)\s+(\d)\b', r'\1\2\3', s)
+        s = re.sub(r'\b(\d)\s+(\d)\b', r'\1\2', s)
+        # Code postal québécois: h2g2x7 -> H2G 2X7 (A1A 1A1)
+        cp = re.search(r'(?:code\s+postal|cp)\s*[:\s]*([a-zA-Z]\d[A-Za-z]\d[A-Za-z]\d)', s, re.I)
+        if cp:
+            c = cp.group(1).upper()
+            if len(c) == 6:
+                s = re.sub(r'(?:code\s+postal|cp)\s*[:\s]*[a-zA-Z]\d[A-Za-z]\d[A-Za-z]\d', f'code postal {c[0:3]} {c[3:6]}', s, flags=re.I)
+        return s
+
+    # "l'adresse n'est pas la bonne (,) l'adresse est ..." / "non l'adresse est ..." (typo: "et" pour "est")
+    m = re.search(r"(?:l'adresse\s+n'est\s+pas\s+la\s+bonne|pas\s+la\s+bonne\s+adresse|non,?\s*l'adresse)\s*,?\s*(?:l'adresse\s+(?:est|et)\s+(?:le\s+)?|c'est\s+(?:le\s+)?|est\s+(?:le\s+)?)(.+?)(?:\s+(?:vocal|vacal)\s+terminé|\.|$)", t, re.I | re.DOTALL)
+    if m:
+        addr = normalize_address(m.group(1).strip())
+        if len(addr) >= 5 and any(c.isdigit() for c in addr):
+            return addr
+
+    # "est le X" / "est X" / "c'est le X" / "l'adresse est X" (typo: "et" pour "est")
+    for prefix in (r"l'adresse\s+(?:est|et)\s+le\s+", r"l'adresse\s+(?:est|et)\s+", r"qui est le\s+", r"est le\s+", r"c'est le\s+", r"adresse\s*:\s*"):
+        m = re.search(prefix + r"(.+?)(?:\s+(?:vocal|vacal)\s+terminé|\.|$|\s+et\s+)", t, re.I | re.DOTALL)
         if m:
-            addr = m.group(1).strip()
+            addr = normalize_address(m.group(1).strip())
             if len(addr) >= 5 and any(c.isdigit() for c in addr):
                 return addr
     # "ajoute(l')adresse 123 rue X" / "ajouter l'adresse 123 rue X"
     m = re.search(
-        r"ajout(?:er?|es?)\s+(?:l')?adresse\s+([^\n.]+?)(?:\.|$|\s+pour\s+)",
+        r"ajout(?:er?|es?)\s+(?:l')?adresse\s+([^\n.]+?)(?:\.|$|\s+pour\s+|\s+vocal)",
         t,
         re.I | re.DOTALL,
     )
     if m:
-        addr = m.group(1).strip()
+        addr = normalize_address(m.group(1).strip())
         if len(addr) >= 5 and any(c.isdigit() for c in addr):
             return addr
-    # "adresse 123 rue X" (sans préfixe verbe)
+    # "corriger l'adresse ... 6840 avenue..." / "changer l'adresse ..." (suit une adresse)
     m = re.search(
-        r"(?:l')?adresse\s+(?:est\s+)?(\d+(?:/\d+)?\s+(?:avenue|av\.?|rue|boulevard|blvd\.?|boul\.?)\s+[\w\s-]+)",
+        r"(?:corriger|changer|modifier)\s+(?:l')?adresse\s+(?:c'est\s+)?(?:le\s+)?(.+?)(?:\s+vocal\s+terminé|\.|$)",
+        t,
+        re.I | re.DOTALL,
+    )
+    if m:
+        addr = normalize_address(m.group(1).strip())
+        if len(addr) >= 5 and any(c.isdigit() for c in addr):
+            return addr
+    # "adresse 123 rue X" (sans préfixe verbe) — support chiffres espacés: "6 8 4 0 avenue"
+    m = re.search(
+        r"(?:l')?adresse\s+(?:est\s+)?(?:le\s+)?(\d(?:\s*\d)*\s+(?:avenue|av\.?|rue|boulevard|blvd\.?|boul\.?)\s+[\w\s-]+(?:\s+à\s+[\w\s-]+)?(?:\s+code\s+postal\s+[A-Za-z0-9\s]+)?)",
         t,
         re.I,
     )
     if m:
-        return m.group(1).strip()
-    # Fallback: cherche un motif type "123 rue X" ou "6/840 avenue X"
-    m = re.search(r"(\d+(?:/\d+)?\s+(?:avenue|av\.?|rue|boulevard|blvd\.?|boul\.?)\s+[\w\s-]+)", t, re.I)
+        addr = normalize_address(m.group(1).strip())
+        if len(addr) >= 5:
+            return addr
+    # Fallback: motif "123 rue X" ou "6 8 4 0 avenue X" (chiffres possibles avec espaces)
+    m = re.search(r"(\d(?:\s*\d)*\s+(?:avenue|av\.?|rue|boulevard|blvd\.?|boul\.?)\s+[\w\s-]+(?:\s+à\s+[\w\s-]+)?(?:\s+code\s+postal\s+[A-Za-z0-9\s]+)?)", t, re.I)
     if m:
-        return m.group(1).strip()
+        addr = normalize_address(m.group(1).strip())
+        if len(addr) >= 5:
+            return addr
     return None
 
 
@@ -458,21 +505,28 @@ def _wants_to_update_address(message: str) -> bool:
     t = (message or "").strip().lower()
     if not t:
         return False
-    return (
-        "adresse" in t
-        and (
-            "mettre" in t
-            or "rentrer" in t
-            or "rentre" in t
-            or "est le" in t
-            or "est " in t
-            or "c'est " in t
-            or "enregistrer" in t
-            or "ajouter" in t
-            or "ajoutes" in t
-            or "ajoute " in t
-        )
-    ) and _extract_address_from_message(message) is not None
+    if "adresse" not in t:
+        return False
+    # Correction / mise à jour explicite
+    if (
+        "n'est pas la bonne" in t
+        or "pas la bonne adresse" in t
+        or "corriger" in t
+        or "changer l'adresse" in t
+        or "modifier l'adresse" in t
+        or "mettre" in t
+        or "rentrer" in t
+        or "rentre" in t
+        or "est le" in t
+        or "est " in t
+        or "c'est " in t
+        or "enregistrer" in t
+        or "ajouter" in t
+        or "ajoutes" in t
+        or "ajoute " in t
+    ):
+        return _extract_address_from_message(message) is not None
+    return False
 
 
 def _wants_to_set_promise(message: str) -> bool:
@@ -530,12 +584,13 @@ async def maybe_set_promise_from_lea(db: AsyncSession, user_id: int, message: st
         return None
 
 
-async def run_lea_actions(db: AsyncSession, user_id: int, message: str) -> list:
+async def run_lea_actions(db: AsyncSession, user_id: int, message: str) -> tuple[list, Optional[RealEstateTransaction]]:
     """
     Exécute les actions Léa (création transaction, mise à jour adresse, promesse d'achat).
-    Retourne une liste de lignes à injecter dans « Action effectuée » (une par action réellement faite).
+    Retourne (liste de lignes pour « Action effectuée », transaction créée si création).
     """
     lines = []
+    created: Optional[RealEstateTransaction] = None
     created = await maybe_create_transaction_from_lea(db, user_id, message)
     if created:
         lines.append(
@@ -556,7 +611,7 @@ async def run_lea_actions(db: AsyncSession, user_id: int, message: str) -> list:
             "La date de promesse d'achat a été enregistrée sur la dernière transaction. "
             "Confirme à l'utilisateur que la promesse d'achat est enregistrée et qu'il peut compléter le formulaire dans la section Transactions."
         )
-    return lines
+    return (lines, created)
 
 
 # Voix OpenAI TTS considérées féminines pour Léa (alloy, echo, onyx = masculins)
@@ -665,7 +720,7 @@ async def lea_chat_stream(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
             detail="Streaming requires OPENAI_API_KEY or ANTHROPIC_API_KEY in the Backend.",
         )
-    action_lines = await run_lea_actions(db, current_user.id, request.message)
+    action_lines, created_tx = await run_lea_actions(db, current_user.id, request.message)
     user_context = await get_lea_user_context(db, current_user.id)
     if action_lines:
         user_context += "\n\n--- Action effectuée ---\n" + "\n".join(action_lines)
@@ -693,7 +748,7 @@ async def lea_chat(
     # 1) IA intégrée (avec contexte plateforme) si pas d'agent externe
     if not _use_external_agent() and _use_integrated_lea():
         try:
-            action_lines = await run_lea_actions(db, current_user.id, request.message)
+            action_lines, created_tx = await run_lea_actions(db, current_user.id, request.message)
             user_context = await get_lea_user_context(db, current_user.id)
             if action_lines:
                 user_context += "\n\n--- Action effectuée ---\n" + "\n".join(action_lines)
@@ -728,13 +783,20 @@ async def lea_chat(
             detail=AGENT_ERR_MSG,
         )
     try:
-        action_lines = await run_lea_actions(db, current_user.id, request.message)
+        action_lines, created_tx = await run_lea_actions(db, current_user.id, request.message)
         # Si on a créé/mis à jour quelque chose, on renvoie une confirmation directe (pas besoin de l'agent)
         if action_lines:
-            confirmation = (
-                "C'est fait ! J'ai créé une nouvelle transaction pour vous. "
-                "Vous pouvez la compléter dans la section Transactions."
-            )
+            if created_tx:
+                ref = created_tx.dossier_number or f"#{created_tx.id}"
+                confirmation = (
+                    f"C'est fait ! J'ai créé la transaction {ref} pour vous. "
+                    "Vous pouvez la voir et la compléter dans la section Transactions."
+                )
+            else:
+                confirmation = (
+                    "C'est fait ! J'ai créé une nouvelle transaction pour vous. "
+                    "Vous pouvez la compléter dans la section Transactions."
+                )
             return LeaChatResponse(
                 content=confirmation,
                 session_id=request.session_id or "",
@@ -804,7 +866,7 @@ async def lea_chat_voice(
                     detail="Impossible de transcrire l'audio. Parlez plus distinctement ou vérifiez le format.",
                 )
 
-            action_lines = await run_lea_actions(db, current_user.id, transcription)
+            action_lines, _ = await run_lea_actions(db, current_user.id, transcription)
             user_context = await get_lea_user_context(db, current_user.id)
             if action_lines:
                 user_context += "\n\n--- Action effectuée ---\n" + "\n".join(action_lines)

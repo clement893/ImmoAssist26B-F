@@ -35,6 +35,7 @@ from app.core.cors import setup_cors
 from app.core.api_versioning import setup_api_versioning
 from app.core.ip_whitelist import setup_ip_whitelist
 from app.core.request_signing import RequestSigningMiddleware
+from app.core.api_transactions_compat import ApiTransactionsCompatMiddleware
 from app.api.v1.router import api_router
 from app.api import email as email_router
 from app.api.webhooks import stripe as stripe_webhook_router
@@ -366,6 +367,9 @@ def create_app() -> FastAPI:
 
     # Include API router
     app.include_router(api_router, prefix=settings.API_V1_STR)
+
+    # Compatibility: rewrite /api/transactions/* -> /api/v1/transactions/* (avoids 404 for clients without v1 in path)
+    app.add_middleware(ApiTransactionsCompatMiddleware)
     
     # Include upload router (separate from v1)
     app.include_router(upload_router.router)
