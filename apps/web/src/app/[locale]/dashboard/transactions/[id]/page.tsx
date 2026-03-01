@@ -710,6 +710,7 @@ export default function TransactionDetailPage() {
                     );
                   }
                   const mapUrl = `https://www.google.com/maps?q=${encodeURIComponent(fullAddress)}&output=embed`;
+                  const mapSearchUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
                   return (
                     <div className="space-y-4">
                       <p className="text-sm text-gray-600">{fullAddress}</p>
@@ -725,6 +726,15 @@ export default function TransactionDetailPage() {
                           referrerPolicy="no-referrer-when-downgrade"
                         />
                       </div>
+                      <a
+                        href={mapSearchUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                      >
+                        <MapPin className="w-4 h-4" />
+                        Ouvrir dans Google Maps
+                      </a>
                     </div>
                   );
                 })()}

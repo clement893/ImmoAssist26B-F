@@ -241,15 +241,17 @@ const nextConfig = {
     // Remove trailing slash
     apiUrl = apiUrl.replace(/\/$/, '');
 
+    const apiUrlWss = apiUrl.replace(/^https?:\/\//, 'wss://');
+
     // Content Security Policy
     // ⚠️ SECURITY NOTE: CSP is relaxed in development (unsafe-inline/unsafe-eval)
     // This is acceptable for dev but should be tightened in production using nonces
     // See: https://nextjs.org/docs/advanced-features/security-headers
     // Include both localhost (for dev) and the configured API URL in connect-src
     // Also include WebSocket URLs (wss://) for WebSocket connections
-    const apiUrlWss = apiUrl.replace(/^https?:\/\//, 'wss://');
+    // Google Maps/Places API for address autocomplete
     const connectSrcUrls = isProduction
-      ? [`'self'`, apiUrl, apiUrlWss, 'https://*.sentry.io', 'wss://*.sentry.io']
+      ? [`'self'`, apiUrl, apiUrlWss, 'https://*.sentry.io', 'wss://*.sentry.io', 'https://maps.googleapis.com', 'https://*.googleapis.com']
       : [
           `'self'`,
           apiUrl,
@@ -258,17 +260,19 @@ const nextConfig = {
           'ws://localhost:8000',
           'https://*.sentry.io',
           'wss://*.sentry.io',
+          'https://maps.googleapis.com',
+          'https://*.googleapis.com',
         ];
 
     const cspDirectives = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.railway.app blob:", // Required for Next.js dev mode and Sentry workers
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.railway.app https://maps.googleapis.com https://*.googleapis.com blob:", // Google Maps/Places for address autocomplete
       "worker-src 'self' blob:", // Required for Sentry workers and web workers
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.railway.app", // Required for Tailwind CSS
       "font-src 'self' https://fonts.gstatic.com data:",
       "img-src 'self' data: https: blob:",
       'connect-src ' + connectSrcUrls.join(' '),
-      "frame-src 'self' blob:", // blob: required for PDF viewer iframe
+      "frame-src 'self' blob: https://www.google.com https://maps.google.com", // blob: PDF viewer; Google Maps embed (transaction map tab)
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
