@@ -21,6 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies import get_current_user, require_admin_or_superadmin
 from app.models import User, RealEstateTransaction, PortailTransaction, RealEstateContact, TransactionContact, ContactType
+from app.models.lea_conversation import LeaSessionTransactionLink
 from app.database import get_db
 from app.services.lea_service import LeaService
 from app.services.ai_service import AIService, AIProvider
@@ -66,6 +67,8 @@ LEA_SYSTEM_PROMPT = (
     "5. **Notaire, courtiers** : si pertinent, « As-tu les coordonnées du notaire ? du courtier vendeur/acheteur ? »\n"
     "Après avoir créé une transaction ou enregistré une info, propose **la prochaine question logique** (ex. après l'adresse : « Qui sont les vendeurs pour ce dossier ? »). "
     "**Ne redemande jamais une information déjà fournie** (ex. le prix, l'adresse, les coordonnées d'un vendeur/acheteur déjà donnés). Utilise le bloc « Données plateforme » et l'historique pour proposer la prochaine étape (ex. coordonnées acheteur si le vendeur est fait, ou date de clôture). "
+    "Si le bloc « Données plateforme » indique déjà des vendeurs ou acheteurs pour la dernière transaction, ne redemande pas « Qui sont les vendeurs ? » ou « Qui sont les acheteurs ? » — passe à l'étape suivante (ex. prix). "
+    "Si l'utilisateur dit qu'il n'y a pas encore d'acheteurs (ex. « en période de vente », « pas encore d'acheteurs »), considère que c'est noté et propose la suite (ex. « Quel est le prix demandé ? »). Ne redemande pas les vendeurs ni les acheteurs dans ce cas.\n\n"
     "Reste concise : une question à la fois, ou deux maximum si le contexte s'y prête.\n\n"
     "Règles générales:\n"
     "- Réponds en français, de façon courtoise et professionnelle.\n"
@@ -185,8 +188,23 @@ async def get_lea_user_context(db: AsyncSession, user_id: int) -> str:
                 addr = t.property_address or t.property_city or "Sans adresse"
                 num = t.dossier_number or f"#{t.id}"
                 lines.append(f"  - {num}: {t.name} — {addr} — statut: {t.status}")
-            # Pour la transaction la plus récente : indiquer les infos manquantes pour guider les questions
+            # Pour la transaction la plus récente : détail vendeurs/acheteurs/prix pour ne pas redemander
             latest = re_list[0]
+            detail_parts = []
+            if latest.sellers and isinstance(latest.sellers, list) and len(latest.sellers) > 0:
+                names_s = [e.get("name") for e in latest.sellers if isinstance(e, dict) and e.get("name")]
+                if names_s:
+                    detail_parts.append(f"vendeurs: {', '.join(names_s)}")
+            if latest.buyers and isinstance(latest.buyers, list) and len(latest.buyers) > 0:
+                names_b = [e.get("name") for e in latest.buyers if isinstance(e, dict) and e.get("name")]
+                if names_b:
+                    detail_parts.append(f"acheteurs: {', '.join(names_b)}")
+            if latest.listing_price is not None or latest.offered_price is not None:
+                p = latest.listing_price or latest.offered_price
+                detail_parts.append(f"prix: {p:,.0f} $")
+            if detail_parts:
+                lines.append(f"  → Dernière transaction ({latest.dossier_number or f'#{latest.id}'}) : {'; '.join(detail_parts)}.")
+            # Infos manquantes pour guider les questions
             missing = []
             if not (latest.property_address or latest.property_city):
                 missing.append("adresse du bien")
@@ -240,6 +258,17 @@ def _wants_to_create_transaction(message: str) -> tuple[bool, str]:
         """Normalise pour comparaison insensible aux accents (ex: transcription vocale)."""
         return "".join(c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn")
     nt = n(t)
+
+    # Phrase très courte : "et une transaction", "une transaction" (sous-entendu : créer)
+    if len(t) <= 35:
+        if "et une transaction" in t or "et un dossier" in t:
+            if "vente" in t or "de vente" in t:
+                return True, "vente"
+            return True, "achat"
+        if ("une transaction" in t or "un dossier" in t) and ("veux" in t or "donne" in t or "crée" in t or "cree" in nt or "ajoute" in t):
+            if "vente" in t or "de vente" in t:
+                return True, "vente"
+            return True, "achat"
 
     # Phrase courte explicite : "Créer une transaction" (bouton, saisie ou vocal)
     if len(t) <= 60 and ("créer une transaction" in t or "creer une transaction" in nt):
@@ -536,8 +565,17 @@ def _extract_address_from_message(message: str) -> Optional[str]:
         if len(addr) >= 5 and any(c.isdigit() for c in addr):
             return addr
 
-    # "est le X" / "est X" / "c'est le X" / "l'adresse est X" (typo: "et" pour "est")
-    for prefix in (r"l'adresse\s+(?:est|et)\s+le\s+", r"l'adresse\s+(?:est|et)\s+", r"qui est le\s+", r"est le\s+", r"c'est le\s+", r"adresse\s*:\s*"):
+    # "est le X" / "est X" / "c'est le X" / "l'adresse est X" / "l'adresse du bien et le X" (typo: "et" pour "est")
+    for prefix in (
+        r"l'adresse\s+du\s+bien\s+(?:est|et)\s+le\s+",
+        r"l'adresse\s+du\s+bien\s+(?:est|et)\s+",
+        r"l'adresse\s+(?:est|et)\s+le\s+",
+        r"l'adresse\s+(?:est|et)\s+",
+        r"qui est le\s+",
+        r"est le\s+",
+        r"c'est le\s+",
+        r"adresse\s*:\s*",
+    ):
         m = re.search(prefix + r"(.+?)(?:\s+(?:vocal|vacal)\s+terminé|\.|$|\s+et\s+)", t, re.I | re.DOTALL)
         if m:
             addr = normalize_address(m.group(1).strip())
@@ -588,7 +626,7 @@ def _wants_to_update_address(message: str) -> bool:
         return False
     if "adresse" not in t:
         return False
-    # Correction / mise à jour explicite
+    # Correction / mise à jour explicite (incl. "l'adresse du bien et le X" — typo "et" pour "est")
     if (
         "n'est pas la bonne" in t
         or "pas la bonne adresse" in t
@@ -599,6 +637,8 @@ def _wants_to_update_address(message: str) -> bool:
         or "rentrer" in t
         or "rentre" in t
         or "est le" in t
+        or "et le" in t
+        or "du bien" in t
         or "est " in t
         or "c'est " in t
         or "enregistrer" in t
@@ -736,6 +776,48 @@ async def maybe_set_promise_from_lea(db: AsyncSession, user_id: int, message: st
         return None
 
 
+def _extract_seller_buyer_names_list(message: str) -> Optional[tuple[str, List[tuple[str, str]]]]:
+    """
+    Extrait une liste de noms pour "les vendeurs sont A et B" / "les acheteurs sont A, B et C".
+    Retourne (role, [(first_name, last_name), ...]) ou None.
+    """
+    if not message or len(message.strip()) < 15:
+        return None
+    t = message.strip()
+    role: Optional[str] = None
+    if re.search(r"les\s+vendeurs\s+sont\s+", t, re.I):
+        role = "Vendeur"
+    elif re.search(r"les\s+acheteurs\s+sont\s+", t, re.I):
+        role = "Acheteur"
+    if not role:
+        return None
+    m = re.search(r"les\s+vendeurs\s+sont\s+(.+?)(?:\.|$|\s+pour\s+)", t, re.I | re.DOTALL)
+    if not m and role == "Acheteur":
+        m = re.search(r"les\s+acheteurs\s+sont\s+(.+?)(?:\.|$|\s+pour\s+)", t, re.I | re.DOTALL)
+    if not m:
+        return None
+    raw = m.group(1).strip()
+    parts = re.split(r"\s+et\s+|\s*,\s*", raw)
+    names: List[tuple[str, str]] = []
+    for part in parts:
+        part = part.strip()
+        if not part or len(part) < 2:
+            continue
+        part = re.sub(r"\s+(?:vocal|vacal|cale)\s+terminé.*$", "", part, flags=re.I).strip()
+        if not part:
+            continue
+        words = part.split()
+        if len(words) >= 2:
+            first_name, last_name = words[0], " ".join(words[1:])
+        else:
+            first_name = last_name = words[0]
+        if len(first_name) >= 1 and len(last_name) >= 1:
+            names.append((first_name.strip(), last_name.strip()))
+    if not names:
+        return None
+    return (role, names)
+
+
 def _extract_seller_buyer_contact_from_message(message: str) -> Optional[tuple[str, str, Optional[str], Optional[str], str]]:
     """
     Détecte si l'utilisateur donne les coordonnées d'un vendeur ou d'un acheteur.
@@ -752,6 +834,11 @@ def _extract_seller_buyer_contact_from_message(message: str) -> Optional[tuple[s
         role = "Acheteur"
     if not role:
         return None
+
+    # "les vendeurs sont A et B" / "les vendeurs sont A, B et C" → géré par _extract_seller_buyer_names_list
+    if re.search(r"les\s+vendeurs\s+sont\s+.+\s+et\s+", t, re.I) or re.search(r"les\s+acheteurs\s+sont\s+.+\s+et\s+", t, re.I):
+        return None
+
     # Nom : "il s'appelle X" / "s'appelle X" / "c'est X"
     name_match = re.search(
         r"(?:il\s+)?s['']appelle\s+([A-Za-zÀ-ÿ\s\-]+?)(?:\s+son\s+numéro|\s+numéro|\s+téléphone|\s+phone|\s+courriel|\s+email|$|,)",
@@ -789,9 +876,61 @@ async def maybe_add_seller_buyer_contact_from_lea(
     db: AsyncSession, user_id: int, message: str
 ) -> Optional[str]:
     """
-    Si le message contient les coordonnées d'un vendeur ou acheteur, crée le contact et l'ajoute à la transaction.
-    Retourne une ligne pour « Action effectuée » ou None.
+    Si le message contient les coordonnées d'un vendeur ou acheteur (ou une liste "les vendeurs sont A et B"),
+    crée le(s) contact(s) et l'ajoute à la transaction. Retourne une ligne pour « Action effectuée » ou None.
     """
+    # Cas "les vendeurs sont Joseph Perrault et Matthieu Dufour"
+    names_list = _extract_seller_buyer_names_list(message)
+    if names_list:
+        role, names = names_list
+        transaction = await get_user_latest_transaction(db, user_id)
+        if not transaction or not names:
+            return None
+        try:
+            added = []
+            sellers = list(transaction.sellers) if transaction.sellers else []
+            buyers = list(transaction.buyers) if transaction.buyers else []
+            for first_name, last_name in names:
+                contact = RealEstateContact(
+                    first_name=first_name,
+                    last_name=last_name,
+                    phone=None,
+                    email=None,
+                    type=ContactType.CLIENT,
+                    user_id=user_id,
+                )
+                db.add(contact)
+                await db.flush()
+                await db.refresh(contact)
+                tc = TransactionContact(
+                    transaction_id=transaction.id,
+                    contact_id=contact.id,
+                    role=role,
+                )
+                db.add(tc)
+                entry = {"name": f"{first_name} {last_name}".strip(), "phone": None, "email": None}
+                if role == "Vendeur":
+                    sellers.append(entry)
+                else:
+                    buyers.append(entry)
+                added.append(f"{first_name} {last_name}")
+            if role == "Vendeur":
+                transaction.sellers = sellers
+            else:
+                transaction.buyers = buyers
+            await db.commit()
+            await db.refresh(transaction)
+            ref = transaction.dossier_number or f"#{transaction.id}"
+            logger.info(f"Lea added {role}s {added} to transaction id={transaction.id}")
+            return (
+                f"Les {role.lower()}s ({', '.join(added)}) ont été enregistrés pour la transaction {ref}. "
+                "Confirme à l'utilisateur que c'est enregistré."
+            )
+        except Exception as e:
+            logger.warning(f"Lea add sellers/buyers list failed: {e}", exc_info=True)
+            await db.rollback()
+            return None
+
     extracted = _extract_seller_buyer_contact_from_message(message)
     if not extracted:
         return None
@@ -848,6 +987,8 @@ def _extract_price_from_message(message: str) -> Optional[Tuple[Decimal, str]]:
     if not message or len(message.strip()) < 3:
         return None
     t = (message or "").strip().lower()
+    # Typo vocal : "piles" pour "mille" (ex. "725 piles" = 725 000)
+    t = re.sub(r"\bpiles\b", "mille", t, flags=re.I)
     # Déterminer si c'est un prix offert ou demandé
     is_offered = bool(
         re.search(r"\bprix\s+offert\b", t)
@@ -884,11 +1025,11 @@ def _wants_to_update_price(message: str) -> bool:
     if not message or len(message.strip()) < 5:
         return False
     t = (message or "").strip().lower()
-    if "prix" not in t and "million" not in t and "mille" not in t:
+    if "prix" not in t and "million" not in t and "mille" not in t and "piles" not in t:
         # "650 000" ou "650000$" sans mot-clé
         if re.search(r"\d{2,}[\s]*\d{3}", t) or re.search(r"\d{1,3}\s*mille", t, re.I):
             return True
-    if "prix" in t or "mille" in t or "million" in t:
+    if "prix" in t or "mille" in t or "million" in t or "piles" in t:
         return _extract_price_from_message(message) is not None
     return False
 
@@ -981,7 +1122,34 @@ async def run_lea_actions(db: AsyncSession, user_id: int, message: str) -> tuple
     return (lines, created)
 
 
-# Voix OpenAI TTS considérées féminines pour Léa (shimmer = chaleureuse/douce, nova = neutre)
+async def link_lea_session_to_transaction(
+    db: AsyncSession, user_id: int, session_id: str, transaction_id: int
+) -> None:
+    """Enregistre un lien entre une session Léa et une transaction (pour l'historique sur la fiche transaction)."""
+    if not session_id or not transaction_id:
+        return
+    try:
+        r = await db.execute(
+            select(LeaSessionTransactionLink).where(
+                LeaSessionTransactionLink.session_id == session_id,
+                LeaSessionTransactionLink.transaction_id == transaction_id,
+                LeaSessionTransactionLink.user_id == user_id,
+            ).limit(1)
+        )
+        if r.scalar_one_or_none() is not None:
+            return  # déjà lié
+        link = LeaSessionTransactionLink(
+            session_id=session_id,
+            transaction_id=transaction_id,
+            user_id=user_id,
+        )
+        db.add(link)
+        await db.commit()
+        logger.info(f"Lea linked session {session_id[:8]}... to transaction id={transaction_id}")
+    except Exception as e:
+        logger.warning(f"Lea link session to transaction failed: {e}", exc_info=True)
+        await db.rollback()
+
 LEA_TTS_FEMALE_VOICES = ("nova", "shimmer")
 
 
@@ -1126,6 +1294,11 @@ async def lea_chat_stream(
     user_context = await get_lea_user_context(db, current_user.id)
     if action_lines:
         user_context += "\n\n--- Action effectuée ---\n" + "\n".join(action_lines)
+    # Lier la session à la transaction pour l'historique sur la fiche transaction
+    if request.session_id and action_lines:
+        tx_to_link = created_tx if created_tx else await get_user_latest_transaction(db, current_user.id)
+        if tx_to_link:
+            await link_lea_session_to_transaction(db, current_user.id, request.session_id, tx_to_link.id)
     # Quand une transaction vient d'être créée, confirmation directe en stream (comme pour l'agent externe)
     confirmation_text = None
     if created_tx and action_lines:
@@ -1167,6 +1340,10 @@ async def lea_chat(
     if _use_integrated_lea():
         try:
             action_lines, created_tx = await run_lea_actions(db, current_user.id, request.message)
+            if request.session_id and action_lines:
+                tx_to_link = created_tx if created_tx else await get_user_latest_transaction(db, current_user.id)
+                if tx_to_link:
+                    await link_lea_session_to_transaction(db, current_user.id, request.session_id, tx_to_link.id)
             user_context = await get_lea_user_context(db, current_user.id)
             if action_lines:
                 user_context += "\n\n--- Action effectuée ---\n" + "\n".join(action_lines)
@@ -1218,6 +1395,10 @@ async def lea_chat(
         )
     try:
         action_lines, created_tx = await run_lea_actions(db, current_user.id, request.message)
+        if request.session_id and action_lines:
+            tx_to_link = created_tx if created_tx else await get_user_latest_transaction(db, current_user.id)
+            if tx_to_link:
+                await link_lea_session_to_transaction(db, current_user.id, request.session_id, tx_to_link.id)
         # Si on a créé une transaction, renvoyer une confirmation directe (pas besoin d'appeler l'agent)
         if action_lines and created_tx:
             ref = created_tx.dossier_number or f"#{created_tx.id}"
@@ -1310,6 +1491,10 @@ async def lea_chat_voice(
                 )
 
             action_lines, _ = await run_lea_actions(db, current_user.id, transcription)
+            if sid and action_lines:
+                tx_to_link = await get_user_latest_transaction(db, current_user.id)
+                if tx_to_link:
+                    await link_lea_session_to_transaction(db, current_user.id, sid, tx_to_link.id)
             user_context = await get_lea_user_context(db, current_user.id)
             if action_lines:
                 user_context += "\n\n--- Action effectuée ---\n" + "\n".join(action_lines)
@@ -1428,7 +1613,43 @@ async def list_lea_conversations(
         )
 
 
-@router.get("/context", response_model=LeaContextResponse)
+@router.get("/conversations/by-transaction/{transaction_id}", response_model=List[LeaConversationItem])
+async def list_lea_conversations_by_transaction(
+    transaction_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List Léa conversations linked to the given transaction (for transaction detail page)."""
+    try:
+        from sqlalchemy import select
+        stmt = (
+            select(LeaSessionTransactionLink)
+            .where(
+                LeaSessionTransactionLink.transaction_id == transaction_id,
+                LeaSessionTransactionLink.user_id == current_user.id,
+            )
+            .order_by(LeaSessionTransactionLink.created_at.desc())
+        )
+        r = await db.execute(stmt)
+        links = r.scalars().all()
+        items = []
+        for link in links:
+            dt = link.created_at
+            date_str = dt.strftime("%d/%m/%Y %H:%M") if dt else None
+            items.append(
+                LeaConversationItem(
+                    session_id=link.session_id,
+                    title=f"Conversation du {date_str}" if date_str else "Conversation Léa",
+                    updated_at=date_str,
+                )
+            )
+        return items
+    except Exception as e:
+        logger.error(f"Error listing Léa conversations by transaction: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        )
 async def get_lea_context(
     session_id: Optional[str] = None,
     current_user: User = Depends(get_current_user),

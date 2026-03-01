@@ -5,7 +5,7 @@ import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigat
 import Container from '@/components/ui/Container';
 import Loading from '@/components/ui/Loading';
 import Alert from '@/components/ui/Alert';
-import { transactionsAPI, realEstateContactsAPI } from '@/lib/api';
+import { transactionsAPI, realEstateContactsAPI, leaAPI } from '@/lib/api';
 import TransactionTimeline from '@/components/transactions/TransactionTimeline';
 import StatusStepper from '@/components/transactions/StatusStepper';
 import TransactionStepsV2 from '@/components/transactions/TransactionStepsV2';
@@ -29,6 +29,7 @@ import {
   FileCheck,
   Users,
   Star,
+  Bot,
 } from 'lucide-react';
 
 interface Transaction {
@@ -118,7 +119,7 @@ interface Transaction {
 }
 
 
-const TAB_IDS = ['steps', 'documents', 'activity', 'photos', 'forms', 'contacts'] as const;
+const TAB_IDS = ['steps', 'documents', 'activity', 'photos', 'forms', 'contacts', 'lea'] as const;
 
 export default function TransactionDetailPage() {
   const params = useParams();
@@ -137,6 +138,8 @@ export default function TransactionDetailPage() {
   const [transactionContacts, setTransactionContacts] = useState<Array<{ transaction_id: number; contact_id: number; role: string; created_at: string; contact: { id: number; first_name: string; last_name: string; email?: string; phone?: string; company?: string } }>>([]);
   const [contactsLoading, setContactsLoading] = useState(false);
   const [showAddContactModal, setShowAddContactModal] = useState(false);
+  const [leaConversations, setLeaConversations] = useState<Array<{ session_id: string; title: string; updated_at: string | null }>>([]);
+  const [leaConversationsLoading, setLeaConversationsLoading] = useState(false);
 
   // Sync active tab with URL ?tab=...
   useEffect(() => {
@@ -166,6 +169,25 @@ export default function TransactionDetailPage() {
   useEffect(() => {
     if (activeTab === 'contacts') {
       loadTransactionContacts();
+    }
+  }, [activeTab, transactionId]);
+
+  const loadLeaConversations = async () => {
+    if (!transactionId) return;
+    try {
+      setLeaConversationsLoading(true);
+      const res = await leaAPI.listConversationsByTransaction(parseInt(transactionId));
+      setLeaConversations(Array.isArray(res?.data) ? res.data : []);
+    } catch {
+      setLeaConversations([]);
+    } finally {
+      setLeaConversationsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'lea') {
+      loadLeaConversations();
     }
   }, [activeTab, transactionId]);
 
@@ -276,6 +298,7 @@ export default function TransactionDetailPage() {
     { id: 'photos', label: 'Photos', icon: ImageIcon },
     { id: 'forms', label: 'Formulaire', icon: FileCheck },
     { id: 'contacts', label: 'Contacts', icon: Users },
+    { id: 'lea', label: 'Léa', icon: Bot },
   ];
 
   // Filter documents
@@ -601,6 +624,70 @@ export default function TransactionDetailPage() {
                       className="text-blue-600 hover:text-blue-700 text-sm font-medium"
                     >
                       Ajouter un contact
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Léa – Conversations liées à cette transaction */}
+            {activeTab === 'lea' && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900">Conversations Léa</h3>
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/dashboard/lea2`)}
+                    className="px-4 py-2 bg-blue-500 text-white rounded-2xl text-sm font-medium hover:bg-blue-600 transition-colors inline-flex items-center gap-2"
+                  >
+                    <Bot className="w-4 h-4" />
+                    Nouvelle conversation avec Léa
+                  </button>
+                </div>
+
+                {leaConversationsLoading ? (
+                  <div className="flex items-center justify-center py-12 text-gray-500">
+                    <Loading />
+                  </div>
+                ) : leaConversations.length > 0 ? (
+                  <div className="space-y-3">
+                    {leaConversations.map((c) => (
+                      <div
+                        key={c.session_id}
+                        className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                            <Bot className="w-6 h-6 text-blue-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{c.title}</p>
+                            {c.updated_at && (
+                              <p className="text-xs text-gray-500">{c.updated_at}</p>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => router.push(`/dashboard/lea2?session=${encodeURIComponent(c.session_id)}`)}
+                          className="px-4 py-2 bg-blue-500 text-white rounded-xl text-sm font-medium hover:bg-blue-600 transition-colors"
+                        >
+                          Ouvrir
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-gray-500">
+                    <Bot className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p className="mb-2">Aucune conversation Léa liée à cette transaction</p>
+                    <p className="text-sm mb-4">Les conversations sont enregistrées lorsque vous parlez de cette transaction avec Léa.</p>
+                    <button
+                      type="button"
+                      onClick={() => router.push('/dashboard/lea2')}
+                      className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                    >
+                      Démarrer une conversation avec Léa
                     </button>
                   </div>
                 )}

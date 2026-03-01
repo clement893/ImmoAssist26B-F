@@ -1,6 +1,6 @@
 'use client';
 
-import { Sparkles, Volume2, VolumeX, Trash2, X, Square, Copy } from 'lucide-react';
+import { Sparkles, Volume2, VolumeX, Trash2, X, Copy, SkipForward } from 'lucide-react';
 import Button from '@/components/ui/Button';
 
 interface LeaConversationHeaderProps {
@@ -41,17 +41,17 @@ export default function LeaConversationHeader({
 
           {/* Right: Actions */}
           <div className="flex items-center gap-2">
-            {/* Bouton d'arrêt de la lecture - visible uniquement quand Léa parle */}
+            {/* Bouton pour passer la lecture (skip) - visible quand Léa parle */}
             {soundSupported && isSpeaking && onStopSpeaking && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={onStopSpeaking}
-                title="Arrêter la lecture"
-                className="text-red-600 dark:text-red-400 animate-pulse"
+                title="Passer la lecture (aller plus vite)"
+                className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
               >
-                <Square className="w-4 h-4 mr-2" />
-                Arrêter
+                <SkipForward className="w-4 h-4 mr-2" />
+                Passer la lecture
               </Button>
             )}
             {soundSupported && (

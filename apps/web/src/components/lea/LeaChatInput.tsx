@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect } from 'react';
-import { Mic, MicOff, ArrowUp, Paperclip, Square, AudioLines, Volume2 } from 'lucide-react';
+import { Mic, MicOff, ArrowUp, Paperclip, AudioLines, Volume2, SkipForward } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface LeaChatInputProps {
@@ -81,7 +81,7 @@ export default function LeaChatInput({
             <span className="font-semibold text-base">Enregistrement en cours... Cliquez pour envoyer</span>
           </div>
         )}
-        {/* Speaking indicator - Léa parle */}
+        {/* Speaking indicator - Léa parle + bouton Passer */}
         {isSpeaking && onStopSpeaking && (
           <div className="flex items-center justify-center gap-3 text-green-500 bg-green-50 dark:bg-green-950/20 rounded-xl p-4 mb-4 border-2 border-green-200 dark:border-green-800">
             <div className="relative">
@@ -91,11 +91,11 @@ export default function LeaChatInput({
             <button
               type="button"
               onClick={onStopSpeaking}
-              className="ml-2 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-              title="Arrêter la lecture"
+              className="ml-2 px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+              title="Passer la lecture (aller plus vite)"
             >
-              <Square className="w-4 h-4" />
-              Arrêter
+              <SkipForward className="w-4 h-4" />
+              Passer la lecture
             </button>
           </div>
         )}

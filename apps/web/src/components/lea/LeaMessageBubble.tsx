@@ -17,6 +17,8 @@ interface LeaMessageBubbleProps {
   variant?: 'default' | 'dark';
   /** When true, the message is currently being read aloud by TTS (visual highlight) */
   isBeingRead?: boolean;
+  /** Callback to skip/stop the current TTS reading (shown as "Passer" when isBeingRead) */
+  onSkipReading?: () => void;
 }
 
 /** Transform assistant text into segments with links to Transactions and transaction detail */
@@ -73,6 +75,7 @@ export default function LeaMessageBubble({
   actions,
   variant = 'default',
   isBeingRead = false,
+  onSkipReading,
 }: LeaMessageBubbleProps) {
   const isUser = role === 'user';
   const isDark = variant === 'dark';
@@ -101,10 +104,21 @@ export default function LeaMessageBubble({
         )}
       >
         {!isUser && isBeingRead && (
-          <p className="text-xs font-medium text-blue-400 dark:text-primary-400 mb-1 flex items-center gap-1.5" aria-live="polite">
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400 dark:bg-primary-400 animate-pulse" />
-            Léa parle
-          </p>
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <p className="text-xs font-medium text-blue-400 dark:text-primary-400 flex items-center gap-1.5" aria-live="polite">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400 dark:bg-primary-400 animate-pulse" />
+              Léa parle
+            </p>
+            {onSkipReading && (
+              <button
+                type="button"
+                onClick={onSkipReading}
+                className="text-xs font-medium text-primary-600 dark:text-primary-400 hover:underline focus:outline-none focus:ring-2 focus:ring-primary-400 rounded"
+              >
+                Passer
+              </button>
+            )}
+          </div>
         )}
         <p className="text-sm whitespace-pre-wrap leading-relaxed">
           {isUser

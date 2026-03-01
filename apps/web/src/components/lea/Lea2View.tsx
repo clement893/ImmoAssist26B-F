@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/lib/store';
 import { useLea } from '@/hooks/useLea';
 import { useVoiceRecognition } from '@/hooks/useVoiceRecognition';
@@ -95,6 +96,8 @@ function formatConversationForCopy(messages: LeaMessage[], sessionId: string | n
  */
 export default function Lea2View() {
   const { user } = useAuthStore();
+  const searchParams = useSearchParams();
+  const sessionFromUrl = searchParams.get('session');
   const {
     messages,
     isLoading,
@@ -109,6 +112,7 @@ export default function Lea2View() {
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [copyFeedback, setCopyFeedback] = useState(false);
+  const hasLoadedSessionFromUrl = useRef(false);
   const {
     isRecording,
     startRecording,
@@ -125,6 +129,13 @@ export default function Lea2View() {
     requestPermission,
   } = useVoiceRecognition('fr-FR');
   const { speak, stop: stopSpeaking, isSpeaking, supported: ttsSupported } = useVoiceSynthesis();
+
+  // Ouvrir la conversation depuis l'URL ?session= (ex: lien depuis fiche transaction)
+  useEffect(() => {
+    if (!sessionFromUrl || hasLoadedSessionFromUrl.current) return;
+    hasLoadedSessionFromUrl.current = true;
+    loadConversation(sessionFromUrl);
+  }, [sessionFromUrl, loadConversation]);
 
   const [input, setInput] = useState('');
   const [autoSpeak, setAutoSpeak] = useState(true);

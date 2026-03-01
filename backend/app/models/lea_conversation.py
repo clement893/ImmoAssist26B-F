@@ -66,3 +66,23 @@ class LeaToolUsage(Base):
 
     def __repr__(self) -> str:
         return f"<LeaToolUsage(id={self.id}, conversation_id={self.conversation_id}, tool_name={self.tool_name})>"
+
+
+class LeaSessionTransactionLink(Base):
+    """Lien entre une session de conversation Léa (session_id) et une transaction."""
+    __tablename__ = "lea_session_transaction_links"
+    __table_args__ = (
+        Index("idx_lea_session_tx_transaction_id", "transaction_id"),
+        Index("idx_lea_session_tx_user_id", "user_id"),
+        Index("idx_lea_session_tx_created_at", "created_at"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(String(255), nullable=False, index=True)
+    transaction_id = Column(Integer, ForeignKey("real_estate_transactions.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+
+    def __repr__(self) -> str:
+        return f"<LeaSessionTransactionLink(session_id={self.session_id!r}, transaction_id={self.transaction_id})>"
+

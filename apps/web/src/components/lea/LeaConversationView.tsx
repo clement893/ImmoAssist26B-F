@@ -148,7 +148,13 @@ export default function LeaConversationView({
       <div className="flex-1 flex flex-col justify-center min-h-0 min-w-0">
         <div className="flex flex-col w-full max-h-full overflow-y-auto px-4">
           {/* Messages List */}
-          <LeaMessagesList messages={messages} isLoading={isLoading} grow={false} isSpeaking={isSpeaking} />
+          <LeaMessagesList
+            messages={messages}
+            isLoading={isLoading}
+            grow={false}
+            isSpeaking={isSpeaking}
+            onSkipReading={onStopSpeaking}
+          />
 
           {/* Error Alert */}
           {(error || voiceError) && (

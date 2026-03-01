@@ -42,7 +42,7 @@ from app.models.contact import Contact
 from app.models.company import Company
 from app.models.booking import Booking, Attendee, BookingPayment, BookingStatus, PaymentStatus, TicketType
 from app.models.city_event import CityEvent, EventStatus
-from app.models.lea_conversation import LeaConversation, LeaToolUsage
+from app.models.lea_conversation import LeaConversation, LeaToolUsage, LeaSessionTransactionLink
 from app.models.real_estate_transaction import RealEstateTransaction
 from app.models.real_estate_contact import RealEstateContact, ContactType
 from app.models.transaction_contact import TransactionContact
@@ -145,6 +145,7 @@ __all__ = [
     "EventStatus",
     "LeaConversation",
     "LeaToolUsage",
+    "LeaSessionTransactionLink",
     "RealEstateTransaction",
     "RealEstateContact",
     "ContactType",

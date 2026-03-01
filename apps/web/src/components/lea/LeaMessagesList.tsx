@@ -13,6 +13,8 @@ interface LeaMessagesListProps {
   grow?: boolean;
   /** When true, the last assistant message is shown as "being read" (TTS) */
   isSpeaking?: boolean;
+  /** Callback to skip/stop TTS when user clicks "Passer" on the message being read */
+  onSkipReading?: () => void;
 }
 
 export default function LeaMessagesList({
@@ -21,6 +23,7 @@ export default function LeaMessagesList({
   className = '',
   grow = true,
   isSpeaking = false,
+  onSkipReading,
 }: LeaMessagesListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -63,6 +66,7 @@ export default function LeaMessagesList({
                     timestamp={message.timestamp}
                     isStreaming={isStreaming}
                     isBeingRead={isBeingRead}
+                    onSkipReading={isBeingRead ? onSkipReading : undefined}
                     actions={message.role === 'assistant' || message.role === 'system' ? message.actions : undefined}
                   />
                 );

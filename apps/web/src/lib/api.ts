@@ -422,6 +422,12 @@ export const leaAPI = {
       { params: { limit } }
     );
   },
+  /** List Léa conversations linked to a transaction (for transaction detail page). */
+  listConversationsByTransaction: (transactionId: number) => {
+    return apiClient.get<Array<{ session_id: string; title: string; updated_at: string | null }>>(
+      `/v1/lea/conversations/by-transaction/${transactionId}`
+    );
+  },
   resetContext: (sessionId?: string) => {
     return apiClient.delete('/v1/lea/context', {
       params: { session_id: sessionId },
