@@ -41,6 +41,7 @@ export default function Lea2View() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const prevListeningRef = useRef(false);
   const justSentFromVoiceRef = useRef(false);
+  const vocalTermineSentRef = useRef(false);
 
   const hasMessages = messages.length > 0;
   const firstName = user?.name?.split(' ')[0] || 'Vous';
@@ -49,15 +50,16 @@ export default function Lea2View() {
   useEffect(() => {
     if (isListening) {
       justSentFromVoiceRef.current = false;
+      vocalTermineSentRef.current = false;
       setInput(transcript);
     } else if (transcript && !justSentFromVoiceRef.current) {
       setInput(transcript);
     }
   }, [transcript, isListening]);
 
-  // Quand vous arrêtez de parler : envoi automatique → réponse immédiate de Léa
+  // Quand vous arrêtez de parler : envoi automatique → réponse immédiate de Léa (fallback si arrêt auto du navigateur)
   useEffect(() => {
-    if (prevListeningRef.current === true && !isListening && transcript.trim()) {
+    if (prevListeningRef.current === true && !isListening && transcript.trim() && !justSentFromVoiceRef.current) {
       const text = transcript.trim();
       justSentFromVoiceRef.current = true;
       setInput('');
@@ -65,6 +67,25 @@ export default function Lea2View() {
     }
     prevListeningRef.current = isListening;
   }, [isListening, transcript, sendMessage]);
+
+  // Détection "Vocal Terminé" (ou "Terminé", "Envoyer") → envoi immédiat sans cliquer
+  const VOCAL_TERMINE_REGEX = /\s*(vocal\s+terminé|terminé\s*vocal|^terminé\s*$|^envoyer\s*$)\s*/gi;
+  useEffect(() => {
+    if (!isListening || !transcript.trim() || vocalTermineSentRef.current) return;
+    const t = transcript.trim().toLowerCase();
+    const hasTrigger =
+      t.includes('vocal terminé') ||
+      t.includes('terminé vocal') ||
+      /^\s*terminé\s*$/.test(t) ||
+      /^\s*envoyer\s*$/.test(t);
+    if (!hasTrigger) return;
+    vocalTermineSentRef.current = true;
+    const messageToSend = transcript.replace(VOCAL_TERMINE_REGEX, ' ').replace(/\s+/g, ' ').trim();
+    stopListening();
+    justSentFromVoiceRef.current = true;
+    setInput('');
+    if (messageToSend) sendMessage(messageToSend);
+  }, [isListening, transcript, stopListening, sendMessage]);
 
   // Auto-speak assistant responses
   useEffect(() => {
@@ -78,7 +99,7 @@ export default function Lea2View() {
       ) {
         lastSpokenMessageRef.current = lastMessage.content;
         setTimeout(() => {
-          speak(lastMessage.content, { lang: 'fr-FR', rate: 0.78, pitch: 1.05, volume: 1.0 });
+          speak(lastMessage.content, { lang: 'fr-FR', rate: 0.82, pitch: 1.06, volume: 1.0 });
         }, 300);
       }
     }
@@ -91,7 +112,14 @@ export default function Lea2View() {
 
   const toggleListening = async () => {
     if (isListening) {
+      // Envoi immédiat au clic sur "arrêter" : on utilise le transcript actuel (souvent perdu après onend)
+      const text = transcript.trim();
       stopListening();
+      if (text) {
+        justSentFromVoiceRef.current = true;
+        setInput('');
+        sendMessage(text);
+      }
     } else {
       try {
         await startListening();
@@ -291,7 +319,7 @@ export default function Lea2View() {
             <div className="flex justify-center gap-2 mb-4">
               <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/15 text-sm">
                 <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                {isListening ? 'Léa vous écoute... Parlez.' : 'Enregistrement... Cliquez pour envoyer.'}
+                {isListening ? 'Léa vous écoute... Dites « Vocal terminé » pour envoyer.' : 'Enregistrement... Cliquez pour envoyer.'}
               </span>
             </div>
           )}

@@ -380,6 +380,11 @@ export function getNavigationConfig(isAdmin?: boolean, isClient?: boolean): Navi
           icon: <Cog className="w-5 h-5" />,
         },
         {
+          name: 'Paramètres Léa',
+          href: '/dashboard/modules/admin/parametres-lea',
+          icon: <MessageSquare className="w-5 h-5" />,
+        },
+        {
           name: 'Tenancy',
           href: '/dashboard/modules/admin/tenancy',
           icon: <Building2 className="w-5 h-5" />,

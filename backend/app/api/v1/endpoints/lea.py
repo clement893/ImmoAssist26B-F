@@ -15,13 +15,15 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, require_admin_or_superadmin
 from app.models import User
 from app.database import get_db
 from app.services.lea_service import LeaService
 from app.services.ai_service import AIService, AIProvider
 from app.core.config import get_settings
 from app.core.logging import logger
+
+from sqlalchemy import select
 
 try:
     from openai import AsyncOpenAI
@@ -38,6 +40,9 @@ AGENT_ERR_MSG = (
 LEA_SYSTEM_PROMPT = (
     "Tu es Léa, une assistante immobilière experte au Québec. "
     "Tu aides les courtiers et les particuliers : transactions, formulaires OACIQ, vente, achat.\n\n"
+    "Tu as accès aux informations de la plateforme de l'utilisateur connecté (ses transactions, dossiers). "
+    "Utilise-les pour répondre aux questions sur ses dossiers en cours, ses transactions, etc. "
+    "Si on te donne un résumé de ses transactions ci-dessous, base-toi dessus pour répondre.\n\n"
     "Règles importantes:\n"
     "- Réponds en français, de façon courtoise et professionnelle.\n"
     "- Garde tes réponses **courtes** (2 à 4 phrases max), sauf si l'utilisateur demande explicitement plus de détails.\n"
@@ -96,6 +101,53 @@ def _use_integrated_lea() -> bool:
 def _use_integrated_voice() -> bool:
     """True si on peut faire le vocal intégré (Whisper + LLM + TTS) avec OpenAI."""
     return bool(_OPENAI_AVAILABLE and os.getenv("OPENAI_API_KEY") and AIService.is_configured())
+
+
+async def get_lea_user_context(db: AsyncSession, user_id: int) -> str:
+    """
+    Récupère un résumé des transactions de l'utilisateur (dossiers immo + portail)
+    pour l'injecter dans le contexte de Léa.
+    """
+    lines = []
+    try:
+        # Transactions immobilières (dossiers du courtier)
+        q_re = (
+            select(RealEstateTransaction)
+            .where(RealEstateTransaction.user_id == user_id)
+            .order_by(RealEstateTransaction.updated_at.desc())
+            .limit(15)
+        )
+        res_re = await db.execute(q_re)
+        re_list = res_re.scalars().all()
+        if re_list:
+            lines.append("Transactions immobilières (dossiers) :")
+            for t in re_list:
+                addr = t.property_address or t.property_city or "Sans adresse"
+                num = t.dossier_number or f"#{t.id}"
+                lines.append(f"  - {num}: {t.name} — {addr} — statut: {t.status}")
+        else:
+            lines.append("Aucune transaction immobilière (dossier) enregistrée.")
+
+        # Dossiers portail client (où l'utilisateur est le courtier)
+        q_pt = (
+            select(PortailTransaction)
+            .where(PortailTransaction.courtier_id == user_id)
+            .order_by(PortailTransaction.date_debut.desc())
+            .limit(15)
+        )
+        res_pt = await db.execute(q_pt)
+        pt_list = res_pt.scalars().all()
+        if pt_list:
+            lines.append("Dossiers portail client (vos clients) :")
+            for t in pt_list:
+                addr = t.adresse or t.ville or "—"
+                lines.append(f"  - {t.type} — {addr} — statut: {t.statut}")
+        else:
+            lines.append("Aucun dossier portail client.")
+    except Exception as e:
+        logger.warning(f"get_lea_user_context: {e}")
+        return "Impossible de charger les transactions pour le moment."
+    return "\n".join(lines)
 
 
 async def _transcribe_whisper(audio_bytes: bytes, content_type: str) -> str:
@@ -170,16 +222,19 @@ async def _call_external_agent_chat(message: str, session_id: str | None, conver
             )
 
 
-async def _stream_lea_sse(message: str, session_id: str | None):
+async def _stream_lea_sse(message: str, session_id: str | None, user_context: str | None = None):
     """Génère les événements SSE pour le chat Léa intégré (streaming)."""
     sid = session_id or str(uuid.uuid4())
     try:
         settings = get_settings()
+        system = LEA_SYSTEM_PROMPT
+        if user_context:
+            system += "\n\n--- Informations actuelles de l'utilisateur (plateforme) ---\n" + user_context
         service = AIService(provider=AIProvider.AUTO)
         messages = [{"role": "user", "content": message}]
         async for delta in service.stream_chat_completion(
             messages=messages,
-            system_prompt=LEA_SYSTEM_PROMPT,
+            system_prompt=system,
             max_tokens=getattr(settings, "LEA_MAX_TOKENS", 256),
         ):
             yield f"data: {json.dumps({'delta': delta})}\n\n"
@@ -193,18 +248,21 @@ async def _stream_lea_sse(message: str, session_id: str | None):
 async def lea_chat_stream(
     request: LeaChatRequest,
     current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Chat with Léa in streaming mode (SSE).
     Used when OPENAI_API_KEY or ANTHROPIC_API_KEY is set for fast, fluid responses.
+    Léa a accès aux transactions de l'utilisateur connecté (injectées dans le contexte).
     """
     if not _use_integrated_lea():
         raise HTTPException(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
             detail="Streaming requires OPENAI_API_KEY or ANTHROPIC_API_KEY in the Backend.",
         )
+    user_context = await get_lea_user_context(db, current_user.id)
     return StreamingResponse(
-        _stream_lea_sse(request.message, request.session_id),
+        _stream_lea_sse(request.message, request.session_id, user_context=user_context),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
@@ -222,8 +280,37 @@ async def lea_chat(
 ):
     """
     Chat with Léa AI assistant.
-    Utilise l'agent externe (AGENT_API_URL + AGENT_API_KEY) pour les réponses texte.
+    Utilise l'agent externe si configuré, sinon l'IA intégrée (OpenAI/Anthropic) avec accès aux transactions.
     """
+    # 1) IA intégrée (avec contexte plateforme) si pas d'agent externe
+    if not _use_external_agent() and _use_integrated_lea():
+        try:
+            user_context = await get_lea_user_context(db, current_user.id)
+            system_prompt = LEA_SYSTEM_PROMPT
+            if user_context:
+                system_prompt += "\n\n--- Informations actuelles de l'utilisateur (plateforme) ---\n" + user_context
+            settings = get_settings()
+            service = AIService(provider=AIProvider.AUTO)
+            result = await service.chat_completion(
+                messages=[{"role": "user", "content": request.message}],
+                system_prompt=system_prompt,
+                max_tokens=getattr(settings, "LEA_MAX_TOKENS", 256),
+            )
+            return LeaChatResponse(
+                content=result.get("content", ""),
+                session_id=request.session_id or "",
+                model=result.get("model"),
+                provider=result.get("provider"),
+                usage=result.get("usage", {}),
+            )
+        except Exception as e:
+            logger.error(f"Léa chat integrated error: {e}", exc_info=True)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Léa service error: {str(e)}",
+            )
+
+    # 2) Agent externe
     if not _use_external_agent():
         raise HTTPException(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
@@ -270,6 +357,7 @@ async def lea_chat_voice(
     session_id: Optional[str] = Form(None),
     conversation_id: Optional[int] = Form(None),
     current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Message vocal → transcription + réponse Léa + TTS.
@@ -290,12 +378,17 @@ async def lea_chat_voice(
                     detail="Impossible de transcrire l'audio. Parlez plus distinctement ou vérifiez le format.",
                 )
 
+            user_context = await get_lea_user_context(db, current_user.id)
+            system_prompt = LEA_SYSTEM_PROMPT
+            if user_context:
+                system_prompt += "\n\n--- Informations actuelles de l'utilisateur (plateforme) ---\n" + user_context
+
             service = AIService(provider=AIProvider.AUTO)
             messages = [{"role": "user", "content": transcription}]
             settings = get_settings()
             result = await service.chat_completion(
                 messages=messages,
-                system_prompt=LEA_SYSTEM_PROMPT,
+                system_prompt=system_prompt,
                 max_tokens=getattr(settings, "LEA_MAX_TOKENS", 256),
             )
             response_text = result.get("content") or ""

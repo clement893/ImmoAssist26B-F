@@ -92,9 +92,9 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
           // Optimized voice settings for natural, human-like speech
           speak(lastMessage.content, { 
             lang: 'fr-FR', 
-            rate: 0.78,      // Slower rate for natural, human-like diction
-            pitch: 1.05,     // Voix féminine (légerement plus aigu)
-            volume: 1.0      // Full volume for clarity
+            rate: 0.82,      // Voix douce
+            pitch: 1.06,     // Voix féminine (légerement plus aigu)
+            volume: 1.0
           });
         }, 300);
       }

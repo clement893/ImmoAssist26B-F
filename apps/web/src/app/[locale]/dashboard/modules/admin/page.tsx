@@ -16,6 +16,7 @@ import {
   Sliders,
   Cog,
   BookOpen,
+  MessageSquare,
 } from 'lucide-react';
 
 export default function AdminModulePage() {
@@ -107,6 +108,13 @@ export default function AdminModulePage() {
       icon: <Cog className="w-6 h-6" />,
       href: `/${locale}/dashboard/modules/admin/settings`,
       color: 'bg-gray-500',
+    },
+    {
+      title: 'Paramètres Léa',
+      description: 'Instructions et paramètres de l\'assistante IA Léa',
+      icon: <MessageSquare className="w-6 h-6" />,
+      href: `/${locale}/dashboard/modules/admin/parametres-lea`,
+      color: 'bg-violet-500',
     },
     {
       title: 'Portail clients (infos)',

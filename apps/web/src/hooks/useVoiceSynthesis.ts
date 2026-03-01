@@ -107,57 +107,68 @@ export function useVoiceSynthesis(): UseVoiceSynthesisReturn {
       const availableVoices = window.speechSynthesis.getVoices();
       setVoices(availableVoices);
       
-      // Prefer French female voice for Léa (assistante)
+      // Prefer French female voice for Léa (assistante) — voix douce de femme
       const frenchVoices = availableVoices.filter(
         (v) => v.lang.startsWith('fr') || v.lang.startsWith('FR')
       );
 
-      // Keywords typically used for female voices (names / labels)
+      // Mots-clés voix féminines (noms courants Windows / macOS / Chrome)
       const femaleKeywords = [
         'female', 'woman', 'femme', 'zira', 'hazel', 'catherine', 'helen', 'denise', 'claude',
         'amelie', 'amélie', 'marie', 'sylvie', 'veronique', 'véronique', 'jolie', 'melanie', 'mélanie',
         'hortense', 'alice', 'claire', 'elise', 'léa', 'lea', 'victoire', 'valerie', 'valérie',
-        'neural', 'premium', 'enhanced',
+        'virginie', 'sabina', 'julie', 'anne', 'louise', 'charlotte', 'aria', 'eva', 'camille',
+        'neural', 'premium', 'enhanced', 'google français', 'microsoft hortense',
       ];
-      // Exclude common male voice names so we don't pick them by mistake
       const maleKeywords = [
         'thomas', 'paul', 'antoine', 'pierre', 'michel', 'jean', 'male', 'homme', 'marc', 'nicolas',
+        'daniel', 'david', 'adam', 'alain', 'bertrand', 'guillaume', 'henri', 'hugo',
       ];
       const isLikelyFemale = (voice: SpeechSynthesisVoice) =>
         femaleKeywords.some((k) => voice.name.toLowerCase().includes(k));
       const isLikelyMale = (voice: SpeechSynthesisVoice) =>
         maleKeywords.some((k) => voice.name.toLowerCase().includes(k));
 
-      // 1) French female (neural/premium first)
+      // 1) Voix française féminine (neural / premium en priorité)
       const frenchFemaleNeural = frenchVoices.find(
-        (v) => isLikelyFemale(v) && ['neural', 'premium', 'enhanced'].some((k) => v.name.toLowerCase().includes(k))
+        (v) => isLikelyFemale(v) && !isLikelyMale(v) &&
+          ['neural', 'premium', 'enhanced'].some((k) => v.name.toLowerCase().includes(k))
       );
       if (frenchFemaleNeural) {
         setSelectedVoice(frenchFemaleNeural);
         return;
       }
 
-      // 2) Any French female voice
+      // 2) Hortense / Virginie (Windows français femme, souvent douce)
+      const hortenseOrVirginie = frenchVoices.find(
+        (v) => !isLikelyMale(v) && (v.name.toLowerCase().includes('hortense') || v.name.toLowerCase().includes('virginie'))
+      );
+      if (hortenseOrVirginie) {
+        setSelectedVoice(hortenseOrVirginie);
+        return;
+      }
+
+      // 3) Toute voix française marquée féminine
       const frenchFemale = frenchVoices.find((v) => isLikelyFemale(v) && !isLikelyMale(v));
       if (frenchFemale) {
         setSelectedVoice(frenchFemale);
         return;
       }
 
-      // 3) First French voice that is not clearly male
+      // 4) Première voix française qui n'est pas clairement homme
       const frenchNotMale = frenchVoices.find((v) => !isLikelyMale(v));
       if (frenchNotMale) {
         setSelectedVoice(frenchNotMale);
         return;
       }
 
-      // 4) Any French voice
+      // 5) Première voix française (dernier recours)
       if (frenchVoices.length > 0 && frenchVoices[0]) {
         setSelectedVoice(frenchVoices[0]);
         return;
       }
 
-      // 5) Any female voice in another language (e.g. en-GB female)
+      // 6) Une voix féminine dans une autre langue (ex: en-GB female)
       const anyFemale = availableVoices.find((v) => isLikelyFemale(v) && !isLikelyMale(v));
       if (anyFemale) {
         setSelectedVoice(anyFemale);
@@ -197,9 +208,9 @@ export function useVoiceSynthesis(): UseVoiceSynthesisReturn {
 
       const utterance = new SpeechSynthesisUtterance(cleanedText);
       
-      // Set options optimized for natural, human-like speech (voix féminine)
-      utterance.rate = options.rate ?? 0.78;
-      utterance.pitch = options.pitch ?? 1.05; // Légèrement plus aigu pour une voix féminine
+      // Options par défaut : voix douce (rate un peu lent, pitch légèrement aigu pour femme)
+      utterance.rate = options.rate ?? 0.82;
+      utterance.pitch = options.pitch ?? 1.06;
       utterance.volume = options.volume ?? 1.0;
       utterance.lang = options.lang ?? 'fr-FR';
       
