@@ -143,9 +143,8 @@ export default function Lea2View() {
     return;
   }, [isLoading, messages, isSpeaking, autoSpeak, ttsSupported, voiceSupported, isListening, startListening]);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  // Pas d'auto-scroll : la page reste fixe, pas de défilement vers le bas quand la conversation avance
+  // (messagesEndRef conservé pour compatibilité si besoin plus tard)
 
   const toggleListening = async () => {
     if (isListening) {
@@ -203,7 +202,7 @@ export default function Lea2View() {
   const displayError = error || voiceError;
 
   return (
-    <div className="flex flex-col h-full min-h-screen bg-slate-950 text-white overflow-hidden">
+    <div className="flex flex-col h-full min-h-0 bg-slate-950 text-white overflow-hidden">
       {/* Gradient background (no grain) */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-indigo-950/95 to-violet-950" />
@@ -256,7 +255,7 @@ export default function Lea2View() {
           hasMessages ? 'flex-1 md:min-w-0 min-h-[220px] max-h-[55vh] md:max-h-none' : 'hidden md:flex md:flex-1 md:min-w-0'
         )}>
           <div className="flex-1 min-h-0 flex flex-col h-full">
-            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden rounded-2xl mx-3 mt-3 md:mx-4 md:mt-4 md:mr-2 bg-white/5 border border-white/10 shadow-inner scroll-smooth overscroll-contain [scrollbar-gutter:stable]">
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden rounded-2xl mx-3 mt-3 md:mx-4 md:mt-4 md:mr-2 bg-white/5 border border-white/10 shadow-inner overscroll-contain scrollbar-hide">
               {/* Contenu centré : max-width pour centraliser les bulles */}
               <div className="max-w-2xl mx-auto px-4 py-5 min-h-full flex flex-col">
                 {hasMessages ? (

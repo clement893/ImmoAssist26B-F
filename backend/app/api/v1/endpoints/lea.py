@@ -184,16 +184,32 @@ def _wants_to_create_transaction(message: str) -> tuple[bool, str]:
     t = (message or "").strip().lower()
     if not t:
         return False, ""
-    # Intentions explicites avec "créer (une) transaction"
+    # Intentions explicites avec "créer (une) transaction" ou "créer un dossier"
     if "créer une transaction" in t or "créer un dossier" in t or "créer la transaction" in t:
         if "achat" in t:
             return True, "achat"
         if "vente" in t:
             return True, "vente"
         return True, "achat"  # défaut
+    # "nous voulons / on veut créer (une) transaction" / "créer une transaction ensemble"
+    if ("voulons" in t or "vouloir" in t) and "créer" in t and ("transaction" in t or "dossier" in t):
+        if "achat" in t or "d'achat" in t:
+            return True, "achat"
+        if "vente" in t or "de vente" in t:
+            return True, "vente"
+        return True, "achat"
+    if "créer" in t and "transaction" in t and (
+        "ensemble" in t or "voulons" in t or "veux" in t or "aimerais" in t or "voudrais" in t
+        or "souhaite" in t or "souhaites" in t or "souhaitons" in t
+    ):
+        if "achat" in t or "d'achat" in t:
+            return True, "achat"
+        if "vente" in t or "de vente" in t:
+            return True, "vente"
+        return True, "achat"
     # "nouvelle transaction" + volonté (aimerais, voudrais, veux, etc.)
     if "nouvelle transaction" in t and (
-        "créer" in t or "aimerais" in t or "voudrais" in t or "veux" in t or "souhaite" in t or "souhaites" in t
+        "créer" in t or "aimerais" in t or "voudrais" in t or "veux" in t or "souhaite" in t or "souhaites" in t or "voulons" in t
     ):
         if "achat" in t or "d'achat" in t:
             return True, "achat"
@@ -221,9 +237,9 @@ def _wants_to_create_transaction(message: str) -> tuple[bool, str]:
         if "vente" in t:
             return True, "vente"
         return True, "achat"
-    if "transaction d'achat" in t and ("créer" in t or "créé" in t or "veux" in t or "voudrais" in t or "réer" in t):
+    if "transaction d'achat" in t and ("créer" in t or "créé" in t or "veux" in t or "voudrais" in t or "réer" in t or "voulons" in t):
         return True, "achat"
-    if "transaction de vente" in t and ("créer" in t or "créé" in t or "veux" in t or "voudrais" in t or "réer" in t):
+    if "transaction de vente" in t and ("créer" in t or "créé" in t or "veux" in t or "voudrais" in t or "réer" in t or "voulons" in t):
         return True, "vente"
     # Typo courant: "réer" au lieu de "créer"
     if "réer une transaction" in t or "réer la transaction" in t:
@@ -546,23 +562,27 @@ async def lea_chat(
             )
 
     # 2) Agent externe : exécuter quand même les actions plateforme (création transaction, etc.)
-    #    puis transmettre le résultat à l'agent pour qu'il puisse confirmer à l'utilisateur
     if not _use_external_agent():
         raise HTTPException(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
             detail=AGENT_ERR_MSG,
         )
     try:
-        # Exécuter les actions plateforme (création transaction, adresse, promesse...) même avec agent externe
         action_lines = await run_lea_actions(db, current_user.id, request.message)
-        message_to_agent = request.message
+        # Si on a créé/mis à jour quelque chose, on renvoie une confirmation directe (pas besoin de l'agent)
         if action_lines:
-            message_to_agent = (
-                request.message
-                + "\n\n[Note pour l'assistant - les actions suivantes ont déjà été effectuées par la plateforme pour cet utilisateur : "
-                + " ; ".join(action_lines)
-                + ". Confirme à l'utilisateur que c'est fait et propose-lui d'aller dans la section Transactions pour compléter si besoin.]"
+            confirmation = (
+                "C'est fait ! J'ai créé une nouvelle transaction pour vous. "
+                "Vous pouvez la compléter dans la section Transactions."
             )
+            return LeaChatResponse(
+                content=confirmation,
+                session_id=request.session_id or "",
+                model=None,
+                provider=None,
+                usage={},
+            )
+        message_to_agent = request.message
         data = await _call_external_agent_chat(
             message=message_to_agent,
             session_id=request.session_id,
