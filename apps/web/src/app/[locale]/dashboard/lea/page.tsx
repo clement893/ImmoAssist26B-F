@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 /**
  * Page /dashboard/lea supprimée — redirection vers Léa2.
  */
-export default function LeaPageRedirect({
+export default async function LeaPageRedirect({
   params,
 }: {
   params: Promise<{ locale: string }>;
