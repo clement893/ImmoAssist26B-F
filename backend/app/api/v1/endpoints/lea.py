@@ -53,6 +53,16 @@ LEA_SYSTEM_PROMPT = (
     "Ne invente jamais une confirmation du type « c'est fait » ou « j'ai créé » sans que « Action effectuée » le confirme.\n\n"
     "Quand « Action effectuée » indique une ou plusieurs actions (ex: transaction créée, adresse ajoutée, promesse d'achat enregistrée), "
     "confirme uniquement ce qui est indiqué et invite l'utilisateur à compléter dans la section Transactions si pertinent.\n\n"
+    "** INFORMATIONS CLÉS À COLLECTER – POSE LES BONNES QUESTIONS : **\n"
+    "Quand l'utilisateur crée une transaction ou travaille sur un dossier, aide-le à le compléter en posant des questions pertinentes, une à la fois ou par thème. "
+    "Ordre logique des informations clés :\n"
+    "1. **Adresse du bien** : « Quelle est l'adresse du bien ? » (ex. 123 rue Principale, Montréal). Tu peux enregistrer l'adresse si l'utilisateur la donne dans sa réponse.\n"
+    "2. **Vendeur(s)** : « Qui sont les vendeurs ? » (nom, téléphone, courriel). Propose d'ajouter ces infos dans la section Transactions si tu ne peux pas les enregistrer toi-même.\n"
+    "3. **Acheteur(s)** : « Qui sont les acheteurs ? » (nom, téléphone, courriel). Idem.\n"
+    "4. **Prix et dates** : « Quel est le prix demandé ? » ou « le prix offert ? », « Date de clôture prévue ? »\n"
+    "5. **Notaire, courtiers** : si pertinent, « As-tu les coordonnées du notaire ? du courtier vendeur/acheteur ? »\n"
+    "Après avoir créé une transaction ou enregistré une info, propose **la prochaine question logique** (ex. après l'adresse : « Parfait. Qui sont les vendeurs pour ce dossier ? »). "
+    "Reste concise : une question à la fois, ou deux maximum si le contexte s'y prête.\n\n"
     "Règles générales:\n"
     "- Réponds en français, de façon courtoise et professionnelle.\n"
     "- Garde tes réponses **courtes** (2 à 4 phrases max), sauf si l'utilisateur demande explicitement plus de détails.\n"
@@ -162,6 +172,22 @@ async def get_lea_user_context(db: AsyncSession, user_id: int) -> str:
                 addr = t.property_address or t.property_city or "Sans adresse"
                 num = t.dossier_number or f"#{t.id}"
                 lines.append(f"  - {num}: {t.name} — {addr} — statut: {t.status}")
+            # Pour la transaction la plus récente : indiquer les infos manquantes pour guider les questions
+            latest = re_list[0]
+            missing = []
+            if not (latest.property_address or latest.property_city):
+                missing.append("adresse du bien")
+            sellers_ok = latest.sellers and len(latest.sellers) > 0 if isinstance(latest.sellers, list) else bool(latest.sellers)
+            if not sellers_ok:
+                missing.append("vendeur(s)")
+            buyers_ok = latest.buyers and len(latest.buyers) > 0 if isinstance(latest.buyers, list) else bool(latest.buyers)
+            if not buyers_ok:
+                missing.append("acheteur(s)")
+            if not latest.listing_price and not latest.offered_price:
+                missing.append("prix (demandé ou offert)")
+            if missing:
+                ref = latest.dossier_number or f"#{latest.id}"
+                lines.append(f"  → Pour {ref}, infos à compléter : {', '.join(missing)}. Pose la question correspondante pour faire avancer le dossier.")
         else:
             lines.append("Transactions immobilières : aucune pour le moment. (L'utilisateur n'a pas encore de dossier.)")
 
@@ -195,6 +221,15 @@ def _wants_to_create_transaction(message: str) -> tuple[bool, str]:
     t = (message or "").strip().lower()
     if not t:
         return False, ""
+    # "créer une nouvelle transaction" / "nouvelle transaction" (explicite en premier)
+    if "créer une nouvelle transaction" in t or "créer un nouveau dossier" in t:
+        if "vente" in t or "de vente" in t:
+            return True, "vente"
+        return True, "achat"
+    if "nouvelle transaction" in t and ("créer" in t or "voudrais" in t or "veux" in t or "aimerais" in t or "souhaite" in t or "voulons" in t):
+        if "vente" in t or "de vente" in t:
+            return True, "vente"
+        return True, "achat"
     # "aide-moi à créer (une) transaction" / "aide-moi à créer un dossier"
     if "aide-moi" in t or "aide-moi " in t or "aidez-moi" in t or "m'aider" in t or "m’aider" in t:
         if "créer" in t and ("transaction" in t or "dossier" in t):
