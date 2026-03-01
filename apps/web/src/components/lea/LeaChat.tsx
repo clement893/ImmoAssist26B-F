@@ -134,6 +134,7 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
       startListening().catch(() => {});
     }
     prevIsSpeakingRef.current = isSpeaking;
+    return;
   }, [isLoading, messages, isSpeaking, autoSpeak, ttsSupported, voiceSupported, isListening, startListening]);
 
   const toggleListening = async () => {

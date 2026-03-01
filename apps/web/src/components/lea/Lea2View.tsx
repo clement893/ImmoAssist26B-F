@@ -140,6 +140,7 @@ export default function Lea2View() {
       startListening().catch(() => {});
     }
     prevIsSpeakingRef.current = isSpeaking;
+    return;
   }, [isLoading, messages, isSpeaking, autoSpeak, ttsSupported, voiceSupported, isListening, startListening]);
 
   useEffect(() => {
