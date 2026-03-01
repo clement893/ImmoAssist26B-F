@@ -1,15 +1,20 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { Link } from '@/i18n/routing';
 import { useAuthStore } from '@/lib/store';
 import { useAuth } from '@/hooks/useAuth';
 import Button from '../ui/Button';
 import { ThemeToggleWithIcon } from '../ui/ThemeToggle';
 import LanguageSwitcher from '../i18n/LanguageSwitcher';
-import NotificationBellConnected from '../notifications/NotificationBellConnected';
 import { Menu, X } from 'lucide-react';
 import { clsx } from 'clsx';
+
+const NotificationBellConnected = dynamic(
+  () => import('../notifications/NotificationBellConnected').then((m) => m.default),
+  { ssr: false, loading: () => <span className="w-9 h-9" aria-hidden /> }
+);
 
 export default function Header() {
   const { isAuthenticated, user } = useAuthStore();
