@@ -12,6 +12,7 @@ interface Transaction {
   name: string;
   dossier_number?: string;
   status: string;
+  pipeline_stage?: string | null;
   created_at: string;
   property_address?: string;
   property_city?: string;
@@ -24,6 +25,12 @@ interface Transaction {
   listing_price?: number;
   offered_price?: number;
   final_sale_price?: number;
+  promise_to_purchase_date?: string;
+  promise_acceptance_date?: string;
+  inspection_condition_lifted_date?: string;
+  financing_condition_lifted_date?: string;
+  sale_act_signing_date?: string;
+  possession_date?: string;
   expected_closing_date?: string;
   actual_closing_date?: string;
   documents?: Array<{
@@ -38,38 +45,35 @@ interface Transaction {
 interface TransactionsPipelineViewProps {
   transactions: Transaction[];
   isLoading: boolean;
-  onStatusChange?: (transactionId: number, newStatus: string) => Promise<void>;
+  onStatusChange?: (transactionId: number, newPipelineStage: string) => Promise<void>;
   onAddTransaction?: () => void;
   onTransactionClick?: (transaction: Transaction) => void;
 }
 
-// Mapping des statuts aux colonnes du pipeline
-const STATUS_COLUMNS = [
-  {
-    id: 'not_ready',
-    title: 'Non prêt',
-    status: 'En cours',
-    color: '#ef4444',
-  },
-  {
-    id: 'conditional',
-    title: 'Conditionnelle',
-    status: 'Conditionnelle',
-    color: '#f59e0b',
-  },
-  {
-    id: 'firm',
-    title: 'Ferme',
-    status: 'Ferme',
-    color: '#3b82f6',
-  },
-  {
-    id: 'completed',
-    title: 'Conclue',
-    status: 'Conclue',
-    color: '#10b981',
-  },
+// Étapes du pipeline (kanban) alignées sur les étapes des offres
+const PIPELINE_STAGES = [
+  { id: 'creation_dossier', title: 'Création du dossier', subtitle: 'Dossier de transaction créé', color: '#6366f1' },
+  { id: 'promesse_achat', title: 'Promesse d\'achat', subtitle: 'En attente d\'acceptation', color: '#f59e0b' },
+  { id: 'inspection_batiment', title: 'Inspection du bâtiment', subtitle: 'En attente d\'inspection', color: '#8b5cf6' },
+  { id: 'financement_hypothecaire', title: 'Financement hypothécaire', subtitle: 'En attente d\'approbation', color: '#ec4899' },
+  { id: 'vente_ferme', title: 'Vente ferme', subtitle: 'En attente de levée de toutes les conditions', color: '#3b82f6' },
+  { id: 'documents_notaries', title: 'Documents notariés', subtitle: 'En attente de documents', color: '#06b6d4' },
+  { id: 'signature_actes', title: 'Signature des actes', subtitle: 'En attente de signature', color: '#14b8a6' },
+  { id: 'prise_possession', title: 'Prise de possession', subtitle: 'En attente de prise de possession', color: '#22c55e' },
+  { id: 'finalisation', title: 'Finalisation', subtitle: 'En attente de finalisation', color: '#10b981' },
 ];
+
+function getEffectivePipelineStage(t: Transaction): string {
+  if (t.pipeline_stage && PIPELINE_STAGES.some((s) => s.id === t.pipeline_stage)) return t.pipeline_stage;
+  if (t.actual_closing_date || t.status === 'Conclue') return 'finalisation';
+  if (t.possession_date) return 'prise_possession';
+  if (t.sale_act_signing_date) return 'signature_actes';
+  if (t.financing_condition_lifted_date || t.status === 'Ferme') return 'vente_ferme';
+  if (t.inspection_condition_lifted_date) return 'financement_hypothecaire';
+  if (t.promise_acceptance_date) return 'inspection_batiment';
+  if (t.promise_to_purchase_date) return 'promesse_achat';
+  return 'creation_dossier';
+}
 
 const formatDate = (dateString?: string) => {
   if (!dateString) return null;
@@ -130,32 +134,28 @@ export default function TransactionsPipelineView({
     setDragOverColumn(null);
   };
 
-  const handleDrop = async (e: React.DragEvent, columnStatus: string) => {
+  const handleDrop = async (e: React.DragEvent, columnStageId: string) => {
     e.preventDefault();
     if (draggedTransaction && onStatusChange) {
-      // Mise à jour optimiste : mettre à jour immédiatement l'état local
       const transactionToUpdate = localTransactions.find(t => t.id === draggedTransaction);
       if (transactionToUpdate) {
-        const updatedTransaction = { ...transactionToUpdate, status: columnStatus };
-        setLocalTransactions(prev => 
-          prev.map(t => t.id === draggedTransaction ? updatedTransaction : t)
+        const updatedTransaction = { ...transactionToUpdate, pipeline_stage: columnStageId };
+        setLocalTransactions(prev =>
+          prev.map(t => (t.id === draggedTransaction ? updatedTransaction : t))
         );
       }
-      
+
       setDraggedTransaction(null);
       setDragOverColumn(null);
-      
-      // Appel API en arrière-plan
+
       try {
-        await onStatusChange(draggedTransaction, columnStatus);
+        await onStatusChange(draggedTransaction, columnStageId);
       } catch (error) {
-        // En cas d'erreur, restaurer l'état précédent
         if (transactionToUpdate) {
-          setLocalTransactions(prev => 
-            prev.map(t => t.id === draggedTransaction ? transactionToUpdate : t)
+          setLocalTransactions(prev =>
+            prev.map(t => (t.id === draggedTransaction ? transactionToUpdate : t))
           );
         }
-        // L'erreur sera gérée par le composant parent
         throw error;
       }
     } else {
@@ -164,7 +164,7 @@ export default function TransactionsPipelineView({
     }
   };
 
-  // Filtrer les transactions selon la recherche (utiliser localTransactions pour les mises à jour optimistes)
+  // Filtrer les transactions selon la recherche
   const filteredTransactions = localTransactions.filter((transaction) => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
@@ -218,40 +218,41 @@ export default function TransactionsPipelineView({
         </Button>
       </div>
 
-      {/* Kanban Board */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 overflow-x-auto pb-4">
-        {STATUS_COLUMNS.map((column) => {
+      {/* Kanban Board - 9 colonnes, défilement horizontal */}
+      <div className="flex gap-6 overflow-x-auto pb-4 min-h-[400px]" style={{ scrollSnapType: 'x mandatory' }}>
+        {PIPELINE_STAGES.map((column) => {
           const columnTransactions = filteredTransactions.filter(
-            (transaction) => transaction.status === column.status
+            (transaction) => getEffectivePipelineStage(transaction) === column.id
           );
 
           return (
             <div
               key={column.id}
-              className={`flex flex-col flex-shrink-0 ${
-                dragOverColumn === column.id ? 'ring-2 ring-blue-500' : ''
+              className={`flex-shrink-0 w-72 flex flex-col rounded-2xl bg-gray-50/80 dark:bg-neutral-900/50 p-4 ${
+                dragOverColumn === column.id ? 'ring-2 ring-primary-500' : ''
               }`}
+              style={{ scrollSnapAlign: 'start' }}
               onDragOver={(e) => handleDragOver(e, column.id)}
               onDragLeave={handleDragLeave}
-              onDrop={(e) => handleDrop(e, column.status)}
+              onDrop={(e) => handleDrop(e, column.id)}
             >
               {/* Column Header */}
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
                   <div
-                    className="w-3 h-3 rounded-full"
+                    className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                     style={{ backgroundColor: column.color }}
                   />
-                  <h2 className="text-base font-medium text-gray-900">
-                    {column.title}
-                  </h2>
-                  <span className="px-2.5 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
-                    {columnTransactions.length}
-                  </span>
+                  <div>
+                    <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      {column.title}
+                    </h2>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{column.subtitle}</p>
+                  </div>
                 </div>
-                <button className="p-1 hover:bg-gray-100 rounded-xl transition-colors">
-                  <MoreVertical className="w-4 h-4 text-gray-400" />
-                </button>
+                <span className="px-2.5 py-1 bg-white dark:bg-neutral-800 text-gray-600 dark:text-gray-300 text-xs font-medium rounded-full shadow-sm">
+                  {columnTransactions.length}
+                </span>
               </div>
 
               {/* Cards */}

@@ -34,6 +34,7 @@ interface Transaction {
   name: string;
   dossier_number?: string;
   status: string;
+  pipeline_stage?: string | null;
   created_at: string;
   property_address?: string;
   property_city?: string;
@@ -133,32 +134,25 @@ function TransactionsContent() {
     }
   };
 
-  const handleStatusChange = async (transactionId: number, newStatus: string) => {
-    // Mise à jour optimiste : mettre à jour immédiatement l'état local
+  const handleStatusChange = async (transactionId: number, newPipelineStage: string) => {
     const transactionToUpdate = transactions.find(t => t.id === transactionId);
     if (transactionToUpdate) {
-      const updatedTransaction = { ...transactionToUpdate, status: newStatus };
-      setTransactions(prev => 
+      const updatedTransaction = { ...transactionToUpdate, pipeline_stage: newPipelineStage };
+      setTransactions(prev =>
         prev.map(t => t.id === transactionId ? updatedTransaction : t)
       );
     }
-    
+
     try {
-      // Appel API en arrière-plan
-      await transactionsAPI.update(transactionId, {
-        status: newStatus,
-      });
-      // Recharger les transactions pour s'assurer que tout est synchronisé
-      // mais sans bloquer l'UI (on ne met pas setLoading(true))
+      await transactionsAPI.update(transactionId, { pipeline_stage: newPipelineStage });
       await loadTransactions();
     } catch (err) {
-      // En cas d'erreur, restaurer l'état précédent
       if (transactionToUpdate) {
-        setTransactions(prev => 
+        setTransactions(prev =>
           prev.map(t => t.id === transactionId ? transactionToUpdate : t)
         );
       }
-      const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la mise à jour du statut';
+      const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la mise à jour de l\'étape';
       setError(errorMessage);
     }
   };

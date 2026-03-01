@@ -232,7 +232,8 @@ async def create_transaction(
             transaction_dict["mortgage_advisor_contact"] = transaction_data.mortgage_advisor.get("contact")
         
         transaction_dict["user_id"] = current_user.id
-        
+        transaction_dict.setdefault("pipeline_stage", "creation_dossier")
+
         transaction = RealEstateTransaction(**transaction_dict)
         db.add(transaction)
         await db.commit()

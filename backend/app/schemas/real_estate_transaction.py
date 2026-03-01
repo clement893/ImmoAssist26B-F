@@ -156,6 +156,7 @@ class RealEstateTransactionCreate(BaseModel):
 class RealEstateTransactionUpdate(BaseModel):
     """Schéma pour mettre à jour une transaction - tous les champs sont optionnels"""
     status: Optional[str] = None
+    pipeline_stage: Optional[str] = None
     expected_closing_date: Optional[date] = None
     actual_closing_date: Optional[date] = None
     property_address: Optional[str] = None
@@ -247,6 +248,7 @@ class RealEstateTransactionResponse(BaseModel):
     name: str
     dossier_number: Optional[str] = None
     status: str
+    pipeline_stage: Optional[str] = None
     created_at: datetime
     expected_closing_date: Optional[date] = None
     actual_closing_date: Optional[date] = None
