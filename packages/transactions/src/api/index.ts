@@ -95,7 +95,7 @@ export function createRealEstateContactsAPI(config: TransactionsAPIConfig) {
      * Create a new contact
      */
     async create(data: RealEstateContactCreate): Promise<{ data: RealEstateContact }> {
-      const response = await apiClient.post<RealEstateContact>('/real-estate-contacts', data);
+      const response = await apiClient.post<RealEstateContact>('/v1/real-estate-contacts', data);
       return { data: extractApiData<RealEstateContact>(response.data || response) };
     },
 
@@ -108,7 +108,7 @@ export function createRealEstateContactsAPI(config: TransactionsAPIConfig) {
       type?: ContactType;
       search?: string;
     }): Promise<{ data: RealEstateContactListResponse }> {
-      const response = await apiClient.get<RealEstateContactListResponse>('/real-estate-contacts', { params });
+      const response = await apiClient.get<RealEstateContactListResponse>('/v1/real-estate-contacts', { params });
       return { data: extractApiData<RealEstateContactListResponse>(response.data || response) };
     },
 
@@ -116,7 +116,7 @@ export function createRealEstateContactsAPI(config: TransactionsAPIConfig) {
      * Get a specific contact by ID
      */
     async get(id: number): Promise<{ data: RealEstateContact }> {
-      const response = await apiClient.get<RealEstateContact>(`/real-estate-contacts/${id}`);
+      const response = await apiClient.get<RealEstateContact>(`/v1/real-estate-contacts/${id}`);
       return { data: extractApiData<RealEstateContact>(response.data || response) };
     },
 
@@ -124,7 +124,7 @@ export function createRealEstateContactsAPI(config: TransactionsAPIConfig) {
      * Update a contact
      */
     async update(id: number, data: RealEstateContactUpdate): Promise<{ data: RealEstateContact }> {
-      const response = await apiClient.put<RealEstateContact>(`/real-estate-contacts/${id}`, data);
+      const response = await apiClient.put<RealEstateContact>(`/v1/real-estate-contacts/${id}`, data);
       return { data: extractApiData<RealEstateContact>(response.data || response) };
     },
 
@@ -132,7 +132,7 @@ export function createRealEstateContactsAPI(config: TransactionsAPIConfig) {
      * Delete a contact
      */
     async delete(id: number): Promise<void> {
-      await apiClient.delete(`/real-estate-contacts/${id}`);
+      await apiClient.delete(`/v1/real-estate-contacts/${id}`);
     },
 
     /**

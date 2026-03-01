@@ -28,7 +28,7 @@ export const realEstateContactsAPI = {
    * Create a new contact
    */
   async create(data: RealEstateContactCreate): Promise<{ data: RealEstateContact }> {
-    const response = await apiClient.post<RealEstateContact>('/real-estate-contacts', data);
+    const response = await apiClient.post<RealEstateContact>('/v1/real-estate-contacts', data);
     return { data: extractApiData<RealEstateContact>(response) };
   },
 
@@ -36,7 +36,7 @@ export const realEstateContactsAPI = {
    * List all contacts with optional filters
    */
   async list(params?: ListContactsParams): Promise<{ data: RealEstateContactListResponse }> {
-    const response = await apiClient.get<RealEstateContactListResponse>('/real-estate-contacts', { params });
+    const response = await apiClient.get<RealEstateContactListResponse>('/v1/real-estate-contacts', { params });
     return { data: extractApiData<RealEstateContactListResponse>(response) };
   },
 
@@ -44,7 +44,7 @@ export const realEstateContactsAPI = {
    * Get a specific contact by ID
    */
   async get(id: number): Promise<{ data: RealEstateContact }> {
-    const response = await apiClient.get<RealEstateContact>(`/real-estate-contacts/${id}`);
+    const response = await apiClient.get<RealEstateContact>(`/v1/real-estate-contacts/${id}`);
     return { data: extractApiData<RealEstateContact>(response) };
   },
 
@@ -52,7 +52,7 @@ export const realEstateContactsAPI = {
    * Update a contact
    */
   async update(id: number, data: RealEstateContactUpdate): Promise<{ data: RealEstateContact }> {
-    const response = await apiClient.put<RealEstateContact>(`/real-estate-contacts/${id}`, data);
+    const response = await apiClient.put<RealEstateContact>(`/v1/real-estate-contacts/${id}`, data);
     return { data: extractApiData<RealEstateContact>(response) };
   },
 
@@ -60,7 +60,7 @@ export const realEstateContactsAPI = {
    * Delete a contact
    */
   async delete(id: number): Promise<void> {
-    await apiClient.delete(`/real-estate-contacts/${id}`);
+    await apiClient.delete(`/v1/real-estate-contacts/${id}`);
   },
 
   /**
