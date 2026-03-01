@@ -24,10 +24,10 @@ COPY packages/config/package.json ./packages/config/
 
 # Install dependencies
 # Sharp will automatically download prebuilt binaries (faster than building from source)
-# BuildKit cache mount: persist .pnpm-store between builds (Railway requires id=)
-RUN --mount=type=cache,id=pnpm-store,target=/app/.pnpm-store \
-    pnpm config set store-dir .pnpm-store && \
-    pnpm install --frozen-lockfile || \
+# Note: Railway cache mounts require id=s/<service-id>-<path> (see docs.railway.app/reference/dockerfiles).
+# Configure pnpm store and install
+RUN pnpm config set store-dir .pnpm-store
+RUN pnpm install --frozen-lockfile || \
     (echo "Retrying installation with relaxed lockfile..." && sleep 5 && pnpm install --no-frozen-lockfile) || \
     (echo "Final retry..." && pnpm install --no-frozen-lockfile)
 
