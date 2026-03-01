@@ -6,6 +6,7 @@ import Textarea from '@/components/ui/Textarea';
 import Select from '@/components/ui/Select';
 import Button from '@/components/ui/Button';
 import { Plus, X } from 'lucide-react';
+import AddressAutocompleteInput, { type AddressResult } from '@/components/transactions/AddressAutocompleteInput';
 
 interface Person {
   name: string;
@@ -317,11 +318,21 @@ export default function TransactionForm({ onSubmit, onCancel, initialData, isLoa
         {/* 2. Propriété */}
         {activeTab === 'property' && (
           <div className="space-y-4">
-            <Input
+            <AddressAutocompleteInput
               label="Adresse complète *"
               value={formData.property_address}
-              onChange={(e) => setFormData({ ...formData, property_address: e.target.value })}
+              onChange={(v) => setFormData({ ...formData, property_address: v })}
+              onSelect={(result) => {
+                setFormData((prev) => ({
+                  ...prev,
+                  property_address: result.address,
+                  property_city: result.city ?? prev.property_city,
+                  property_postal_code: result.postal_code ?? prev.property_postal_code,
+                  property_province: result.province ?? prev.property_province,
+                }));
+              }}
               required
+              placeholder="Rechercher une adresse (Google)"
             />
             <div className="grid grid-cols-2 gap-4">
               <Input

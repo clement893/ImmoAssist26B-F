@@ -11,6 +11,7 @@ import StatusStepper from '@/components/transactions/StatusStepper';
 import TransactionStepsV2 from '@/components/transactions/TransactionStepsV2';
 import TransactionFormsTab from '@/components/transactions/TransactionFormsTab';
 import AddContactToTransactionModal from '@/components/transactions/AddContactToTransactionModal';
+import AddressAutocompleteInput, { type AddressResult } from '@/components/transactions/AddressAutocompleteInput';
 import { calculateTransactionSteps } from '@/lib/transactions/progression';
 import { useToast } from '@/components/ui';
 import { 
@@ -31,6 +32,7 @@ import {
   Star,
   Bot,
   DollarSign,
+  MapPin,
 } from 'lucide-react';
 
 interface Transaction {
@@ -120,7 +122,7 @@ interface Transaction {
 }
 
 
-const TAB_IDS = ['steps', 'documents', 'activity', 'photos', 'forms', 'contacts', 'lea'] as const;
+const TAB_IDS = ['steps', 'documents', 'activity', 'photos', 'forms', 'contacts', 'map', 'lea'] as const;
 
 export default function TransactionDetailPage() {
   const params = useParams();
@@ -129,6 +131,7 @@ export default function TransactionDetailPage() {
   const searchParams = useSearchParams();
   const { showToast } = useToast();
   const transactionId = params.id as string;
+  const locale = (params?.locale as string) || 'fr';
   
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [loading, setLoading] = useState(true);
@@ -141,6 +144,14 @@ export default function TransactionDetailPage() {
   const [showAddContactModal, setShowAddContactModal] = useState(false);
   const [leaConversations, setLeaConversations] = useState<Array<{ session_id: string; title: string; updated_at: string | null }>>([]);
   const [leaConversationsLoading, setLeaConversationsLoading] = useState(false);
+  const [showEditAddressModal, setShowEditAddressModal] = useState(false);
+  const [editAddressSaving, setEditAddressSaving] = useState(false);
+  const [editAddressForm, setEditAddressForm] = useState({
+    property_address: '',
+    property_city: '',
+    property_postal_code: '',
+    property_province: 'QC',
+  });
 
   // Sync active tab with URL ?tab=...
   useEffect(() => {
@@ -307,6 +318,7 @@ export default function TransactionDetailPage() {
     { id: 'photos', label: 'Photos', icon: ImageIcon },
     { id: 'forms', label: 'Formulaire', icon: FileCheck },
     { id: 'contacts', label: 'Contacts', icon: Users },
+    { id: 'map', label: 'Carte', icon: MapPin },
     { id: 'lea', label: 'Léa', icon: Bot },
   ];
 
@@ -645,6 +657,80 @@ export default function TransactionDetailPage() {
               </div>
             )}
 
+            {/* Carte – Adresse sur la carte */}
+            {activeTab === 'map' && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900">Adresse du bien</h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditAddressForm({
+                        property_address: transaction.property_address || '',
+                        property_city: transaction.property_city || '',
+                        property_postal_code: transaction.property_postal_code || '',
+                        property_province: transaction.property_province || 'QC',
+                      });
+                      setShowEditAddressModal(true);
+                    }}
+                    className="px-4 py-2 bg-blue-500 text-white rounded-2xl text-sm font-medium hover:bg-blue-600 transition-colors inline-flex items-center gap-2"
+                  >
+                    <Edit className="w-4 h-4" />
+                    Modifier l&apos;adresse
+                  </button>
+                </div>
+                {(() => {
+                  const fullAddress = [
+                    transaction.property_address,
+                    transaction.property_city,
+                    transaction.property_province,
+                    transaction.property_postal_code,
+                  ].filter(Boolean).join(', ');
+                  if (!fullAddress) {
+                    return (
+                      <div className="text-center py-12 text-gray-500">
+                        <MapPin className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                        <p className="mb-2">Aucune adresse enregistrée pour cette transaction</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditAddressForm({
+                              property_address: '',
+                              property_city: '',
+                              property_postal_code: '',
+                              property_province: 'QC',
+                            });
+                            setShowEditAddressModal(true);
+                          }}
+                          className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                        >
+                          Ajouter une adresse
+                        </button>
+                      </div>
+                    );
+                  }
+                  const mapUrl = `https://www.google.com/maps?q=${encodeURIComponent(fullAddress)}&output=embed`;
+                  return (
+                    <div className="space-y-4">
+                      <p className="text-sm text-gray-600">{fullAddress}</p>
+                      <div className="rounded-2xl overflow-hidden border border-gray-200 bg-gray-100" style={{ minHeight: 400 }}>
+                        <iframe
+                          title="Carte de l'adresse"
+                          src={mapUrl}
+                          width="100%"
+                          height="400"
+                          style={{ border: 0 }}
+                          allowFullScreen
+                          loading="lazy"
+                          referrerPolicy="no-referrer-when-downgrade"
+                        />
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
             {/* Léa – Conversations liées à cette transaction */}
             {activeTab === 'lea' && (
               <div className="space-y-6">
@@ -652,7 +738,7 @@ export default function TransactionDetailPage() {
                   <h3 className="text-lg font-semibold text-gray-900">Conversations Léa</h3>
                   <button
                     type="button"
-                    onClick={() => router.push(`/dashboard/lea2`)}
+                    onClick={() => router.push(`/${locale}/dashboard/lea2`)}
                     className="px-4 py-2 bg-blue-500 text-white rounded-2xl text-sm font-medium hover:bg-blue-600 transition-colors inline-flex items-center gap-2"
                   >
                     <Bot className="w-4 h-4" />
@@ -684,7 +770,7 @@ export default function TransactionDetailPage() {
                         </div>
                         <button
                           type="button"
-                          onClick={() => router.push(`/dashboard/lea2?session=${encodeURIComponent(c.session_id)}`)}
+                          onClick={() => router.push(`/${locale}/dashboard/lea2?session=${encodeURIComponent(c.session_id)}`)}
                           className="px-4 py-2 bg-blue-500 text-white rounded-xl text-sm font-medium hover:bg-blue-600 transition-colors"
                         >
                           Ouvrir
@@ -699,7 +785,7 @@ export default function TransactionDetailPage() {
                     <p className="text-sm mb-4">Les conversations sont enregistrées lorsque vous parlez de cette transaction avec Léa.</p>
                     <button
                       type="button"
-                      onClick={() => router.push('/dashboard/lea2')}
+                      onClick={() => router.push(`/${locale}/dashboard/lea2`)}
                       className="text-blue-600 hover:text-blue-700 text-sm font-medium"
                     >
                       Démarrer une conversation avec Léa
@@ -930,6 +1016,94 @@ export default function TransactionDetailPage() {
             showToast({ message: 'Contact ajouté à la transaction', type: 'success' });
           }}
         />
+
+        {/* Modal: Modifier l'adresse */}
+        {showEditAddressModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+            <div className="bg-white rounded-3xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-8">
+              <h3 className="text-lg font-semibold text-gray-900 mb-6">Modifier l&apos;adresse</h3>
+              <div className="space-y-4">
+                <AddressAutocompleteInput
+                  label="Adresse complète"
+                  value={editAddressForm.property_address}
+                  onChange={(v) => setEditAddressForm((prev) => ({ ...prev, property_address: v }))}
+                  onSelect={(result: AddressResult) => {
+                    setEditAddressForm((prev) => ({
+                      ...prev,
+                      property_address: result.address,
+                      property_city: result.city ?? prev.property_city,
+                      property_postal_code: result.postal_code ?? prev.property_postal_code,
+                      property_province: result.province ?? prev.property_province,
+                    }));
+                  }}
+                  placeholder="Rechercher une adresse (Google)"
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <input
+                    type="text"
+                    placeholder="Ville"
+                    value={editAddressForm.property_city}
+                    onChange={(e) => setEditAddressForm((prev) => ({ ...prev, property_city: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Code postal"
+                    value={editAddressForm.property_postal_code}
+                    onChange={(e) => setEditAddressForm((prev) => ({ ...prev, property_postal_code: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Province (ex. QC)"
+                  value={editAddressForm.property_province}
+                  onChange={(e) => setEditAddressForm((prev) => ({ ...prev, property_province: e.target.value }))}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="flex justify-end gap-3 mt-8">
+                <button
+                  type="button"
+                  onClick={() => setShowEditAddressModal(false)}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  disabled={editAddressSaving}
+                  onClick={async () => {
+                    try {
+                      setEditAddressSaving(true);
+                      const id = parseInt(transactionId, 10);
+                      const response = await transactionsAPI.update(id, {
+                        property_address: editAddressForm.property_address || undefined,
+                        property_city: editAddressForm.property_city || undefined,
+                        property_postal_code: editAddressForm.property_postal_code || undefined,
+                        property_province: editAddressForm.property_province || undefined,
+                      });
+                      if (response?.data) setTransaction(response.data);
+                      else await reloadTransaction();
+                      setShowEditAddressModal(false);
+                      showToast({ message: 'Adresse mise à jour', type: 'success' });
+                    } catch (err) {
+                      showToast({
+                        message: err instanceof Error ? err.message : 'Erreur lors de la mise à jour',
+                        type: 'error',
+                      });
+                    } finally {
+                      setEditAddressSaving(false);
+                    }
+                  }}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors disabled:opacity-50"
+                >
+                  {editAddressSaving ? 'Enregistrement...' : 'Enregistrer'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
