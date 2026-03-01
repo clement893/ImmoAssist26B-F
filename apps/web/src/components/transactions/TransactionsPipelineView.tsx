@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from '@/i18n/routing';
-import { Plus, Search, Filter, MoreVertical, MapPin, DollarSign, Users, Calendar, Home } from 'lucide-react';
+import { Plus, Search, Filter, MapPin, DollarSign, Users, Calendar, Home } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import TransactionImage from '@/components/transactions/TransactionImage';
