@@ -98,13 +98,26 @@ export function getNavigationConfig(isAdmin?: boolean, isClient?: boolean): Navi
         },
         {
           name: 'Léa',
-          href: '/dashboard/lea',
           icon: <MessageSquare className="w-5 h-5" />,
-        },
-        {
-          name: 'Léa2',
-          href: '/dashboard/lea2',
-          icon: <Mic className="w-5 h-5" />,
+          items: [
+            {
+              name: 'Assistante',
+              href: '/dashboard/lea',
+              icon: <MessageSquare className="w-5 h-5" />,
+            },
+            {
+              name: 'Léa2',
+              href: '/dashboard/lea2',
+              icon: <Mic className="w-5 h-5" />,
+            },
+            {
+              name: 'Paramètres Léa',
+              href: '/dashboard/modules/admin/parametres-lea',
+              icon: <Sliders className="w-5 h-5" />,
+            },
+          ],
+          collapsible: true,
+          defaultOpen: false,
         },
         {
           name: 'Mes transactions',
@@ -179,16 +192,29 @@ export function getNavigationConfig(isAdmin?: boolean, isClient?: boolean): Navi
         href: '/dashboard',
         icon: <LayoutDashboard className="w-5 h-5" />,
       },
-      // Léa - Assistant IA (lien direct pour visibilité maximale)
+      // Léa - Assistant IA (groupe avec lien paramètres)
       {
         name: 'Léa',
-        href: '/dashboard/lea',
         icon: <MessageSquare className="w-5 h-5" />,
-      },
-      {
-        name: 'Léa2',
-        href: '/dashboard/lea2',
-        icon: <Mic className="w-5 h-5" />,
+        items: [
+          {
+            name: 'Assistante',
+            href: '/dashboard/lea',
+            icon: <MessageSquare className="w-5 h-5" />,
+          },
+          {
+            name: 'Léa2',
+            href: '/dashboard/lea2',
+            icon: <Mic className="w-5 h-5" />,
+          },
+          {
+            name: 'Paramètres Léa',
+            href: '/dashboard/modules/admin/parametres-lea',
+            icon: <Sliders className="w-5 h-5" />,
+          },
+        ],
+        collapsible: true,
+        defaultOpen: false,
       },
       // Mes transactions et Mes contacts - entrées visibles dans le menu
       {
