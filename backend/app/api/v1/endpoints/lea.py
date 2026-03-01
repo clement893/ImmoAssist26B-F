@@ -1129,10 +1129,11 @@ async def lea_chat(
 ):
     """
     Chat with Léa AI assistant.
-    Utilise l'agent externe si configuré, sinon l'IA intégrée (OpenAI/Anthropic) avec accès aux transactions.
+    Utilise l'IA intégrée (OpenAI/Anthropic) si configurée, pour que le modèle reçoive toujours
+    le contexte plateforme et les actions ; sinon utilise l'agent externe en secours.
     """
-    # 1) IA intégrée (avec contexte plateforme) si pas d'agent externe
-    if not _use_external_agent() and _use_integrated_lea():
+    # 1) IA intégrée en priorité : contexte + actions sont injectés dans le prompt → Léa peut confirmer les actions
+    if _use_integrated_lea():
         try:
             action_lines, created_tx = await run_lea_actions(db, current_user.id, request.message)
             user_context = await get_lea_user_context(db, current_user.id)
