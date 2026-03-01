@@ -42,6 +42,8 @@ export default function Lea2View() {
   const prevListeningRef = useRef(false);
   const justSentFromVoiceRef = useRef(false);
   const vocalTermineSentRef = useRef(false);
+  const restartListeningAfterResponseRef = useRef(false);
+  const prevIsSpeakingRef = useRef(false);
 
   const hasMessages = messages.length > 0;
   const firstName = user?.name?.split(' ')[0] || 'Vous';
@@ -85,6 +87,7 @@ export default function Lea2View() {
     justSentFromVoiceRef.current = true;
     setInput('');
     if (messageToSend) sendMessage(messageToSend);
+    restartListeningAfterResponseRef.current = true;
   }, [isListening, transcript, stopListening, sendMessage]);
 
   // Auto-speak assistant responses
@@ -106,6 +109,27 @@ export default function Lea2View() {
     if (!autoSpeak) lastSpokenMessageRef.current = null;
   }, [messages, autoSpeak, ttsSupported, isSpeaking, speak]);
 
+  // Réactiver le micro après la réponse de Léa pour enchaîner la conversation (vocal terminé / arrêt clic)
+  useEffect(() => {
+    if (!voiceSupported || isListening || isLoading) return;
+    const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
+    const lastIsAssistant = lastMessage?.role === 'assistant';
+    if (!lastIsAssistant || !restartListeningAfterResponseRef.current) return;
+
+    // Avec TTS : réactiver seulement quand Léa a fini de parler
+    if (autoSpeak && ttsSupported) {
+      if (prevIsSpeakingRef.current && !isSpeaking) {
+        restartListeningAfterResponseRef.current = false;
+        startListening().catch(() => {});
+      }
+    } else {
+      // Sans TTS : réactiver dès que la réponse est là
+      restartListeningAfterResponseRef.current = false;
+      startListening().catch(() => {});
+    }
+    prevIsSpeakingRef.current = isSpeaking;
+  }, [isLoading, messages, isSpeaking, autoSpeak, ttsSupported, voiceSupported, isListening, startListening]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -119,6 +143,7 @@ export default function Lea2View() {
         justSentFromVoiceRef.current = true;
         setInput('');
         sendMessage(text);
+        restartListeningAfterResponseRef.current = true;
       }
     } else {
       try {

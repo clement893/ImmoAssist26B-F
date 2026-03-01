@@ -18,7 +18,7 @@ export type DropdownItem =
 interface DropdownProps {
   trigger: ReactNode;
   items: DropdownItem[];
-  position?: 'left' | 'right' | 'top' | 'bottom';
+  position?: 'left' | 'right' | 'top' | 'bottom' | 'bottom-end' | 'bottom-start';
   className?: string;
 }
 
@@ -57,12 +57,15 @@ export default function Dropdown({ trigger, items, position = 'bottom', classNam
     };
   }, [isOpen]);
 
-  const positions = {
+  const positions: Record<string, string> = {
     bottom: 'top-full left-0 mt-1',
     top: 'bottom-full left-0 mb-1',
     left: 'right-full top-0 mr-1',
     right: 'left-full top-0 ml-1',
+    'bottom-end': 'top-full right-0 mt-1',
+    'bottom-start': 'top-full left-0 mt-1',
   };
+  const positionClasses = positions[position] ?? positions.bottom;
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -164,7 +167,7 @@ export default function Dropdown({ trigger, items, position = 'bottom', classNam
             'absolute z-50 rounded-lg shadow-standard-lg border py-1 min-w-[200px]', // UI Revamp - Nouveau système d'ombres
             // Use glassmorphism background if enabled, otherwise use default
             hasEffect('glassmorphism') ? '' : 'bg-background border-border',
-            positions[position]
+            positionClasses
           )}
           style={glassmorphismStyles}
         >

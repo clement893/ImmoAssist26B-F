@@ -193,6 +193,9 @@ async def create_transaction(
         
         # Create transaction object
         transaction_dict = transaction_data.model_dump(exclude={"seller_broker", "buyer_broker", "notary", "inspector", "surveyor", "mortgage_advisor"})
+        # Éviter contrainte unique sur dossier_number vide : utiliser None au lieu de ""
+        if not (transaction_dict.get("dossier_number") or "").strip():
+            transaction_dict["dossier_number"] = None
         
         # Handle professionals separately
         if transaction_data.seller_broker:

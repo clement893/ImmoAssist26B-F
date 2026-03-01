@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies import get_current_user, require_admin_or_superadmin
-from app.models import User
+from app.models import User, RealEstateTransaction, PortailTransaction
 from app.database import get_db
 from app.services.lea_service import LeaService
 from app.services.ai_service import AIService, AIProvider
@@ -40,9 +40,11 @@ AGENT_ERR_MSG = (
 LEA_SYSTEM_PROMPT = (
     "Tu es Léa, une assistante immobilière experte au Québec. "
     "Tu aides les courtiers et les particuliers : transactions, formulaires OACIQ, vente, achat.\n\n"
-    "Tu as accès aux informations de la plateforme de l'utilisateur connecté (ses transactions, dossiers). "
-    "Utilise-les pour répondre aux questions sur ses dossiers en cours, ses transactions, etc. "
-    "Si on te donne un résumé de ses transactions ci-dessous, base-toi dessus pour répondre.\n\n"
+    "Tu as TOUJOURS accès aux données de la plateforme pour l'utilisateur connecté. "
+    "Un bloc « Données plateforme » est fourni ci-dessous avec ses transactions et dossiers. "
+    "Base-toi UNIQUEMENT sur ces données pour répondre aux questions sur ses transactions en cours, ses dossiers, etc. "
+    "Si les listes sont vides, dis clairement que l'utilisateur n'a pas encore de transaction ou de dossier (ne dis jamais que tu n'as pas accès). "
+    "Propose alors d'aller dans la section Transactions pour en créer un.\n\n"
     "Règles importantes:\n"
     "- Réponds en français, de façon courtoise et professionnelle.\n"
     "- Garde tes réponses **courtes** (2 à 4 phrases max), sauf si l'utilisateur demande explicitement plus de détails.\n"
@@ -124,7 +126,7 @@ async def get_lea_user_context(db: AsyncSession, user_id: int) -> str:
     Récupère un résumé des transactions de l'utilisateur (dossiers immo + portail)
     pour l'injecter dans le contexte de Léa.
     """
-    lines = []
+    lines = ["Données plateforme (transactions et dossiers de l'utilisateur connecté) :"]
     try:
         # Transactions immobilières (dossiers du courtier)
         q_re = (
@@ -142,7 +144,7 @@ async def get_lea_user_context(db: AsyncSession, user_id: int) -> str:
                 num = t.dossier_number or f"#{t.id}"
                 lines.append(f"  - {num}: {t.name} — {addr} — statut: {t.status}")
         else:
-            lines.append("Aucune transaction immobilière (dossier) enregistrée.")
+            lines.append("Transactions immobilières : aucune pour le moment. (L'utilisateur n'a pas encore de dossier.)")
 
         # Dossiers portail client (où l'utilisateur est le courtier)
         q_pt = (
@@ -159,10 +161,10 @@ async def get_lea_user_context(db: AsyncSession, user_id: int) -> str:
                 addr = t.adresse or t.ville or "—"
                 lines.append(f"  - {t.type} — {addr} — statut: {t.statut}")
         else:
-            lines.append("Aucun dossier portail client.")
+            lines.append("Dossiers portail client : aucun pour le moment.")
     except Exception as e:
-        logger.warning(f"get_lea_user_context: {e}")
-        return "Impossible de charger les transactions pour le moment."
+        logger.warning(f"get_lea_user_context: {e}", exc_info=True)
+        return "Données plateforme : temporairement indisponibles. (Dire à l'utilisateur de réessayer dans un instant.)"
     return "\n".join(lines)
 
 

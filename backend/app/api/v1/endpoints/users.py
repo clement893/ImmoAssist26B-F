@@ -400,7 +400,11 @@ async def update_current_user(
         
         logger.info(f"User profile updated successfully for: {current_user.email}")
         
-        return current_user
+        # Retourner une Response explicite pour éviter l'erreur slowapi "parameter response must be an instance of starlette.responses.Response"
+        return JSONResponse(
+            content=UserResponse.model_validate(current_user).model_dump(mode="json"),
+            media_type="application/json",
+        )
         
     except HTTPException:
         raise

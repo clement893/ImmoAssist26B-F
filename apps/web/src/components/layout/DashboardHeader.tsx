@@ -48,6 +48,8 @@ export interface DashboardHeaderProps {
   onMobileMenuToggle?: () => void;
   /** Mobile menu open state */
   mobileMenuOpen?: boolean;
+  /** Logout handler for Déconnexion in user menu */
+  onLogout?: () => void;
 }
 
 export default function DashboardHeader({
@@ -63,6 +65,7 @@ export default function DashboardHeader({
   className,
   onMobileMenuToggle,
   mobileMenuOpen = false,
+  onLogout,
 }: DashboardHeaderProps) {
   const [searchValue, setSearchValue] = useState('');
   const router = useRouter();
@@ -72,13 +75,13 @@ export default function DashboardHeader({
     onSearchChange?.(value);
   };
 
-  // Default user menu items
+  // Default user menu items (Déconnexion appelle onLogout)
   const defaultUserMenuItems: DropdownItem[] = [
     ...userMenuItems,
     { label: 'Mon profil', onClick: () => router.push('/dashboard/modules/profil') },
     { label: 'Paramètres', onClick: () => router.push('/dashboard/modules/profil/settings') },
     { divider: true },
-    { label: 'Déconnexion', onClick: () => {}, variant: 'danger' },
+    { label: 'Déconnexion', onClick: () => onLogout?.(), variant: 'danger' },
   ];
 
   return (
@@ -187,7 +190,7 @@ export default function DashboardHeader({
                   </button>
                 }
                 items={defaultUserMenuItems}
-                position="right"
+                position="bottom-end"
               />
             )}
           </div>

@@ -82,6 +82,7 @@ function DashboardLayoutContent({ children }: DashboardLayoutProps) {
         onMobileMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
         mobileMenuOpen={mobileMenuOpen}
         showSearch={true}
+        onLogout={handleDesktopLogoutClick}
       />
 
       {/* Mobile/Tablet Sidebar Overlay */}
