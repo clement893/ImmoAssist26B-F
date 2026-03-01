@@ -9,7 +9,7 @@ import os
 import re
 import unicodedata
 import uuid
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional, Literal, List, Tuple, Any
 
@@ -21,7 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies import get_current_user, require_admin_or_superadmin
 from app.models import User, RealEstateTransaction, PortailTransaction, RealEstateContact, TransactionContact, ContactType
-from app.models.lea_conversation import LeaSessionTransactionLink
+from app.models.lea_conversation import LeaSessionTransactionLink, LeaConversation
 from app.models.form import Form, FormSubmission, FormSubmissionVersion
 from app.database import get_db
 from app.services.lea_service import LeaService
@@ -146,9 +146,9 @@ class LeaSettingsUpdate(BaseModel):
 LEA_CAPABILITIES = [
     {"id": "create_transaction", "label": "Créer une transaction", "description": "Léa peut créer un dossier (transaction d'achat ou de vente) depuis la conversation."},
     {"id": "update_transaction", "label": "Modifier une transaction", "description": "Léa peut mettre à jour l'adresse, la promesse d'achat, etc. sur une transaction existante."},
-    {"id": "create_contact", "label": "Créer un contact", "description": "Léa peut créer un contact dans le Réseau (API contacts)."},
-    {"id": "update_contact", "label": "Modifier un contact", "description": "Léa peut modifier un contact existant dans le Réseau."},
-    {"id": "access_oaciq_forms", "label": "Accéder aux formulaires OACIQ", "description": "Léa peut consulter la liste et les détails des formulaires OACIQ."},
+    {"id": "create_contact", "label": "Créer un contact", "description": "À venir : Léa pourra créer un contact dans le Réseau (API contacts)."},
+    {"id": "update_contact", "label": "Modifier un contact", "description": "À venir : Léa pourra modifier un contact existant dans le Réseau."},
+    {"id": "access_oaciq_forms", "label": "Accéder aux formulaires OACIQ", "description": "À venir : Léa pourra consulter la liste et les détails des formulaires OACIQ."},
     {"id": "modify_oaciq_forms", "label": "Modifier des formulaires OACIQ", "description": "Léa peut créer ou modifier des soumissions de formulaires OACIQ."},
 ]
 
@@ -212,6 +212,9 @@ async def get_lea_user_context(db: AsyncSession, user_id: int) -> str:
             if latest.listing_price is not None or latest.offered_price is not None:
                 p = latest.listing_price or latest.offered_price
                 detail_parts.append(f"prix: {p:,.0f} $")
+            if getattr(latest, "expected_closing_date", None):
+                d = latest.expected_closing_date
+                detail_parts.append(f"date de clôture prévue: {d.strftime('%d/%m/%Y')}")
             if detail_parts:
                 lines.append(f"  → Dernière transaction ({latest.dossier_number or f'#{latest.id}'}) : {'; '.join(detail_parts)}.")
                 lines.append(f"  → Ne pas redemander les informations déjà enregistrées pour cette transaction.")
@@ -236,6 +239,28 @@ async def get_lea_user_context(db: AsyncSession, user_id: int) -> str:
             if missing:
                 ref = latest.dossier_number or f"#{latest.id}"
                 lines.append(f"  → Pour {ref}, infos à compléter : {', '.join(missing)}. Pose la question correspondante pour faire avancer le dossier.")
+            # Formulaires OACIQ pour la transaction la plus récente
+            try:
+                q_oaciq = (
+                    select(FormSubmission, Form.code)
+                    .join(Form, FormSubmission.form_id == Form.id)
+                    .where(
+                        FormSubmission.transaction_id == latest.id,
+                        Form.code.isnot(None),
+                    )
+                )
+                res_oaciq = await db.execute(q_oaciq)
+                oaciq_rows = res_oaciq.all()
+                if oaciq_rows:
+                    draft_count = sum(1 for row in oaciq_rows if getattr(row[0], "status", None) == "draft")
+                    total = len(oaciq_rows)
+                    codes = list({row[1] for row in oaciq_rows if row[1]})
+                    if draft_count > 0:
+                        lines.append(f"  → Formulaires OACIQ pour cette transaction : {total} formulaire(s) (dont {draft_count} en brouillon). Codes : {', '.join(codes)}.")
+                    else:
+                        lines.append(f"  → Formulaires OACIQ pour cette transaction : {total} formulaire(s). Codes : {', '.join(codes)}.")
+            except Exception:
+                pass
         else:
             lines.append("Transactions immobilières : aucune pour le moment. (L'utilisateur n'a pas encore de dossier.)")
 
@@ -1872,6 +1897,74 @@ async def link_lea_session_to_transaction(
         logger.warning(f"Lea link session to transaction failed: {e}", exc_info=True)
         await db.rollback()
 
+
+async def get_or_create_lea_conversation(
+    db: AsyncSession, user_id: int, session_id: str | None
+) -> Tuple[LeaConversation, str]:
+    """Retourne (conversation, session_id). Crée la conversation si besoin."""
+    if session_id:
+        r = await db.execute(
+            select(LeaConversation)
+            .where(LeaConversation.session_id == session_id)
+            .where(LeaConversation.user_id == user_id)
+        )
+        conv = r.scalar_one_or_none()
+        if conv:
+            return conv, session_id
+    sid = session_id or str(uuid.uuid4())
+    conv = LeaConversation(user_id=user_id, session_id=sid, messages=[], context={})
+    db.add(conv)
+    await db.commit()
+    await db.refresh(conv)
+    return conv, sid
+
+
+def build_llm_messages_from_history(
+    conversation_messages: list, new_user_message: str, max_turns: int = 10
+) -> list:
+    """Construit la liste de messages {role, content} pour le LLM à partir de l'historique."""
+    out = []
+    if conversation_messages:
+        for m in conversation_messages[-(max_turns * 2) :]:
+            if isinstance(m, dict) and m.get("role") in ("user", "assistant") and m.get("content"):
+                out.append({"role": m["role"], "content": m["content"]})
+    out.append({"role": "user", "content": new_user_message})
+    return out
+
+
+async def persist_lea_messages(
+    db: AsyncSession,
+    user_id: int,
+    session_id: str,
+    user_content: str,
+    assistant_content: str,
+    meta: Optional[dict] = None,
+) -> None:
+    """Enregistre le message utilisateur et la réponse assistant dans LeaConversation."""
+    if not session_id:
+        return
+    try:
+        conv, _ = await get_or_create_lea_conversation(db, user_id, session_id)
+        now = datetime.utcnow().isoformat()
+        user_msg = {"role": "user", "content": user_content, "timestamp": now}
+        asst_msg = {"role": "assistant", "content": assistant_content, "timestamp": now}
+        if meta:
+            if meta.get("actions"):
+                asst_msg["actions"] = meta["actions"]
+            if meta.get("model"):
+                asst_msg["model"] = meta["model"]
+            if meta.get("provider"):
+                asst_msg["provider"] = meta["provider"]
+            if meta.get("usage"):
+                asst_msg["usage"] = meta["usage"]
+        conv.messages = (conv.messages or []) + [user_msg, asst_msg]
+        conv.updated_at = datetime.utcnow()
+        await db.commit()
+    except Exception as e:
+        logger.warning(f"Lea persist messages failed: {e}", exc_info=True)
+        await db.rollback()
+
+
 LEA_TTS_FEMALE_VOICES = ("nova", "shimmer")
 
 
@@ -1952,12 +2045,18 @@ async def _stream_lea_sse(
     user_context: str | None = None,
     action_lines: list | None = None,
     confirmation_text: str | None = None,
+    *,
+    db: AsyncSession | None = None,
+    user_id: int | None = None,
+    user_message: str | None = None,
+    messages_for_llm: list | None = None,
 ):
     """
     Génère les événements SSE pour le chat Léa intégré (streaming).
     Si confirmation_text est fourni (ex: transaction créée), on envoie ce texte en stream
     sans appeler l'IA, pour garantir que l'utilisateur voit la confirmation.
     Envoie immédiatement un commentaire SSE pour éviter les timeouts proxy (503 Connection reset by peer).
+    Si db, user_id et session_id sont fournis, persiste user + assistant dans LeaConversation après le stream.
     """
     sid = session_id or str(uuid.uuid4())
     # Premier octet immédiat pour éviter timeout Varnish/Fastly (503 Connection reset by peer)
@@ -1971,19 +2070,28 @@ async def _stream_lea_sse(
             if action_lines:
                 payload["actions"] = action_lines
             yield f"data: {json.dumps(payload)}\n\n"
+            if db is not None and user_id is not None and sid:
+                await persist_lea_messages(
+                    db, user_id, sid,
+                    user_message or message, confirmation_text,
+                    meta={"actions": action_lines},
+                )
             return
         settings = get_settings()
         system = LEA_SYSTEM_PROMPT
         if user_context:
             system += "\n\n--- Informations actuelles de l'utilisateur (plateforme) ---\n" + user_context
         service = AIService(provider=AIProvider.AUTO)
-        messages = [{"role": "user", "content": message}]
+        messages = messages_for_llm if messages_for_llm else [{"role": "user", "content": message}]
+        accumulated = []
         async for delta in service.stream_chat_completion(
             messages=messages,
             system_prompt=system,
             max_tokens=getattr(settings, "LEA_MAX_TOKENS", 256),
         ):
+            accumulated.append(delta)
             yield f"data: {json.dumps({'delta': delta})}\n\n"
+        content = "".join(accumulated)
         payload = {"done": True, "session_id": sid}
         if action_lines:
             payload["actions"] = action_lines
@@ -1994,6 +2102,12 @@ async def _stream_lea_sse(
         if model is not None:
             payload["model"] = model
         yield f"data: {json.dumps(payload)}\n\n"
+        if db is not None and user_id is not None and sid:
+            await persist_lea_messages(
+                db, user_id, sid,
+                user_message or message, content,
+                meta={"actions": action_lines, "model": model, "provider": str(provider) if provider else None},
+            )
     except Exception as e:
         logger.error(f"Léa stream error: {e}", exc_info=True)
         yield f"data: {json.dumps({'error': str(e)})}\n\n"
@@ -2026,6 +2140,9 @@ async def lea_chat_stream(
         tx_to_link = created_tx if created_tx else await get_user_latest_transaction(db, current_user.id)
         if tx_to_link:
             await link_lea_session_to_transaction(db, current_user.id, request.session_id, tx_to_link.id)
+    # Charger l'historique pour le LLM
+    conv, sid = await get_or_create_lea_conversation(db, current_user.id, request.session_id)
+    messages_for_llm = build_llm_messages_from_history(conv.messages or [], request.message)
     # Quand une transaction vient d'être créée, confirmation directe en stream (comme pour l'agent externe)
     confirmation_text = None
     if created_tx and action_lines:
@@ -2038,10 +2155,14 @@ async def lea_chat_stream(
     return StreamingResponse(
         _stream_lea_sse(
             request.message,
-            request.session_id,
+            sid or request.session_id,
             user_context=user_context,
             action_lines=action_lines if action_lines else None,
             confirmation_text=confirmation_text,
+            db=db,
+            user_id=current_user.id,
+            user_message=request.message,
+            messages_for_llm=messages_for_llm,
         ),
         media_type="text/event-stream",
         headers={
@@ -2077,31 +2198,53 @@ async def lea_chat(
             # Quand une transaction vient d'être créée, renvoyer une confirmation directe (sans appeler l'IA)
             if created_tx and action_lines:
                 ref = created_tx.dossier_number or f"#{created_tx.id}"
+                confirmation_content = (
+                    f"C'est fait ! J'ai créé la transaction {ref} pour vous. "
+                    "Vous pouvez la voir et la compléter dans la section Transactions. "
+                    "Quelle est l'adresse du bien ?"
+                )
+                if request.session_id:
+                    await persist_lea_messages(
+                        db, current_user.id, request.session_id,
+                        request.message, confirmation_content,
+                        meta={"actions": action_lines},
+                    )
                 return LeaChatResponse(
-                    content=(
-                        f"C'est fait ! J'ai créé la transaction {ref} pour vous. "
-                        "Vous pouvez la voir et la compléter dans la section Transactions. "
-                        "Quelle est l'adresse du bien ?"
-                    ),
+                    content=confirmation_content,
                     session_id=request.session_id or "",
                     model=None,
                     provider=None,
                     usage={},
                     actions=action_lines,
                 )
+            # Charger l'historique pour le LLM
+            conv, sid = await get_or_create_lea_conversation(db, current_user.id, request.session_id)
+            messages_for_llm = build_llm_messages_from_history(conv.messages or [], request.message)
             system_prompt = LEA_SYSTEM_PROMPT
             if user_context:
                 system_prompt += "\n\n--- Informations actuelles de l'utilisateur (plateforme) ---\n" + user_context
             settings = get_settings()
             service = AIService(provider=AIProvider.AUTO)
             result = await service.chat_completion(
-                messages=[{"role": "user", "content": request.message}],
+                messages=messages_for_llm,
                 system_prompt=system_prompt,
                 max_tokens=getattr(settings, "LEA_MAX_TOKENS", 256),
             )
+            content = result.get("content", "")
+            if sid:
+                await persist_lea_messages(
+                    db, current_user.id, sid,
+                    request.message, content,
+                    meta={
+                        "actions": action_lines,
+                        "model": result.get("model"),
+                        "provider": result.get("provider"),
+                        "usage": result.get("usage"),
+                    },
+                )
             return LeaChatResponse(
-                content=result.get("content", ""),
-                session_id=request.session_id or "",
+                content=content,
+                session_id=sid or request.session_id or "",
                 model=result.get("model"),
                 provider=result.get("provider"),
                 usage=result.get("usage", {}),
