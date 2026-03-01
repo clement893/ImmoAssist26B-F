@@ -190,6 +190,7 @@ async def get_lea_user_context(db: AsyncSession, user_id: int) -> str:
             latest = re_list[0]
             ref_latest = latest.dossier_number or f"#{latest.id}"
             lines.append(f"  → Transaction la plus récente (à utiliser par défaut) : {ref_latest}.")
+            lines.append("  → Ne jamais mentionner ou basculer vers une autre transaction sauf si l'utilisateur le demande explicitement par son numéro.")
             for t in re_list:
                 addr = t.property_address or t.property_city or "Sans adresse"
                 num = t.dossier_number or f"#{t.id}"
@@ -603,7 +604,9 @@ def _extract_address_from_message(message: str) -> Optional[str]:
         s = re.sub(r"\s+(?:donc\s+)?à\s+terminer\s*$", "", s, flags=re.I).strip()
         s = re.sub(r"\s+terminé\s*$", "", s, flags=re.I).strip()
         s = re.sub(r"\s+(?:local|locales|elle|vocal|vacal)\s+terminé\s*$", "", s, flags=re.I).strip()
-        # Collapse digits separated by spaces: "6 8 4 0" -> "6840"
+        # "local" / "locales" seuls en fin (artefact vocal après "local terminé" coupé)
+        s = re.sub(r"\s+local(?:es)?\s*$", "", s, flags=re.I).strip()
+        # Collapse digits
         s = re.sub(r'\b(\d)\s+(\d)\s+(\d)\s+(\d)\b', r'\1\2\3\4', s)
         s = re.sub(r'\b(\d)\s+(\d)\s+(\d)\b', r'\1\2\3', s)
         s = re.sub(r'\b(\d)\s+(\d)\b', r'\1\2', s)
@@ -638,9 +641,14 @@ def _extract_address_from_message(message: str) -> Optional[str]:
             addr = normalize_address(m.group(1).strip())
             if len(addr) >= 5 and any(c.isdigit() for c in addr):
                 return addr
-    # "le bien est au X" / "est au X" / "c'est au X" (vocal: "le biais est au 56 26 de Lorimier")
-    for prefix in (r"le\s+bien\s+est\s+au\s+", r"le\s+biais\s+est\s+au\s+", r"est\s+au\s+", r"c'est\s+au\s+"):
-        m = re.search(prefix + r"(.+?)(?:\s+(?:poker|vocal|vacal)\s+terminé|\.|$)", t, re.I | re.DOTALL)
+    # "le bien est au X" / "le bien est donc X" / "est au X" / "c'est au X" (vocal: "le biais est au 56 26 de Lorimier")
+    for prefix in (
+        r"le\s+bien\s+est\s+(?:donc\s+)?(?:au\s+)?",
+        r"le\s+biais\s+est\s+au\s+",
+        r"est\s+au\s+",
+        r"c'est\s+au\s+",
+    ):
+        m = re.search(prefix + r"(.+?)(?:\s+(?:local|locales|poker|vocal|vacal)\s+terminé|\.|$)", t, re.I | re.DOTALL)
         if m:
             addr = normalize_address(m.group(1).strip())
             if len(addr) >= 5 and any(c.isdigit() for c in addr):
@@ -741,9 +749,25 @@ async def _validate_address_via_geocode(addr: str) -> Optional[dict]:
     """
     Vérifie une adresse via géocodage (Nominatim / OpenStreetMap).
     Retourne un dict avec postcode, city, state (province), country_code pour que Léa puisse confirmer à l'utilisateur.
+    Pour les adresses québécoises sans ville, tente un second essai avec ", Québec, Canada".
     """
     if not addr or len(addr.strip()) < 5:
         return None
+    addr_clean = addr.strip()
+    # Premier essai avec l'adresse telle quelle
+    result = await _geocode_one(addr_clean)
+    if result:
+        return result
+    # Adresse sans ville (pas de virgule ou pas Montréal/Québec) : retry avec ", Québec, Canada"
+    if "," not in addr_clean and "montréal" not in addr_clean.lower() and "québec" not in addr_clean.lower():
+        result = await _geocode_one(addr_clean + ", Québec, Canada")
+        if result:
+            return result
+    return None
+
+
+async def _geocode_one(addr: str) -> Optional[dict]:
+    """Un seul appel Nominatim."""
     url = "https://nominatim.openstreetmap.org/search"
     params = {"q": addr.strip(), "format": "json", "addressdetails": 1, "limit": 1}
     headers = {"User-Agent": "ImmoAssist-Lea/1.0 (contact@immoassist.com)"}
@@ -916,31 +940,55 @@ async def maybe_set_promise_from_lea(db: AsyncSession, user_id: int, message: st
         return None
 
 
-def _extract_seller_buyer_names_list(message: str) -> Optional[tuple[str, List[tuple[str, str]]]]:
+def _extract_seller_buyer_names_list(
+    message: str, last_assistant_message: Optional[str] = None
+) -> Optional[tuple[str, List[tuple[str, str]]]]:
     """
-    Extrait une liste de noms pour "les vendeurs sont A et B" / "les acheteurs sont A, B et C".
+    Extrait une liste de noms pour "les vendeurs sont A et B" / "ce sont A" / "c'est A" (avec contexte).
     Retourne (role, [(first_name, last_name), ...]) ou None.
     """
-    if not message or len(message.strip()) < 15:
+    if not message or len(message.strip()) < 3:
         return None
     t = message.strip()
     role: Optional[str] = None
-    if re.search(r"les\s+vendeurs\s+sont\s+", t, re.I):
-        role = "Vendeur"
-    elif re.search(r"les\s+acheteurs\s+sont\s+", t, re.I):
-        role = "Acheteur"
-    if not role:
-        return None
-    m = re.search(r"les\s+vendeurs\s+sont\s+(.+?)(?:\.|$|\s+pour\s+)", t, re.I | re.DOTALL)
-    if not m and role == "Acheteur":
-        m = re.search(r"les\s+acheteurs\s+sont\s+(.+?)(?:\.|$|\s+pour\s+)", t, re.I | re.DOTALL)
-    if not m:
-        return None
-    raw = m.group(1).strip()
+    raw: Optional[str] = None
+    last_lower = (last_assistant_message or "").strip().lower()
+
+    # "ce sont X" / "c'est X" (réponse courte après "Qui sont les vendeurs ?")
+    if last_assistant_message and len(t) <= 80:
+        if re.search(r"ce\s+sont\s+", t, re.I):
+            if "vendeur" in last_lower:
+                role = "Vendeur"
+            elif "acheteur" in last_lower:
+                role = "Acheteur"
+            if role:
+                m_ce = re.search(r"ce\s+sont\s+(.+?)(?:\.|$|\s+local\s+terminé|\s+terminé)", t, re.I | re.DOTALL)
+                if m_ce:
+                    raw = m_ce.group(1).strip()
+        elif re.search(r"c'est\s+", t, re.I) and ("vendeur" in last_lower or "acheteur" in last_lower):
+            role = "Vendeur" if "vendeur" in last_lower else "Acheteur"
+            m_cest = re.search(r"c'est\s+(.+?)(?:\.|$|\s+local\s+terminé|\s+terminé)", t, re.I | re.DOTALL)
+            if m_cest:
+                raw = m_cest.group(1).strip()
+
+    if raw is None:
+        if re.search(r"les\s+vendeurs\s+sont\s+", t, re.I):
+            role = "Vendeur"
+        elif re.search(r"les\s+acheteurs\s+sont\s+", t, re.I):
+            role = "Acheteur"
+        if not role:
+            return None
+        m = re.search(r"les\s+vendeurs\s+sont\s+(.+?)(?:\.|$|\s+pour\s+)", t, re.I | re.DOTALL)
+        if not m and role == "Acheteur":
+            m = re.search(r"les\s+acheteurs\s+sont\s+(.+?)(?:\.|$|\s+pour\s+)", t, re.I | re.DOTALL)
+        if not m:
+            return None
+        raw = m.group(1).strip()
     # Transcription vocale : "est" pour "et" dans les listes de noms ("Christian est abatti" -> "Christian et abatti")
     raw = re.sub(r"\s+est\s+", " et ", raw, flags=re.I)
     # Artefact vocal en fin de phrase : "vocal terminé", "local terminé", "elle terminé", "e" (coupure)
     raw = re.sub(r"\s+(?:vocal|vacal|cale|local|locales|elle)\s+terminé.*$", "", raw, flags=re.I).strip()
+    raw = re.sub(r"\s+local(?:es)?\s*$", "", raw, flags=re.I).strip()
     raw = re.sub(r"\s+e\s*$", "", raw, flags=re.I).strip()
     if not raw:
         return None
@@ -1076,7 +1124,7 @@ async def maybe_add_seller_buyer_contact_from_lea(
     crée le(s) contact(s) et l'ajoute à la transaction. Retourne une ligne pour « Action effectuée » ou None.
     """
     # Cas "les vendeurs sont Joseph Perrault et Matthieu Dufour"
-    names_list = _extract_seller_buyer_names_list(message)
+    names_list = _extract_seller_buyer_names_list(message, last_assistant_message)
     # Cas "oui enregistrez les" après « Souhaitez-vous enregistrer Michel et Lucie Zapata comme vendeurs ? »
     if not names_list and last_assistant_message:
         t_msg = (message or "").strip().lower()
@@ -1280,6 +1328,13 @@ def _get_lea_guidance_lines(message: str) -> list[str]:
         return []
     lines = []
 
+    # Message = uniquement artefact vocal ("local terminé") — rester sur la transaction en cours
+    if re.match(r"^(local|locales|vocal|vocale)\s+terminé\.?$", t, re.I) or t.strip() in ("local terminé", "locales terminé", "vocal terminé"):
+        lines.append(
+            "L'utilisateur a peut-être dit « local terminé » (artefact de fin de phrase vocale). "
+            "Rester sur la transaction en cours (la plus récente) ; ne pas mentionner une autre transaction. Demander de clarifier ou poursuivre (ex. qui sont les acheteurs, quel est le prix)."
+        )
+
     # Pas d'acheteurs / mise en vente — ne pas redemander les acheteurs
     if any(
         phrase in t
@@ -1403,14 +1458,19 @@ async def run_lea_actions(
                 state = validation.get("state") or ""
                 if city and postcode:
                     lines.append(
-                        f"Recherche web (géocodage) : « {geocode_str} ». "
-                        f"Dans ta réponse, confirme à l'utilisateur que l'adresse a été vérifiée en mentionnant explicitement : ville {city}, code postal {postcode}" + (f", {state}" if state else "") + "."
+                        f"Recherche en ligne (géocodage) : « {geocode_str} ». "
+                        f"Dans ta réponse, confirme explicitement à l'utilisateur la ville ({city}), la province ({state or 'N/A'}) et le code postal ({postcode}) trouvés pour l'adresse."
                     )
                 else:
                     lines.append(
-                        f"Recherche web (géocodage) : « {geocode_str} ». "
+                        f"Recherche en ligne (géocodage) : « {geocode_str} ». "
                         "Confirme à l'utilisateur que l'adresse a été vérifiée (ville, code postal, province)."
                     )
+        else:
+            lines.append(
+                "La recherche de l'adresse complète en ligne n'a pas donné de résultat. "
+                "Demande à l'utilisateur la ville et la province (ou le code postal) pour compléter et confirmer l'adresse."
+            )
     # Géocodage de l'adresse déjà enregistrée sur la dernière transaction (sans nouvelle adresse dans le message)
     if not addr_result and _wants_to_geocode_existing_address(message):
         geocode_result = await maybe_geocode_existing_transaction_address(db, user_id, message, last_assistant_message)
