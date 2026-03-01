@@ -1335,8 +1335,11 @@ async def _stream_lea_sse(
     Génère les événements SSE pour le chat Léa intégré (streaming).
     Si confirmation_text est fourni (ex: transaction créée), on envoie ce texte en stream
     sans appeler l'IA, pour garantir que l'utilisateur voit la confirmation.
+    Envoie immédiatement un commentaire SSE pour éviter les timeouts proxy (503 Connection reset by peer).
     """
     sid = session_id or str(uuid.uuid4())
+    # Premier octet immédiat pour éviter timeout Varnish/Fastly (503 Connection reset by peer)
+    yield ": ok\n\n"
     try:
         if confirmation_text:
             # Réponse directe sans appeler l'IA (ex: transaction créée)
