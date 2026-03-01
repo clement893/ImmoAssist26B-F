@@ -399,12 +399,25 @@ async def update_current_user(
         await db.refresh(current_user)
         
         logger.info(f"User profile updated successfully for: {current_user.email}")
-        
-        # Retourner une Response explicite pour éviter l'erreur slowapi "parameter response must be an instance of starlette.responses.Response"
-        return JSONResponse(
-            content=UserResponse.model_validate(current_user).model_dump(mode="json"),
-            media_type="application/json",
-        )
+
+        # Serialize inside the handler so any validation/serialization error is caught and logged
+        try:
+            payload = UserResponse.model_validate(current_user).model_dump(mode="json")
+        except Exception as serialize_err:
+            logger.error(
+                "User response serialization failed after profile update",
+                exc_info=serialize_err,
+                extra={"user_id": getattr(current_user, "id", None), "email": getattr(current_user, "email", None)},
+            )
+            await db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to update user profile",
+            ) from serialize_err
+
+        # Return JSONResponse for slowapi compatibility (rate limit headers can be added)
+        return JSONResponse(content=payload, media_type="application/json")
+
         
     except HTTPException:
         raise

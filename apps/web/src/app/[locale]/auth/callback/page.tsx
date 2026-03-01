@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { Suspense, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -59,6 +59,11 @@ function CallbackContent() {
     }
 
     try {
+      // Clear any previous session first so we never show another account (e.g. old Google account)
+      await TokenStorage.removeTokens();
+      const { logout } = useAuthStore.getState();
+      await logout();
+
       // Store tokens securely using TokenStorage (await to ensure it's stored before API calls)
       logger.debug('Storing token...');
       await TokenStorage.setToken(accessToken, refreshToken);

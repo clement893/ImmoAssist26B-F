@@ -107,6 +107,16 @@ export function getNavigationConfig(isAdmin?: boolean, isClient?: boolean): Navi
           icon: <Mic className="w-5 h-5" />,
         },
         {
+          name: 'Mes transactions',
+          href: '/dashboard/transactions',
+          icon: <Receipt className="w-5 h-5" />,
+        },
+        {
+          name: 'Mes contacts',
+          href: '/dashboard/reseau/contacts',
+          icon: <Users className="w-5 h-5" />,
+        },
+        {
           name: 'Formulaire',
           icon: <ClipboardList className="w-5 h-5" />,
           items: [
@@ -180,9 +190,9 @@ export function getNavigationConfig(isAdmin?: boolean, isClient?: boolean): Navi
         href: '/dashboard/lea2',
         icon: <Mic className="w-5 h-5" />,
       },
-      // Transactions - entrées visibles dans le menu
+      // Mes transactions et Mes contacts - entrées visibles dans le menu
       {
-        name: 'Transactions',
+        name: 'Mes transactions',
         href: '/dashboard/transactions',
         icon: <Receipt className="w-5 h-5" />,
       },
@@ -190,6 +200,11 @@ export function getNavigationConfig(isAdmin?: boolean, isClient?: boolean): Navi
         name: 'Étapes des transactions',
         href: '/dashboard/transactions/steps',
         icon: <FileCheck className="w-5 h-5" />,
+      },
+      {
+        name: 'Mes contacts',
+        href: '/dashboard/reseau/contacts',
+        icon: <Users className="w-5 h-5" />,
       },
       // Module Réseau
       {

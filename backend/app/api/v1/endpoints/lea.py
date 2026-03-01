@@ -43,8 +43,10 @@ LEA_SYSTEM_PROMPT = (
     "Tu as TOUJOURS accès aux données de la plateforme pour l'utilisateur connecté. "
     "Un bloc « Données plateforme » est fourni ci-dessous avec ses transactions et dossiers. "
     "Base-toi UNIQUEMENT sur ces données pour répondre aux questions sur ses transactions en cours, ses dossiers, etc. "
-    "Si les listes sont vides, dis clairement que l'utilisateur n'a pas encore de transaction ou de dossier (ne dis jamais que tu n'as pas accès). "
-    "Propose alors d'aller dans la section Transactions pour en créer un.\n\n"
+    "Si l'utilisateur te demande de CRÉER une transaction ou un dossier (ex. « je veux créer une transaction d'achat », « crée le formulaire »), "
+    "la plateforme peut créer une nouvelle transaction pour lui ; si un bloc « Action effectuée » indique qu'une transaction a été créée, "
+    "tu DOIS confirmer à l'utilisateur que c'est fait et l'inviter à la compléter dans la section Transactions. "
+    "Si les listes sont vides et qu'il n'a pas demandé de création, dis qu'il n'a pas encore de transaction et propose d'en créer une (il peut le faire via toi ou via la section Transactions).\n\n"
     "Règles importantes:\n"
     "- Réponds en français, de façon courtoise et professionnelle.\n"
     "- Garde tes réponses **courtes** (2 à 4 phrases max), sauf si l'utilisateur demande explicitement plus de détails.\n"
@@ -168,7 +170,68 @@ async def get_lea_user_context(db: AsyncSession, user_id: int) -> str:
     return "\n".join(lines)
 
 
-async def _transcribe_whisper(audio_bytes: bytes, content_type: str) -> str:
+def _wants_to_create_transaction(message: str) -> tuple[bool, str]:
+    """
+    Détecte si l'utilisateur demande de créer une transaction (achat ou vente).
+    Retourne (True, "achat"|"vente") ou (False, "").
+    """
+    t = (message or "").strip().lower()
+    if not t:
+        return False, ""
+    # Intentions explicites
+    if "créer une transaction" in t or "créer un dossier" in t or "créer la transaction" in t:
+        if "achat" in t:
+            return True, "achat"
+        if "vente" in t:
+            return True, "vente"
+        return True, "achat"  # défaut
+    if "que tu crées" in t or "que tu crée" in t or "crée le formulaire" in t or "crées le formulaire" in t:
+        if "achat" in t:
+            return True, "achat"
+        if "vente" in t:
+            return True, "vente"
+        return True, "achat"
+    if "crée la transaction" in t or "crées la transaction" in t or "crée une transaction" in t:
+        if "achat" in t:
+            return True, "achat"
+        if "vente" in t:
+            return True, "vente"
+        return True, "achat"
+    if "transaction d'achat" in t and ("créer" in t or "créé" in t or "veux" in t or "voudrais" in t):
+        return True, "achat"
+    if "transaction de vente" in t and ("créer" in t or "créé" in t or "veux" in t or "voudrais" in t):
+        return True, "vente"
+    return False, ""
+
+
+async def maybe_create_transaction_from_lea(db: AsyncSession, user_id: int, message: str):
+    """
+    Si le message indique une demande de création de transaction, crée une transaction minimale
+    (achat ou vente) et retourne la transaction créée. Sinon retourne None.
+    """
+    ok, tx_type = _wants_to_create_transaction(message)
+    if not ok:
+        return None
+    try:
+        name = f"Transaction {tx_type.capitalize()}"
+        transaction = RealEstateTransaction(
+            user_id=user_id,
+            name=name,
+            dossier_number=None,
+            status="En cours",
+            sellers=[],
+            buyers=[],
+            property_province="QC",
+        )
+        db.add(transaction)
+        await db.commit()
+        await db.refresh(transaction)
+        logger.info(f"Lea created transaction id={transaction.id} type={tx_type} for user_id={user_id}")
+        return transaction
+    except Exception as e:
+        logger.warning(f"Lea create transaction failed: {e}", exc_info=True)
+        await db.rollback()
+        return None
     """Transcrit l'audio avec OpenAI Whisper."""
     client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     f = io.BytesIO(audio_bytes)
@@ -278,7 +341,10 @@ async def lea_chat_stream(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
             detail="Streaming requires OPENAI_API_KEY or ANTHROPIC_API_KEY in the Backend.",
         )
+    created = await maybe_create_transaction_from_lea(db, current_user.id, request.message)
     user_context = await get_lea_user_context(db, current_user.id)
+    if created:
+        user_context += "\n\n--- Action effectuée ---\nTu viens de créer une nouvelle transaction pour l'utilisateur : « " + created.name + " » (id " + str(created.id) + "). Confirme-lui que c'est fait et qu'il peut la compléter dans la section Transactions."
     return StreamingResponse(
         _stream_lea_sse(request.message, request.session_id, user_context=user_context),
         media_type="text/event-stream",
@@ -303,7 +369,10 @@ async def lea_chat(
     # 1) IA intégrée (avec contexte plateforme) si pas d'agent externe
     if not _use_external_agent() and _use_integrated_lea():
         try:
+            created = await maybe_create_transaction_from_lea(db, current_user.id, request.message)
             user_context = await get_lea_user_context(db, current_user.id)
+            if created:
+                user_context += "\n\n--- Action effectuée ---\nTu viens de créer une nouvelle transaction pour l'utilisateur : « " + created.name + " » (id " + str(created.id) + "). Confirme-lui que c'est fait et qu'il peut la compléter dans la section Transactions."
             system_prompt = LEA_SYSTEM_PROMPT
             if user_context:
                 system_prompt += "\n\n--- Informations actuelles de l'utilisateur (plateforme) ---\n" + user_context
@@ -396,7 +465,10 @@ async def lea_chat_voice(
                     detail="Impossible de transcrire l'audio. Parlez plus distinctement ou vérifiez le format.",
                 )
 
+            created = await maybe_create_transaction_from_lea(db, current_user.id, transcription)
             user_context = await get_lea_user_context(db, current_user.id)
+            if created:
+                user_context += "\n\n--- Action effectuée ---\nTu viens de créer une nouvelle transaction pour l'utilisateur : « " + created.name + " » (id " + str(created.id) + "). Confirme-lui que c'est fait et qu'il peut la compléter dans la section Transactions."
             system_prompt = LEA_SYSTEM_PROMPT
             if user_context:
                 system_prompt += "\n\n--- Informations actuelles de l'utilisateur (plateforme) ---\n" + user_context

@@ -71,13 +71,16 @@ export default function Lea2View() {
   }, [isListening, transcript, sendMessage]);
 
   // Détection "Vocal Terminé" (ou "Terminé", "Envoyer") → envoi immédiat sans cliquer
-  const VOCAL_TERMINE_REGEX = /\s*(vocal\s+terminé|terminé\s*vocal|^terminé\s*$|^envoyer\s*$)\s*/gi;
+  const VOCAL_TERMINE_REGEX = /\s*(vocal(e)?\s+terminé|terminé\s*vocal(e)?|^\s*terminé\s*$|^\s*envoyer\s*$)\s*/gi;
   useEffect(() => {
     if (!isListening || !transcript.trim() || vocalTermineSentRef.current) return;
     const t = transcript.trim().toLowerCase();
     const hasTrigger =
       t.includes('vocal terminé') ||
+      t.includes('vocale terminé') ||
       t.includes('terminé vocal') ||
+      t.includes('terminé vocale') ||
+      /\bterminé\s*$/.test(t) || // phrase qui se termine par "terminé" (ex: "créant une transaction vocale terminé")
       /^\s*terminé\s*$/.test(t) ||
       /^\s*envoyer\s*$/.test(t);
     if (!hasTrigger) return;
@@ -116,11 +119,20 @@ export default function Lea2View() {
     const lastIsAssistant = lastMessage?.role === 'assistant';
     if (!lastIsAssistant || !restartListeningAfterResponseRef.current) return;
 
-    // Avec TTS : réactiver seulement quand Léa a fini de parler
+    // Avec TTS : réactiver quand Léa a fini de parler (isSpeaking passe de true à false)
     if (autoSpeak && ttsSupported) {
       if (prevIsSpeakingRef.current && !isSpeaking) {
         restartListeningAfterResponseRef.current = false;
         startListening().catch(() => {});
+      } else if (!isSpeaking) {
+        // Filet de sécurité : si après 2,5 s le TTS n'a pas démarré ou a échoué, réactiver quand même le micro
+        const t = setTimeout(() => {
+          if (restartListeningAfterResponseRef.current && !isListening) {
+            restartListeningAfterResponseRef.current = false;
+            startListening().catch(() => {});
+          }
+        }, 2500);
+        return () => clearTimeout(t);
       }
     } else {
       // Sans TTS : réactiver dès que la réponse est là
@@ -198,14 +210,14 @@ export default function Lea2View() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_80%,rgba(139,92,246,0.12),transparent)]" />
       </div>
 
-      <div className="relative flex flex-col flex-1 min-h-0 z-10">
+      <div className="relative flex flex-col md:flex-row flex-1 min-h-0 z-10">
         {/* Header minimal */}
-        <header className="flex items-center justify-between px-4 py-3 border-b border-white/10 shrink-0">
+        <header className="flex items-center justify-between px-4 py-3 border-b border-white/10 shrink-0 md:col-span-2">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center">
               <MessageSquare className="w-4 h-4 text-white" />
             </div>
-            <span className="font-semibold text-white/95">Léa2</span>
+            <span className="font-semibold text-white/95">Léa</span>
           </div>
           <div className="flex items-center gap-2">
             {ttsSupported && (
@@ -237,52 +249,69 @@ export default function Lea2View() {
           </div>
         </header>
 
-        {/* Messages : uniquement les derniers échanges, sans heure — conversation simple et fluide */}
-        {hasMessages && (
-          <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-3">
-            {(() => {
-              const start = Math.max(0, messages.length - 6);
-              return messages.slice(start).map((msg, i) => (
-                <LeaMessageBubble
-                  key={start + i}
-                  content={msg.content}
-                  role={msg.role === 'system' ? 'assistant' : msg.role}
-                  isStreaming={false}
-                />
-              ));
-            })()}
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="px-4 py-2 rounded-2xl bg-white/10 text-white/80 text-sm">
-                  Léa réfléchit...
-                </div>
+        {/* ——— CONVERSATION (gauche sur desktop, au-dessus sur mobile) ——— */}
+        <div className={clsx(
+          'flex flex-col min-h-0',
+          hasMessages ? 'flex-1 md:min-w-0 min-h-[200px] max-h-[50vh] md:max-h-none' : 'hidden md:flex md:flex-1 md:min-w-0'
+        )}>
+          <div className="flex-1 min-h-0 flex flex-col mx-3 mt-3 md:mx-4 md:mt-4 md:mr-2">
+            <div className="text-white/60 text-xs font-medium uppercase tracking-wider mb-2 px-1">
+              Conversation
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden rounded-2xl bg-white/5 border border-white/10 shadow-inner scroll-smooth overscroll-contain">
+              <div className="p-4 space-y-4 min-h-full">
+                {hasMessages ? (
+                  <>
+                    {messages.map((msg, i) => (
+                      <LeaMessageBubble
+                        key={i}
+                        content={msg.content}
+                        role={msg.role === 'system' ? 'assistant' : msg.role}
+                        isStreaming={false}
+                        variant="dark"
+                      />
+                    ))}
+                    {isLoading && (
+                      <div className="flex justify-start">
+                        <div className="px-4 py-2.5 rounded-2xl bg-white/10 text-white/80 text-sm border border-white/20">
+                          Léa réfléchit...
+                        </div>
+                      </div>
+                    )}
+                    <div ref={messagesEndRef} />
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12 text-center text-white/40 text-sm">
+                    <MessageSquare className="w-10 h-10 mb-3 opacity-50" />
+                    <p>La conversation apparaîtra ici.</p>
+                    <p className="mt-1">Utilisez le micro ou le champ ci-contre pour commencer.</p>
+                  </div>
+                )}
               </div>
-            )}
-            <div ref={messagesEndRef} />
+            </div>
           </div>
-        )}
+        </div>
 
-        {/* Error */}
-        {displayError && (
-          <div className="mx-4 mb-2 px-4 py-2 rounded-xl bg-red-500/20 border border-red-400/40 text-red-200 text-sm">
-            {displayError}
-            {displayError.includes('Permission') && (
-              <button
-                type="button"
-                className="ml-2 underline"
-                onClick={async () => {
-                  const ok = await requestPermission();
-                  if (ok) await startListening();
-                }}
-              >
-                Autoriser le micro
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* ——— VOICE PANEL (toujours en avant) ——— */}
-        <div className="shrink-0 px-4 pb-6 pt-4">
+        {/* ——— VOICE PANEL (droite sur desktop, en bas sur mobile) ——— */}
+        <div className="shrink-0 flex flex-col md:w-[380px] md:border-l md:border-white/10 px-4 pb-6 pt-4">
+          {/* Error */}
+          {displayError && (
+            <div className="mb-3 px-4 py-2 rounded-xl bg-red-500/20 border border-red-400/40 text-red-200 text-sm">
+              {displayError}
+              {displayError.includes('Permission') && (
+                <button
+                  type="button"
+                  className="ml-2 underline"
+                  onClick={async () => {
+                    const ok = await requestPermission();
+                    if (ok) await startListening();
+                  }}
+                >
+                  Autoriser le micro
+                </button>
+              )}
+            </div>
+          )}
           {/* Greeting + CTA vocal */}
           <div className="text-center mb-6">
             <p className="text-white/90 text-lg">

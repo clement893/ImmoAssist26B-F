@@ -1117,6 +1117,10 @@ async def google_oauth_callback(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Email not provided by Google"
                 )
+
+            # Normalize email to lowercase for consistent lookup (avoid wrong user when DB has different casing)
+            email = email.strip().lower()
+            logger.info(f"Google OAuth resolved email (normalized): {email}")
             
             if not email:
                 raise HTTPException(

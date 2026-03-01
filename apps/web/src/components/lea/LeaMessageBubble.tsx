@@ -8,6 +8,8 @@ interface LeaMessageBubbleProps {
   timestamp?: string;
   className?: string;
   isStreaming?: boolean;
+  /** When true, use styles suited for dark background (e.g. Lea2 view) */
+  variant?: 'default' | 'dark';
 }
 
 export default function LeaMessageBubble({
@@ -16,8 +18,10 @@ export default function LeaMessageBubble({
   timestamp,
   className = '',
   isStreaming = false,
+  variant = 'default',
 }: LeaMessageBubbleProps) {
   const isUser = role === 'user';
+  const isDark = variant === 'dark';
 
   return (
     <div
@@ -29,10 +33,14 @@ export default function LeaMessageBubble({
     >
       <div
         className={clsx(
-          'max-w-[80%] rounded-xl px-4 py-3 shadow-subtle-sm', // UI Revamp - shadow-subtle-sm
+          'max-w-[85%] rounded-2xl px-4 py-3 shadow-subtle-sm',
           isUser
-            ? 'bg-gradient-to-r from-green-600 to-blue-600 text-white'
-            : 'bg-muted text-foreground border border-border'
+            ? isDark
+              ? 'bg-gradient-to-r from-violet-500 to-indigo-600 text-white'
+              : 'bg-gradient-to-r from-green-600 to-blue-600 text-white'
+            : isDark
+              ? 'bg-white/10 text-white/95 border border-white/20'
+              : 'bg-muted text-foreground border border-border'
         )}
       >
         <p className="text-sm whitespace-pre-wrap leading-relaxed">

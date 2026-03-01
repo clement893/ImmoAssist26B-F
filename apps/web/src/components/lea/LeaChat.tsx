@@ -39,6 +39,8 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
   const [initialMessageSent, setInitialMessageSent] = useState(false);
   const lastSpokenMessageRef = useRef<string | null>(null); // Track last spoken message to prevent repetition
   const prevListeningRef = useRef(false);
+  const restartListeningAfterResponseRef = useRef(false);
+  const prevIsSpeakingRef = useRef(false);
 
   // Send initial message if provided
   useEffect(() => {
@@ -57,12 +59,13 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
     }
   }, [transcript, isListening]);
 
-  // Quand vous arrêtez de parler : envoi automatique du message et démarrage de la réponse
+  // Quand vous arrêtez de parler : envoi automatique du message et marquer qu'on veut réactiver le micro après la réponse
   useEffect(() => {
     if (prevListeningRef.current === true && !isListening && transcript.trim()) {
       const text = transcript.trim();
       setInput('');
       sendMessage(text);
+      restartListeningAfterResponseRef.current = true;
     }
     prevListeningRef.current = isListening;
   }, [isListening, transcript, sendMessage]);
@@ -105,6 +108,33 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
       lastSpokenMessageRef.current = null;
     }
   }, [messages, autoSpeak, ttsSupported, isSpeaking, speak]);
+
+  // Réactiver le micro après la réponse de Léa (quand l'utilisateur a envoyé au micro)
+  useEffect(() => {
+    if (!voiceSupported || isListening || isLoading) return;
+    const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
+    const lastIsAssistant = lastMessage?.role === 'assistant';
+    if (!lastIsAssistant || !restartListeningAfterResponseRef.current) return;
+
+    if (autoSpeak && ttsSupported) {
+      if (prevIsSpeakingRef.current && !isSpeaking) {
+        restartListeningAfterResponseRef.current = false;
+        startListening().catch(() => {});
+      } else if (!isSpeaking) {
+        const t = setTimeout(() => {
+          if (restartListeningAfterResponseRef.current && !isListening) {
+            restartListeningAfterResponseRef.current = false;
+            startListening().catch(() => {});
+          }
+        }, 2500);
+        return () => clearTimeout(t);
+      }
+    } else {
+      restartListeningAfterResponseRef.current = false;
+      startListening().catch(() => {});
+    }
+    prevIsSpeakingRef.current = isSpeaking;
+  }, [isLoading, messages, isSpeaking, autoSpeak, ttsSupported, voiceSupported, isListening, startListening]);
 
   const toggleListening = async () => {
     console.log('toggleListening called, isListening:', isListening, 'voiceSupported:', voiceSupported);
