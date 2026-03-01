@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect } from 'react';
-import { Mic, MicOff, ArrowUp, Paperclip, AudioLines, Volume2, SkipForward } from 'lucide-react';
+import { Mic, MicOff, ArrowUp, Paperclip, AudioLines, Volume2, SkipForward, Square } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface LeaChatInputProps {
