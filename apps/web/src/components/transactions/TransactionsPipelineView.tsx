@@ -261,12 +261,13 @@ export default function TransactionsPipelineView({
                     ...(transaction.sellers || []).map((s: any) => s.name),
                     ...(transaction.buyers || []).map((b: any) => b.name),
                   ].filter(Boolean);
-                  
-                  // Get first photo from documents (type 'photo' or image content_type)
-                  const firstPhoto =
-                    transaction.documents?.find(
+
+                  // Première photo à la une : uniquement une image/photo comme photo par défaut
+                  const photos =
+                    transaction.documents?.filter(
                       (doc) => doc.type === 'photo' || doc.content_type?.startsWith?.('image/')
-                    ) || transaction.documents?.[0];
+                    ) ?? [];
+                  const firstPhoto = photos[0];
 
                   return (
                     <div

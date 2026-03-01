@@ -313,12 +313,12 @@ function TransactionsContent() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {transactions.map((transaction) => {
-              // Get first photo from documents (type 'photo' or image content_type)
-              const firstPhoto =
-                transaction.documents?.find(
-                  (doc) => doc.type === 'photo' || doc.content_type?.startsWith?.('image/')
-                ) || transaction.documents?.[0];
-              
+              // Première photo à la une : uniquement une image/photo, pas un document PDF
+              const photos = transaction.documents?.filter(
+                (doc) => doc.type === 'photo' || doc.content_type?.startsWith?.('image/')
+              ) ?? [];
+              const firstPhoto = photos[0];
+
               return (
               <Card
                 key={transaction.id}
