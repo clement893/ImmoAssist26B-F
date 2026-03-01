@@ -319,14 +319,14 @@ export const leaAPI = {
   },
   /**
    * Chat with Léa in streaming mode (SSE). Calls onDelta for each chunk, onDone when finished.
-   * onDone receives optional actions (backend-performed actions for logs).
+   * onDone receives sessionId and optional metadata: actions, model, provider, usage (for copy/logs).
    * Returns true if streaming was used, false if backend does not support streaming (fallback to chat).
    */
   chatStream: async (
     params: { message: string; sessionId?: string },
     callbacks: {
       onDelta: (delta: string) => void;
-      onDone: (sessionId: string, actions?: string[]) => void;
+      onDone: (sessionId: string, meta?: { actions?: string[]; model?: string; provider?: string; usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } }) => void;
       onError: (message: string) => void;
     }
   ): Promise<boolean> => {
@@ -383,7 +383,13 @@ export const leaAPI = {
               if (data.done && data.session_id) {
                 receivedDone = true;
                 sessionId = data.session_id;
-                callbacks.onDone(data.session_id, data.actions);
+                const meta = {
+                  actions: data.actions,
+                  model: data.model,
+                  provider: data.provider,
+                  usage: data.usage,
+                };
+                callbacks.onDone(data.session_id, meta);
               }
             } catch {
               /* ignore parse errors */

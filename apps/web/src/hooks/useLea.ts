@@ -109,13 +109,21 @@ export function useLea(initialSessionId?: string): UseLeaReturn {
             return next;
           });
         },
-        onDone: (newSessionId, actions) => {
+        onDone: (newSessionId, meta) => {
           if (newSessionId && !sessionId) setSessionId(newSessionId);
-          if (actions?.length) {
+          if (meta && (meta.actions?.length || meta.model != null || meta.provider != null || meta.usage != null)) {
             setMessages((prev) => {
               const next = [...prev];
               const last = next[next.length - 1];
-              if (last?.role === 'assistant') next[next.length - 1] = { ...last, actions };
+              if (last?.role === 'assistant') {
+                next[next.length - 1] = {
+                  ...last,
+                  ...(meta.actions != null && { actions: meta.actions }),
+                  ...(meta.model != null && { model: meta.model }),
+                  ...(meta.provider != null && { provider: meta.provider }),
+                  ...(meta.usage != null && { usage: meta.usage }),
+                };
+              }
               return next;
             });
           }

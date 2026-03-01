@@ -8,7 +8,7 @@ import LeaMessagesList from './LeaMessagesList';
 import LeaChatInput from './LeaChatInput';
 import type { LeaMessage } from '@/hooks/useLea';
 
-/** Formate la discussion + logs IA (raisonnement/actions backend, modèle, usage) pour copier-coller. */
+/** Formate la discussion + logs IA (raisonnement, appels, actions backend) pour copier-coller. */
 function formatConversationForCopy(messages: LeaMessage[], sessionId?: string | null): string {
   const lines: string[] = [
     '--- Conversation Léa ---',
@@ -22,28 +22,37 @@ function formatConversationForCopy(messages: LeaMessage[], sessionId?: string | 
       continue;
     }
     if (msg.role === 'assistant' || msg.role === 'system') {
-      lines.push('--- Logs IA (raisonnement / actions backend) ---');
+      lines.push('========== Logs IA ==========');
       if (msg.timestamp) {
-        lines.push(`  Heure: ${new Date(msg.timestamp).toLocaleString('fr-CA', { dateStyle: 'short', timeStyle: 'medium' })}`);
-      }
-      if (msg.actions?.length) {
-        lines.push('  Actions effectuées par Léa:');
-        msg.actions.forEach((a) => lines.push(`    - ${a}`));
-      } else {
-        lines.push('  Actions effectuées par Léa: (aucune action enregistrée pour ce message)');
-      }
-      if (msg.model) lines.push(`  Modèle: ${msg.model}`);
-      if (msg.provider) lines.push(`  Fournisseur: ${msg.provider}`);
-      if (msg.usage) {
-        const u = msg.usage;
-        const parts = [];
-        if (u.prompt_tokens != null) parts.push(`prompt=${u.prompt_tokens}`);
-        if (u.completion_tokens != null) parts.push(`completion=${u.completion_tokens}`);
-        if (u.total_tokens != null) parts.push(`total=${u.total_tokens}`);
-        if (parts.length) lines.push(`  Usage: ${parts.join(', ')}`);
+        lines.push(`Heure: ${new Date(msg.timestamp).toLocaleString('fr-CA', { dateStyle: 'short', timeStyle: 'medium' })}`);
       }
       lines.push('');
-      lines.push('Léa:', msg.content.trim(), '');
+      lines.push('1. Logs d\'appels (modèle, fournisseur, tokens):');
+      if (msg.model || msg.provider || (msg.usage && (msg.usage.prompt_tokens != null || msg.usage.completion_tokens != null))) {
+        if (msg.model) lines.push(`   Modèle: ${msg.model}`);
+        if (msg.provider) lines.push(`   Fournisseur: ${msg.provider}`);
+        if (msg.usage) {
+          const u = msg.usage;
+          const parts = [];
+          if (u.prompt_tokens != null) parts.push(`prompt=${u.prompt_tokens}`);
+          if (u.completion_tokens != null) parts.push(`completion=${u.completion_tokens}`);
+          if (u.total_tokens != null) parts.push(`total=${u.total_tokens}`);
+          if (parts.length) lines.push(`   Usage: ${parts.join(', ')}`);
+        }
+      } else {
+        lines.push('   (non disponible pour ce message)');
+      }
+      lines.push('');
+      lines.push('2. Actions effectuées par le backend:');
+      if (msg.actions?.length) {
+        msg.actions.forEach((a) => lines.push(`   - ${a}`));
+      } else {
+        lines.push('   (aucune action enregistrée pour ce message)');
+      }
+      lines.push('');
+      lines.push('3. Réponse Léa (raisonnement / contenu):');
+      lines.push(msg.content.trim());
+      lines.push('');
     }
   }
   return lines.join('\n');

@@ -241,6 +241,17 @@ def _wants_to_create_transaction(message: str) -> tuple[bool, str]:
         return "".join(c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn")
     nt = n(t)
 
+    # Phrase courte explicite : "Créer une transaction" (bouton, saisie ou vocal)
+    if len(t) <= 60 and ("créer une transaction" in t or "creer une transaction" in nt):
+        if "vente" in t or "de vente" in t:
+            return True, "vente"
+        return True, "achat"
+    # Idem pour "créer un dossier"
+    if len(t) <= 60 and ("créer un dossier" in t or "creer un dossier" in nt):
+        if "vente" in t or "de vente" in t:
+            return True, "vente"
+        return True, "achat"
+
     # "je veux que tu crées/cree/crees une nouvelle transaction" (+ optionnel "tout de suite")
     if "nouvelle transaction" in t or "nouvelle transaction" in nt:
         if (
@@ -360,7 +371,13 @@ def _wants_to_create_transaction(message: str) -> tuple[bool, str]:
         if "vente" in t or "de vente" in t:
             return True, "vente"
         return True, "achat"
-    if "que tu crées" in t or "que tu crée" in t or "crée le formulaire" in t or "crées le formulaire" in t:
+    # "que tu crées" / "que tu crée" (subjonctif) / "crée une transaction" — avec ou sans accents (vocal)
+    if (
+        "que tu crées" in t or "que tu crée" in t or "que tu crees" in nt or "que tu cree " in nt
+        or "que tu creer" in nt or "que léa crées" in t or "que lea crées" in t or "que lea crees" in nt
+        or "crée une transaction" in t or "crees une transaction" in nt or "cree une transaction" in nt
+        or "que tu create" in t  # transcription anglaise
+    ):
         if "achat" in t:
             return True, "achat"
         if "vente" in t:
@@ -1056,6 +1073,12 @@ async def _stream_lea_sse(
         payload = {"done": True, "session_id": sid}
         if action_lines:
             payload["actions"] = action_lines
+        model = getattr(service, "model", None)
+        provider = getattr(service, "provider", None)
+        if provider is not None:
+            payload["provider"] = provider.value if hasattr(provider, "value") else str(provider)
+        if model is not None:
+            payload["model"] = model
         yield f"data: {json.dumps(payload)}\n\n"
     except Exception as e:
         logger.error(f"Léa stream error: {e}", exc_info=True)
@@ -1148,25 +1171,34 @@ async def lea_chat(
         )
     try:
         action_lines, created_tx = await run_lea_actions(db, current_user.id, request.message)
-        # Si on a créé/mis à jour quelque chose, on renvoie une confirmation directe (pas besoin de l'agent)
-        if action_lines:
-            if created_tx:
-                ref = created_tx.dossier_number or f"#{created_tx.id}"
-                confirmation = (
-                    f"C'est fait ! J'ai créé la transaction {ref} pour vous. "
-                    "Vous pouvez la voir et la compléter dans la section Transactions."
-                )
-            else:
-                confirmation = (
-                    "C'est fait ! J'ai créé une nouvelle transaction pour vous. "
-                    "Vous pouvez la compléter dans la section Transactions."
-                )
+        # Si on a créé une transaction, renvoyer une confirmation directe (pas besoin d'appeler l'agent)
+        if action_lines and created_tx:
+            ref = created_tx.dossier_number or f"#{created_tx.id}"
+            confirmation = (
+                f"C'est fait ! J'ai créé la transaction {ref} pour vous. "
+                "Vous pouvez la voir et la compléter dans la section Transactions."
+            )
             return LeaChatResponse(
                 content=confirmation,
                 session_id=request.session_id or "",
                 model=None,
                 provider=None,
                 usage={},
+                actions=action_lines,
+            )
+        # Autres actions (adresse, prix, etc.) : confirmation directe pour éviter que l'agent réponde sans contexte
+        if action_lines:
+            confirmation = (
+                "C'est fait ! Les informations ont été mises à jour. "
+                "Vous pouvez voir la transaction dans la section Transactions."
+            )
+            return LeaChatResponse(
+                content=confirmation,
+                session_id=request.session_id or "",
+                model=None,
+                provider=None,
+                usage={},
+                actions=action_lines,
             )
         message_to_agent = request.message
         data = await _call_external_agent_chat(
