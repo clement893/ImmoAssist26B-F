@@ -38,6 +38,7 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
   const [autoSpeak, setAutoSpeak] = useState(true); // Activé par défaut pour une expérience vocale optimale
   const [initialMessageSent, setInitialMessageSent] = useState(false);
   const lastSpokenMessageRef = useRef<string | null>(null); // Track last spoken message to prevent repetition
+  const prevListeningRef = useRef(false);
 
   // Send initial message if provided
   useEffect(() => {
@@ -47,12 +48,24 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
     }
   }, [initialMessage, initialMessageSent, messages.length, sendMessage]);
 
-  // Update input with transcript when voice recognition updates
+  // Afficher le transcript en direct dans l'input pendant que vous parlez ; à l'arrêt, recopier le transcript final
   useEffect(() => {
-    if (transcript && !isListening) {
+    if (isListening) {
+      setInput(transcript);
+    } else if (transcript && transcript.trim()) {
       setInput(transcript);
     }
   }, [transcript, isListening]);
+
+  // Quand vous arrêtez de parler : envoi automatique du message et démarrage de la réponse
+  useEffect(() => {
+    if (prevListeningRef.current === true && !isListening && transcript.trim()) {
+      const text = transcript.trim();
+      setInput('');
+      sendMessage(text);
+    }
+    prevListeningRef.current = isListening;
+  }, [isListening, transcript, sendMessage]);
 
   // Auto-speak assistant responses with natural, human-like voice
   useEffect(() => {
@@ -80,7 +93,7 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
           speak(lastMessage.content, { 
             lang: 'fr-FR', 
             rate: 0.78,      // Slower rate for natural, human-like diction
-            pitch: 1.02,     // Natural pitch (close to human voice)
+            pitch: 1.05,     // Voix féminine (légerement plus aigu)
             volume: 1.0      // Full volume for clarity
           });
         }, 300);
@@ -151,6 +164,7 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
           inputValue={input}
           onInputChange={setInput}
           isListening={isListening}
+          transcript={transcript}
           onVoiceToggle={toggleListening}
           voiceSupported={voiceSupported}
           isLoading={isLoading}

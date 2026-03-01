@@ -4,6 +4,20 @@ Objectif : rapprocher l’expérience au maximum d’une **vraie conversation** 
 
 ---
 
+## 0. Cible : page Léa2
+
+**L’UX fluide doit être livrée en priorité sur la page Léa2** :
+
+| Élément | Détail |
+|--------|--------|
+| **Route** | `/dashboard/lea2` |
+| **Composant** | `Lea2View` (`apps/web/src/components/lea/Lea2View.tsx`) |
+| **Rôle** | Interface voice-first (grand micro central, thème sombre). Utilise déjà `useLea`, enregistrement et reconnaissance vocale. |
+
+Toutes les actions du plan UX (scroll, indicateurs “Léa rédige” / “Léa parle”, erreurs inline, streaming visuel) doivent être **appliquées ou vérifiées sur Léa2**. Les composants partagés (`LeaMessageBubble`, `useLea`) profitent aussi à la page Léa classique (`LeaChat` / `LeaConversationView`).
+
+---
+
 ## 1. Principes directeurs
 
 | Principe | Application |
@@ -140,6 +154,7 @@ Objectif : rapprocher l’expérience au maximum d’une **vraie conversation** 
 
 | Fichier | Rôles |
 |---------|--------|
+| **Page cible** | **Léa2** : `apps/web/src/app/[locale]/dashboard/lea2/page.tsx`, `Lea2View.tsx` — s’assurer que tout le flux (stream, vocal, DB) est testé et fonctionnel ici. |
 | `LeaMessagesList.tsx` | Scroll, “Léa rédige”, liste et clés |
 | `LeaMessageBubble.tsx` | Apparition, style, curseur, avatar |
 | `LeaChatInput.tsx` | Barre unique, focus, Enter, états, indicateurs vocaux |
@@ -148,6 +163,8 @@ Objectif : rapprocher l’expérience au maximum d’une **vraie conversation** 
 | `LeaWelcomeScreen.tsx` | Suggestions, transition |
 | `LeaChat.tsx` | Transition welcome ↔ conversation, logique vocale |
 | `useLea.ts` | Gestion erreurs, retry, pas d’envoi si vide |
+
+**Léa2** : `Lea2View.tsx` utilise déjà `useLea` et les mêmes API ; les améliorations UX (streaming visuel, indicateurs, erreurs) doivent être reflétées dans Léa2 (ex. passer le vrai `isStreaming` aux bulles au lieu de `isStreaming={false}`, scroll pendant le stream, message d’erreur cohérent).
 
 ---
 

@@ -39,16 +39,32 @@ export default function Lea2View() {
   const [autoSpeak, setAutoSpeak] = useState(true);
   const lastSpokenMessageRef = useRef<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const prevListeningRef = useRef(false);
+  const justSentFromVoiceRef = useRef(false);
 
   const hasMessages = messages.length > 0;
   const firstName = user?.name?.split(' ')[0] || 'Vous';
 
-  // Sync transcript to input when recognition stops
+  // Sync transcript to input: en direct pendant l'écoute; à l'arrêt seulement si on n'a pas envoyé
   useEffect(() => {
-    if (transcript && !isListening) {
+    if (isListening) {
+      justSentFromVoiceRef.current = false;
+      setInput(transcript);
+    } else if (transcript && !justSentFromVoiceRef.current) {
       setInput(transcript);
     }
   }, [transcript, isListening]);
+
+  // Quand vous arrêtez de parler : envoi automatique → réponse immédiate de Léa
+  useEffect(() => {
+    if (prevListeningRef.current === true && !isListening && transcript.trim()) {
+      const text = transcript.trim();
+      justSentFromVoiceRef.current = true;
+      setInput('');
+      sendMessage(text);
+    }
+    prevListeningRef.current = isListening;
+  }, [isListening, transcript, sendMessage]);
 
   // Auto-speak assistant responses
   useEffect(() => {
@@ -62,7 +78,7 @@ export default function Lea2View() {
       ) {
         lastSpokenMessageRef.current = lastMessage.content;
         setTimeout(() => {
-          speak(lastMessage.content, { lang: 'fr-FR', rate: 0.78, pitch: 1.02, volume: 1.0 });
+          speak(lastMessage.content, { lang: 'fr-FR', rate: 0.78, pitch: 1.05, volume: 1.0 });
         }, 300);
       }
     }
@@ -122,23 +138,11 @@ export default function Lea2View() {
 
   return (
     <div className="flex flex-col h-full min-h-screen bg-slate-950 text-white overflow-hidden">
-      {/* Subtle starfield / gradient background */}
+      {/* Gradient background (no grain) */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-indigo-950/95 to-violet-950" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(99,102,241,0.15),transparent)]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_80%,rgba(139,92,246,0.12),transparent)]" />
-        {/* Star dots */}
-        {[...Array(40)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-1 h-1 bg-white/30 rounded-full animate-pulse"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${i * 0.1}s`,
-            }}
-          />
-        ))}
       </div>
 
       <div className="relative flex flex-col flex-1 min-h-0 z-10">
@@ -180,18 +184,20 @@ export default function Lea2View() {
           </div>
         </header>
 
-        {/* Messages list (compact, when there are messages) */}
+        {/* Messages : uniquement les derniers échanges, sans heure — conversation simple et fluide */}
         {hasMessages && (
           <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-3">
-            {messages.map((msg, i) => (
-              <LeaMessageBubble
-                key={i}
-                content={msg.content}
-                role={msg.role === 'system' ? 'assistant' : msg.role}
-                timestamp={msg.timestamp}
-                isStreaming={false}
-              />
-            ))}
+            {(() => {
+              const start = Math.max(0, messages.length - 6);
+              return messages.slice(start).map((msg, i) => (
+                <LeaMessageBubble
+                  key={start + i}
+                  content={msg.content}
+                  role={msg.role === 'system' ? 'assistant' : msg.role}
+                  isStreaming={false}
+                />
+              ));
+            })()}
             {isLoading && (
               <div className="flex justify-start">
                 <div className="px-4 py-2 rounded-2xl bg-white/10 text-white/80 text-sm">
@@ -287,6 +293,20 @@ export default function Lea2View() {
                 <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
                 {isListening ? 'Léa vous écoute... Parlez.' : 'Enregistrement... Cliquez pour envoyer.'}
               </span>
+            </div>
+          )}
+
+          {/* Transcription en direct pendant que vous parlez */}
+          {isListening && (
+            <div className="max-w-xl mx-auto mb-4 min-h-[4rem] px-4 py-3 rounded-2xl bg-white/10 border border-white/20">
+              <p className="text-white/60 text-xs uppercase tracking-wider mb-1">En direct</p>
+              <p className="text-white text-lg leading-relaxed min-h-[1.5rem]">
+                {transcript ? (
+                  <span>{transcript}</span>
+                ) : (
+                  <span className="text-white/40">Parlez, le texte s&apos;affichera ici…</span>
+                )}
+              </p>
             </div>
           )}
 

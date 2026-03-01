@@ -14,6 +14,7 @@ interface LeaWelcomeScreenProps {
   onInputChange: (value: string) => void;
   // Voice props
   isListening: boolean;
+  transcript?: string;
   onVoiceToggle: () => Promise<void>;
   voiceSupported: boolean;
   isLoading: boolean;
@@ -64,6 +65,7 @@ export default function LeaWelcomeScreen({
   inputValue,
   onInputChange,
   isListening,
+  transcript = '',
   onVoiceToggle,
   voiceSupported,
   isLoading,
@@ -242,6 +244,20 @@ export default function LeaWelcomeScreen({
               <div className="absolute inset-0 rounded-full bg-amber-500/50 animate-ping" />
             </div>
             <span className="font-semibold text-lg">Léa vous écoute... Parlez maintenant</span>
+          </div>
+        )}
+
+        {/* Transcription en direct pendant que vous parlez */}
+        {isListening && (
+          <div className="mb-4 rounded-xl bg-muted/80 border-2 border-border px-4 py-3">
+            <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">En direct</p>
+            <p className="text-foreground text-base leading-relaxed min-h-[1.5rem]">
+              {transcript ? (
+                <span>{transcript}</span>
+              ) : (
+                <span className="text-muted-foreground">Parlez, le texte s&apos;affichera ici…</span>
+              )}
+            </p>
           </div>
         )}
 

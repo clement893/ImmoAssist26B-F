@@ -37,9 +37,12 @@ AGENT_ERR_MSG = (
 
 LEA_SYSTEM_PROMPT = (
     "Tu es Léa, une assistante immobilière experte au Québec. "
-    "Tu aides les courtiers immobiliers et les particuliers avec leurs questions sur les transactions, "
-    "les formulaires OACIQ, les procédures, la vente et l'achat. Sois professionnelle, claire et concise. "
-    "Réponds en français."
+    "Tu aides les courtiers et les particuliers : transactions, formulaires OACIQ, vente, achat.\n\n"
+    "Règles importantes:\n"
+    "- Réponds en français, de façon courtoise et professionnelle.\n"
+    "- Garde tes réponses **courtes** (2 à 4 phrases max), sauf si l'utilisateur demande explicitement plus de détails.\n"
+    "- Pour faire avancer la conversation, **pose une question pertinente** ou propose la prochaine étape quand c'est naturel.\n"
+    "- Sois directe et efficace : pas de formules de politesse longues, va à l'essentiel."
 )
 
 router = APIRouter(prefix="/lea", tags=["lea"])
@@ -171,11 +174,13 @@ async def _stream_lea_sse(message: str, session_id: str | None):
     """Génère les événements SSE pour le chat Léa intégré (streaming)."""
     sid = session_id or str(uuid.uuid4())
     try:
+        settings = get_settings()
         service = AIService(provider=AIProvider.AUTO)
         messages = [{"role": "user", "content": message}]
         async for delta in service.stream_chat_completion(
             messages=messages,
             system_prompt=LEA_SYSTEM_PROMPT,
+            max_tokens=getattr(settings, "LEA_MAX_TOKENS", 256),
         ):
             yield f"data: {json.dumps({'delta': delta})}\n\n"
         yield f"data: {json.dumps({'done': True, 'session_id': sid})}\n\n"
@@ -287,9 +292,11 @@ async def lea_chat_voice(
 
             service = AIService(provider=AIProvider.AUTO)
             messages = [{"role": "user", "content": transcription}]
+            settings = get_settings()
             result = await service.chat_completion(
                 messages=messages,
                 system_prompt=LEA_SYSTEM_PROMPT,
+                max_tokens=getattr(settings, "LEA_MAX_TOKENS", 256),
             )
             response_text = result.get("content") or ""
 

@@ -107,51 +107,64 @@ export function useVoiceSynthesis(): UseVoiceSynthesisReturn {
       const availableVoices = window.speechSynthesis.getVoices();
       setVoices(availableVoices);
       
-      // Prefer French female voice for a natural, human-like voice
-      // Look for French voices first, prioritizing neural/premium voices
+      // Prefer French female voice for Léa (assistante)
       const frenchVoices = availableVoices.filter(
-        (voice) => voice.lang.startsWith('fr') || voice.lang.startsWith('FR')
+        (v) => v.lang.startsWith('fr') || v.lang.startsWith('FR')
       );
-      
-      // Prioritize neural/premium voices (usually have "Neural" or "Premium" in name, or specific high-quality voices)
-      const neuralKeywords = ['neural', 'premium', 'enhanced', 'natural'];
-      const preferredFemaleKeywords = ['female', 'woman', 'femme', 'zira', 'hazel', 'catherine', 'thomas', 'helen', 'denise', 'claude'];
-      
-      // First, try to find a neural/premium French female voice
-      const neuralFemaleVoice = frenchVoices.find((voice) =>
-        neuralKeywords.some((keyword) => voice.name.toLowerCase().includes(keyword.toLowerCase())) &&
-        preferredFemaleKeywords.some((keyword) => voice.name.toLowerCase().includes(keyword.toLowerCase()))
+
+      // Keywords typically used for female voices (names / labels)
+      const femaleKeywords = [
+        'female', 'woman', 'femme', 'zira', 'hazel', 'catherine', 'helen', 'denise', 'claude',
+        'amelie', 'amélie', 'marie', 'sylvie', 'veronique', 'véronique', 'jolie', 'melanie', 'mélanie',
+        'hortense', 'alice', 'claire', 'elise', 'léa', 'lea', 'victoire', 'valerie', 'valérie',
+        'neural', 'premium', 'enhanced',
+      ];
+      // Exclude common male voice names so we don't pick them by mistake
+      const maleKeywords = [
+        'thomas', 'paul', 'antoine', 'pierre', 'michel', 'jean', 'male', 'homme', 'marc', 'nicolas',
+      ];
+      const isLikelyFemale = (voice: SpeechSynthesisVoice) =>
+        femaleKeywords.some((k) => voice.name.toLowerCase().includes(k));
+      const isLikelyMale = (voice: SpeechSynthesisVoice) =>
+        maleKeywords.some((k) => voice.name.toLowerCase().includes(k));
+
+      // 1) French female (neural/premium first)
+      const frenchFemaleNeural = frenchVoices.find(
+        (v) => isLikelyFemale(v) && ['neural', 'premium', 'enhanced'].some((k) => v.name.toLowerCase().includes(k))
       );
-      
-      if (neuralFemaleVoice) {
-        setSelectedVoice(neuralFemaleVoice);
+      if (frenchFemaleNeural) {
+        setSelectedVoice(frenchFemaleNeural);
         return;
       }
-      
-      // Then try any neural/premium French voice
-      const neuralVoice = frenchVoices.find((voice) =>
-        neuralKeywords.some((keyword) => voice.name.toLowerCase().includes(keyword.toLowerCase()))
-      );
-      
-      if (neuralVoice) {
-        setSelectedVoice(neuralVoice);
+
+      // 2) Any French female voice
+      const frenchFemale = frenchVoices.find((v) => isLikelyFemale(v) && !isLikelyMale(v));
+      if (frenchFemale) {
+        setSelectedVoice(frenchFemale);
         return;
       }
-      
-      // Then try French female voice
-      const frenchFemaleVoice = frenchVoices.find((voice) =>
-        preferredFemaleKeywords.some((keyword) =>
-          voice.name.toLowerCase().includes(keyword.toLowerCase())
-        )
-      );
-      
-      if (frenchFemaleVoice) {
-        setSelectedVoice(frenchFemaleVoice);
-      } else if (frenchVoices.length > 0 && frenchVoices[0]) {
-        // Use first French voice if no female voice found
+
+      // 3) First French voice that is not clearly male
+      const frenchNotMale = frenchVoices.find((v) => !isLikelyMale(v));
+      if (frenchNotMale) {
+        setSelectedVoice(frenchNotMale);
+        return;
+      }
+
+      // 4) Any French voice
+      if (frenchVoices.length > 0 && frenchVoices[0]) {
         setSelectedVoice(frenchVoices[0]);
-      } else if (availableVoices.length > 0 && availableVoices[0]) {
-        // Fallback to first available voice
+        return;
+      }
+
+      // 5) Any female voice in another language (e.g. en-GB female)
+      const anyFemale = availableVoices.find((v) => isLikelyFemale(v) && !isLikelyMale(v));
+      if (anyFemale) {
+        setSelectedVoice(anyFemale);
+        return;
+      }
+
+      if (availableVoices.length > 0 && availableVoices[0]) {
         setSelectedVoice(availableVoices[0]);
       }
     };
@@ -184,12 +197,9 @@ export function useVoiceSynthesis(): UseVoiceSynthesisReturn {
 
       const utterance = new SpeechSynthesisUtterance(cleanedText);
       
-      // Set options optimized for natural, human-like speech
-      // Rate: Slower for more natural, human-like diction (0.75-0.8 is ideal for human speech)
+      // Set options optimized for natural, human-like speech (voix féminine)
       utterance.rate = options.rate ?? 0.78;
-      // Pitch: Closer to natural human pitch (1.0 is neutral, slightly higher for feminine voice)
-      utterance.pitch = options.pitch ?? 1.02;
-      // Volume: Full volume for clarity
+      utterance.pitch = options.pitch ?? 1.05; // Légèrement plus aigu pour une voix féminine
       utterance.volume = options.volume ?? 1.0;
       utterance.lang = options.lang ?? 'fr-FR';
       

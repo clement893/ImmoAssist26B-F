@@ -4,6 +4,29 @@ L’objectif est que la **conversation soit fluide** grâce à une IA **rapide**
 
 ---
 
+## 0. Cible : page Léa2
+
+**La page Léa2 est la cible principale** pour connecter l’ensemble du système :
+
+| Élément | Détail |
+|--------|--------|
+| **Route** | `/dashboard/lea2` (ou `/[locale]/dashboard/lea2`) |
+| **Composant** | `Lea2View` (`apps/web/src/components/lea/Lea2View.tsx`) |
+| **Rôle** | Interface voice-first (grand micro central, thème sombre, “Tap to Start”) qui utilise déjà `useLea`, `useVoiceRecording`, `useVoiceRecognition`, `useVoiceSynthesis`. |
+
+**À faire :**
+
+- Toutes les évolutions **backend** (LeaService, historique DB, outils, streaming, vocal intégré) doivent être **utilisables depuis Léa2** : même API (`/lea/chat`, `/lea/chat/stream`, `/lea/chat/voice`), même `session_id`, même hooks.
+- Les évolutions **UX** (fluidité, indicateurs, erreurs, scroll) doivent être **appliquées ou vérifiées sur Léa2** en priorité (et si besoin sur la page Léa classique).
+- **Vérification** : après chaque phase, tester le flux complet sur la page Léa2 (texte, stream, vocal, effacer, reprise de session).
+
+**Pages existantes :**
+
+- **Léa** (`/dashboard/lea`) → `LeaChat` → welcome + `LeaConversationView` (UI complète avec header, liste, saisie).
+- **Léa2** (`/dashboard/lea2`) → `Lea2View` → UI voice-first, même hooks `useLea`. C’est **Léa2** qui doit bénéficier en priorité de l’IA connectée à la base et de l’UX fluide.
+
+---
+
 ## 1. Constat actuel
 
 | Élément | État | Problème |
@@ -130,6 +153,7 @@ Résultat : conversation vraiment “connectée” au métier (transactions, for
 
 | Fichier | Rôle |
 |---------|------|
+| **Frontend cible** | **Léa2** : `apps/web/src/app/[locale]/dashboard/lea2/page.tsx` et `Lea2View.tsx`. Tester ici en priorité après chaque phase (chat, stream, vocal, session). |
 | `backend/app/api/v1/endpoints/lea.py` | Utiliser LeaService pour `/lea/chat` (intégré) ; pour `/lea/chat/stream` : charger conversation, construire messages, appeler LLM (avec ou sans outils), streamer et persister ; pour `/lea/chat/voice` : appeler LeaService après Whisper et persister. |
 | `backend/app/services/lea_service.py` | Optionnel : méthode “chat sans outils” pour le stream simple ; ou méthode qui retourne un générateur de tokens après résolution des outils. Limiter les messages chargés (ex. 20 derniers). |
 | `backend/app/services/ai_service.py` | Déjà utilisé ; pas de changement majeur si on garde la logique “outils” dans LeaService. |

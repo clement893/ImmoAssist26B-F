@@ -362,6 +362,12 @@ class Settings(BaseSettings):
         default="nova",
         description="Voix OpenAI TTS: alloy, echo, fable, onyx, nova, shimmer (nova = voix féminine claire)",
     )
+    LEA_MAX_TOKENS: int = Field(
+        default=256,
+        ge=64,
+        le=1024,
+        description="Nombre max de tokens pour les réponses de Léa (réponses courtes = 200–300)",
+    )
 
     # SendGrid Marketing Lists
     SENDGRID_NEWSLETTER_LIST_ID: str = Field(

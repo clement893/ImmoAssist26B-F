@@ -116,8 +116,8 @@ function DashboardLayoutContent({ children }: DashboardLayoutProps) {
 
       {/* Desktop Layout - Sidebar stays fixed, only content changes */}
       <div className="flex h-screen pt-0 lg:pt-0">
-        {/* Desktop Sidebar - Fixed position, persists during navigation */}
-        <aside className="hidden lg:block">
+        {/* Desktop Sidebar - Fixed position, persists during navigation, above full-screen page content (e.g. Léa) */}
+        <aside className="hidden lg:block shrink-0 relative z-20">
           <MemoizedSidebar
             items={sidebarItems}
             currentPath={pathname}
@@ -134,7 +134,7 @@ function DashboardLayoutContent({ children }: DashboardLayoutProps) {
         </aside>
 
         {/* Main Content - Only this part changes during navigation */}
-        <div className="flex-1 flex flex-col min-w-0 w-full bg-background">
+        <div className="flex-1 flex flex-col min-w-0 w-full bg-background relative z-0">
           {/* Page Content - This is the only part that updates on navigation */}
           <main
             key={pathname}

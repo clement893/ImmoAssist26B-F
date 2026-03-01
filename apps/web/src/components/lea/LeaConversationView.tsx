@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Alert from '@/components/ui/Alert';
 import Button from '@/components/ui/Button';
 import LeaConversationHeader from './LeaConversationHeader';
@@ -44,7 +44,7 @@ export default function LeaConversationView({
   onClear,
   onClose,
   isListening,
-  transcript: _transcript,
+  transcript,
   onVoiceToggle,
   voiceSupported,
   requestPermission,
@@ -59,6 +59,13 @@ export default function LeaConversationView({
   onVoiceRecordToggle,
 }: LeaConversationViewProps) {
   const [input, setInput] = useState('');
+
+  // Afficher le transcript en direct dans le champ pendant que l'utilisateur parle
+  useEffect(() => {
+    if (isListening && transcript !== null) {
+      setInput(transcript);
+    }
+  }, [isListening, transcript]);
 
   return (
     <div className="flex flex-col h-full min-h-screen bg-background">
@@ -117,6 +124,22 @@ export default function LeaConversationView({
               )}
             </div>
           </Alert>
+        </div>
+      )}
+
+      {/* Transcription en direct pendant que vous parlez */}
+      {isListening && (
+        <div className="px-4 pb-3">
+          <div className="max-w-2xl mx-auto rounded-xl bg-muted/80 border border-border px-4 py-3">
+            <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">En direct</p>
+            <p className="text-foreground text-base leading-relaxed min-h-[1.5rem]">
+              {transcript ? (
+                <span>{transcript}</span>
+              ) : (
+                <span className="text-muted-foreground">Parlez, le texte s&apos;affichera ici…</span>
+              )}
+            </p>
+          </div>
         </div>
       )}
 
