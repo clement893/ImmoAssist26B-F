@@ -1,5 +1,8 @@
 # Multi-stage build for FastAPI backend
-FROM python:3.11-slim AS base
+# Use Google's Docker Hub mirror to avoid TLS timeouts when building on GCP (e.g. Cloud Run, Cloud Build).
+# Override with: docker build --build-arg BASE_IMAGE=python:3.11-slim ...
+ARG BASE_IMAGE=mirror.gcr.io/library/python:3.11-slim
+FROM ${BASE_IMAGE} AS base
 
 # Set working directory
 WORKDIR /app
