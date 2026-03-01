@@ -250,42 +250,45 @@ export default function Lea2View() {
           </div>
         </header>
 
-        {/* ——— CONVERSATION (gauche sur desktop, au-dessus sur mobile) ——— */}
+        {/* ——— CONVERSATION (centrée, feed scrollable pour remonter) ——— */}
         <div className={clsx(
           'flex flex-col min-h-0',
-          hasMessages ? 'flex-1 md:min-w-0 min-h-[200px] max-h-[50vh] md:max-h-none' : 'hidden md:flex md:flex-1 md:min-w-0'
+          hasMessages ? 'flex-1 md:min-w-0 min-h-[220px] max-h-[55vh] md:max-h-none' : 'hidden md:flex md:flex-1 md:min-w-0'
         )}>
-          <div className="flex-1 min-h-0 flex flex-col mx-3 mt-3 md:mx-4 md:mt-4 md:mr-2">
-            <div className="text-white/60 text-xs font-medium uppercase tracking-wider mb-2 px-1">
-              Conversation
-            </div>
-            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden rounded-2xl bg-white/5 border border-white/10 shadow-inner scroll-smooth overscroll-contain">
-              <div className="p-4 space-y-4 min-h-full">
+          <div className="flex-1 min-h-0 flex flex-col h-full">
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden rounded-2xl mx-3 mt-3 md:mx-4 md:mt-4 md:mr-2 bg-white/5 border border-white/10 shadow-inner scroll-smooth overscroll-contain [scrollbar-gutter:stable]">
+              {/* Contenu centré : max-width pour centraliser les bulles */}
+              <div className="max-w-2xl mx-auto px-4 py-5 min-h-full flex flex-col">
                 {hasMessages ? (
                   <>
-                    {messages.map((msg, i) => (
-                      <LeaMessageBubble
-                        key={i}
-                        content={msg.content}
-                        role={msg.role === 'system' ? 'assistant' : msg.role}
-                        isStreaming={false}
-                        variant="dark"
-                      />
-                    ))}
-                    {isLoading && (
-                      <div className="flex justify-start">
-                        <div className="px-4 py-2.5 rounded-2xl bg-white/10 text-white/80 text-sm border border-white/20">
-                          Léa réfléchit...
+                    <p className="text-white/50 text-xs uppercase tracking-wider mb-4 sticky top-0 bg-slate-950/90 backdrop-blur py-1 z-10">
+                      Discussion
+                    </p>
+                    <div className="space-y-4 flex-1">
+                      {messages.map((msg, i) => (
+                        <LeaMessageBubble
+                          key={i}
+                          content={msg.content}
+                          role={msg.role === 'system' ? 'assistant' : msg.role}
+                          isStreaming={false}
+                          variant="dark"
+                        />
+                      ))}
+                      {isLoading && (
+                        <div className="flex justify-start">
+                          <div className="px-4 py-2.5 rounded-2xl bg-white/10 text-white/80 text-sm border border-white/20">
+                            Léa réfléchit...
+                          </div>
                         </div>
-                      </div>
-                    )}
-                    <div ref={messagesEndRef} />
+                      )}
+                    </div>
+                    <div ref={messagesEndRef} className="h-2 shrink-0" />
                   </>
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-12 text-center text-white/40 text-sm">
+                  <div className="flex flex-col items-center justify-center py-16 text-center text-white/40 text-sm flex-1">
                     <MessageSquare className="w-10 h-10 mb-3 opacity-50" />
                     <p>La conversation apparaîtra ici.</p>
-                    <p className="mt-1">Utilisez le micro ou le champ ci-contre pour commencer.</p>
+                    <p className="mt-1">Utilisez le micro ou le champ à droite pour commencer.</p>
                   </div>
                 )}
               </div>
