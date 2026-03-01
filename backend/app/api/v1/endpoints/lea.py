@@ -323,6 +323,18 @@ def _wants_to_create_transaction(message: str) -> tuple[bool, str]:
         if "vente" in t or "de vente" in t:
             return True, "vente"
         return True, "achat"
+    # "créer de nouvelles transactions" / "créer des nouvelles transactions" (pluriel, vocal ou clavier)
+    if (
+        "créer de nouvelles transactions" in t
+        or "creer de nouvelles transactions" in nt
+        or "créer des nouvelles transactions" in t
+        or "creer des nouvelles transactions" in nt
+        or ("créer" in t and "nouvelles transactions" in t)
+        or ("creer" in nt and "nouvelles transactions" in nt)
+    ):
+        if "vente" in t or "de vente" in t:
+            return True, "vente"
+        return True, "achat"
     # "créer une transaction avec toi" / "créer une transaction avec Léa"
     if "créer une transaction" in t and ("avec toi" in t or "avec léa" in t or "avec lea" in t):
         if "vente" in t or "de vente" in t:
@@ -1073,6 +1085,74 @@ async def maybe_update_transaction_price_from_lea(
         return None
 
 
+def _get_lea_guidance_lines(message: str) -> list[str]:
+    """
+    Pour les demandes reconnues mais sans action concrète (modifier transaction, ajouter contact,
+    formulaire OACIQ), retourne des lignes de guidage pour le bloc « Action effectuée » afin que
+    Léa pose les bonnes questions au lieu de dire « je ne peux pas ».
+    """
+    t = (message or "").strip().lower()
+    if not t:
+        return []
+    lines = []
+
+    # Modifier une transaction (en cours) — demander quoi modifier
+    if any(
+        phrase in t
+        for phrase in (
+            "modifier une transaction",
+            "modifier la transaction",
+            "modifier un dossier",
+            "changer une transaction",
+            "modifier une transaction en cours",
+            "modifier ma transaction",
+        )
+    ) or ("modifier" in t and "transaction" in t):
+        lines.append(
+            "L'utilisateur souhaite modifier une transaction. "
+            "Demande-lui quoi modifier (adresse, prix, vendeurs/acheteurs, promesse d'achat) ou sur quelle transaction il veut travailler ; "
+            "une fois qu'il aura donné les détails, tu pourras enregistrer les changements. Ne dis pas que tu ne peux pas le faire."
+        )
+
+    # Ajouter un contact — demander transaction, rôle et nom
+    if not lines and (
+        "ajouter un contact" in t
+        or "ajouter une contact" in t
+        or ("ajouter" in t and "contact" in t)
+        or "ajouter un vendeur" in t
+        or "ajouter un acheteur" in t
+        or "ajouter une vendeur" in t
+        or "ajouter une acheteur" in t
+    ):
+        lines.append(
+            "L'utilisateur souhaite ajouter un contact. "
+            "Demande pour quelle transaction (ou dis que tu prends la dernière) et quel rôle (vendeur ou acheteur), et le nom du contact ; "
+            "une fois qu'il aura donné ces informations, tu pourras l'ajouter à la transaction. Ne dis pas que tu ne peux pas."
+        )
+
+    # Formulaires OACIQ / ROI / CQ
+    if not lines and (
+        "formulaire roi" in t
+        or "formulaire cq" in t
+        or "formula roi" in t
+        or "formula cq" in t
+        or "formulaire oaciq" in t
+        or "formulaires oaciq" in t
+        or "remplir un formulaire" in t
+        or "remplir le formulaire" in t
+        or "remplir un formula" in t
+        or ("formulaire" in t and ("roi" in t or "cq" in t or "oaciq" in t))
+        or ("formula" in t and ("roi" in t or "cq" in t))
+    ):
+        lines.append(
+            "L'utilisateur souhaite remplir un formulaire OACIQ (ex. ROI, CQ). "
+            "Indique-lui qu'il peut aller dans la section Transactions, ouvrir la transaction concernée et utiliser l'onglet Formulaires OACIQ ; "
+            "propose de l'aider à compléter les champs s'il te donne les informations. Ne dis pas que tu ne peux pas."
+        )
+
+    return lines
+
+
 async def run_lea_actions(db: AsyncSession, user_id: int, message: str) -> tuple[list, Optional[RealEstateTransaction]]:
     """
     Exécute les actions Léa (création transaction, mise à jour adresse, promesse d'achat).
@@ -1137,6 +1217,8 @@ async def run_lea_actions(db: AsyncSession, user_id: int, message: str) -> tuple
             f"Le {label} a été enregistré pour la transaction {ref} : {amount:,.0f} $. "
             "Confirme à l'utilisateur que c'est enregistré et qu'il peut voir la transaction dans la section Transactions."
         )
+    if not lines:
+        lines.extend(_get_lea_guidance_lines(message))
     return (lines, created)
 
 
