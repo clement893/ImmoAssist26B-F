@@ -1203,13 +1203,37 @@ async def maybe_add_seller_buyer_contact_from_lea(
             names_list = _extract_seller_buyer_names_from_assistant_question(last_assistant_message)
     if names_list:
         role, names = names_list
-        transaction = await get_user_latest_transaction(db, user_id)
+        ref = _extract_transaction_ref_from_message(message)
+        if ref:
+            transaction = await get_user_transaction_by_ref(db, user_id, ref)
+        else:
+            hint = _extract_address_hint_from_message(message)
+            transaction = await get_user_transaction_by_address_hint(db, user_id, hint) if hint else None
+            if not transaction:
+                transaction = await get_user_latest_transaction(db, user_id)
         if not transaction or not names:
             return None
+        # Mode remplacement : si Léa venait de demander les "nouveaux vendeurs/acheteurs", on remplace la liste au lieu d'ajouter
+        last_lower = (last_assistant_message or "").strip().lower()
+        replace_sellers = (
+            role == "Vendeur"
+            and any(
+                phrase in last_lower
+                for phrase in ("nouveaux vendeurs", "changer les vendeurs", "modifier les vendeurs", "remplacer les vendeurs")
+            )
+        )
+        replace_buyers = (
+            role == "Acheteur"
+            and any(
+                phrase in last_lower
+                for phrase in ("nouveaux acheteurs", "changer les acheteurs", "modifier les acheteurs", "remplacer les acheteurs")
+            )
+        )
+        replace_mode = replace_sellers or replace_buyers
         try:
             added = []
-            sellers = list(transaction.sellers) if transaction.sellers else []
-            buyers = list(transaction.buyers) if transaction.buyers else []
+            sellers = [] if replace_sellers else list(transaction.sellers) if transaction.sellers else []
+            buyers = [] if replace_buyers else list(transaction.buyers) if transaction.buyers else []
             for first_name, last_name in names:
                 contact = RealEstateContact(
                     first_name=first_name,
@@ -1240,10 +1264,15 @@ async def maybe_add_seller_buyer_contact_from_lea(
                 transaction.buyers = buyers
             await db.commit()
             await db.refresh(transaction)
-            ref = transaction.dossier_number or f"#{transaction.id}"
-            logger.info(f"Lea added {role}s {added} to transaction id={transaction.id}")
+            ref_label = transaction.dossier_number or f"#{transaction.id}"
+            logger.info(f"Lea added {role}s {added} to transaction id={transaction.id}" + (" (replaced)" if replace_mode else ""))
+            if replace_mode:
+                return (
+                    f"Les {role.lower()}s ont été mis à jour pour la transaction {ref_label} : {', '.join(added)}. "
+                    "Confirme à l'utilisateur que c'est enregistré."
+                )
             return (
-                f"Les {role.lower()}s ({', '.join(added)}) ont été enregistrés pour la transaction {ref}. "
+                f"Les {role.lower()}s ({', '.join(added)}) ont été enregistrés pour la transaction {ref_label}. "
                 "Confirme à l'utilisateur que c'est enregistré."
             )
         except Exception as e:
@@ -1515,18 +1544,33 @@ def _get_lea_guidance_lines(message: str) -> list[str]:
             "Ne pas redemander les acheteurs ; passer à la suite (ex. prix demandé, autres détails)."
         )
 
-    # Modifier une transaction (en cours) — demander quoi modifier
-    if any(
-        phrase in t
-        for phrase in (
-            "modifier une transaction",
-            "modifier la transaction",
-            "modifier un dossier",
-            "changer une transaction",
-            "modifier une transaction en cours",
-            "modifier ma transaction",
+    # Changer / modifier les vendeurs ou les acheteurs (sans nouveaux noms encore) — demander les noms pour pouvoir les enregistrer
+    if (
+        ("vendeur" in t and ("changer" in t or "changeons" in t or "modifier" in t or "modifions" in t))
+        or ("acheteur" in t and ("changer" in t or "changeons" in t or "modifier" in t or "modifions" in t))
+    ):
+        role_label = "vendeurs" if "vendeur" in t else "acheteurs"
+        lines.append(
+            f"L'utilisateur souhaite modifier les {role_label} pour une transaction. "
+            f"Demande-lui : « Qui sont les nouveaux {role_label} pour cette transaction ? » "
+            "Une fois qu'il aura donné les noms (ex. « c'est Jean et Marie »), tu pourras les enregistrer à la place des actuels. Ne dis pas que tu ne peux pas."
         )
-    ) or ("modifier" in t and "transaction" in t):
+
+    # Modifier une transaction (en cours) — demander quoi modifier (sauf si on vient de traiter vendeurs/acheteurs)
+    if not lines and (
+        any(
+            phrase in t
+            for phrase in (
+                "modifier une transaction",
+                "modifier la transaction",
+                "modifier un dossier",
+                "changer une transaction",
+                "modifier une transaction en cours",
+                "modifier ma transaction",
+            )
+        )
+        or ("modifier" in t and "transaction" in t)
+    ):
         lines.append(
             "L'utilisateur souhaite modifier une transaction. "
             "Demande-lui quoi modifier (adresse, prix, vendeurs/acheteurs, promesse d'achat) ou sur quelle transaction il veut travailler ; "
