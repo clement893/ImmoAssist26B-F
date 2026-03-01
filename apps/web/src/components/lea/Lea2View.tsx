@@ -347,6 +347,7 @@ export default function Lea2View() {
 
   const handleMessageSend = async (message: string) => {
     if (!message.trim() || isLoading) return;
+    restartListeningAfterResponseRef.current = true; // réactiver le micro après la réponse de Léa
     await sendMessage(message.trim());
     setInput('');
   };

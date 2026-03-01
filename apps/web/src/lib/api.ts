@@ -441,6 +441,16 @@ export const leaAPI = {
       speed: speed ?? 1.2,
     });
   },
+  /** GET /v1/lea/capabilities → list of actions Léa can perform */
+  getCapabilities: () => {
+    return apiClient.get<{ capabilities: Array<{ id: string; label: string; description: string }> }>(
+      '/v1/lea/capabilities'
+    );
+  },
+  /** POST /v1/lea/capabilities/check → verify an action is available (e.g. connection to external service) */
+  checkCapability: (action_id: string) => {
+    return apiClient.post<{ ok: boolean; message?: string }>('/v1/lea/capabilities/check', { action_id });
+  },
 };
 
 // transactionsAPI et realEstateContactsAPI sont exportés depuis les adaptateurs du module Transactions

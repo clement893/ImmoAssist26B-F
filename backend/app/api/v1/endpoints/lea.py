@@ -68,7 +68,8 @@ LEA_SYSTEM_PROMPT = (
     "Après avoir créé une transaction ou enregistré une info, propose **la prochaine question logique** (ex. après l'adresse : « Qui sont les vendeurs pour ce dossier ? »). "
     "**Ne redemande jamais une information déjà fournie** (ex. le prix, l'adresse, les coordonnées d'un vendeur/acheteur déjà donnés). Utilise le bloc « Données plateforme » et l'historique pour proposer la prochaine étape (ex. coordonnées acheteur si le vendeur est fait, ou date de clôture). "
     "Si le bloc « Données plateforme » indique déjà des vendeurs ou acheteurs pour la dernière transaction, ne redemande pas « Qui sont les vendeurs ? » ou « Qui sont les acheteurs ? » — passe à l'étape suivante (ex. prix). "
-    "Si l'utilisateur dit qu'il n'y a pas encore d'acheteurs (ex. « en période de vente », « pas encore d'acheteurs »), considère que c'est noté et propose la suite (ex. « Quel est le prix demandé ? »). Ne redemande pas les vendeurs ni les acheteurs dans ce cas.\n\n"
+    "Si dans l'échange précédent tu as toi-même répondu en listant les vendeurs (ex. « Les vendeurs sont X et Y »), ne redemande jamais « Qui sont les vendeurs ? » : considère que c'est enregistré et passe à la suite (acheteurs ou prix). "
+    "Si l'utilisateur dit qu'il n'y a pas encore d'acheteurs (ex. « en période de vente », « pas encore d'acheteurs », « aucun acheteur pour l'instant »), considère que c'est noté et propose la suite (ex. « Quel est le prix demandé ? »). Ne redemande pas les vendeurs ni les acheteurs dans ce cas.\n\n"
     "Reste concise : une question à la fois, ou deux maximum si le contexte s'y prête.\n\n"
     "Règles générales:\n"
     "- Réponds en français, de façon courtoise et professionnelle.\n"
@@ -741,12 +742,17 @@ async def maybe_update_transaction_address_from_lea(db: AsyncSession, user_id: i
     try:
         transaction.property_address = addr
         validation = await _validate_address_via_geocode(addr)
-        if validation and validation.get("state"):
-            state = validation["state"]
-            if "québec" in state.lower() or "quebec" in state.lower() or state.upper() == "QC":
-                transaction.property_province = "QC"
-            elif state.upper() in ("ON", "ONTARIO"):
-                transaction.property_province = "ON"
+        if validation:
+            if validation.get("state"):
+                state = validation["state"]
+                if "québec" in state.lower() or "quebec" in state.lower() or state.upper() == "QC":
+                    transaction.property_province = "QC"
+                elif state.upper() in ("ON", "ONTARIO"):
+                    transaction.property_province = "ON"
+            if validation.get("city"):
+                transaction.property_city = validation["city"]
+            if validation.get("postcode"):
+                transaction.property_postal_code = validation["postcode"]
         await db.commit()
         await db.refresh(transaction)
         logger.info(f"Lea updated transaction id={transaction.id} address to {addr[:50]}...")
@@ -797,14 +803,16 @@ def _extract_seller_buyer_names_list(message: str) -> Optional[tuple[str, List[t
     if not m:
         return None
     raw = m.group(1).strip()
-    parts = re.split(r"\s+et\s+|\s*,\s*", raw)
+    # Artifact vocal en fin de phrase : "vocal terminé", "local terminé" (faute de reconnaissance)
+    raw = re.sub(r"\s+(?:vocal|vacal|cale|local)\s+terminé.*$", "", raw, flags=re.I).strip()
+    if not raw:
+        return None
+    # Séparateurs : " et ", virgule, ou " les " (vocal dit parfois "A les B" au lieu de "A et B")
+    parts = re.split(r"\s+et\s+|\s*,\s*|\s+les\s+", raw)
     names: List[tuple[str, str]] = []
     for part in parts:
         part = part.strip()
         if not part or len(part) < 2:
-            continue
-        part = re.sub(r"\s+(?:vocal|vacal|cale)\s+terminé.*$", "", part, flags=re.I).strip()
-        if not part:
             continue
         words = part.split()
         if len(words) >= 2:
@@ -1097,10 +1105,20 @@ async def run_lea_actions(db: AsyncSession, user_id: int, message: str) -> tuple
             if validation.get("country_code"):
                 parts.append(validation["country_code"])
             if parts:
-                lines.append(
-                    f"Recherche web (géocodage) : « {' — '.join(parts)} ». "
-                    "Tu peux confirmer à l'utilisateur que l'adresse a été vérifiée (code postal, province, ville)."
-                )
+                geocode_str = " — ".join(parts)
+                city = validation.get("city") or ""
+                postcode = validation.get("postcode") or ""
+                state = validation.get("state") or ""
+                if city and postcode:
+                    lines.append(
+                        f"Recherche web (géocodage) : « {geocode_str} ». "
+                        f"Dans ta réponse, confirme à l'utilisateur que l'adresse a été vérifiée en mentionnant explicitement : ville {city}, code postal {postcode}" + (f", {state}" if state else "") + "."
+                    )
+                else:
+                    lines.append(
+                        f"Recherche web (géocodage) : « {geocode_str} ». "
+                        "Confirme à l'utilisateur que l'adresse a été vérifiée (ville, code postal, province)."
+                    )
     promise_tx = await maybe_set_promise_from_lea(db, user_id, message)
     if promise_tx:
         lines.append(

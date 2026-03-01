@@ -1,6 +1,6 @@
 """Add lea_session_transaction_links table
 
-Revision ID: 047_lea_session_transaction_links
+Revision ID: 047_lea_tx_links
 Revises: 046_rec_user_id_unique
 Create Date: 2026-03-01
 
@@ -12,13 +12,17 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision: str = "047_lea_session_transaction_links"
+revision: str = "047_lea_tx_links"
 down_revision: Union[str, None] = "046_rec_user_id_unique"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    if inspector.has_table("lea_session_transaction_links"):
+        return  # Table déjà créée (échec précédent après create, avant update version)
     op.create_table(
         "lea_session_transaction_links",
         sa.Column("id", sa.Integer(), nullable=False),

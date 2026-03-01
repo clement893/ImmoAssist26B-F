@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { apiClient } from '@/lib/api';
+import { apiClient, leaAPI } from '@/lib/api';
 import { Container, Card, Button } from '@immoassist/ui';
 import Input from '@/components/ui/Input';
 import Tabs from '@/components/ui/Tabs';
 import { MessageSquare, Save, RotateCcw, Loader2, Zap, CheckCircle2, XCircle } from 'lucide-react';
+import { useToast } from '@/lib/toast';
 
 export interface LeaCapability {
   id: string;
@@ -41,6 +42,16 @@ const DEFAULT_SETTINGS: LeaSettingsData = {
   tts_voice: 'shimmer',
 };
 
+/** Les 6 actions Léa affichées dans l'onglet Actions (si l'API ne renvoie rien). */
+const DEFAULT_LEA_CAPABILITIES: LeaCapability[] = [
+  { id: 'create_transaction', label: 'Créer une transaction', description: "Léa peut créer un dossier (transaction d'achat ou de vente) depuis la conversation." },
+  { id: 'update_transaction', label: 'Modifier une transaction', description: "Léa peut mettre à jour l'adresse, la promesse d'achat, etc. sur une transaction existante." },
+  { id: 'create_contact', label: 'Créer un contact', description: "Léa peut créer un contact dans le Réseau (API contacts)." },
+  { id: 'update_contact', label: 'Modifier un contact', description: "Léa peut modifier un contact existant dans le Réseau." },
+  { id: 'access_oaciq_forms', label: 'Accéder aux formulaires OACIQ', description: "Léa peut consulter la liste et les détails des formulaires OACIQ." },
+  { id: 'modify_oaciq_forms', label: 'Modifier des formulaires OACIQ', description: "Léa peut créer ou modifier des soumissions de formulaires OACIQ." },
+];
+
 const TTS_VOICES = [
   { value: 'alloy', label: 'Alloy' },
   { value: 'echo', label: 'Echo' },
@@ -66,6 +77,7 @@ export default function ParametresLeaPage() {
   const [capabilitiesLoading, setCapabilitiesLoading] = useState(false);
   const [checkResults, setCheckResults] = useState<Record<string, CapabilityCheckResult>>({});
   const [checkLoading, setCheckLoading] = useState<Record<string, boolean>>({});
+  const { success: toastSuccess } = useToast();
 
   const loadSettings = useCallback(async () => {
     setLoading(true);
@@ -97,12 +109,14 @@ export default function ParametresLeaPage() {
   const loadCapabilities = useCallback(async () => {
     setCapabilitiesLoading(true);
     try {
-      const res = await apiClient.get<{ capabilities: LeaCapability[] }>('/v1/lea/capabilities');
-      if (res.data?.capabilities) {
+      const res = await leaAPI.getCapabilities();
+      if (res.data?.capabilities?.length) {
         setCapabilities(res.data.capabilities);
+      } else {
+        setCapabilities(DEFAULT_LEA_CAPABILITIES);
       }
-    } catch (e) {
-      setCapabilities([]);
+    } catch {
+      setCapabilities(DEFAULT_LEA_CAPABILITIES);
     } finally {
       setCapabilitiesLoading(false);
     }
@@ -145,17 +159,22 @@ export default function ParametresLeaPage() {
     setCheckLoading((prev) => ({ ...prev, [actionId]: true }));
     setCheckResults((prev) => ({ ...prev, [actionId]: undefined as unknown as CapabilityCheckResult }));
     try {
-      const res = await apiClient.post<CapabilityCheckResult>('/v1/lea/capabilities/check', {
-        action_id: actionId,
-      });
+      const res = await leaAPI.checkCapability(actionId);
       const result = res.data;
       setCheckResults((prev) => ({ ...prev, [actionId]: result }));
-      if (!result.ok && result.message) {
+      if (result?.ok) {
+        toastSuccess('OK');
+      } else if (result && !result.ok && result.message) {
         window.alert(result.message);
       }
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { detail?: string } }; message?: string };
-      const msg = err.response?.data?.detail || err.message || 'Erreur lors de la vérification.';
+      const err = e as { response?: { data?: { message?: string; detail?: string | unknown } }; message?: string };
+      const detail = err.response?.data?.detail;
+      const msg =
+        err.response?.data?.message ??
+        (typeof detail === 'string' ? detail : Array.isArray(detail) ? (detail as Array<{ msg?: string }>).map((d) => d?.msg).filter(Boolean).join(', ') : null) ??
+        err.message ??
+        'Erreur lors de la vérification.';
       setCheckResults((prev) => ({ ...prev, [actionId]: { ok: false, message: msg } }));
       window.alert(msg);
     } finally {
