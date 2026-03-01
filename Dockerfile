@@ -1,4 +1,6 @@
 # Multi-stage build for production
+# syntax=docker/dockerfile:1
+# Use BuildKit for cache mounts (faster pnpm install between builds)
 FROM node:22-alpine AS base
 
 # Install pnpm only (Sharp will use prebuilt binaries - faster than building from source)
@@ -22,10 +24,10 @@ COPY packages/config/package.json ./packages/config/
 
 # Install dependencies
 # Sharp will automatically download prebuilt binaries (faster than building from source)
-# Railway automatically caches .pnpm-store via railway.json configuration (no BuildKit cache mounts needed)
-# Configure pnpm to use a cache directory that Railway can cache (relative to workdir)
+# BuildKit cache mount: persist .pnpm-store between builds so pnpm install reuses packages
 RUN pnpm config set store-dir .pnpm-store
-RUN pnpm install --frozen-lockfile || \
+RUN --mount=type=cache,target=/app/.pnpm-store \
+    pnpm install --frozen-lockfile || \
     (echo "Retrying installation with relaxed lockfile..." && sleep 5 && pnpm install --no-frozen-lockfile) || \
     (echo "Final retry..." && pnpm install --no-frozen-lockfile)
 
@@ -103,10 +105,9 @@ ENV PATH="/app/node_modules/.bin:$PATH"
 RUN cd apps/web && node scripts/prepare-build-env.js
 
 # Run pre-build validation to catch errors early (before expensive build process)
-# This runs type checking and other fast validations to fail fast if there are errors
-# This prevents wasting time on builds that will fail anyway
-# Set SKIP_TYPE_CHECK=1 as build arg to skip TypeScript validation (default is to enable for safety)
-ARG SKIP_TYPE_CHECK=0
+# Type check is skipped by default in Docker (saves ~25-80s): Next.js still runs TypeScript during build.
+# Set SKIP_TYPE_CHECK=0 in Railway build args to run full validation (e.g. if you don't run type-check in CI).
+ARG SKIP_TYPE_CHECK=1
 ENV SKIP_TYPE_CHECK=${SKIP_TYPE_CHECK}
 RUN cd apps/web && node scripts/validate-build.js
 
@@ -114,15 +115,12 @@ RUN cd apps/web && node scripts/validate-build.js
 # Uses Webpack by default in production (more stable with next-auth catch-all routes)
 # Turbopack has issues with vendored Next.js modules in catch-all routes
 # Next.js will read variables from .env.local (created above) or ENV
-# To use Turbopack instead, set USE_TURBOPACK=true in Railway environment variables
 # Disable Next.js telemetry for faster builds (no network calls during build)
-# Type checking is already done in validate-build.js, but Next.js will still verify types
-# We keep type checking enabled in Next.js as a safety net (it's fast since we already checked)
+# Type checking: run by Next.js during build (validate-build type-check skipped by default to save ~25-80s)
 ENV NEXT_TELEMETRY_DISABLED=1
-# Don't skip type check - Next.js will verify types (fast since validate-build.js already checked)
-# Remove TSC_COMPILE_ON_ERROR to fail on TypeScript errors
-# Disable build traces collection (saves ~30-45 seconds)
 ENV NEXT_PRIVATE_STANDALONE=true
+# Increase Node memory for faster webpack compilation (reduces OOM risk on large apps)
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN cd apps/web && USE_WEBPACK=true pnpm build
 
 # Production image
