@@ -10,7 +10,8 @@ import re
 import unicodedata
 import uuid
 from datetime import date
-from typing import Optional, Literal, List
+from decimal import Decimal
+from typing import Optional, Literal, List, Tuple, Any
 
 import httpx
 from fastapi import APIRouter, Depends, File, Form, HTTPException, status, UploadFile
@@ -598,8 +599,52 @@ def _wants_to_set_promise(message: str) -> bool:
     )
 
 
-async def maybe_update_transaction_address_from_lea(db: AsyncSession, user_id: int, message: str) -> Optional[tuple[str, RealEstateTransaction]]:
-    """Si le message demande d'ajouter/mettre à jour l'adresse, met à jour la transaction (par ref ou la plus récente). Si aucune transaction n'existe, en crée une puis y met l'adresse. Retourne (adresse, transaction) si mise à jour."""
+async def _validate_address_via_geocode(addr: str) -> Optional[dict]:
+    """
+    Vérifie une adresse via géocodage (Nominatim / OpenStreetMap).
+    Retourne un dict avec postcode, city, state (province), country_code pour que Léa puisse confirmer à l'utilisateur.
+    """
+    if not addr or len(addr.strip()) < 5:
+        return None
+    url = "https://nominatim.openstreetmap.org/search"
+    params = {"q": addr.strip(), "format": "json", "addressdetails": 1, "limit": 1}
+    headers = {"User-Agent": "ImmoAssist-Lea/1.0 (contact@immoassist.com)"}
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            r = await client.get(url, params=params, headers=headers)
+            r.raise_for_status()
+            data = r.json()
+    except Exception as e:
+        logger.warning(f"Lea geocode address failed: {e}", exc_info=False)
+        return None
+    if not data or not isinstance(data, list) or len(data) == 0:
+        return None
+    item = data[0]
+    if not isinstance(item, dict):
+        return None
+    adr = item.get("address") or {}
+    if not isinstance(adr, dict):
+        return None
+    postcode = adr.get("postcode") or adr.get("postal_code")
+    city = adr.get("city") or adr.get("town") or adr.get("village") or adr.get("municipality") or adr.get("county")
+    state = adr.get("state") or adr.get("province")
+    country = adr.get("country_code", "").upper() if adr.get("country_code") else None
+    result = {}
+    if postcode:
+        result["postcode"] = str(postcode).strip()
+    if city:
+        result["city"] = str(city).strip()
+    if state:
+        result["state"] = str(state).strip()
+    if country:
+        result["country_code"] = country
+    if not result:
+        return None
+    return result
+
+
+async def maybe_update_transaction_address_from_lea(db: AsyncSession, user_id: int, message: str) -> Optional[Tuple[str, RealEstateTransaction, Optional[dict]]]:
+    """Si le message demande d'ajouter/mettre à jour l'adresse, met à jour la transaction (par ref ou la plus récente). Si aucune transaction n'existe, en crée une puis y met l'adresse. Retourne (adresse, transaction, infos_géocodage) si mise à jour ; infos_géocodage peut être None."""
     if not _wants_to_update_address(message):
         return None
     addr = _extract_address_from_message(message)
@@ -631,10 +676,17 @@ async def maybe_update_transaction_address_from_lea(db: AsyncSession, user_id: i
             return None
     try:
         transaction.property_address = addr
+        validation = await _validate_address_via_geocode(addr)
+        if validation and validation.get("state"):
+            state = validation["state"]
+            if "québec" in state.lower() or "quebec" in state.lower() or state.upper() == "QC":
+                transaction.property_province = "QC"
+            elif state.upper() in ("ON", "ONTARIO"):
+                transaction.property_province = "ON"
         await db.commit()
         await db.refresh(transaction)
         logger.info(f"Lea updated transaction id={transaction.id} address to {addr[:50]}...")
-        return (addr, transaction)
+        return (addr, transaction, validation)
     except Exception as e:
         logger.warning(f"Lea update address failed: {e}", exc_info=True)
         await db.rollback()
@@ -764,6 +816,90 @@ async def maybe_add_seller_buyer_contact_from_lea(
         return None
 
 
+def _extract_price_from_message(message: str) -> Optional[Tuple[Decimal, str]]:
+    """
+    Extrait un prix du message (ex. "650 mille dollars", "500 000 $", "le prix c'est 600 000").
+    Retourne (montant, "listing"|"offered") ou None. "listing" = prix demandé, "offered" = prix offert.
+    """
+    if not message or len(message.strip()) < 3:
+        return None
+    t = (message or "").strip().lower()
+    # Déterminer si c'est un prix offert ou demandé
+    is_offered = bool(
+        re.search(r"\bprix\s+offert\b", t)
+        or re.search(r"\boffert\s*[:\s]*\d", t)
+        or "offre" in t and re.search(r"\d", t)
+    )
+    kind = "offered" if is_offered else "listing"
+    # Nombre avec espaces : 650 000, 500 000 $
+    m = re.search(r"(?:prix\s+)?(?:c'est\s+)?(?:est\s+)?(\d[\d\s]*)\s*(?:mille|k\b|k\s|000\b|millions?)?", t, re.I)
+    if not m:
+        m = re.search(r"(\d[\d\s]{2,})\s*(?:\$|dollars?|cad)?", t, re.I)
+    if not m:
+        return None
+    raw = m.group(1).replace(" ", "").strip()
+    if not raw.isdigit():
+        return None
+    value = int(raw)
+    # "650 mille" → 650 * 1000 = 650000 (le groupe a capté "650" et "mille" est après)
+    if re.search(r"(\d+)\s*mille\b", t, re.I):
+        mm = re.search(r"(\d+)\s*mille", t, re.I)
+        if mm:
+            value = int(mm.group(1)) * 1000
+    elif re.search(r"(\d+)\s*million", t, re.I):
+        mm = re.search(r"(\d+)\s*million", t, re.I)
+        if mm:
+            value = int(mm.group(1)) * 1_000_000
+    if value <= 0 or value > 999_999_999:
+        return None
+    return (Decimal(str(value)), kind)
+
+
+def _wants_to_update_price(message: str) -> bool:
+    """True si le message semble donner un prix pour la transaction."""
+    if not message or len(message.strip()) < 5:
+        return False
+    t = (message or "").strip().lower()
+    if "prix" not in t and "million" not in t and "mille" not in t:
+        # "650 000" ou "650000$" sans mot-clé
+        if re.search(r"\d{2,}[\s]*\d{3}", t) or re.search(r"\d{1,3}\s*mille", t, re.I):
+            return True
+    if "prix" in t or "mille" in t or "million" in t:
+        return _extract_price_from_message(message) is not None
+    return False
+
+
+async def maybe_update_transaction_price_from_lea(
+    db: AsyncSession, user_id: int, message: str
+) -> Optional[Tuple[Decimal, RealEstateTransaction, str]]:
+    """
+    Si le message contient un prix (demandé ou offert), met à jour la dernière transaction.
+    Retourne (montant, transaction, "listing"|"offered") ou None.
+    """
+    if not _wants_to_update_price(message):
+        return None
+    extracted = _extract_price_from_message(message)
+    if not extracted:
+        return None
+    amount, kind = extracted
+    transaction = await get_user_latest_transaction(db, user_id)
+    if not transaction:
+        return None
+    try:
+        if kind == "listing":
+            transaction.listing_price = amount
+        else:
+            transaction.offered_price = amount
+        await db.commit()
+        await db.refresh(transaction)
+        logger.info(f"Lea updated transaction id={transaction.id} {kind} price to {amount}")
+        return (amount, transaction, kind)
+    except Exception as e:
+        logger.warning(f"Lea update price failed: {e}", exc_info=True)
+        await db.rollback()
+        return None
+
+
 async def run_lea_actions(db: AsyncSession, user_id: int, message: str) -> tuple[list, Optional[RealEstateTransaction]]:
     """
     Exécute les actions Léa (création transaction, mise à jour adresse, promesse d'achat).
@@ -779,12 +915,27 @@ async def run_lea_actions(db: AsyncSession, user_id: int, message: str) -> tuple
         )
     addr_result = await maybe_update_transaction_address_from_lea(db, user_id, message)
     if addr_result:
-        addr, tx = addr_result
+        addr, tx, validation = addr_result[0], addr_result[1], addr_result[2] if len(addr_result) >= 3 else None
         ref = tx.dossier_number or f"#{tx.id}"
         lines.append(
             f"L'adresse a été ajoutée à la transaction {ref} : « {addr} ». "
             "Confirme à l'utilisateur que c'est fait et qu'il peut voir la transaction dans la section Transactions."
         )
+        if validation:
+            parts = []
+            if validation.get("postcode"):
+                parts.append(f"code postal {validation['postcode']}")
+            if validation.get("city"):
+                parts.append(validation["city"])
+            if validation.get("state"):
+                parts.append(validation["state"])
+            if validation.get("country_code"):
+                parts.append(validation["country_code"])
+            if parts:
+                lines.append(
+                    f"Recherche web (géocodage) : « {' — '.join(parts)} ». "
+                    "Tu peux confirmer à l'utilisateur que l'adresse a été vérifiée (code postal, province, ville)."
+                )
     promise_tx = await maybe_set_promise_from_lea(db, user_id, message)
     if promise_tx:
         lines.append(
@@ -794,6 +945,15 @@ async def run_lea_actions(db: AsyncSession, user_id: int, message: str) -> tuple
     contact_line = await maybe_add_seller_buyer_contact_from_lea(db, user_id, message)
     if contact_line:
         lines.append(contact_line)
+    price_result = await maybe_update_transaction_price_from_lea(db, user_id, message)
+    if price_result:
+        amount, tx, kind = price_result
+        ref = tx.dossier_number or f"#{tx.id}"
+        label = "prix demandé" if kind == "listing" else "prix offert"
+        lines.append(
+            f"Le {label} a été enregistré pour la transaction {ref} : {amount:,.0f} $. "
+            "Confirme à l'utilisateur que c'est enregistré et qu'il peut voir la transaction dans la section Transactions."
+        )
     return (lines, created)
 
 
