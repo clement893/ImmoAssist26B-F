@@ -22,13 +22,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies import get_current_user, require_admin_or_superadmin
 from app.models import User, RealEstateTransaction, PortailTransaction, RealEstateContact, TransactionContact, ContactType
 from app.models.lea_conversation import LeaSessionTransactionLink
+from app.models.form import Form, FormSubmission, FormSubmissionVersion
 from app.database import get_db
 from app.services.lea_service import LeaService
 from app.services.ai_service import AIService, AIProvider
 from app.core.config import get_settings
 from app.core.logging import logger
 
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, or_
 
 try:
     from openai import AsyncOpenAI
@@ -599,6 +600,45 @@ async def get_user_transaction_by_ref(
             RealEstateTransaction.user_id == user_id,
             RealEstateTransaction.dossier_number == ref,
         )
+    )
+    r = await db.execute(q)
+    return r.scalar_one_or_none()
+
+
+def _extract_address_hint_from_message(message: str) -> Optional[str]:
+    """Extrait un indice d'adresse du message pour cibler une transaction (ex: 'Bordeaux' dans 'transaction sur de Bordeaux')."""
+    if not message or len(message.strip()) < 3:
+        return None
+    t = message.strip()
+    # "transaction sur (la) rue de Bordeaux" / "transaction sur de Bordeaux" / "rue de Bordeaux"
+    m = re.search(r"(?:rue\s+de|sur\s+(?:la\s+)?(?:rue\s+)?(?:de\s+)?)([A-Za-zÀ-ÿ\-]+)", t, re.I)
+    if m:
+        return m.group(1).strip()
+    # "transaction Bordeaux" / "pour la transaction Bordeaux"
+    m = re.search(r"transaction\s+(?:sur\s+)?(?:de\s+)?([A-Za-zÀ-ÿ\-]+)", t, re.I)
+    if m:
+        return m.group(1).strip()
+    return None
+
+
+async def get_user_transaction_by_address_hint(
+    db: AsyncSession, user_id: int, hint: str
+) -> Optional[RealEstateTransaction]:
+    """Retourne une transaction de l'utilisateur dont l'adresse ou la ville contient hint (ex: Bordeaux)."""
+    if not hint or len(hint.strip()) < 2:
+        return None
+    h = hint.strip()
+    q = (
+        select(RealEstateTransaction)
+        .where(RealEstateTransaction.user_id == user_id)
+        .where(
+            or_(
+                RealEstateTransaction.property_address.ilike(f"%{h}%"),
+                RealEstateTransaction.property_city.ilike(f"%{h}%"),
+            )
+        )
+        .order_by(RealEstateTransaction.updated_at.desc())
+        .limit(1)
     )
     r = await db.execute(q)
     return r.scalar_one_or_none()
@@ -1532,6 +1572,89 @@ def _get_lea_guidance_lines(message: str) -> list[str]:
     return lines
 
 
+def _wants_to_create_oaciq_form_for_transaction(message: str) -> bool:
+    """True si l'utilisateur demande de créer une promesse d'achat / un formulaire OACIQ pour une transaction."""
+    if not message or len(message.strip()) < 10:
+        return False
+    t = (message or "").strip().lower()
+    if "formulaire" not in t and "form" not in t and "promesse" not in t:
+        return False
+    # "créons une promesse d'achat avec un formulaire oaciq", "oacq" (sans i), etc.
+    if "oaciq" not in t and "oacq" not in t and not ("promesse" in t and "achat" in t):
+        return False
+    create_verbs = ("créons", "créer", "crée", "créez", "crééz", "faire", "ouvrir", "ajouter", "lancer")
+    return any(v in t for v in create_verbs)
+
+
+def _get_oaciq_form_code_for_lea_message(message: str) -> str:
+    """Retourne le code du formulaire OACIQ à créer selon le message (PA = Promesse d'achat par défaut)."""
+    if not message:
+        return "PA"
+    t = (message or "").strip().lower()
+    if "promesse" in t and ("achat" in t or "d'achat" in t):
+        return "PA"
+    # Autres codes possibles : ROI, CQ, etc. — pour l'instant on ne détecte que PA
+    return "PA"
+
+
+async def maybe_create_oaciq_form_submission_from_lea(
+    db: AsyncSession, user_id: int, message: str
+) -> Optional[str]:
+    """
+    Si l'utilisateur demande de créer une promesse d'achat / un formulaire OACIQ pour une transaction,
+    crée la soumission (brouillon) liée à la transaction et retourne une ligne pour « Action effectuée ».
+    """
+    if not _wants_to_create_oaciq_form_for_transaction(message):
+        return None
+    form_code = _get_oaciq_form_code_for_lea_message(message)
+    ref = _extract_transaction_ref_from_message(message)
+    if ref:
+        transaction = await get_user_transaction_by_ref(db, user_id, ref)
+    else:
+        transaction = None
+        hint = _extract_address_hint_from_message(message)
+        if hint:
+            transaction = await get_user_transaction_by_address_hint(db, user_id, hint)
+        if not transaction:
+            transaction = await get_user_latest_transaction(db, user_id)
+    if not transaction:
+        return None
+    try:
+        result = await db.execute(select(Form).where(Form.code == form_code).limit(1))
+        form = result.scalar_one_or_none()
+        if not form:
+            logger.warning(f"Lea OACIQ form not found: code={form_code}")
+            return None
+        submission = FormSubmission(
+            form_id=form.id,
+            data={},
+            user_id=user_id,
+            status="draft",
+            transaction_id=transaction.id,
+            ip_address=None,
+            user_agent=None,
+        )
+        db.add(submission)
+        await db.flush()
+        await db.refresh(submission)
+        version = FormSubmissionVersion(submission_id=submission.id, data={})
+        db.add(version)
+        await db.commit()
+        await db.refresh(submission)
+        ref_label = transaction.dossier_number or f"#{transaction.id}"
+        form_name = form.name or f"Formulaire {form_code}"
+        logger.info(f"Lea created OACIQ form submission id={submission.id} form_code={form_code} for transaction id={transaction.id}")
+        return (
+            f"Tu viens de créer le formulaire OACIQ « {form_name} » (code {form_code}) pour la transaction {ref_label}. "
+            "La soumission est en brouillon. Confirme à l'utilisateur que c'est fait et qu'il peut compléter le formulaire "
+            "dans la section Transactions → ouvrir la transaction → onglet Formulaires OACIQ (ou via le lien direct vers le formulaire)."
+        )
+    except Exception as e:
+        logger.warning(f"Lea create OACIQ form submission failed: {e}", exc_info=True)
+        await db.rollback()
+        return None
+
+
 async def run_lea_actions(
     db: AsyncSession, user_id: int, message: str, last_assistant_message: Optional[str] = None
 ) -> tuple[list, Optional[RealEstateTransaction]]:
@@ -1629,6 +1752,9 @@ async def run_lea_actions(
             "La date de promesse d'achat a été enregistrée sur la dernière transaction. "
             "Confirme à l'utilisateur que la promesse d'achat est enregistrée et qu'il peut compléter le formulaire dans la section Transactions."
         )
+    oaciq_line = await maybe_create_oaciq_form_submission_from_lea(db, user_id, message)
+    if oaciq_line:
+        lines.append(oaciq_line)
     contact_line = await maybe_add_seller_buyer_contact_from_lea(db, user_id, message, last_assistant_message)
     if contact_line:
         lines.append(contact_line)
