@@ -14,7 +14,7 @@ from decimal import Decimal
 from typing import Optional, Literal, List, Tuple, Any
 
 import httpx
-from fastapi import APIRouter, Depends, File, Form, HTTPException, status, UploadFile
+from fastapi import APIRouter, Depends, File, Form as FormParam, HTTPException, status, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -2336,8 +2336,8 @@ async def lea_chat(
 @router.post("/chat/voice")
 async def lea_chat_voice(
     audio: UploadFile = File(...),
-    session_id: Optional[str] = Form(None),
-    conversation_id: Optional[int] = Form(None),
+    session_id: Optional[str] = FormParam(None),
+    conversation_id: Optional[int] = FormParam(None),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
