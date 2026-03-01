@@ -36,7 +36,17 @@ class RealEstateTransactionCreate(BaseModel):
     status: str = Field(default="En cours", description="Statut de la transaction")
     expected_closing_date: Optional[date] = None
     actual_closing_date: Optional[date] = None
-    
+
+    @field_validator("dossier_number", mode="before")
+    @classmethod
+    def empty_dossier_number_to_none(cls, v: Optional[str]) -> Optional[str]:
+        """Coerce empty string to None to avoid unique constraint on empty dossier_number."""
+        if v is None:
+            return None
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v
+
     # 2. Propriété
     property_address: Optional[str] = Field(None, description="Adresse complète")
     property_city: Optional[str] = Field(None, description="Ville")
