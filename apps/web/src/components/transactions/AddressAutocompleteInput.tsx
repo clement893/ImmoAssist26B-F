@@ -42,6 +42,12 @@ interface PlaceLike {
   name?: string;
 }
 
+/** Minimal type for Autocomplete instance (no global google namespace) */
+interface AutocompleteLike {
+  getPlace: () => PlaceLike & { formatted_address?: string };
+  addListener: (event: string, callback: () => void) => { remove: () => void };
+}
+
 interface AddressAutocompleteInputProps {
   label?: string;
   value: string;
@@ -88,7 +94,7 @@ export default function AddressAutocompleteInput({
   apiKey,
 }: AddressAutocompleteInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const autocompleteRef = useRef<AutocompleteLike | null>(null);
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const key = apiKey ?? (typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY : undefined);
 
@@ -97,7 +103,7 @@ export default function AddressAutocompleteInput({
     loadGoogleMapsScript(key).then((ok) => {
       setScriptLoaded(ok);
       if (!ok || !inputRef.current) return;
-      const g = (window as unknown as { google?: { maps?: { places?: { Autocomplete: new (input: HTMLInputElement, opts?: object) => google.maps.places.Autocomplete } } } }).google;
+      const g = (window as unknown as { google?: { maps?: { places?: { Autocomplete: new (input: HTMLInputElement, opts?: object) => AutocompleteLike } } } }).google;
       if (!g?.maps?.places) return;
       try {
         const Autocomplete = g.maps.places.Autocomplete;
@@ -116,7 +122,7 @@ export default function AddressAutocompleteInput({
         autocompleteRef.current = ac;
         return () => {
           try {
-            if (listener && typeof (listener as google.maps.MapsEventListener).remove === 'function') (listener as google.maps.MapsEventListener).remove();
+            if (listener && typeof listener.remove === 'function') listener.remove();
           } catch (_) {}
           autocompleteRef.current = null;
         };
