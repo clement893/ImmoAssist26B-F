@@ -77,6 +77,7 @@
  */
 'use client';
 
+import Image from 'next/image';
 import { type ReactNode, type HTMLAttributes } from 'react';
 import { clsx } from 'clsx';
 import { useGlobalTheme } from '@/lib/theme/global-theme-provider';
@@ -301,10 +302,13 @@ export default function Card({
       {/* Image Header (for image variant) */}
       {imageHeader && variant === 'image' && (
         <div className="relative h-48 w-full overflow-hidden">
-          <img 
-            src={imageHeader} 
-            alt={title || 'Card header'} 
-            className="w-full h-full object-cover"
+          <Image
+            src={imageHeader}
+            alt={title || 'Card header'}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, 640px"
+            unoptimized={imageHeader.startsWith('http')}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
           {(title || subtitle) && (

@@ -4,6 +4,7 @@
  */
 'use client';
 
+import Image from 'next/image';
 import { type ReactNode } from 'react';
 import { clsx } from 'clsx';
 
@@ -86,7 +87,16 @@ export default function Avatar({
       onClick={onClick}
     >
       {src ? (
-        <img src={src} alt={alt || name} className="w-full h-full object-cover" />
+        <span className="relative block w-full h-full">
+          <Image
+            src={src}
+            alt={alt || name || 'Avatar'}
+            fill
+            className="object-cover"
+            sizes="(max-width: 640px) 80px, 128px"
+            unoptimized={src.startsWith('http')}
+          />
+        </span>
       ) : (
         <span className="font-medium">{fallbackText}</span>
       )}
@@ -113,7 +123,18 @@ export function AvatarImage({
   alt?: string;
   className?: string;
 }) {
-  return <img src={src} alt={alt} className={clsx('w-full h-full object-cover', className)} />;
+  return (
+    <span className={clsx('relative block w-full h-full', className)}>
+      <Image
+        src={src}
+        alt={alt ?? ''}
+        fill
+        className="object-cover"
+        sizes="128px"
+        unoptimized={src.startsWith('http')}
+      />
+    </span>
+  );
 }
 
 export function AvatarFallback({

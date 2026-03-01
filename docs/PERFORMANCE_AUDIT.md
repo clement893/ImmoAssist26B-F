@@ -119,7 +119,8 @@
    Si le thème charge des polices Google en plus d’Inter, les limiter ou les charger via next/font pour éviter requêtes bloquantes et FOUT.
 
 6. **Remplacer `<img>` par `next/image`**  
-   Cibler en priorité les composants utilisés dans des listes (Avatar, Card, MediaLibrary).
+   Cibler en priorité les composants utilisés dans des listes (Avatar, Card, MediaLibrary).  
+   **Fait :** Avatar, Card (image header), MediaLibrary (preview modal) utilisent `next/image` avec `fill` et `unoptimized` pour URLs externes/blob.
 
 ### Priorité 3 (surveillance)
 

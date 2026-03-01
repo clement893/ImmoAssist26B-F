@@ -7,6 +7,7 @@
  */
 'use client';
 
+import Image from 'next/image';
 import { useState } from 'react';
 import { Card, Button, FileUpload, Badge, Modal, Input, Alert } from '@/components/ui';
 import {
@@ -408,7 +409,16 @@ export default function MediaLibrary({
         >
           <div className="space-y-4">
             {selectedMedia.type === 'image' && (
-              <img src={selectedMedia.url} alt={selectedMedia.name} className="w-full rounded-lg" />
+              <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-muted">
+                <Image
+                  src={selectedMedia.url}
+                  alt={selectedMedia.name}
+                  fill
+                  className="object-contain rounded-lg"
+                  sizes="(max-width: 768px) 100vw, 640px"
+                  unoptimized={selectedMedia.url.startsWith('blob:') || selectedMedia.url.startsWith('data:')}
+                />
+              </div>
             )}
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
