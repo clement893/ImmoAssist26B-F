@@ -59,7 +59,9 @@ class LeaSynthesizeRequest(BaseModel):
 def _use_external_agent() -> bool:
     """Retourne True si l'API agent externe est configurée."""
     settings = get_settings()
-    return bool(settings.AGENT_API_URL and settings.AGENT_API_KEY)
+    url = (settings.AGENT_API_URL or "").strip().rstrip("/")
+    key = (settings.AGENT_API_KEY or "").strip()
+    return bool(url and key)
 
 
 async def _call_external_agent_chat(message: str, session_id: str | None, conversation_id: int | None) -> dict:
@@ -68,22 +70,27 @@ async def _call_external_agent_chat(message: str, session_id: str | None, conver
     Retourne {"response", "conversation_id", "session_id", "assistant_audio_url", "success"}.
     """
     settings = get_settings()
-    url = settings.AGENT_API_URL.rstrip("/")
-    key = settings.AGENT_API_KEY
+    url = (settings.AGENT_API_URL or "").strip().rstrip("/")
+    key = (settings.AGENT_API_KEY or "").strip()
+    if not url or not key:
+        raise ValueError("AGENT_API_URL and AGENT_API_KEY must be set")
     endpoint_url = f"{url}/api/external/agent/chat"
-    
+
     payload = {"message": message}
     if session_id:
         payload["session_id"] = session_id
-    if conversation_id:
+    if conversation_id is not None:
         payload["conversation_id"] = conversation_id
-    
+
     async with httpx.AsyncClient(timeout=60.0) as client:
         try:
             r = await client.post(
                 endpoint_url,
                 json=payload,
-                headers={"X-API-Key": key},
+                headers={
+                    "Content-Type": "application/json",
+                    "X-API-Key": key,
+                },
             )
             r.raise_for_status()
             return r.json()
@@ -178,8 +185,8 @@ async def lea_chat_voice(
         )
     try:
         settings = get_settings()
-        url = settings.AGENT_API_URL.rstrip("/")
-        key = settings.AGENT_API_KEY
+        url = (settings.AGENT_API_URL or "").strip().rstrip("/")
+        key = (settings.AGENT_API_KEY or "").strip()
         content = await audio.read()
         # Nom du champ configurable (audio ou file selon l'API agent)
         field_name = settings.AGENT_VOICE_FIELD or "audio"
