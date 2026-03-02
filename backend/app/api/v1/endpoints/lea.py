@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Optional, Literal, List, Tuple, Any
 
 import httpx
-from fastapi import APIRouter, Depends, File as FileParam, Form as FormParam, HTTPException, Request, status, UploadFile
+from fastapi import APIRouter, Depends, File as FileParam, Form as FormParam, HTTPException, Query, Request, status, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -3358,9 +3358,21 @@ async def lea_chat(
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail=data.get("error", "External agent error"),
             )
+        sid = data.get("session_id") or body.session_id or ""
+        content = data.get("response", "")
+        if sid and content:
+            await persist_lea_messages(
+                db, current_user.id, sid,
+                body.message, content,
+                meta={
+                    "model": data.get("model"),
+                    "provider": data.get("provider"),
+                    "usage": data.get("usage"),
+                },
+            )
         return LeaChatResponse(
-            content=data["response"],
-            session_id=data.get("session_id", body.session_id or ""),
+            content=content,
+            session_id=sid,
             model=data.get("model", "gpt-4o"),
             provider=data.get("provider", "openai"),
             usage=data.get("usage", {}),
@@ -3573,13 +3585,16 @@ async def list_lea_conversations_by_transaction(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e),
         )
+
+
+@router.get("/context", response_model=LeaContextResponse)
 async def get_lea_context(
-    session_id: Optional[str] = None,
+    session_id: Optional[str] = Query(None, description="Session ID of the conversation to load"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Get Léa conversation context.
+    Get Léa conversation context (messages). Used by loadConversation on the frontend.
     """
     try:
         lea_service = LeaService(db=db, user_id=current_user.id)
