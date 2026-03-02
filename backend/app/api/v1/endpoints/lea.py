@@ -70,7 +70,7 @@ LEA_SYSTEM_PROMPT = (
     "Quand « Action effectuée » indique une ou plusieurs actions (ex: transaction créée, adresse ajoutée, promesse d'achat enregistrée), "
     "confirme uniquement ce qui est indiqué et invite l'utilisateur à compléter dans la section Transactions si pertinent. "
     "Tu peux aussi effectuer une **recherche en ligne** (géocodage) pour compléter une adresse (ville, code postal, province) : si l'utilisateur demande de « trouver le code postal en ligne », « chercher l'adresse sur internet » ou « ajouter le code postal trouvé en ligne », le bloc « Action effectuée » indiquera le résultat ; confirme-le alors à l'utilisateur (ne dis pas que tu ne peux pas). "
-    "** Quand « Action effectuée » contient « Recherche en ligne (géocodage) » ou « Résultat géocodage » avec une ville et un code postal, tu DOIS écrire dans ta réponse l'adresse complète trouvée (rue, ville, province, code postal) avant de poser une autre question. **\n\n"
+    "** Quand « Action effectuée » contient « Recherche en ligne (géocodage) » ou « Résultat géocodage » avec une ville et un code postal, tu DOIS écrire dans ta réponse l'adresse complète trouvée (rue, ville, province, code postal) et confirmer que c'est enregistré. Tu ne DOIS JAMAIS répondre « Je ne peux pas effectuer cette action » dans ce cas — le géocodage a déjà été fait par le système. **\n\n"
     "** ADRESSE OBLIGATOIREMENT COMPLÈTE AVANT LA SUITE : **\n"
     "Tu ne DOIS JAMAIS poser « Qui sont les vendeurs ? », « Qui sont les acheteurs ? », « Quel est le prix ? » ou toute autre question sur le dossier tant que l'adresse du bien (dernière transaction) n'est pas complète avec ville, province et code postal. "
     "Si l'adresse n'a pas encore de ville/code postal : soit tu proposes de la trouver en ligne (recherche/géocodage), soit tu demandes à l'utilisateur la ville et le code postal. "
@@ -922,33 +922,41 @@ async def _validate_address_via_geocode(addr: str) -> Optional[dict]:
     """
     Vérifie une adresse via géocodage (Nominatim / OpenStreetMap).
     Retourne un dict avec postcode, city, state (province), country_code pour que Léa puisse confirmer à l'utilisateur.
-    Pour les adresses québécoises sans ville, tente un second essai avec ", Québec, Canada".
-    Pour les rues typiques de Montréal (ex. Sherbrooke Est, Papineau), tente d'abord avec ", Montréal, Québec, Canada"
-    pour éviter un mauvais match (ex. Ottawa).
+    Pour les adresses sans ville (pas de virgule), tente d'abord avec ", Québec, Canada" pour éviter un mauvais
+    match dans un autre pays (ex. « rue de Bordeaux » → Polynésie Française). Pour les rues typiques de Montréal,
+    tente d'abord ", Montréal, Québec, Canada".
     """
     if not addr or len(addr.strip()) < 5:
         return None
     addr_clean = addr.strip()
     addr_lower = addr_clean.lower()
-    # Rues typiques de Montréal (Sherbrooke Est/Ouest, etc.) : prioriser Montréal pour éviter Ottawa/ailleurs
+    has_city = "," in addr_clean or "montréal" in addr_lower or "québec" in addr_lower
+    # Rues typiques de Montréal : prioriser Montréal pour éviter Ottawa/ailleurs
     montreal_street_indicators = (
         "sherbrooke est", "sherbrooke ouest", "sherbrooke e.", "sherbrooke o.",
         "papineau", "lorimier", "saint-denis", "saint-laurent", "drolet",
         "rue sherbrooke", "av. sherbrooke", "avenue sherbrooke",
+        "rue de bordeaux", "de bordeaux",  # Montréal (H2K 1E1)
     )
     if any(ind in addr_lower for ind in montreal_street_indicators):
         result = await _geocode_one(addr_clean + ", Montréal, Québec, Canada")
-        if result and (result.get("state") or "").upper() in ("QC", "QUÉBEC", "QUEBEC"):
+        if result and (result.get("country_code") or "").upper() == "CA":
             return result
-    # Premier essai avec l'adresse telle quelle
+    # Adresse sans ville : prioriser Québec/Canada pour éviter un match dans un autre pays (ex. Polynésie)
+    if not has_city:
+        result = await _geocode_one(addr_clean + ", Québec, Canada")
+        if result and (result.get("country_code") or "").upper() == "CA":
+            return result
+        result = await _geocode_one(addr_clean + ", Montréal, Québec, Canada")
+        if result and (result.get("country_code") or "").upper() == "CA":
+            return result
+    # Essai avec l'adresse telle quelle
     result = await _geocode_one(addr_clean)
     if result:
+        # Si le résultat est hors Canada et qu'on n'avait pas de ville, ne pas l'accepter (éviter Polynésie, etc.)
+        if not has_city and (result.get("country_code") or "").upper() != "CA":
+            return None
         return result
-    # Adresse sans ville (pas de virgule ou pas Montréal/Québec) : retry avec ", Québec, Canada"
-    if "," not in addr_clean and "montréal" not in addr_lower and "québec" not in addr_lower:
-        result = await _geocode_one(addr_clean + ", Québec, Canada")
-        if result:
-            return result
     return None
 
 
@@ -1735,6 +1743,13 @@ def _get_lea_guidance_lines(message: str) -> list[str]:
             "Rester sur la transaction en cours (la plus récente) ; ne pas mentionner une autre transaction. Demander de clarifier ou poursuivre (ex. qui sont les acheteurs, quel est le prix)."
         )
 
+    # « se coucher » / « c'est couché » : probable reconnaissance vocale de « c'est bon » / « c'est correct » — traiter comme confirmation
+    if re.match(r"^(se\s+coucher|c['']est\s+couché|couche)\s*\.?$", t, re.I) or t.strip() in ("se coucher", "c'est couché", "couché"):
+        lines.append(
+            "L'utilisateur a peut-être dit « c'est bon » ou « c'est correct » (reconnaissance vocale : « se coucher »). "
+            "Interprète comme une confirmation. Passe à la section suivante du formulaire ou confirme que c'est noté, puis propose la prochaine étape (ex. ville et code postal pour l'adresse, ou section suivante)."
+        )
+
     # "Je t'ai déjà donné les vendeurs" / "je t'ai déjà dit" (prix, vendeurs, etc.) — ne pas redemander
     if any(
         phrase in t
@@ -2065,7 +2080,8 @@ async def run_lea_actions(
                         lines.append(
                             f"Résultat géocodage : « {geocode_str} ». "
                             f"Adresse complète au format officiel à indiquer : « {full_formatted} ». "
-                            "Tu DOIS écrire cette adresse complète dans ta réponse (format : rue, ville (province) code postal). "
+                            "Tu DOIS écrire cette adresse complète dans ta réponse (format : rue, ville (province) code postal) et confirmer que c'est enregistré. "
+                            "INTERDICTION de dire « Je ne peux pas effectuer cette action » ou « je ne peux pas » : le géocodage a été fait par le système, confirme le résultat à l'utilisateur. "
                             "INTERDICTION de poser « Qui sont les vendeurs ? » ou toute autre question avant d'avoir écrit cette adresse complète."
                         )
     promise_tx = await maybe_set_promise_from_lea(db, user_id, message)
