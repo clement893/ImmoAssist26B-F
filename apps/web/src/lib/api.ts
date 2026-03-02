@@ -522,6 +522,22 @@ export const leaAPI = {
   checkCapability: (action_id: string) => {
     return apiClient.post<{ ok: boolean; message?: string }>('/v1/lea/capabilities/check', { action_id });
   },
+  /** Base de connaissance Léa */
+  listKnowledgeDocuments: () =>
+    apiClient.get<Array<{ id: string; filename: string; original_filename: string; size: number; content_type: string; created_at: string }>>(
+      '/v1/lea/knowledge-base/documents'
+    ),
+  uploadKnowledgeDocument: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return apiClient.post<{ id: string; filename: string; original_filename: string; size: number; content_type: string; created_at: string }>(
+      '/v1/lea/knowledge-base/documents',
+      form,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    );
+  },
+  deleteKnowledgeDocument: (fileId: string) =>
+    apiClient.delete<{ ok: boolean; message?: string }>(`/v1/lea/knowledge-base/documents/${fileId}`),
 };
 
 // transactionsAPI et realEstateContactsAPI sont exportés depuis les adaptateurs du module Transactions

@@ -12,6 +12,7 @@ import unicodedata
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
+from pathlib import Path
 from typing import Optional, Literal, List, Tuple, Any
 
 import httpx
@@ -20,13 +21,14 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dependencies import get_current_user, require_admin_or_superadmin
-from app.models import User, RealEstateTransaction, PortailTransaction, RealEstateContact, TransactionContact, ContactType
+from app.dependencies import get_current_user, require_admin_or_superadmin, require_superadmin
+from app.models import User, RealEstateTransaction, PortailTransaction, RealEstateContact, TransactionContact, ContactType, File
 from app.models.lea_conversation import LeaSessionTransactionLink, LeaConversation
 from app.models.form import Form, FormSubmission, FormSubmissionVersion
 from app.database import get_db
 from app.services.lea_service import LeaService
 from app.services.ai_service import AIService, AIProvider
+from app.services.s3_service import S3Service
 from app.core.config import get_settings
 from app.core.logging import logger
 from app.core.rate_limit import rate_limit_decorator
@@ -44,6 +46,33 @@ AGENT_ERR_MSG = (
     "AGENT_API_URL and AGENT_API_KEY must be set in the Backend service (Railway → Backend → Variables). "
     "Example: AGENT_API_URL=https://agentia-immo-production.up.railway.app"
 )
+
+# Dossier S3 et filtre pour la base de connaissance Léa
+LEA_KNOWLEDGE_FOLDER = "lea_knowledge"
+
+# Fichier de connaissance OACIQ (formulaires) pour Léa — chargé à chaque requête
+# Racine projet = parent de backend/ (docs/ est à la racine)
+_LEA_OACIQ_KNOWLEDGE_PATH = (
+    Path(__file__).resolve().parent.parent.parent.parent.parent.parent
+    / "docs"
+    / "oaciq"
+    / "LEA_KNOWLEDGE_OACIQ.md"
+)
+
+
+def _get_oaciq_knowledge_for_lea() -> str:
+    """
+    Charge le contenu du fichier de connaissance OACIQ (formulaires) pour l'injecter
+    dans le prompt système de Léa. Retourne une chaîne vide si le fichier est absent.
+    """
+    try:
+        if _LEA_OACIQ_KNOWLEDGE_PATH.exists():
+            content = _LEA_OACIQ_KNOWLEDGE_PATH.read_text(encoding="utf-8")
+            if content.strip():
+                return content.strip()
+    except Exception as e:
+        logger.warning("Could not load OACIQ knowledge file for Léa: %s", e)
+    return ""
 
 # URL front : onglet Formulaires d'une transaction (Phase 3). Pattern : /dashboard/transactions/{id}?tab=forms
 LEA_TRANSACTION_FORMS_TAB_PATH = "/dashboard/transactions/{id}?tab=forms"
@@ -64,7 +93,8 @@ LEA_SYSTEM_PROMPT = (
     "** RÈGLE CRUCIALE - ACTIONS RÉELLES : **\n"
     "Tu ne dois JAMAIS prétendre avoir fait une action (créer une transaction, mettre à jour une adresse, créer une promesse d'achat, etc.) "
     "si le bloc « Action effectuée » ci-dessous ne le mentionne pas explicitement. "
-    "** Quand le bloc « Action effectuée » est présent et indique qu'une action a été faite (ex: transaction créée), tu DOIS confirmer à l'utilisateur que c'est fait — ne dis pas que tu ne peux pas. ** "
+    "** Quand le bloc « Action effectuée » est présent et indique qu'une action a été faite (ex: transaction créée, formulaire OACIQ créé, adresse enregistrée), tu DOIS confirmer à l'utilisateur que c'est fait — INTERDICTION de dire « Je ne peux pas » ou « je ne peux pas encore » dans ce cas. ** "
+    "Si le bloc contient « Tu viens de créer le formulaire OACIQ » ou « Promesse d'achat », confirme que le formulaire a bien été créé et indique la prochaine étape (Transactions → ouvrir la transaction → onglet Formulaires OACIQ). "
     "Si l'utilisateur demande quelque chose et qu'il n'y a AUCUN bloc « Action effectuée » pour cette demande, "
     "dis-lui que tu ne peux pas encore faire cela automatiquement et invite-le à aller dans la section Transactions pour le faire. "
     "Ne invente jamais une confirmation du type « c'est fait » ou « j'ai créé » sans que « Action effectuée » le confirme.\n\n"
@@ -202,13 +232,24 @@ async def get_lea_user_context(db: AsyncSession, user_id: int) -> str:
     """
     lines = ["Données plateforme (transactions et dossiers de l'utilisateur connecté) :"]
     try:
-        # Référentiel formulaires OACIQ disponibles (Phase 1.3)
+        # Référentiel formulaires OACIQ disponibles (code, nom, catégorie, objectif si présent)
         try:
-            q_forms = select(Form.code, Form.name, Form.category).where(Form.code.isnot(None)).order_by(Form.code)
+            q_forms = select(Form).where(Form.code.isnot(None)).order_by(Form.code)
             res_forms = await db.execute(q_forms)
-            form_rows = res_forms.all()
-            if form_rows:
-                ref_parts = [f"{r[0]} – {r[1] or r[0]}" + (f" ({r[2]})" if r[2] else "") for r in form_rows]
+            forms = res_forms.scalars().all()
+            if forms:
+                ref_parts = []
+                for f in forms:
+                    part = f"{f.code} – {f.name or f.code}" + (f" ({f.category})" if f.category else "")
+                    objective = None
+                    if getattr(f, "fields", None) and isinstance(f.fields, dict):
+                        meta = f.fields.get("metadata") or {}
+                        objective = meta.get("objective") if isinstance(meta, dict) else None
+                    if not objective and getattr(f, "description", None):
+                        objective = f.description
+                    if objective:
+                        part += f" — {objective[:200]}" + ("…" if len(str(objective)) > 200 else "")
+                    ref_parts.append(part)
                 lines.append("Formulaires OACIQ disponibles : " + "; ".join(ref_parts) + ".")
         except Exception:
             pass
@@ -427,6 +468,16 @@ def _wants_to_create_transaction(message: str) -> tuple[bool, str]:
             return True, "achat"
         if re.match(r"^c'est\s+une\s*$", t, re.I):
             return True, "vente"
+
+    # "Créer en une alors" / "en créer une" / "crée m'en une" (après « je ne trouve pas de transaction sur X »)
+    if "créer en une" in t or "creer en une" in nt or "crée en une" in t or "cree en une" in nt:
+        return True, default_type()
+    if "en créer une" in t or "en creer une" in nt or "en crée une" in t or "en cree une" in nt:
+        return True, default_type()
+    if "créer en un" in t or "creer en un" in nt:
+        return True, default_type()
+    if len(t) <= 30 and ("en une" in t or "en un" in t) and ("alors" in t or "créer" in t or "creer" in nt or "crée" in t or "cree" in nt):
+        return True, default_type()
 
     # Phrase très courte : "et une transaction", "une transaction" (sous-entendu : créer)
     if len(t) <= 35:
@@ -1940,16 +1991,18 @@ def _get_oaciq_form_code_for_lea_message(message: str) -> str:
 
 
 OACIQ_FORM_CREATION_PREFIX = "Tu viens de créer le formulaire OACIQ "
+OACIQ_FORM_CREATION_MARKER = "créé le formulaire OACIQ"
 
 
 def _action_lines_contain_oaciq_form_creation(action_lines: list) -> bool:
     """True si une des lignes d'action indique la création d'un formulaire OACIQ."""
     if not action_lines:
         return False
-    return any(
-        (line or "").strip().startswith(OACIQ_FORM_CREATION_PREFIX)
-        for line in action_lines
-    )
+    for line in action_lines:
+        s = (line or "").strip()
+        if s.startswith(OACIQ_FORM_CREATION_PREFIX) or OACIQ_FORM_CREATION_MARKER in s:
+            return True
+    return False
 
 
 def _build_oaciq_form_creation_confirmation(action_lines: list) -> str:
@@ -1957,7 +2010,7 @@ def _build_oaciq_form_creation_confirmation(action_lines: list) -> str:
     # Extraire le nom du formulaire et la transaction depuis la ligne d'action si possible
     for line in (action_lines or []):
         line = (line or "").strip()
-        if not line.startswith(OACIQ_FORM_CREATION_PREFIX):
+        if not line.startswith(OACIQ_FORM_CREATION_PREFIX) and OACIQ_FORM_CREATION_MARKER not in line:
             continue
         # "Tu viens de créer le formulaire OACIQ « ... » (code PA) pour la transaction ..."
         m = re.search(r"formulaire OACIQ « ([^»]+) » \(code (\w+)\) pour la transaction ([^.]+)\.", line)
@@ -2441,6 +2494,9 @@ async def _stream_lea_sse(
             return
         settings = get_settings()
         system = LEA_SYSTEM_PROMPT
+        oaciq_knowledge = _get_oaciq_knowledge_for_lea()
+        if oaciq_knowledge:
+            system += "\n\n--- Base de connaissance formulaires OACIQ ---\n" + oaciq_knowledge
         if user_context:
             system += "\n\n--- Informations actuelles de l'utilisateur (plateforme) ---\n" + user_context
         service = AIService(provider=AIProvider.AUTO)
@@ -2579,6 +2635,9 @@ async def lea_chat(
             conv, sid = await get_or_create_lea_conversation(db, current_user.id, body.session_id)
             messages_for_llm = build_llm_messages_from_history(conv.messages or [], body.message)
             system_prompt = LEA_SYSTEM_PROMPT
+            oaciq_knowledge = _get_oaciq_knowledge_for_lea()
+            if oaciq_knowledge:
+                system_prompt += "\n\n--- Base de connaissance formulaires OACIQ ---\n" + oaciq_knowledge
             if user_context:
                 system_prompt += "\n\n--- Informations actuelles de l'utilisateur (plateforme) ---\n" + user_context
             settings = get_settings()
@@ -2731,6 +2790,9 @@ async def lea_chat_voice(
             if action_lines:
                 user_context += "\n\n--- Action effectuée ---\n" + "\n".join(action_lines)
             system_prompt = LEA_SYSTEM_PROMPT
+            oaciq_knowledge = _get_oaciq_knowledge_for_lea()
+            if oaciq_knowledge:
+                system_prompt += "\n\n--- Base de connaissance formulaires OACIQ ---\n" + oaciq_knowledge
             if user_context:
                 system_prompt += "\n\n--- Informations actuelles de l'utilisateur (plateforme) ---\n" + user_context
 
@@ -2992,6 +3054,29 @@ class LeaCapabilityCheckResponse(BaseModel):
     message: Optional[str] = None
 
 
+class LeaKnowledgeDocumentItem(BaseModel):
+    """Document in Léa knowledge base"""
+    id: str
+    filename: str
+    original_filename: str
+    size: int
+    content_type: str
+    created_at: str
+
+    class Config:
+        from_attributes = True
+
+
+class LeaKnowledgeDocumentUploadResponse(BaseModel):
+    """Response after uploading a document to Léa knowledge base"""
+    id: str
+    filename: str
+    original_filename: str
+    size: int
+    content_type: str
+    created_at: str
+
+
 @router.get("/capabilities")
 async def list_lea_capabilities(
     current_user: User = Depends(get_current_user),
@@ -3117,6 +3202,146 @@ async def check_lea_capability(
         )
 
     return LeaCapabilityCheckResponse(ok=True)
+
+
+# --- Base de connaissance Léa (upload + liste + suppression) ---
+
+@router.get("/knowledge-base/documents", response_model=List[LeaKnowledgeDocumentItem])
+async def list_lea_knowledge_documents(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    _: None = Depends(require_superadmin),
+):
+    """
+    Liste les documents de la base de connaissance Léa. Réservé aux super admins.
+    """
+    q = (
+        select(File)
+        .where(File.user_id == current_user.id, File.folder == LEA_KNOWLEDGE_FOLDER)
+        .order_by(File.created_at.desc())
+    )
+    result = await db.execute(q)
+    files = result.scalars().all()
+    return [
+        LeaKnowledgeDocumentItem(
+            id=str(f.id),
+            filename=f.filename or "",
+            original_filename=f.original_filename or f.filename or "",
+            size=f.size or 0,
+            content_type=f.content_type or "application/octet-stream",
+            created_at=f.created_at.isoformat() if f.created_at else "",
+        )
+        for f in files
+    ]
+
+
+@router.post("/knowledge-base/documents", response_model=LeaKnowledgeDocumentUploadResponse)
+@rate_limit_decorator("30/minute")
+async def upload_lea_knowledge_document(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    _: None = Depends(require_superadmin),
+):
+    """
+    Envoie un document dans la base de connaissance Léa. Réservé aux super admins.
+    """
+    if not file.filename or not file.filename.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Nom de fichier manquant.",
+        )
+    allowed_content_types = (
+        "application/pdf",
+        "text/plain",
+        "text/markdown",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/msword",
+    )
+    content_type = (file.content_type or "").strip().lower()
+    if content_type and content_type not in allowed_content_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Type de fichier non autorisé. Autorisés : PDF, TXT, MD, DOC, DOCX.",
+        )
+    if not S3Service.is_configured():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Service de stockage non configuré. Impossible d'ajouter des documents.",
+        )
+    try:
+        s3_service = S3Service()
+        upload_result = s3_service.upload_file(
+            file=file,
+            folder=LEA_KNOWLEDGE_FOLDER,
+            user_id=str(current_user.id),
+        )
+        file_record = File(
+            user_id=current_user.id,
+            file_key=upload_result["file_key"],
+            filename=upload_result.get("filename") or file.filename or "document",
+            original_filename=file.filename or upload_result.get("filename") or "document",
+            content_type=upload_result.get("content_type") or content_type or "application/octet-stream",
+            size=upload_result.get("size", 0),
+            url=upload_result.get("url", ""),
+            folder=LEA_KNOWLEDGE_FOLDER,
+        )
+        db.add(file_record)
+        await db.commit()
+        await db.refresh(file_record)
+        return LeaKnowledgeDocumentUploadResponse(
+            id=str(file_record.id),
+            filename=file_record.filename or "",
+            original_filename=file_record.original_filename or "",
+            size=file_record.size or 0,
+            content_type=file_record.content_type or "application/octet-stream",
+            created_at=file_record.created_at.isoformat() if file_record.created_at else "",
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        logger.exception("Upload document base connaissance Léa: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erreur lors de l'ajout du document.",
+        )
+
+
+@router.delete("/knowledge-base/documents/{file_id}")
+async def delete_lea_knowledge_document(
+    file_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    _: None = Depends(require_superadmin),
+):
+    """
+    Supprime un document de la base de connaissance Léa. Réservé aux super admins.
+    """
+    q = select(File).where(
+        File.id == file_id,
+        File.user_id == current_user.id,
+        File.folder == LEA_KNOWLEDGE_FOLDER,
+    )
+    result = await db.execute(q)
+    file_record = result.scalar_one_or_none()
+    if not file_record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document introuvable ou vous n'êtes pas autorisé à le supprimer.",
+        )
+    try:
+        if S3Service.is_configured():
+            s3_service = S3Service()
+            s3_service.delete_file(file_record.file_key)
+        await db.delete(file_record)
+        await db.commit()
+        return {"ok": True, "message": "Document supprimé."}
+    except Exception as e:
+        logger.exception("Delete document base connaissance Léa: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erreur lors de la suppression du document.",
+        )
 
 
 @router.post("/voice/transcribe")

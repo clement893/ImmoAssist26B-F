@@ -9,6 +9,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { ThemeToggleWithIcon } from '@/components/ui/ThemeToggle';
 import { getNavigationConfig, type NavigationItem, type NavigationGroup } from '@/lib/navigation';
+import { useSuperAdminStatus } from '@/hooks/useSuperAdminStatus';
 import { clsx } from 'clsx';
 import { ChevronDown, ChevronRight, Search, X } from 'lucide-react';
 
@@ -29,14 +30,15 @@ export default function Sidebar({ isOpen: controlledIsOpen, onClose }: SidebarPr
   const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
   const handleClose = onClose || (() => setInternalIsOpen(false));
 
-  // Check if user is admin or courtier vs client (portail client)
+  // Check if user is admin or courtier vs client (portail client) ; superadmin pour Base de connaissance Léa
   const isAdmin = user?.is_admin || false;
   const isClient = user?.is_client ?? false;
+  const isSuperAdmin = useSuperAdminStatus();
 
   // Get navigation configuration (menu différent pour client vs courtier)
   const navigationConfig = useMemo(
-    () => getNavigationConfig(isAdmin, isClient),
-    [isAdmin, isClient]
+    () => getNavigationConfig(isAdmin, isClient, isSuperAdmin),
+    [isAdmin, isClient, isSuperAdmin]
   );
 
   // Toggle group open/closed

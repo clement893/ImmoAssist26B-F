@@ -22,6 +22,7 @@ import { ThemeToggleWithIcon } from '@/components/ui/ThemeToggle';
 import DashboardHeader from './DashboardHeader';
 import { clsx } from 'clsx';
 import { getNavigationConfig, navigationConfigToSidebarItems } from '@/lib/navigation';
+import { useSuperAdminStatus } from '@/hooks/useSuperAdminStatus';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -38,12 +39,13 @@ function DashboardLayoutContent({ children }: DashboardLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Menu selon le rôle : client (portail) vs courtier ; admin pour le bloc Admin
+  // Menu selon le rôle : client (portail) vs courtier ; admin pour le bloc Admin ; superadmin pour Base de connaissance Léa
   const isAdmin = user?.is_admin ?? false;
   const isClient = user?.is_client ?? false;
+  const isSuperAdmin = useSuperAdminStatus();
   const sidebarItems = useMemo(
-    () => navigationConfigToSidebarItems(getNavigationConfig(isAdmin, isClient)),
-    [isAdmin, isClient]
+    () => navigationConfigToSidebarItems(getNavigationConfig(isAdmin, isClient, isSuperAdmin)),
+    [isAdmin, isClient, isSuperAdmin]
   );
 
   // Memoize callbacks to prevent re-renders

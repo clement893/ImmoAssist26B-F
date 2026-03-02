@@ -83,12 +83,26 @@ export function navigationConfigToSidebarItems(config: NavigationConfig): Sideba
   });
 }
 
+/** Élément « Base de connaissance Léa » (visible uniquement aux super admins) */
+const LEA_KNOWLEDGE_ITEM: NavigationItem = {
+  name: 'Base de connaissance Léa',
+  href: '/dashboard/lea/base-de-connaissance',
+  icon: <FileText className="w-5 h-5" />,
+};
+
 /**
  * Get default navigation structure
  * Can be customized based on user permissions.
  * Clients (is_client) see a reduced menu; courtiers see the full menu.
+ * isSuperAdmin: si true, affiche « Base de connaissance Léa » dans le menu Léa.
  */
-export function getNavigationConfig(isAdmin?: boolean, isClient?: boolean): NavigationConfig {
+export function getNavigationConfig(isAdmin?: boolean, isClient?: boolean, isSuperAdmin?: boolean): NavigationConfig {
+  const leaItemsClient: NavigationItem[] = [
+    { name: 'Léa2', href: '/dashboard/lea2', icon: <Mic className="w-5 h-5" /> },
+    ...(isSuperAdmin ? [LEA_KNOWLEDGE_ITEM] : []),
+    { name: 'Paramètres Léa', href: '/dashboard/modules/admin/parametres-lea', icon: <Sliders className="w-5 h-5" /> },
+  ];
+
   // Menu pour un client (portail client) : Dashboard, Léa, Formulaire, Profil
   if (isClient) {
     return {
@@ -101,23 +115,7 @@ export function getNavigationConfig(isAdmin?: boolean, isClient?: boolean): Navi
         {
           name: 'Léa',
           icon: <MessageSquare className="w-5 h-5" />,
-          items: [
-            {
-              name: 'Léa2',
-              href: '/dashboard/lea2',
-              icon: <Mic className="w-5 h-5" />,
-            },
-            {
-              name: 'Base de connaissance Léa',
-              href: '/dashboard/lea/base-de-connaissance',
-              icon: <FileText className="w-5 h-5" />,
-            },
-            {
-              name: 'Paramètres Léa',
-              href: '/dashboard/modules/admin/parametres-lea',
-              icon: <Sliders className="w-5 h-5" />,
-            },
-          ],
+          items: leaItemsClient,
           collapsible: true,
           defaultOpen: false,
         },
@@ -194,26 +192,14 @@ export function getNavigationConfig(isAdmin?: boolean, isClient?: boolean): Navi
         href: '/dashboard',
         icon: <LayoutDashboard className="w-5 h-5" />,
       },
-      // Léa - Assistant IA (groupe avec lien paramètres)
+      // Léa - Assistant IA (groupe avec lien paramètres ; Base de connaissance visible seulement aux super admins)
       {
         name: 'Léa',
         icon: <MessageSquare className="w-5 h-5" />,
         items: [
-          {
-            name: 'Léa2',
-            href: '/dashboard/lea2',
-            icon: <Mic className="w-5 h-5" />,
-          },
-          {
-            name: 'Base de connaissance Léa',
-            href: '/dashboard/lea/base-de-connaissance',
-            icon: <FileText className="w-5 h-5" />,
-          },
-          {
-            name: 'Paramètres Léa',
-            href: '/dashboard/modules/admin/parametres-lea',
-            icon: <Sliders className="w-5 h-5" />,
-          },
+          { name: 'Léa2', href: '/dashboard/lea2', icon: <Mic className="w-5 h-5" /> },
+          ...(isSuperAdmin ? [LEA_KNOWLEDGE_ITEM] : []),
+          { name: 'Paramètres Léa', href: '/dashboard/modules/admin/parametres-lea', icon: <Sliders className="w-5 h-5" /> },
         ],
         collapsible: true,
         defaultOpen: false,
