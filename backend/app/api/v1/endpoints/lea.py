@@ -97,6 +97,50 @@ LEA_OACIQ_KEYWORD_TO_CODE: list = [
     (["vérification identité", "identité", "vi "], "VI"),
 ]
 
+# Cache in-memory pour la base de connaissance Léa (réduit DB + fichiers à chaque message)
+_LEA_KNOWLEDGE_CACHE_TTL_SEC = 60
+_lea_knowledge_cache: Optional[Tuple[float, str]] = None
+
+
+def _get_lea_knowledge_cache() -> Optional[str]:
+    """Retourne le contenu en cache si encore valide."""
+    global _lea_knowledge_cache
+    if _lea_knowledge_cache is None:
+        return None
+    expiry, value = _lea_knowledge_cache
+    if expiry and (datetime.now().timestamp() - expiry) < _LEA_KNOWLEDGE_CACHE_TTL_SEC:
+        return value
+    _lea_knowledge_cache = None
+    return None
+
+
+def _set_lea_knowledge_cache(value: str) -> None:
+    """Enregistre le contenu en cache avec TTL."""
+    global _lea_knowledge_cache
+    _lea_knowledge_cache = (datetime.now().timestamp(), value)
+
+
+def _invalidate_lea_knowledge_cache() -> None:
+    """Invalide le cache (ex. après mise à jour du contenu OACIQ par l'admin)."""
+    global _lea_knowledge_cache
+    _lea_knowledge_cache = None
+
+
+async def _load_lea_knowledge_async() -> str:
+    """
+    Charge la base de connaissance Léa (cache 60s ou nouvelle session DB).
+    Peut être appelée en parallèle de get_lea_user_context pour réduire la latence.
+    """
+    cached = _get_lea_knowledge_cache()
+    if cached is not None:
+        return cached
+    from app.database import AsyncSessionLocal
+    async with AsyncSessionLocal() as db2:
+        content = await _get_lea_knowledge_for_prompt(db2)
+    if content:
+        _set_lea_knowledge_cache(content)
+    return content
+
 
 async def _get_lea_knowledge_for_prompt(db: AsyncSession) -> str:
     """
@@ -205,6 +249,7 @@ LEA_SYSTEM_PROMPT = (
 "** FORMULAIRES ET DOCUMENTS OACIQ : **\n"
 "Tu es reliée à tous les formulaires OACIQ du système. La liste « Formulaires OACIQ disponibles » (dans Données plateforme) contient tous les codes (PA, CP, CCVE, DV, MO, etc.). "
 "Tu peux créer pour l'utilisateur n'importe quel formulaire de cette liste pour une de ses transactions : dès qu'il demande (ex. « crée une contre-proposition », « crée un CP », « je veux un formulaire CCVE pour la transaction rue X »), demande pour quelle transaction si besoin (adresse ou numéro de dossier), puis confirme ; le système créera le brouillon. "
+"** Tu peux aussi aider à compléter les formulaires : ** quand l'utilisateur dit « toi complète le », « remplis le formulaire », « complète le » (après avoir parlé d'un formulaire en brouillon), le système préremplit le formulaire avec les données de la transaction (adresse, vendeurs, acheteurs, prix, date de clôture). Confirme que c'est fait et indique d'aller dans Transactions → cette transaction → onglet Formulaires OACIQ pour vérifier. Ne dis pas que tu ne peux pas — l'action est effectuée par le système. "
 "Tu peux indiquer quels formulaires OACIQ sont en brouillon, complétés ou signés pour une transaction. "
 "Quand l'utilisateur demande « quels documents me manquent » ou « quelle est la prochaine étape », base-toi sur le bloc Données plateforme (formulaires OACIQ par transaction) et indique ce qui est en brouillon, complété, signé, et ce qu'il reste à faire ou à créer (ex. compléter le PA, créer un DIA pour une vente). "
 "Quand une action a créé un formulaire, indique clairement le nom du formulaire, la transaction concernée et la prochaine étape : Transactions → ouvrir cette transaction → onglet Formulaire (Formulaires OACIQ) → compléter le formulaire indiqué."
@@ -2117,9 +2162,9 @@ def _get_lea_guidance_lines(message: str) -> list[str]:
         or ("formula" in t and ("roi" in t or "cq" in t))
     ):
         lines.append(
-            "L'utilisateur souhaite remplir un formulaire OACIQ (ex. ROI, CQ). "
-            "Indique-lui qu'il peut aller dans la section Transactions, ouvrir la transaction concernée et utiliser l'onglet Formulaires OACIQ ; "
-            "propose de l'aider à compléter les champs s'il te donne les informations. Ne dis pas que tu ne peux pas."
+            "L'utilisateur souhaite remplir un formulaire OACIQ. "
+            "Indique-lui qu'il peut aller dans Transactions → ouvrir la transaction → onglet Formulaires OACIQ ; "
+            "s'il a déjà un formulaire en brouillon, il peut te dire « toi complète le » ou « remplis le formulaire » et tu le préremplira avec les données du dossier (adresse, vendeurs, acheteurs, prix, date). Ne dis pas que tu ne peux pas."
         )
 
     return lines
@@ -2286,6 +2331,136 @@ async def maybe_create_oaciq_form_submission_from_lea(
         return None
 
 
+def _wants_lea_to_complete_form(message: str) -> bool:
+    """True si l'utilisateur demande à Léa de compléter / remplir le formulaire (ex. « toi complète le », « remplis le »)."""
+    if not message or len(message.strip()) < 4:
+        return False
+    t = (message or "").strip().lower()
+    complete_phrases = (
+        "toi complète", "toi complete", "complète le", "complete le", "complète-le", "complete-le",
+        "remplis le", "remplis-le", "remplis le formulaire", "remplir le formulaire",
+        "tu peux le compléter", "tu peux le remplir", "complète le formulaire", "complete le formulaire",
+        "remplis-moi", "remplis moi", "complète-moi", "complète moi",
+        "aide-moi à compléter", "aide moi a completer", "préremplis", "preremplis",
+    )
+    return any(p in t for p in complete_phrases)
+
+
+def _build_oaciq_prefill_from_transaction(tx: RealEstateTransaction) -> dict:
+    """Construit un dictionnaire de préremplissage à partir des données de la transaction."""
+    full_addr = _format_full_address_ca(
+        tx.property_address or "",
+        tx.property_city or "",
+        getattr(tx, "property_province", None) or "",
+        getattr(tx, "property_postal_code", None) or "",
+    )
+    prefill = {
+        "full_address": full_addr.strip() or None,
+        "property_address": (tx.property_address or "").strip() or None,
+        "property_city": (tx.property_city or "").strip() or None,
+        "property_postal_code": (getattr(tx, "property_postal_code", None) or "").strip() or None,
+        "property_province": (getattr(tx, "property_province", None) or "").strip() or None,
+        "adresse_complete": full_addr.strip() or None,
+        "adresse": (tx.property_address or "").strip() or None,
+        "ville": (tx.property_city or "").strip() or None,
+        "code_postal": (getattr(tx, "property_postal_code", None) or "").strip() or None,
+    }
+    if tx.sellers and isinstance(tx.sellers, list):
+        names = [e.get("name") for e in tx.sellers if isinstance(e, dict) and e.get("name")]
+        if names:
+            prefill["sellers"] = names
+            prefill["vendeurs"] = ", ".join(names)
+    if tx.buyers and isinstance(tx.buyers, list):
+        names = [e.get("name") for e in tx.buyers if isinstance(e, dict) and e.get("name")]
+        if names:
+            prefill["buyers"] = names
+            prefill["acheteurs"] = ", ".join(names)
+    if tx.listing_price is not None:
+        prefill["listing_price"] = float(tx.listing_price)
+        prefill["prix_demandé"] = float(tx.listing_price)
+    if tx.offered_price is not None:
+        prefill["offered_price"] = float(tx.offered_price)
+        prefill["prix_offert"] = float(tx.offered_price)
+    if getattr(tx, "expected_closing_date", None):
+        d = tx.expected_closing_date
+        prefill["expected_closing_date"] = d.isoformat() if hasattr(d, "isoformat") else str(d)
+        prefill["date_cloture"] = prefill["expected_closing_date"]
+    return {k: v for k, v in prefill.items() if v is not None}
+
+
+async def maybe_prefill_oaciq_form_from_lea(
+    db: AsyncSession, user_id: int, message: str, last_assistant_message: Optional[str] = None
+) -> Optional[str]:
+    """
+    Si l'utilisateur demande à Léa de compléter le formulaire (« toi complète le », « remplis le »),
+    identifie la transaction, trouve une soumission en brouillon, préremplit avec les données
+    de la transaction (adresse, vendeurs, acheteurs, prix, date de clôture) et retourne une ligne d'action.
+    """
+    if not _wants_lea_to_complete_form(message):
+        return None
+    ref = _extract_transaction_ref_from_message(message) or (
+        _extract_transaction_ref_from_message(last_assistant_message or "") if last_assistant_message else None
+    )
+    if ref:
+        transaction = await get_user_transaction_by_ref(db, user_id, ref)
+    else:
+        hint = (
+            _extract_address_hint_from_message(message)
+            or _extract_address_hint_from_message(last_assistant_message or "")
+            or _extract_address_hint_from_assistant_message(last_assistant_message or "")
+        )
+        transaction = await get_user_transaction_by_address_hint(db, user_id, hint) if hint else None
+    if not transaction and (message or last_assistant_message):
+        # Secours : prendre la dernière transaction si on vient de parler d'un formulaire (ex. « toi complète le » juste après)
+        transaction = await get_user_latest_transaction(db, user_id)
+    if not transaction:
+        return None
+    try:
+        q = (
+            select(FormSubmission, Form.code, Form.name)
+            .join(Form, FormSubmission.form_id == Form.id)
+            .where(
+                FormSubmission.transaction_id == transaction.id,
+                FormSubmission.user_id == user_id,
+                FormSubmission.status == "draft",
+                Form.code.isnot(None),
+            )
+            .order_by(FormSubmission.submitted_at.desc())
+        )
+        res = await db.execute(q)
+        row = res.first()
+        if not row:
+            return (
+                "L'utilisateur demande de compléter le formulaire mais il n'y a pas de formulaire en brouillon pour cette transaction. "
+                "Indique-lui d'aller dans Transactions → cette transaction → onglet Formulaires OACIQ pour créer ou ouvrir un formulaire, puis de revenir te demander de le préremplir."
+            )
+        submission, form_code, form_name = row[0], row[1], row[2]
+        prefill = _build_oaciq_prefill_from_transaction(transaction)
+        current = dict(submission.data) if isinstance(submission.data, dict) else {}
+        for k, v in prefill.items():
+            if v is not None and (k not in current or current[k] in (None, "", [])):
+                current[k] = v
+        submission.data = current
+        await db.flush()
+        version = FormSubmissionVersion(submission_id=submission.id, data=current)
+        db.add(version)
+        await db.commit()
+        await db.refresh(submission)
+        ref_label = transaction.dossier_number or f"#{transaction.id}"
+        addr_short = (transaction.property_address or transaction.property_city or "").strip()
+        tx_label = f"{addr_short} ({ref_label})" if addr_short else ref_label
+        name = form_name or f"Formulaire {form_code}"
+        logger.info(f"Lea prefilled OACIQ submission id={submission.id} form_code={form_code} for transaction id={transaction.id}")
+        return (
+            f"Tu viens de préremplir le formulaire OACIQ « {name} » (code {form_code}) pour la transaction {tx_label} avec les données du dossier : adresse, vendeurs, acheteurs, prix, date de clôture. "
+            "Confirme à l'utilisateur que c'est fait. Indique-lui qu'il peut aller dans Transactions → cette transaction → onglet Formulaires OACIQ pour vérifier et compléter les champs restants si besoin."
+        )
+    except Exception as e:
+        logger.warning(f"Lea prefill OACIQ form failed: {e}", exc_info=True)
+        await db.rollback()
+        return None
+
+
 async def run_lea_actions(
     db: AsyncSession, user_id: int, message: str, last_assistant_message: Optional[str] = None
 ) -> tuple[list, Optional[RealEstateTransaction]]:
@@ -2439,6 +2614,9 @@ async def run_lea_actions(
     oaciq_line = await maybe_create_oaciq_form_submission_from_lea(db, user_id, message, last_assistant_message)
     if oaciq_line:
         lines.append(oaciq_line)
+    prefill_line = await maybe_prefill_oaciq_form_from_lea(db, user_id, message, last_assistant_message)
+    if prefill_line:
+        lines.append(prefill_line)
     # Si l'utilisateur demande une promesse d'achat / formulaire sans préciser la transaction ni l'adresse, ne pas assumer la dernière
     if not promise_tx and not oaciq_line and (
         _wants_to_set_promise(message) or _wants_to_create_oaciq_form_for_transaction(message)
@@ -2684,9 +2862,11 @@ async def _stream_lea_sse(
             tx_to_link = created_tx or await get_user_latest_transaction(db, user_id)
             if tx_to_link:
                 await link_lea_session_to_transaction(db, user_id, session_id, tx_to_link.id)
-        # Sequential DB calls: AsyncSession does not allow concurrent operations on the same session.
+        # Charger contexte + conversation (même session) en parallèle avec la base de connaissance (cache/session dédiée)
+        knowledge_task = asyncio.create_task(_load_lea_knowledge_async())
         user_context = await get_lea_user_context(db, user_id)
         conv, sid = await get_or_create_lea_conversation(db, user_id, session_id)
+        lea_knowledge = await knowledge_task
         if action_lines:
             user_context += "\n\n--- Action effectuée ---\n" + "\n".join(action_lines)
         messages_for_llm = build_llm_messages_from_history(conv.messages or [], message)
@@ -2716,7 +2896,6 @@ async def _stream_lea_sse(
             return
         settings = get_settings()
         system = LEA_SYSTEM_PROMPT
-        lea_knowledge = await _get_lea_knowledge_for_prompt(db)
         if lea_knowledge:
             system += "\n\n--- Base de connaissance Léa (formulaires OACIQ + documents) ---\n" + lea_knowledge
         if user_context:
@@ -3372,6 +3551,7 @@ async def update_lea_knowledge_content(
         db.add(new_row)
         await db.commit()
         await db.refresh(new_row)
+    _invalidate_lea_knowledge_cache()
     return LeaKnowledgeContentResponse(content=content)
 
 
