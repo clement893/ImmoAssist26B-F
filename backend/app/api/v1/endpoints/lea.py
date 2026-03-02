@@ -1247,6 +1247,39 @@ async def maybe_update_transaction_address_from_lea(db: AsyncSession, user_id: i
         return None
 
 
+def _looks_like_city_only(message: str) -> bool:
+    """True si le message ressemble à une simple indication de ville (ex. « Montréal », « Québec »), sans verbe ni adresse complète."""
+    if not message or len(message.strip()) < 2:
+        return False
+    t = message.strip()
+    # Une ou deux mots, pas de chiffres (ou seulement code postal en fin)
+    words = t.split()
+    if len(words) > 3:
+        return False
+    # Pas de motif "l'adresse est" / "c'est" / numéro civique en début
+    t_lower = t.lower()
+    if any(x in t_lower for x in ("l'adresse", "adresse est", "c'est ", "est au", "le bien", "numéro")):
+        return False
+    # Accepte : tout en lettres (avec accents), éventuellement tirets (Saint-Laurent)
+    if words and not any(c.isdigit() for c in t):
+        return True
+    return False
+
+
+def _transaction_has_partial_address(tx: RealEstateTransaction) -> bool:
+    """True si la transaction a une adresse (rue) mais sans ville ou sans code postal complétés."""
+    addr = (getattr(tx, "property_address", None) or "").strip()
+    if not addr or len(addr) < 5:
+        return False
+    city = (getattr(tx, "property_city", None) or "").strip()
+    postal = (getattr(tx, "property_postal_code", None) or "").strip()
+    if not city or not postal or city.lower() in ("à compléter", "a completer", ""):
+        return True
+    if len(postal) < 6 or "compléter" in postal.lower():
+        return True
+    return False
+
+
 def _wants_to_geocode_existing_address(message: str) -> bool:
     """True si l'utilisateur demande de chercher l'adresse / code postal / ville sur Internet (géocodage sur la transaction déjà enregistrée)."""
     t = (message or "").strip().lower()
@@ -1270,6 +1303,48 @@ def _wants_to_geocode_existing_address(message: str) -> bool:
         or "complète" in t or "code postal" in t or "ville" in t
     )
     return has_verb and has_address and (has_trigger or "recherche" in t or "écris" in t or "écrire" in t)
+
+
+async def maybe_complete_address_with_city_then_geocode(
+    db: AsyncSession, user_id: int, message: str
+) -> Optional[Tuple[str, RealEstateTransaction, dict]]:
+    """
+    Si le message est une ville seule (ex. « Montréal ») et que la dernière transaction a une adresse partielle (rue sans ville),
+    combine « rue, ville » et lance le géocodage. Retourne (adresse_complète, transaction, validation) pour les action lines.
+    Évite que Léa réponde « Je vais chercher... Un instant » sans que le géocodage soit fait dans le même tour.
+    """
+    if not _looks_like_city_only(message):
+        return None
+    transaction = await get_user_latest_transaction(db, user_id)
+    if not transaction or not _transaction_has_partial_address(transaction):
+        return None
+    addr_base = (transaction.property_address or "").strip()
+    if not addr_base or "," in addr_base:
+        return None
+    combined = f"{addr_base}, {message.strip()}"
+    validation = await _validate_address_via_geocode(combined)
+    if not validation:
+        return None
+    try:
+        transaction.property_address = combined
+        if validation.get("state"):
+            state = validation["state"]
+            if "québec" in state.lower() or "quebec" in state.lower() or state.upper() == "QC":
+                transaction.property_province = "QC"
+            elif state.upper() in ("ON", "ONTARIO"):
+                transaction.property_province = "ON"
+        if validation.get("city"):
+            transaction.property_city = validation["city"]
+        if validation.get("postcode"):
+            transaction.property_postal_code = _format_canadian_postal_code(validation["postcode"])
+        await db.commit()
+        await db.refresh(transaction)
+        logger.info(f"Lea completed address with city for transaction id={transaction.id}, geocoded")
+        return (combined, transaction, validation)
+    except Exception as e:
+        logger.warning(f"Lea complete address with city failed: {e}", exc_info=True)
+        await db.rollback()
+        return None
 
 
 async def maybe_geocode_existing_transaction_address(
@@ -2270,8 +2345,39 @@ async def run_lea_actions(
                 "Tu DOIS rester sur l'adresse : demande uniquement la **ville** à l'utilisateur (ne demande pas le code postal). Une fois la ville donnée, propose de trouver le code postal en ligne (géocodage). "
                 "Ne pose PAS « Qui sont les vendeurs ? » ni aucune autre question tant que l'adresse n'a pas ville + code postal."
             )
+    # Utilisateur a répondu par la ville seule (ex. « Montréal ») : compléter l'adresse partielle et géocoder dans le même tour
+    city_geocode_result = None
+    if not addr_result:
+        city_geocode_result = await maybe_complete_address_with_city_then_geocode(db, user_id, message)
+        if city_geocode_result:
+            addr, tx, validation = city_geocode_result
+            ref = tx.dossier_number or f"#{tx.id}"
+            lines.append(
+                f"Tu viens de compléter l'adresse avec la ville indiquée par l'utilisateur et d'effectuer la recherche en ligne (géocodage) pour la transaction {ref}. "
+                "Tu DOIS écrire l'adresse complète trouvée dans ta réponse et confirmer que c'est enregistré. Ne dis pas « Un instant » ni « Je vais chercher » : le géocodage est déjà fait."
+            )
+            if validation:
+                parts = []
+                if validation.get("postcode"):
+                    parts.append(f"code postal {validation['postcode']}")
+                if validation.get("city"):
+                    parts.append(validation["city"])
+                if validation.get("state"):
+                    parts.append(validation["state"])
+                if parts:
+                    geocode_str = " — ".join(parts)
+                    city = validation.get("city") or ""
+                    postcode = validation.get("postcode") or ""
+                    state = validation.get("state") or ""
+                    full_formatted = _format_full_address_ca(addr, city, state, postcode)
+                    lines.append(
+                        f"Résultat géocodage : « {geocode_str} ». "
+                        f"Adresse complète à indiquer à l'utilisateur : « {full_formatted} ». "
+                        "Tu DOIS écrire cette adresse complète dans ta réponse (format : rue, ville (province) code postal) et confirmer que c'est enregistré. "
+                        "INTERDICTION de dire « Je vais chercher » ou « Un instant » : le résultat est déjà disponible ci-dessus."
+                    )
     # Géocodage de l'adresse déjà enregistrée sur la dernière transaction (sans nouvelle adresse dans le message)
-    if not addr_result and _wants_to_geocode_existing_address(message):
+    if not addr_result and not city_geocode_result and _wants_to_geocode_existing_address(message):
         geocode_result = await maybe_geocode_existing_transaction_address(db, user_id, message, last_assistant_message)
         if geocode_result:
             _addr, _tx, validation = geocode_result
