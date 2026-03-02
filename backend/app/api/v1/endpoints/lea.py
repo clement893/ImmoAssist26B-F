@@ -178,6 +178,7 @@ LEA_SYSTEM_PROMPT = (
     "Si l'adresse n'a pas encore de ville/code postal : demande uniquement la **ville** à l'utilisateur (ne demande pas le code postal). Une fois la ville donnée, propose de trouver le code postal en ligne (géocodage) ou fais la recherche. "
     "Une fois l'adresse complète (éventuellement après recherche en ligne), tu DOIS d'abord indiquer cette adresse complète à l'utilisateur dans ta réponse ; seulement après tu peux poser la question suivante (vendeurs, etc.).\n\n"
     "** CONFIRMATION DE LA PROPRIÉTÉ AVANT D'AVANCER : ** Quand l'utilisateur désigne une propriété par une référence partielle (ex. « trouve la transaction sur de Bordeaux », « celle sur la rue X ») et que tu identifies un bien dans les Données plateforme, tu DOIS d'abord indiquer l'adresse complète du bien trouvé et demander à l'utilisateur de **confirmer que c'est bien ce dossier** avant de poser toute question sur les vendeurs, acheteurs ou prix. Formule par exemple : « J'ai trouvé la propriété au [adresse complète]. Est-ce bien ce dossier ? » ou « Confirmes-tu qu'il s'agit bien du [adresse complète] ? » — INTERDICTION de poser « Qui sont les vendeurs ? » (ou acheteurs, prix, etc.) dans la même réponse où tu identifies le bien. Attends la confirmation de l'utilisateur (ex. « oui », « c'est ça ») avant de passer à la suite.\n\n"
+    "** CONTEXTE DE LA CONVERSATION – PROPRIÉTÉ DONT ON VIENT DE PARLER : ** Quand l'utilisateur dit « on vient de parler de la propriété », « celle dont on parlait », « la propriété dont on vient de parler », « pour la propriété qu'on vient de discuter » ou « je veux créer la promesse d'achat » (sans répéter l'adresse) juste après un échange où tu as toi-même indiqué une propriété (ex. « nous travaillons sur la propriété au 8876 de Bordeaux… »), il fait **référence à cette propriété**. Ne redemande pas « pour quelle propriété ? » : considère qu'il s'agit du bien que tu viens de mentionner dans ton dernier message et procède (ex. créer la promesse d'achat pour cette transaction). Le système associe automatiquement la transaction à partir du contexte.\n\n"
     "** INFORMATIONS CLÉS À COLLECTER – POSE LES BONNES QUESTIONS : **\n"
     "Quand l'utilisateur crée une transaction ou travaille sur un dossier, aide-le à le compléter en posant des questions pertinentes, une à la fois ou par thème. "
     "Ordre logique des informations clés :\n"
@@ -880,18 +881,30 @@ def _extract_address_hint_from_message(message: str) -> Optional[str]:
 
 def _extract_address_hint_from_assistant_message(message: str) -> Optional[str]:
     """
-    Extrait un indice d'adresse du message assistant quand Léa vient de donner l'adresse (ex. "est : 8569 delorimier, Val-d'Or").
-    Permet de cibler la bonne transaction quand l'utilisateur répond "les vendeurs sont X et Y" sans répéter l'adresse.
+    Extrait un indice d'adresse du message assistant quand Léa vient de donner l'adresse (ex. "est : 8569 delorimier, Val-d'Or",
+    "propriété au 8876 de Bordeaux, Val-d'Or"). Permet de cibler la bonne transaction quand l'utilisateur répond sans répéter l'adresse.
     """
     if not message or len(message.strip()) < 5:
         return None
     t = message.strip()
+    # "propriété au 8876 de Bordeaux, Val-d'Or" / "nous travaillons sur la propriété au 8876 de Bordeaux"
+    m = re.search(r"propriété\s+au\s+(\d+\s+(?:de\s+)?[A-Za-zÀ-ÿ\-]+)", t, re.I)
+    if m:
+        return m.group(1).strip()
+    # "au 8876 de Bordeaux, Val-d'Or (Québec)" -> extraire "Bordeaux" ou "8876 de Bordeaux"
+    m = re.search(r"au\s+(\d+\s+de\s+[A-Za-zÀ-ÿ\-]+)", t, re.I)
+    if m:
+        return m.group(1).strip()
     # "L'adresse ... est : 8569 delorimier, Val-d'Or" / "est : 8569 delorimier," / "adresse suivante est : 8569 delorimier"
     m = re.search(r"(?:adresse\s+(?:suivante\s+)?(?:est\s*:\s*)|est\s*:\s*)\s*(\d+\s+[A-Za-zÀ-ÿ\-]+)", t, re.I)
     if m:
         return m.group(1).strip()
-    # Dernier recours : un mot typique de rue (ex. "delorimier", "Bordeaux") après "transaction" ou "dossier"
-    m = re.search(r"(?:transaction|dossier).*?\b([A-Za-zÀ-ÿ]{4,})\b", t, re.I)
+    # Mot de rue après "de " (ex. "de Bordeaux", "de Lorimier") dans un contexte d'adresse
+    m = re.search(r"\bde\s+([A-Za-zÀ-ÿ]{4,})\s*[,)]", t)
+    if m:
+        return m.group(1).strip()
+    # Dernier recours : un mot typique de rue (ex. "delorimier", "Bordeaux") après "transaction", "dossier" ou "propriété"
+    m = re.search(r"(?:transaction|dossier|propriété).*?\b([A-Za-zÀ-ÿ]{4,})\b", t, re.I)
     if m:
         return m.group(1).strip()
     return None
