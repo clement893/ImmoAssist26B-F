@@ -58,15 +58,44 @@ LEA_KNOWLEDGE_FOLDER = "lea_knowledge"
 
 # Fichier de connaissance OACIQ (formulaires) pour Léa — chargé à chaque requête
 # Racine projet = parent de backend/ (docs/ est à la racine)
-_LEA_OACIQ_KNOWLEDGE_PATH = (
-    Path(__file__).resolve().parent.parent.parent.parent.parent.parent
-    / "docs"
-    / "oaciq"
-    / "LEA_KNOWLEDGE_OACIQ.md"
-)
+_LEA_DOCS_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent.parent / "docs" / "oaciq"
+_LEA_OACIQ_KNOWLEDGE_PATH = _LEA_DOCS_ROOT / "LEA_KNOWLEDGE_OACIQ.md"
+_LEA_OACIQ_GUIDE_EXPERT_PATH = _LEA_DOCS_ROOT / "OACIQ_Guide_Expert_IA.md"
 
 
 LEA_KNOWLEDGE_KEY_OACIQ = "oaciq"
+
+# Codes OACIQ connus (alignés sur le guide expert et la table forms) — pour détecter "crée un CP", "formulaire CCVE", etc.
+LEA_KNOWN_OACIQ_CODES = frozenset({
+    "CCVE", "CCDE", "CCIE", "CCM", "CCVNE", "CCDNE", "CCINE", "CCA", "CCADI", "CCL",
+    "DV", "DVD", "PA", "PAD", "PAI", "PAM", "PAG", "CP", "CPCP", "MO",
+    "AVIS-CCA", "AVIS-CVAN", "AVIS-DAVP", "DR", "DRCOP", "PAC", "ACD", "ACI", "BOCP", "MOCP",
+    "AG", "AF", "AR", "EAU", "EXP", "D", "PL", "PLC", "PSL", "ML", "CVHP", "LD", "VI", "AS", "CM",
+    "DIA", "DIV-ENT", "DIV-PAR", "DESC-LOC", "DESC-RES",
+})
+
+# Mots-clés / expressions → code formulaire (pour extraire l'intention de l'utilisateur)
+LEA_OACIQ_KEYWORD_TO_CODE: list = [
+    (["promesse", "d'achat", "promesse d'achat"], "PA"),
+    (["contre-proposition", "contre proposition"], "CP"),
+    (["modifications", "modification"], "MO"),
+    (["déclarations du vendeur", "déclaration vendeur", "déclarations vendeur"], "DV"),
+    (["déclarations vendeur copropriété", "dvd"], "DVD"),
+    (["contrat de courtage", "courtage exclusif vente", "ccve"], "CCVE"),
+    (["contrat courtage copropriété", "ccde"], "CCDE"),
+    (["contrat courtage achat", "cca"], "CCA"),
+    (["contrat courtage location", "ccl"], "CCL"),
+    (["avis réalisation conditions", "avis conditions", "lever les conditions", "aviscvan"], "AVIS-CVAN"),
+    (["annulation promesse", "avis-davp"], "AVIS-DAVP"),
+    (["annexe expertise", "expertise"], "EXP"),
+    (["annexe financement", "financement"], "AF"),
+    (["annexe générale", "ag"], "AG"),
+    (["annexe eau", "eau potable", "septique"], "EAU"),
+    (["déboursés", "rétribution", "dr "], "DR"),
+    (["demande renseignements syndicat", "drcop", "syndicat copropriété"], "DRCOP"),
+    (["promesse location", "pl "], "PL"),
+    (["vérification identité", "identité", "vi "], "VI"),
+]
 
 
 async def _get_lea_knowledge_for_prompt(db: AsyncSession) -> str:
@@ -91,6 +120,14 @@ async def _get_lea_knowledge_for_prompt(db: AsyncSession) -> str:
                 content = _LEA_OACIQ_KNOWLEDGE_PATH.read_text(encoding="utf-8")
                 if content.strip():
                     parts.append(content.strip())
+        # Guide expert OACIQ (fiches détaillées de tous les formulaires)
+        if _LEA_OACIQ_GUIDE_EXPERT_PATH.exists():
+            try:
+                guide_content = _LEA_OACIQ_GUIDE_EXPERT_PATH.read_text(encoding="utf-8")
+                if guide_content.strip():
+                    parts.append(guide_content.strip())
+            except Exception as e:
+                logger.warning("Could not load OACIQ Guide Expert for Léa: %s", e)
     except Exception as e:
         logger.warning("Could not load OACIQ knowledge for Léa: %s", e)
     try:
@@ -165,6 +202,8 @@ LEA_SYSTEM_PROMPT = (
     "- Pour faire avancer la conversation, **pose une question pertinente** ou propose la prochaine étape quand c'est naturel.\n"
     "- Sois directe et efficace : pas de formules de politesse longues, va à l'essentiel.\n\n"
 "** FORMULAIRES ET DOCUMENTS OACIQ : **\n"
+"Tu es reliée à tous les formulaires OACIQ du système. La liste « Formulaires OACIQ disponibles » (dans Données plateforme) contient tous les codes (PA, CP, CCVE, DV, MO, etc.). "
+"Tu peux créer pour l'utilisateur n'importe quel formulaire de cette liste pour une de ses transactions : dès qu'il demande (ex. « crée une contre-proposition », « crée un CP », « je veux un formulaire CCVE pour la transaction rue X »), demande pour quelle transaction si besoin (adresse ou numéro de dossier), puis confirme ; le système créera le brouillon. "
 "Tu peux indiquer quels formulaires OACIQ sont en brouillon, complétés ou signés pour une transaction. "
 "Quand l'utilisateur demande « quels documents me manquent » ou « quelle est la prochaine étape », base-toi sur le bloc Données plateforme (formulaires OACIQ par transaction) et indique ce qui est en brouillon, complété, signé, et ce qu'il reste à faire ou à créer (ex. compléter le PA, créer un DIA pour une vente). "
 "Quand une action a créé un formulaire, indique clairement le nom du formulaire, la transaction concernée et la prochaine étape : Transactions → ouvrir cette transaction → onglet Formulaire (Formulaires OACIQ) → compléter le formulaire indiqué."
@@ -1998,31 +2037,60 @@ def _get_lea_guidance_lines(message: str) -> list[str]:
     return lines
 
 
+def _extract_oaciq_form_code_from_message(message: str) -> Optional[str]:
+    """
+    Extrait le code du formulaire OACIQ demandé dans le message.
+    Cherche d'abord un code explicite (ex. « crée un CP », « formulaire CCVE »),
+    puis les mots-clés (contre-proposition → CP, etc.). Retourne None si rien trouvé.
+    """
+    if not message or not message.strip():
+        return None
+    t = (message or "").strip().lower()
+    # 1) Code explicite : chercher le plus long d'abord pour éviter que PA matche dans PAD
+    for code in sorted(LEA_KNOWN_OACIQ_CODES, key=lambda c: -len(c)):
+        code_lower = code.lower()
+        # Mot entier ou précédé/suivi par espace, ponctuation, fin/début
+        if code_lower in t:
+            # Vérifier frontières (éviter "cap" pour "PA")
+            idx = t.find(code_lower)
+            before_ok = idx == 0 or t[idx - 1] in " \t\n\r,;.?!»\"'(-"
+            after_ok = idx + len(code_lower) >= len(t) or t[idx + len(code_lower)] in " \t\n\r,;.?!«\"')-"
+            if before_ok and after_ok:
+                return code
+    # 2) Mots-clés
+    for keywords, code in LEA_OACIQ_KEYWORD_TO_CODE:
+        if any(kw in t for kw in keywords):
+            return code
+    return None
+
+
 def _wants_to_create_oaciq_form_for_transaction(message: str) -> bool:
-    """True si l'utilisateur demande de créer une promesse d'achat / un formulaire OACIQ pour une transaction."""
-    if not message or len(message.strip()) < 10:
+    """True si l'utilisateur demande de créer un formulaire OACIQ pour une transaction."""
+    if not message or len(message.strip()) < 5:
         return False
     t = (message or "").strip().lower()
-    if "formulaire" not in t and "form" not in t and "promesse" not in t and "province" not in t:
+    create_verbs = ("créons", "créer", "crée", "créez", "crééz", "faire", "ouvrir", "ajouter", "lancer", "préparer", "préparons", "générer", "génère")
+    if not any(v in t for v in create_verbs):
         return False
-    # "créons une promesse d'achat avec un formulaire oaciq", "oacq" (sans i), "formulaire de province d'achats oacq"
-    if "oaciq" not in t and "oacq" not in t and not ("promesse" in t and "achat" in t) and not ("province" in t and "achat" in t):
-        return False
-    create_verbs = ("créons", "créer", "crée", "créez", "crééz", "faire", "ouvrir", "ajouter", "lancer")
-    return any(v in t for v in create_verbs)
+    # Demande de création d'un formulaire : code explicite OU mots OACIQ/formulaire/promesse OU mot-clé métier
+    if _extract_oaciq_form_code_from_message(message):
+        return True
+    if "formulaire" in t or "form " in t or "form." in t:
+        if "oaciq" in t or "oacq" in t or "promesse" in t or "contre-proposition" in t or "modifications" in t or "modification" in t or "déclaration" in t or "contrat" in t or "annexe" in t or "avis" in t:
+            return True
+    if "promesse" in t and "achat" in t:
+        return True
+    if "contre-proposition" in t or "contre proposition" in t:
+        return True
+    if "modifications" in t or "modification" in t and "formulaire" in t:
+        return True
+    return False
 
 
 def _get_oaciq_form_code_for_lea_message(message: str) -> str:
-    """Retourne le code du formulaire OACIQ à créer selon le message (PA = Promesse d'achat par défaut)."""
-    if not message:
-        return "PA"
-    t = (message or "").strip().lower()
-    if "promesse" in t and ("achat" in t or "d'achat" in t):
-        return "PA"
-    if "province" in t and "achat" in t:
-        return "PA"  # "formulaire de province d'achats" = promesse d'achat
-    # Autres codes possibles : ROI, CQ, etc. — pour l'instant on ne détecte que PA
-    return "PA"
+    """Retourne le code du formulaire OACIQ à créer selon le message (PA par défaut)."""
+    code = _extract_oaciq_form_code_from_message(message)
+    return code if code else "PA"
 
 
 OACIQ_FORM_CREATION_PREFIX = "Tu viens de créer le formulaire OACIQ "
@@ -2252,13 +2320,13 @@ async def run_lea_actions(
     oaciq_line = await maybe_create_oaciq_form_submission_from_lea(db, user_id, message, last_assistant_message)
     if oaciq_line:
         lines.append(oaciq_line)
-    # Si l'utilisateur demande une promesse d'achat / formulaire PA sans préciser la transaction ni l'adresse, ne pas assumer la dernière
+    # Si l'utilisateur demande une promesse d'achat / formulaire sans préciser la transaction ni l'adresse, ne pas assumer la dernière
     if not promise_tx and not oaciq_line and (
         _wants_to_set_promise(message) or _wants_to_create_oaciq_form_for_transaction(message)
     ):
         lines.append(
             "L'utilisateur n'a pas précisé pour quelle propriété ni quelle transaction. "
-            "Ne prends PAS la dernière transaction par défaut. Demande-lui : « Pour quelle propriété (adresse ou numéro de transaction) souhaitez-vous préparer la promesse d'achat ? »"
+            "Ne prends PAS la dernière transaction par défaut. Demande-lui : « Pour quelle propriété (adresse ou numéro de transaction) souhaitez-vous préparer ce formulaire ? »"
         )
     contact_line = await maybe_add_seller_buyer_contact_from_lea(db, user_id, message, last_assistant_message)
     if contact_line:
@@ -3426,16 +3494,38 @@ async def upload_lea_knowledge_document(
             headers={"content-type": content_type or "application/octet-stream"},
         )
         s3_service = S3Service()
-        upload_result = s3_service.upload_file(
-            file=refile,
-            folder=LEA_KNOWLEDGE_FOLDER,
-            user_id=str(current_user.id),
+        # Run sync S3 upload in thread pool to avoid blocking the event loop
+        upload_result = await asyncio.to_thread(
+            s3_service.upload_file,
+            refile,
+            LEA_KNOWLEDGE_FOLDER,
+            str(current_user.id),
         )
+        if not upload_result or "file_key" not in upload_result:
+            logger.error("Upload document base connaissance Léa: S3 upload returned no file_key")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Échec de l'envoi du fichier vers le stockage.",
+            )
         filename_val = upload_result.get("filename") or file.filename or "document"
         original_val = file.filename or upload_result.get("filename") or "document"
         content_type_val = upload_result.get("content_type") or content_type or "application/octet-stream"
         size_val = upload_result.get("size", 0)
         url_val = upload_result.get("url", "")
+
+        def _build_fallback_values():
+            return {
+                "id": uuid.uuid4(),
+                "user_id": current_user.id,
+                "file_key": upload_result["file_key"],
+                "filename": filename_val,
+                "original_filename": original_val,
+                "content_type": content_type_val,
+                "size": size_val,
+                "url": url_val,
+                "folder": LEA_KNOWLEDGE_FOLDER,
+            }
+
         try:
             file_record = File(
                 user_id=current_user.id,
@@ -3460,34 +3550,32 @@ async def upload_lea_knowledge_document(
                 created_at=file_record.created_at.isoformat() if file_record.created_at else "",
             )
         except (ProgrammingError, OperationalError) as db_err:
-            err_msg = str(db_err).lower()
-            if "content_text" in err_msg or "column" in err_msg:
-                await db.rollback()
-                file_id = uuid.uuid4()
-                stmt = insert(File.__table__).values(
-                    id=file_id,
-                    user_id=current_user.id,
-                    file_key=upload_result["file_key"],
-                    filename=filename_val,
-                    original_filename=original_val,
-                    content_type=content_type_val,
-                    size=size_val,
-                    url=url_val,
-                    folder=LEA_KNOWLEDGE_FOLDER,
-                )
+            logger.warning("Upload document base connaissance Léa (fallback insert): %s", db_err)
+            await db.rollback()
+            # Fallback : insert minimal (sans content_text) si colonne manquante ou autre erreur schéma
+            file_id = _build_fallback_values()["id"]
+            stmt = insert(File.__table__).values(**_build_fallback_values())
+            try:
                 await db.execute(stmt)
                 await db.commit()
-                return LeaKnowledgeDocumentUploadResponse(
-                    id=str(file_id),
-                    filename=filename_val,
-                    original_filename=original_val,
-                    size=size_val,
-                    content_type=content_type_val,
-                    created_at=datetime.utcnow().isoformat() + "Z",
+            except Exception as insert_err:
+                logger.exception("Upload document base connaissance Léa (fallback insert failed): %s", insert_err)
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Erreur lors de l'enregistrement du document en base.",
                 )
-            raise
+            return LeaKnowledgeDocumentUploadResponse(
+                id=str(file_id),
+                filename=filename_val,
+                original_filename=original_val,
+                size=size_val,
+                content_type=content_type_val,
+                created_at=datetime.utcnow().isoformat() + "Z",
+            )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception("Upload document base connaissance Léa: %s", e)
         raise HTTPException(
