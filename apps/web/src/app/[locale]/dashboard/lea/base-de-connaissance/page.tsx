@@ -18,12 +18,23 @@ interface LeaKnowledgeDoc {
 
 const ALLOWED_TYPES = [
   'application/pdf',
+  'application/x-pdf',
   'text/plain',
   'text/markdown',
+  'text/x-markdown',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'application/msword',
+  'application/octet-stream', // fallback when OS doesn't set MIME (e.g. .md, .pdf)
 ];
+const ALLOWED_EXTENSIONS = ['.pdf', '.txt', '.md', '.doc', '.docx'];
 const MAX_SIZE_MB = 20;
+
+function isFileAllowed(file: File): boolean {
+  const ext = '.' + (file.name || '').split('.').pop()?.toLowerCase();
+  if (ALLOWED_EXTENSIONS.includes(ext)) return true;
+  const ct = (file.type || '').toLowerCase();
+  return !ct || ALLOWED_TYPES.includes(ct);
+}
 
 export default function BaseConnaissanceLeaPage() {
   const [oaciqContent, setOaciqContent] = useState('');
@@ -94,8 +105,7 @@ export default function BaseConnaissanceLeaPage() {
       toastError?.(`Fichier trop volumineux (max ${MAX_SIZE_MB} Mo).`);
       return;
     }
-    const ct = (file.type || '').toLowerCase();
-    if (ct && !ALLOWED_TYPES.includes(ct)) {
+    if (!isFileAllowed(file)) {
       toastError?.('Type de fichier non autorisé. Utilisez PDF, TXT, MD, DOC ou DOCX.');
       return;
     }
@@ -217,7 +227,7 @@ export default function BaseConnaissanceLeaPage() {
           <input
             type="file"
             className="sr-only"
-            accept=".pdf,.txt,.md,.doc,.docx,application/pdf,text/plain,text/markdown,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            accept=".pdf,.txt,.md,.doc,.docx,application/pdf,application/x-pdf,text/plain,text/markdown,text/x-markdown,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             onChange={handleFileSelect}
             disabled={uploading}
           />

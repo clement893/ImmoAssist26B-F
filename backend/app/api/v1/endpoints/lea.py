@@ -3372,17 +3372,39 @@ async def upload_lea_knowledge_document(
         )
     allowed_content_types = (
         "application/pdf",
+        "application/x-pdf",
         "text/plain",
         "text/markdown",
+        "text/x-markdown",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "application/msword",
     )
+    allowed_extensions = (".pdf", ".txt", ".md", ".doc", ".docx")
     content_type = (file.content_type or "").strip().lower()
+    fn_lower = (file.filename or "").lower()
+    has_allowed_ext = any(fn_lower.endswith(ext) for ext in allowed_extensions)
     if content_type and content_type not in allowed_content_types:
+        if not (content_type == "application/octet-stream" and has_allowed_ext):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Type de fichier non autorisé. Autorisés : PDF, TXT, MD, DOC, DOCX.",
+            )
+    elif not content_type and not has_allowed_ext:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Type de fichier non autorisé. Autorisés : PDF, TXT, MD, DOC, DOCX.",
+            detail="Type de fichier non autorisé. Autorisés : PDF, TXT, MD, DOC, DOCX.",
         )
+    if content_type in ("text/plain", "text/markdown", "text/x-markdown") or (
+        (not content_type or content_type == "application/octet-stream") and fn_lower.endswith(".md")
+    ):
+        content_type = content_type or "text/markdown"
+    elif not content_type or content_type == "application/octet-stream":
+        if fn_lower.endswith(".pdf"):
+            content_type = "application/pdf"
+        elif fn_lower.endswith(".txt"):
+            content_type = "text/plain"
+        elif fn_lower.endswith((".doc", ".docx")):
+            content_type = content_type or "application/octet-stream"
     if not S3Service.is_configured():
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -3391,7 +3413,7 @@ async def upload_lea_knowledge_document(
     try:
         body = await file.read()
         content_text = None
-        if content_type in ("text/plain", "text/markdown"):
+        if content_type in ("text/plain", "text/markdown", "text/x-markdown"):
             try:
                 content_text = body.decode("utf-8", errors="replace").strip()[:100000] or None
             except Exception:
