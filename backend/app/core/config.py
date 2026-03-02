@@ -302,7 +302,7 @@ class Settings(BaseSettings):
         description="OpenAI API key",
     )
     OPENAI_MODEL: str = Field(
-        default="gpt-4o-mini",
+        default="gpt-4o",
         description="OpenAI model to use",
     )
     OPENAI_MAX_TOKENS: int = Field(

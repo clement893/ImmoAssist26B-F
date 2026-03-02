@@ -74,7 +74,7 @@ class AIService:
                 raise ValueError("OPENAI_API_KEY is not configured")
             
             self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-            self.model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+            self.model = os.getenv("OPENAI_MODEL", "gpt-4o")
             self.max_tokens = int(os.getenv("OPENAI_MAX_TOKENS", "1000"))
             self.temperature = float(os.getenv("OPENAI_TEMPERATURE", "0.7"))
             

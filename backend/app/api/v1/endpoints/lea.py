@@ -40,6 +40,7 @@ from app.core.rate_limit import rate_limit_decorator
 
 from sqlalchemy import select, and_, or_, insert
 from sqlalchemy.exc import ProgrammingError, OperationalError
+from sqlalchemy.orm.attributes import flag_modified
 
 try:
     from openai import AsyncOpenAI
@@ -319,7 +320,7 @@ class LeaSettingsUpdate(BaseModel):
 # Actions que Léa peut effectuer (affichées dans Paramètres Léa)
 LEA_CAPABILITIES = [
     {"id": "create_transaction", "label": "Créer une transaction", "description": "Léa peut créer un dossier (transaction d'achat ou de vente) depuis la conversation."},
-    {"id": "update_transaction", "label": "Modifier une transaction", "description": "Léa peut mettre à jour une transaction : adresse, vendeurs, acheteurs, prix, promesse d'achat, date de clôture, etc. L'utilisateur peut dire par ex. « enregistre les vendeurs Lily et Lilou » ou « les acheteurs sont Paul et Marie »."},
+    {"id": "update_transaction", "label": "Modifier une transaction", "description": "Léa peut mettre à jour une transaction : adresse, vendeurs, acheteurs, prix, promesse d'achat, date de clôture, etc. L'utilisateur peut dire par ex. « enregistre les vendeurs Lily et Lilou » ou « les acheteurs sont Paul et Marie ». Léa peut aussi supprimer un vendeur ou un acheteur (ex. « supprimer Hind », « retirer le vendeur Pierre »)."},
     {"id": "create_contact", "label": "Créer un contact", "description": "À venir : Léa pourra créer un contact dans le Réseau (API contacts)."},
     {"id": "update_contact", "label": "Modifier un contact", "description": "À venir : Léa pourra modifier un contact existant dans le Réseau."},
     {"id": "access_oaciq_forms", "label": "Accéder aux formulaires OACIQ", "description": "Léa peut lister les formulaires OACIQ disponibles et l'état des formulaires (brouillon/complété/signé) pour vos transactions."},
@@ -1072,6 +1073,12 @@ def _extract_address_from_message(message: str) -> Optional[str]:
         addr = normalize_address(m.group(1).strip())
         if len(addr) >= 5:
             return addr
+    # "les 7 2 3 6 rue Waverly" (vocal : "les" pour "l'adresse est" / "l'est")
+    m = re.search(r"\bles\s+(\d(?:\s*\d)*\s+(?:avenue|av\.?|rue|boulevard|blvd\.?|boul\.?)\s+[\w\s-]+)", t, re.I)
+    if m:
+        addr = normalize_address(m.group(1).strip())
+        if len(addr) >= 5:
+            return addr
     # Fallback: motif "123 rue X" ou "6 8 4 0 avenue X" (chiffres possibles avec espaces)
     m = re.search(r"(\d(?:\s*\d)*\s+(?:avenue|av\.?|rue|boulevard|blvd\.?|boul\.?)\s+[\w\s-]+(?:\s+à\s+[\w\s-]+)?(?:\s+code\s+postal\s+[A-Za-z0-9\s]+)?)", t, re.I)
     if m:
@@ -1097,6 +1104,9 @@ def _wants_to_update_address(message: str) -> bool:
             return True
     # "56 26 de Lorimier toi trouve en ligne le reste" — adresse + demande de compléter en ligne
     if ("trouve" in t or "en ligne" in t or "reste" in t) and _extract_address_from_message(message):
+        return True
+    # "les 7 2 3 6 rue Waverly" (vocal : adresse sans mot "adresse")
+    if re.search(r"\bles\s+\d(?:\s*\d)*\s+(?:rue|avenue|av\.?|boulevard)\s+", t, re.I) and _extract_address_from_message(message):
         return True
     if "adresse" not in t:
         return False
@@ -1138,27 +1148,32 @@ async def _validate_address_via_geocode(addr: str) -> Optional[dict]:
     """
     Vérifie une adresse via géocodage (Nominatim / OpenStreetMap).
     Retourne un dict avec postcode, city, state (province), country_code pour que Léa puisse confirmer à l'utilisateur.
-    Pour les adresses sans ville (pas de virgule), tente d'abord avec ", Québec, Canada" pour éviter un mauvais
-    match dans un autre pays (ex. « rue de Bordeaux » → Polynésie Française). Pour les rues typiques de Montréal,
-    tente d'abord ", Montréal, Québec, Canada".
+    Pour les adresses à Montréal, ajoute toujours ", Québec, Canada" pour éviter les mauvais matchs
+    (ex. 7236 rue Waverly → H2S 3C6 au lieu de H2R 0C2 sans le suffixe).
     """
     if not addr or len(addr.strip()) < 5:
         return None
     addr_clean = addr.strip()
     addr_lower = addr_clean.lower()
-    has_city = "," in addr_clean or "montréal" in addr_lower or "québec" in addr_lower
-    # Rues typiques de Montréal : prioriser Montréal pour éviter Ottawa/ailleurs
+    has_city = "," in addr_clean or "montréal" in addr_lower or "montreal" in addr_lower or "québec" in addr_lower
+    # Toujours ajouter ", Québec, Canada" pour les adresses montréalaises → résultat plus précis
+    if "montréal" in addr_lower or "montreal" in addr_lower:
+        if not addr_clean.endswith(", Québec, Canada") and not addr_clean.endswith(", Quebec, Canada"):
+            result = await _geocode_one(addr_clean + ", Québec, Canada")
+            if result and (result.get("country_code") or "").upper() == "CA":
+                return result
+    # Rues typiques de Montréal (sans ville dans l'adresse) : prioriser Montréal, Québec, Canada
     montreal_street_indicators = (
         "sherbrooke est", "sherbrooke ouest", "sherbrooke e.", "sherbrooke o.",
         "papineau", "lorimier", "saint-denis", "saint-laurent", "drolet",
         "rue sherbrooke", "av. sherbrooke", "avenue sherbrooke",
-        "rue de bordeaux", "de bordeaux",  # Montréal (H2K 1E1)
+        "rue de bordeaux", "de bordeaux", "waverly", "rue waverly",
     )
-    if any(ind in addr_lower for ind in montreal_street_indicators):
+    if not has_city and any(ind in addr_lower for ind in montreal_street_indicators):
         result = await _geocode_one(addr_clean + ", Montréal, Québec, Canada")
         if result and (result.get("country_code") or "").upper() == "CA":
             return result
-    # Adresse sans ville : prioriser Québec/Canada pour éviter un match dans un autre pays (ex. Polynésie)
+    # Adresse sans ville : prioriser Québec/Canada
     if not has_city:
         result = await _geocode_one(addr_clean + ", Québec, Canada")
         if result and (result.get("country_code") or "").upper() == "CA":
@@ -1166,20 +1181,77 @@ async def _validate_address_via_geocode(addr: str) -> Optional[dict]:
         result = await _geocode_one(addr_clean + ", Montréal, Québec, Canada")
         if result and (result.get("country_code") or "").upper() == "CA":
             return result
-    # Essai avec l'adresse telle quelle
-    result = await _geocode_one(addr_clean)
+    # Essai avec l'adresse telle quelle (pour has_city) ou + Québec, Canada (sans ville)
+    if has_city:
+        result = await _geocode_one(addr_clean)
+    else:
+        result = await _geocode_one(addr_clean + ", Québec, Canada")
     if result:
-        # Si le résultat est hors Canada et qu'on n'avait pas de ville, ne pas l'accepter (éviter Polynésie, etc.)
         if not has_city and (result.get("country_code") or "").upper() != "CA":
             return None
         return result
     return None
 
 
-async def _geocode_one(addr: str) -> Optional[dict]:
-    """Un seul appel Nominatim."""
+def _pick_best_geocode_result(data: list, addr_clean: str) -> Optional[dict]:
+    """
+    Parmi plusieurs résultats Nominatim, choisit le meilleur : Canada, numéro civique cohérent, ville Montréal.
+    """
+    if not data or not isinstance(data, list):
+        return None
+    # Extraire le numéro civique de l'adresse recherchée (ex. "7236" de "7236 rue Waverly")
+    addr_num_match = re.search(r"^(\d+)\s", addr_clean.strip())
+    want_house_number = addr_num_match.group(1) if addr_num_match else None
+    best = None
+    best_score = -1
+    for item in data:
+        if not isinstance(item, dict):
+            continue
+        adr = item.get("address") or {}
+        if not isinstance(adr, dict):
+            continue
+        country = (adr.get("country_code") or "").upper()
+        if country != "CA":
+            continue
+        city = (adr.get("city") or adr.get("town") or adr.get("village") or adr.get("municipality") or "").lower()
+        house_num = str(adr.get("house_number") or "").strip()
+        postcode = adr.get("postcode") or adr.get("postal_code")
+        score = 0
+        if "montreal" in city or "montréal" in city:
+            score += 10
+        if want_house_number and house_num == want_house_number:
+            score += 20
+        if postcode and len(str(postcode).strip()) >= 6:
+            score += 5
+        if score > best_score:
+            best_score = score
+            best = item
+    if best:
+        adr = best.get("address") or {}
+        postcode = adr.get("postcode") or adr.get("postal_code")
+        city = adr.get("city") or adr.get("town") or adr.get("village") or adr.get("municipality") or adr.get("county")
+        state = adr.get("state") or adr.get("province")
+        country = adr.get("country_code", "").upper() if adr.get("country_code") else None
+        result = {}
+        if postcode:
+            result["postcode"] = str(postcode).strip()
+        if city:
+            result["city"] = str(city).strip()
+        if state:
+            result["state"] = str(state).strip()
+        if country:
+            result["country_code"] = country
+        return result if result else None
+    return None
+
+
+async def _geocode_one(addr: str, limit: int = 5) -> Optional[dict]:
+    """
+    Appel Nominatim. Retourne le meilleur résultat pour les adresses québécoises.
+    Avec limit>1, sélectionne le résultat le plus pertinent (même numéro civique, Montréal, Canada).
+    """
     url = "https://nominatim.openstreetmap.org/search"
-    params = {"q": addr.strip(), "format": "json", "addressdetails": 1, "limit": 1}
+    params = {"q": addr.strip(), "format": "json", "addressdetails": 1, "limit": limit}
     headers = {"User-Agent": "ImmoAssist-Lea/1.0 (contact@immoassist.com)"}
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
@@ -1191,6 +1263,11 @@ async def _geocode_one(addr: str) -> Optional[dict]:
         return None
     if not data or not isinstance(data, list) or len(data) == 0:
         return None
+    addr_clean = addr.strip()
+    if limit > 1:
+        best = _pick_best_geocode_result(data, addr_clean)
+        if best:
+            return best
     item = data[0]
     if not isinstance(item, dict):
         return None
@@ -1875,6 +1952,143 @@ async def maybe_add_seller_buyer_contact_from_lea(
         return None
 
 
+def _extract_remove_person_from_message(message: str) -> Optional[Tuple[str, Optional[str]]]:
+    """
+    Détecte une demande de suppression/retrait d'un vendeur ou acheteur.
+    Ex: « supprimer Hind », « retirer le vendeur Pierre », « enlever Marie des acheteurs ».
+    Retourne (nom_à_supprimer, role_hint) où role_hint est "Vendeur", "Acheteur" ou None.
+    """
+    if not message or len(message.strip()) < 5:
+        return None
+    t = (message or "").strip().lower()
+    # Mots déclencheurs
+    remove_verbs = ("supprimer", "supprime", "retirer", "retire", "enlever", "enlève", "remove")
+    if not any(v in t for v in remove_verbs):
+        return None
+    # Indice de rôle
+    role_hint: Optional[str] = None
+    if "vendeur" in t or "vendeuse" in t:
+        role_hint = "Vendeur"
+    elif "acheteur" in t or "acheteuse" in t:
+        role_hint = "Acheteur"
+    # Extraire le nom après le verbe
+    for verb in remove_verbs:
+        pat = re.compile(
+            r"(?:" + verb + r")\s+(?:le\s+|la\s+|l[''])?\s*(?:vendeur\s+|acheteur\s+|vendeuse\s+|acheteuse\s+)?\s*([a-zàâäéèêëïîôùûüç\s\-]+?)(?:\s+des?\s+vendeurs?|\s+des?\s+acheteurs?|$)",
+            re.I,
+        )
+        m = pat.search(t)
+        if m:
+            name = m.group(1).strip()
+            if len(name) >= 2:
+                return (name, role_hint)
+        # Pattern simple : "supprimer Hind", "retirer Hind."
+        simple = re.search(r"(?:" + verb + r")\s+(?:le\s+|la\s+|l[''])?\s*(?:vendeur\s+|acheteur\s+|vendeuse\s+|acheteuse\s+)?\s*([a-zàâäéèêëïîôùûüç\s\-]+?)(?:\s+des?\s+|\s*$|\.|,|!|\?)", t, re.I)
+        if not simple:
+            simple = re.search(r"(?:" + verb + r")\s+([a-zàâäéèêëïîôùûüç\-]+)(?:\s|$|\.|,)", t, re.I)
+        if simple:
+            name = simple.group(1).strip()
+            if len(name) >= 2 and name.lower() not in ("le", "la", "des", "du", "les"):
+                return (name, role_hint)
+    return None
+
+
+async def maybe_remove_seller_buyer_from_lea(
+    db: AsyncSession, user_id: int, message: str, last_assistant_message: Optional[str] = None
+) -> Optional[str]:
+    """
+    Si le message demande de supprimer/retirer un vendeur ou acheteur, le retire de la transaction.
+    Retourne une ligne pour « Action effectuée » ou None.
+    """
+    extracted = _extract_remove_person_from_message(message)
+    if not extracted:
+        return None
+    name_search, role_hint = extracted
+    name_lower = name_search.lower().strip()
+    if not name_lower:
+        return None
+    # Récupérer la transaction
+    ref = _extract_transaction_ref_from_message(message) or (
+        _extract_transaction_ref_from_message(last_assistant_message or "") if last_assistant_message else None
+    )
+    if ref:
+        transaction = await get_user_transaction_by_ref(db, user_id, ref)
+    else:
+        hint = (
+            _extract_address_hint_from_message(message)
+            or _extract_address_hint_from_message(last_assistant_message or "")
+            or _extract_address_hint_from_assistant_message(last_assistant_message or "")
+        )
+        transaction = await get_user_transaction_by_address_hint(db, user_id, hint) if hint else None
+        if not transaction:
+            transaction = await get_user_latest_transaction(db, user_id)
+    if not transaction:
+        return None
+
+    def _name_matches(entry_name: str) -> bool:
+        if not entry_name:
+            return False
+        return name_lower in (entry_name or "").lower()
+
+    removed_from: List[str] = []
+    try:
+        # 1. Mettre à jour le JSON sellers/buyers
+        for list_name, role, role_label in [
+            ("sellers", "Vendeur", "vendeur"),
+            ("buyers", "Acheteur", "acheteur"),
+        ]:
+            if role_hint and role_hint != role:
+                continue
+            items = list(getattr(transaction, list_name, []) or [])
+            if not items:
+                continue
+            original_len = len(items)
+            new_items = [e for e in items if not (isinstance(e, dict) and _name_matches(e.get("name") or ""))]
+            if len(new_items) < original_len:
+                setattr(transaction, list_name, new_items)
+                flag_modified(transaction, list_name)
+                removed = next(
+                    (e.get("name") for e in items if isinstance(e, dict) and _name_matches(e.get("name") or "")),
+                    name_search,
+                )
+                removed_from.append(f"{role_label} {removed}")
+        if not removed_from:
+            return None
+        # 2. Supprimer les TransactionContact correspondants (contacts dont le nom matche)
+        from app.models.transaction_contact import TransactionContact
+        from sqlalchemy.orm import selectinload
+
+        tc_query = (
+            select(TransactionContact)
+            .options(selectinload(TransactionContact.contact))
+            .join(RealEstateContact, TransactionContact.contact_id == RealEstateContact.id)
+            .where(
+                TransactionContact.transaction_id == transaction.id,
+                RealEstateContact.user_id == user_id,
+            )
+        )
+        if role_hint:
+            tc_query = tc_query.where(TransactionContact.role == role_hint)
+        tc_result = await db.execute(tc_query)
+        for tc in tc_result.scalars().all():
+            contact = tc.contact
+            full_name = f"{getattr(contact, 'first_name', '') or ''} {getattr(contact, 'last_name', '') or ''}".strip()
+            if _name_matches(full_name) or _name_matches(getattr(contact, "first_name", "") or "") or _name_matches(getattr(contact, "last_name", "") or ""):
+                await db.delete(tc)
+        await db.commit()
+        await db.refresh(transaction)
+        ref_label = transaction.dossier_number or f"#{transaction.id}"
+        logger.info(f"Lea removed {removed_from} from transaction id={transaction.id}")
+        return (
+            f"{', '.join(removed_from)} a été retiré de la transaction {ref_label}. "
+            "Confirme à l'utilisateur que c'est fait."
+        )
+    except Exception as e:
+        logger.warning(f"Lea remove seller/buyer failed: {e}", exc_info=True)
+        await db.rollback()
+        return None
+
+
 def _extract_price_from_message(message: str) -> Optional[Tuple[Decimal, str]]:
     """
     Extrait un prix du message (ex. "650 mille dollars", "500 000 $", "le prix c'est 600 000").
@@ -2098,8 +2312,19 @@ def _get_lea_guidance_lines(message: str) -> list[str]:
             "Ne pas redemander les acheteurs ; passer à la suite (ex. prix demandé, autres détails)."
         )
 
+    # Supprimer / retirer un vendeur ou acheteur (sans nom clair) — demander de préciser
+    if any(
+        phrase in t
+        for phrase in ("supprimer", "supprime", "retirer", "retire", "enlever", "enlève")
+    ) and not _extract_remove_person_from_message(message):
+        lines.append(
+            "L'utilisateur souhaite supprimer ou retirer quelqu'un de la transaction. "
+            "Demande-lui le nom de la personne à retirer et si c'est un vendeur ou un acheteur (ex. « supprimer Hind » ou « retirer le vendeur Pierre »). "
+            "Une fois qu'il aura précisé, tu pourras effectuer la suppression. Ne dis pas que tu ne peux pas."
+        )
+
     # Changer / modifier les vendeurs ou les acheteurs (sans nouveaux noms encore) — demander les noms pour pouvoir les enregistrer
-    if (
+    if not lines and (
         ("vendeur" in t and ("changer" in t or "changeons" in t or "modifier" in t or "modifions" in t))
         or ("acheteur" in t and ("changer" in t or "changeons" in t or "modifier" in t or "modifions" in t))
     ):
@@ -2625,6 +2850,9 @@ async def run_lea_actions(
             "L'utilisateur n'a pas précisé pour quelle propriété ni quelle transaction. "
             "Ne prends PAS la dernière transaction par défaut. Demande-lui : « Pour quelle propriété (adresse ou numéro de transaction) souhaitez-vous préparer ce formulaire ? »"
         )
+    remove_line = await maybe_remove_seller_buyer_from_lea(db, user_id, message, last_assistant_message)
+    if remove_line:
+        lines.append(remove_line)
     contact_line = await maybe_add_seller_buyer_contact_from_lea(db, user_id, message, last_assistant_message)
     if contact_line:
         lines.append(contact_line)
@@ -3133,7 +3361,7 @@ async def lea_chat(
         return LeaChatResponse(
             content=data["response"],
             session_id=data.get("session_id", body.session_id or ""),
-            model=data.get("model", "gpt-4o-mini"),
+            model=data.get("model", "gpt-4o"),
             provider=data.get("provider", "openai"),
             usage=data.get("usage", {}),
         )
