@@ -1890,7 +1890,6 @@ def _build_oaciq_form_creation_confirmation(action_lines: list) -> str:
         if not line.startswith(OACIQ_FORM_CREATION_PREFIX):
             continue
         # "Tu viens de créer le formulaire OACIQ « ... » (code PA) pour la transaction ..."
-        import re
         m = re.search(r"formulaire OACIQ « ([^»]+) » \(code (\w+)\) pour la transaction ([^.]+)\.", line)
         if m:
             form_name, code, tx_label = m.group(1).strip(), m.group(2), m.group(3).strip()
@@ -2329,6 +2328,8 @@ async def _stream_lea_sse(
                 "Vous pouvez la voir et la compléter dans la section Transactions. "
                 "Quelle est l'adresse du bien ?"
             )
+        if not confirmation_text and _action_lines_contain_oaciq_form_creation(action_lines):
+            confirmation_text = _build_oaciq_form_creation_confirmation(action_lines)
         if confirmation_text:
             for i in range(0, len(confirmation_text), 1):
                 yield f"data: {json.dumps({'delta': confirmation_text[i]})}\n\n"
@@ -2462,6 +2463,23 @@ async def lea_chat(
                     usage={},
                     actions=action_lines,
                 )
+            # Quand un formulaire OACIQ vient d'être créé, renvoyer une confirmation directe (sans appeler l'IA)
+            if _action_lines_contain_oaciq_form_creation(action_lines):
+                confirmation_content = _build_oaciq_form_creation_confirmation(action_lines)
+                if body.session_id:
+                    await persist_lea_messages(
+                        db, current_user.id, body.session_id,
+                        body.message, confirmation_content,
+                        meta={"actions": action_lines},
+                    )
+                return LeaChatResponse(
+                    content=confirmation_content,
+                    session_id=body.session_id or "",
+                    model=None,
+                    provider=None,
+                    usage={},
+                    actions=action_lines,
+                )
             # Charger l'historique pour le LLM
             conv, sid = await get_or_create_lea_conversation(db, current_user.id, body.session_id)
             messages_for_llm = build_llm_messages_from_history(conv.messages or [], body.message)
@@ -2529,12 +2547,15 @@ async def lea_chat(
                 usage={},
                 actions=action_lines,
             )
-        # Autres actions (adresse, prix, etc.) : confirmation directe pour éviter que l'agent réponde sans contexte
+        # Autres actions (adresse, prix, formulaire OACIQ, etc.) : confirmation directe pour éviter que l'agent réponde sans contexte
         if action_lines:
-            confirmation = (
-                "C'est fait ! Les informations ont été mises à jour. "
-                "Vous pouvez voir la transaction dans la section Transactions."
-            )
+            if _action_lines_contain_oaciq_form_creation(action_lines):
+                confirmation = _build_oaciq_form_creation_confirmation(action_lines)
+            else:
+                confirmation = (
+                    "C'est fait ! Les informations ont été mises à jour. "
+                    "Vous pouvez voir la transaction dans la section Transactions."
+                )
             return LeaChatResponse(
                 content=confirmation,
                 session_id=body.session_id or "",

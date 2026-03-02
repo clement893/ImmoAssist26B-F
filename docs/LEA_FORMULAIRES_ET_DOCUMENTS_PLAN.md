@@ -4,6 +4,15 @@
 
 **Contexte conversation exportée :** L’utilisateur demande à « développer une promesse d’achat », « ouvrir un projet OACIQ avec un formulaire » et « créer le formulaire avec les informations de base ». Léa doit pouvoir créer le bon formulaire sur la **bonne transaction** (ex. Bordeaux) et guider vers l’onglet Formulaires avec des instructions claires.
 
+### Implémentation (mars 2026) – Création formulaires OACIQ par Léa
+
+- **Détection d’intention élargie** : `_wants_to_create_oaciq_form_for_transaction` reconnaît désormais « formulaire de province d’achats oacq » (typo pour promesse d’achat) et « province » + « achat » + « oacq/oaciq ».
+- **Confirmation dédiée** : lorsque le backend crée une soumission OACIQ (PA, etc.), Léa renvoie systématiquement une confirmation claire au lieu de laisser le LLM répondre « je ne peux pas » :
+  - **Streaming** (`/chat/stream`) : retour anticipé avec le message de confirmation (comme pour la création de transaction).
+  - **Non-stream intégré** (`/chat`) : retour direct avec le message de confirmation, sans appeler le LLM.
+  - **Agent externe** : si les actions plateforme ont créé un formulaire OACIQ, le backend renvoie le message de confirmation dédié au lieu du générique « Les informations ont été mises à jour ».
+- **Message utilisateur** : nom du formulaire, transaction concernée et prochaine étape (Transactions → ouvrir cette transaction → onglet Formulaires OACIQ).
+
 ---
 
 ## 1. État actuel
