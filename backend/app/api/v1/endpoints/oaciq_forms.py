@@ -34,6 +34,7 @@ from app.schemas.oaciq_form import (
 from app.services.ai_service import AIService, AIProvider
 from app.core.logging import logger
 from app.core.tenancy_helpers import apply_tenant_scope
+from app.services.s3_service import S3Service, AWS_S3_ENDPOINT_URL, AWS_S3_BUCKET
 
 router = APIRouter()
 
@@ -163,21 +164,37 @@ async def get_oaciq_form_pdf_preview(
             pdf_url = form.fields.get("pdf_fr_url") or form.fields.get("pdf_url")
     if not pdf_url and form.pdf_url:
         pdf_url = form.pdf_url
-    if not pdf_url or not pdf_url.startswith("http"):
-        # Fallback: construire l'URL S3 standard
-        base = "https://immoassist.s3.us-east-2.amazonaws.com/formulaires_oaciq_pdf"
-        folder = "francais" if lang == "fr" else "anglais"
-        pdf_url = f"{base}/{folder}/{code}.pdf"
+
+    # Déterminer la stratégie de chargement
+    is_r2_url = bool(pdf_url and AWS_S3_ENDPOINT_URL and AWS_S3_ENDPOINT_URL in pdf_url)
+    is_old_s3_url = bool(pdf_url and "amazonaws.com" in pdf_url)
+
     try:
-        async with httpx.AsyncClient(follow_redirects=True, timeout=30.0) as client:
-            response = await client.get(pdf_url)
-            response.raise_for_status()
-            content = response.content
-            content_type = response.headers.get(
-                "content-type", "application/pdf"
-            ).split(";")[0]
-            if "pdf" not in content_type.lower():
-                content_type = "application/pdf"
+        if (is_r2_url or is_old_s3_url or not pdf_url) and S3Service.is_configured():
+            # Bucket R2 privé : lire directement via l'API S3 avec les credentials
+            lang_folder = "en" if lang == "en" else "fr"
+            if is_r2_url and AWS_S3_ENDPOINT_URL and AWS_S3_BUCKET:
+                # Extraire la clé S3 depuis l'URL R2
+                s3_key = pdf_url.replace(f"{AWS_S3_ENDPOINT_URL}/{AWS_S3_BUCKET}/", "")
+            else:
+                # Ancienne URL S3 morte ou pas d'URL : reconstruire la clé R2
+                s3_key = f"formulaires_oaciq_pdf/{lang_folder}/{code}.pdf"
+            s3_svc = S3Service()
+            content = s3_svc.get_file_content(s3_key)
+            content_type = "application/pdf"
+        elif pdf_url and pdf_url.startswith("http"):
+            # URL publique (ex: oaciq.com direct)
+            async with httpx.AsyncClient(follow_redirects=True, timeout=30.0) as client:
+                response = await client.get(pdf_url)
+                response.raise_for_status()
+                content = response.content
+                content_type = response.headers.get(
+                    "content-type", "application/pdf"
+                ).split(";")[0]
+                if "pdf" not in content_type.lower():
+                    content_type = "application/pdf"
+        else:
+            raise ValueError(f"Aucune URL PDF valide pour le formulaire {code}")
     except Exception as e:
         logger.error(f"Erreur chargement PDF OACIQ {code}: {e}", exc_info=True)
         raise HTTPException(
