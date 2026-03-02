@@ -2328,7 +2328,8 @@ async def _stream_lea_sse(
 @router.post("/chat/stream")
 @rate_limit_decorator("30/minute")
 async def lea_chat_stream(
-    request: LeaChatRequest,
+    request: Request,
+    body: LeaChatRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -2344,9 +2345,9 @@ async def lea_chat_stream(
         )
     return StreamingResponse(
         _stream_lea_sse(
-            request.message,
-            request.session_id,
-            request.last_assistant_message,
+            body.message,
+            body.session_id,
+            body.last_assistant_message,
             db=db,
             user_id=current_user.id,
         ),
@@ -2362,7 +2363,8 @@ async def lea_chat_stream(
 @router.post("/chat", response_model=LeaChatResponse)
 @rate_limit_decorator("30/minute")
 async def lea_chat(
-    request: LeaChatRequest,
+    request: Request,
+    body: LeaChatRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -2374,11 +2376,11 @@ async def lea_chat(
     # 1) IA intégrée en priorité : contexte + actions sont injectés dans le prompt → Léa peut confirmer les actions
     if _use_integrated_lea():
         try:
-            action_lines, created_tx = await run_lea_actions(db, current_user.id, request.message, request.last_assistant_message)
-            if request.session_id and action_lines:
+            action_lines, created_tx = await run_lea_actions(db, current_user.id, body.message, body.last_assistant_message)
+            if body.session_id and action_lines:
                 tx_to_link = created_tx if created_tx else await get_user_latest_transaction(db, current_user.id)
                 if tx_to_link:
-                    await link_lea_session_to_transaction(db, current_user.id, request.session_id, tx_to_link.id)
+                    await link_lea_session_to_transaction(db, current_user.id, body.session_id, tx_to_link.id)
             user_context = await get_lea_user_context(db, current_user.id)
             if action_lines:
                 user_context += "\n\n--- Action effectuée ---\n" + "\n".join(action_lines)
@@ -2390,23 +2392,23 @@ async def lea_chat(
                     "Vous pouvez la voir et la compléter dans la section Transactions. "
                     "Quelle est l'adresse du bien ?"
                 )
-                if request.session_id:
+                if body.session_id:
                     await persist_lea_messages(
-                        db, current_user.id, request.session_id,
-                        request.message, confirmation_content,
+                        db, current_user.id, body.session_id,
+                        body.message, confirmation_content,
                         meta={"actions": action_lines},
                     )
                 return LeaChatResponse(
                     content=confirmation_content,
-                    session_id=request.session_id or "",
+                    session_id=body.session_id or "",
                     model=None,
                     provider=None,
                     usage={},
                     actions=action_lines,
                 )
             # Charger l'historique pour le LLM
-            conv, sid = await get_or_create_lea_conversation(db, current_user.id, request.session_id)
-            messages_for_llm = build_llm_messages_from_history(conv.messages or [], request.message)
+            conv, sid = await get_or_create_lea_conversation(db, current_user.id, body.session_id)
+            messages_for_llm = build_llm_messages_from_history(conv.messages or [], body.message)
             system_prompt = LEA_SYSTEM_PROMPT
             if user_context:
                 system_prompt += "\n\n--- Informations actuelles de l'utilisateur (plateforme) ---\n" + user_context
@@ -2421,7 +2423,7 @@ async def lea_chat(
             if sid:
                 await persist_lea_messages(
                     db, current_user.id, sid,
-                    request.message, content,
+                    body.message, content,
                     meta={
                         "actions": action_lines,
                         "model": result.get("model"),
@@ -2431,7 +2433,7 @@ async def lea_chat(
                 )
             return LeaChatResponse(
                 content=content,
-                session_id=sid or request.session_id or "",
+                session_id=sid or body.session_id or "",
                 model=result.get("model"),
                 provider=result.get("provider"),
                 usage=result.get("usage", {}),
@@ -2451,11 +2453,11 @@ async def lea_chat(
             detail=AGENT_ERR_MSG,
         )
     try:
-        action_lines, created_tx = await run_lea_actions(db, current_user.id, request.message, request.last_assistant_message)
-        if request.session_id and action_lines:
+        action_lines, created_tx = await run_lea_actions(db, current_user.id, body.message, body.last_assistant_message)
+        if body.session_id and action_lines:
             tx_to_link = created_tx if created_tx else await get_user_latest_transaction(db, current_user.id)
             if tx_to_link:
-                await link_lea_session_to_transaction(db, current_user.id, request.session_id, tx_to_link.id)
+                await link_lea_session_to_transaction(db, current_user.id, body.session_id, tx_to_link.id)
         # Si on a créé une transaction, renvoyer une confirmation directe (pas besoin d'appeler l'agent)
         if action_lines and created_tx:
             ref = created_tx.dossier_number or f"#{created_tx.id}"
@@ -2465,7 +2467,7 @@ async def lea_chat(
             )
             return LeaChatResponse(
                 content=confirmation,
-                session_id=request.session_id or "",
+                session_id=body.session_id or "",
                 model=None,
                 provider=None,
                 usage={},
@@ -2479,16 +2481,16 @@ async def lea_chat(
             )
             return LeaChatResponse(
                 content=confirmation,
-                session_id=request.session_id or "",
+                session_id=body.session_id or "",
                 model=None,
                 provider=None,
                 usage={},
                 actions=action_lines,
             )
-        message_to_agent = request.message
+        message_to_agent = body.message
         data = await _call_external_agent_chat(
             message=message_to_agent,
-            session_id=request.session_id,
+            session_id=body.session_id,
             conversation_id=None,
         )
         if not data.get("success"):
@@ -2498,7 +2500,7 @@ async def lea_chat(
             )
         return LeaChatResponse(
             content=data["response"],
-            session_id=data.get("session_id", request.session_id or ""),
+            session_id=data.get("session_id", body.session_id or ""),
             model=data.get("model", "gpt-4o-mini"),
             provider=data.get("provider", "openai"),
             usage=data.get("usage", {}),
