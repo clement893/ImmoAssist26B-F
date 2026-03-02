@@ -43,6 +43,15 @@ AGENT_ERR_MSG = (
     "Example: AGENT_API_URL=https://agentia-immo-production.up.railway.app"
 )
 
+# URL front : onglet Formulaires d'une transaction (Phase 3). Pattern : /dashboard/transactions/{id}?tab=forms
+LEA_TRANSACTION_FORMS_TAB_PATH = "/dashboard/transactions/{id}?tab=forms"
+
+# Règles métier : formulaires OACIQ recommandés par type de transaction (Phase 2)
+OACIQ_FORM_RECOMMENDED_BY_KIND: dict = {
+    "achat": ["PA"],   # Promesse d'achat
+    "vente": ["DIA"],  # Déclaration d'intention d'achat (côté vendeur)
+}
+
 LEA_SYSTEM_PROMPT = (
     "Tu es Léa, une assistante immobilière experte au Québec. "
     "Tu aides les courtiers et les particuliers : transactions, formulaires OACIQ, vente, achat.\n\n"
@@ -85,7 +94,11 @@ LEA_SYSTEM_PROMPT = (
     "- **Adresses** : quand tu indiques une adresse, utilise toujours le format complet « [rue], [ville] ([province]) [code postal] » (ex. 2643 Sherbrooke Est, Montréal (Québec) H2K 1E1). Une adresse sans code postal ou sans ville n'est pas complète.\n"
     "- Garde tes réponses **courtes** (2 à 4 phrases max), sauf si l'utilisateur demande explicitement plus de détails.\n"
     "- Pour faire avancer la conversation, **pose une question pertinente** ou propose la prochaine étape quand c'est naturel.\n"
-    "- Sois directe et efficace : pas de formules de politesse longues, va à l'essentiel."
+    "- Sois directe et efficace : pas de formules de politesse longues, va à l'essentiel.\n\n"
+"** FORMULAIRES ET DOCUMENTS OACIQ : **\n"
+"Tu peux indiquer quels formulaires OACIQ sont en brouillon, complétés ou signés pour une transaction. "
+"Quand l'utilisateur demande « quels documents me manquent » ou « quelle est la prochaine étape », base-toi sur le bloc Données plateforme (formulaires OACIQ par transaction) et indique ce qui est en brouillon, complété, signé, et ce qu'il reste à faire ou à créer (ex. compléter le PA, créer un DIA pour une vente). "
+"Quand une action a créé un formulaire, indique clairement le nom du formulaire, la transaction concernée et la prochaine étape : Transactions → ouvrir cette transaction → onglet Formulaire (Formulaires OACIQ) → compléter le formulaire indiqué."
 )
 
 router = APIRouter(prefix="/lea", tags=["lea"])
@@ -155,7 +168,7 @@ LEA_CAPABILITIES = [
     {"id": "update_transaction", "label": "Modifier une transaction", "description": "Léa peut mettre à jour l'adresse, la promesse d'achat, etc. sur une transaction existante."},
     {"id": "create_contact", "label": "Créer un contact", "description": "À venir : Léa pourra créer un contact dans le Réseau (API contacts)."},
     {"id": "update_contact", "label": "Modifier un contact", "description": "À venir : Léa pourra modifier un contact existant dans le Réseau."},
-    {"id": "access_oaciq_forms", "label": "Accéder aux formulaires OACIQ", "description": "À venir : Léa pourra consulter la liste et les détails des formulaires OACIQ."},
+    {"id": "access_oaciq_forms", "label": "Accéder aux formulaires OACIQ", "description": "Léa peut lister les formulaires OACIQ disponibles et l'état des formulaires (brouillon/complété/signé) pour vos transactions."},
     {"id": "modify_oaciq_forms", "label": "Modifier des formulaires OACIQ", "description": "Léa peut créer ou modifier des soumissions de formulaires OACIQ."},
 ]
 
@@ -185,6 +198,16 @@ async def get_lea_user_context(db: AsyncSession, user_id: int) -> str:
     """
     lines = ["Données plateforme (transactions et dossiers de l'utilisateur connecté) :"]
     try:
+        # Référentiel formulaires OACIQ disponibles (Phase 1.3)
+        try:
+            q_forms = select(Form.code, Form.name, Form.category).where(Form.code.isnot(None)).order_by(Form.code)
+            res_forms = await db.execute(q_forms)
+            form_rows = res_forms.all()
+            if form_rows:
+                ref_parts = [f"{r[0]} – {r[1] or r[0]}" + (f" ({r[2]})" if r[2] else "") for r in form_rows]
+                lines.append("Formulaires OACIQ disponibles : " + "; ".join(ref_parts) + ".")
+        except Exception:
+            pass
         # Transactions immobilières (dossiers du courtier)
         q_re = (
             select(RealEstateTransaction)
@@ -268,7 +291,7 @@ async def get_lea_user_context(db: AsyncSession, user_id: int) -> str:
             if missing:
                 ref = latest.dossier_number or f"#{latest.id}"
                 lines.append(f"  → Pour {ref}, infos à compléter : {', '.join(missing)}. Pose la question correspondante pour faire avancer le dossier.")
-            # Formulaires OACIQ pour la transaction la plus récente
+            # Formulaires OACIQ pour la transaction la plus récente (Phase 1.2 + 2.2 : détail par code + prochaine étape)
             try:
                 q_oaciq = (
                     select(FormSubmission, Form.code)
@@ -280,7 +303,37 @@ async def get_lea_user_context(db: AsyncSession, user_id: int) -> str:
                 )
                 res_oaciq = await db.execute(q_oaciq)
                 oaciq_rows = res_oaciq.all()
-                if oaciq_rows:
+                status_by_code = {row[1]: getattr(row[0], "status", None) for row in oaciq_rows if row[1]}
+                q_all_codes = select(Form.code).where(Form.code.isnot(None)).order_by(Form.code)
+                res_codes = await db.execute(q_all_codes)
+                all_codes = [r[0] for r in res_codes.all() if r[0]]
+                if all_codes:
+                    detail_parts = []
+                    for code in all_codes:
+                        st = status_by_code.get(code)
+                        if st == "draft":
+                            detail_parts.append(f"{code} : brouillon")
+                        elif st == "completed":
+                            detail_parts.append(f"{code} : complété")
+                        elif st == "signed":
+                            detail_parts.append(f"{code} : signé")
+                        else:
+                            detail_parts.append(f"{code} : non créé")
+                    ref_tx = latest.dossier_number or f"#{latest.id}"
+                    lines.append(f"  → Formulaires OACIQ pour la transaction {ref_tx} : {' ; '.join(detail_parts)}.")
+                    # Prochaine étape document (Phase 2.2)
+                    kind = (getattr(latest, "transaction_kind", None) or "").strip().lower() or "achat"
+                    recommended = OACIQ_FORM_RECOMMENDED_BY_KIND.get(kind, ["PA"])
+                    next_steps = []
+                    for code in recommended:
+                        st = status_by_code.get(code)
+                        if st == "draft":
+                            next_steps.append(f"compléter le formulaire {code}")
+                        elif not st:
+                            next_steps.append(f"créer le formulaire {code}")
+                    if next_steps:
+                        lines.append(f"  → Prochaine étape document : {' ; '.join(next_steps)}. Indique à l'utilisateur d'aller dans Transactions → cette transaction → onglet Formulaire.")
+                elif oaciq_rows:
                     draft_count = sum(1 for row in oaciq_rows if getattr(row[0], "status", None) == "draft")
                     total = len(oaciq_rows)
                     codes = list({row[1] for row in oaciq_rows if row[1]})
@@ -669,11 +722,15 @@ def _extract_address_hint_from_message(message: str) -> Optional[str]:
     if not message or len(message.strip()) < 3:
         return None
     t = message.strip()
+    # "sur la transaction de Bordeaux" / "pour la transaction de Bordeaux" / "transaction de Bordeaux"
+    m = re.search(r"(?:sur|pour)\s+(?:la\s+)?transaction\s+(?:de\s+|sur\s+)([A-Za-zÀ-ÿ\-]+)", t, re.I)
+    if m:
+        return m.group(1).strip()
     # "transaction sur (la) rue de Bordeaux" / "transaction sur de Bordeaux" / "rue de Bordeaux"
     m = re.search(r"(?:rue\s+de|sur\s+(?:la\s+)?(?:rue\s+)?(?:de\s+)?)([A-Za-zÀ-ÿ\-]+)", t, re.I)
     if m:
         return m.group(1).strip()
-    # "transaction Bordeaux" / "pour la transaction Bordeaux"
+    # "transaction Bordeaux" / "transaction sur de Bordeaux"
     m = re.search(r"transaction\s+(?:sur\s+)?(?:de\s+)?([A-Za-zÀ-ÿ\-]+)", t, re.I)
     if m:
         return m.group(1).strip()
@@ -1787,11 +1844,12 @@ def _get_oaciq_form_code_for_lea_message(message: str) -> str:
 
 
 async def maybe_create_oaciq_form_submission_from_lea(
-    db: AsyncSession, user_id: int, message: str
+    db: AsyncSession, user_id: int, message: str, last_assistant_message: Optional[str] = None
 ) -> Optional[str]:
     """
     Si l'utilisateur demande de créer une promesse d'achat / un formulaire OACIQ pour une transaction,
     crée la soumission (brouillon) liée à la transaction et retourne une ligne pour « Action effectuée ».
+    Utilise last_assistant_message pour déduire la transaction cible (ex. « La transaction sur la rue de Bordeaux… »).
     """
     if not _wants_to_create_oaciq_form_for_transaction(message):
         return None
@@ -1802,6 +1860,8 @@ async def maybe_create_oaciq_form_submission_from_lea(
     else:
         transaction = None
         hint = _extract_address_hint_from_message(message)
+        if not hint and last_assistant_message:
+            hint = _extract_address_hint_from_message(last_assistant_message)
         if hint:
             transaction = await get_user_transaction_by_address_hint(db, user_id, hint)
         if not transaction:
@@ -1831,13 +1891,18 @@ async def maybe_create_oaciq_form_submission_from_lea(
         await db.commit()
         await db.refresh(submission)
         ref_label = transaction.dossier_number or f"#{transaction.id}"
+        addr_short = (transaction.property_address or transaction.property_city or "").strip()
+        if addr_short:
+            tx_label = f"{addr_short} ({ref_label})"
+        else:
+            tx_label = ref_label
         form_name = form.name or f"Formulaire {form_code}"
         logger.info(f"Lea created OACIQ form submission id={submission.id} form_code={form_code} for transaction id={transaction.id}")
         return (
-            f"Tu viens de créer le formulaire OACIQ « {form_name} » (code {form_code}) pour la transaction {ref_label}. "
-            "La soumission est en brouillon. Confirme à l'utilisateur que c'est fait et qu'il peut compléter le formulaire "
-            "dans la section Transactions → ouvrir la transaction → onglet Formulaires OACIQ (ou via le lien direct vers le formulaire)."
-        )
+            f"Tu viens de créer le formulaire OACIQ « {form_name} » (code {form_code}) pour la transaction {tx_label}. "
+            "La soumission est en brouillon. Confirme à l'utilisateur que c'est fait. "
+            "Prochaine étape : indique-lui d'aller dans Transactions → ouvrir cette transaction → onglet Formulaire (Formulaires OACIQ) → compléter le formulaire {code}."
+        ).format(code=form_code)
     except Exception as e:
         logger.warning(f"Lea create OACIQ form submission failed: {e}", exc_info=True)
         await db.rollback()
@@ -1949,7 +2014,7 @@ async def run_lea_actions(
             "La date de promesse d'achat a été enregistrée sur la dernière transaction. "
             "Confirme à l'utilisateur que la promesse d'achat est enregistrée et qu'il peut compléter le formulaire dans la section Transactions."
         )
-    oaciq_line = await maybe_create_oaciq_form_submission_from_lea(db, user_id, message)
+    oaciq_line = await maybe_create_oaciq_form_submission_from_lea(db, user_id, message, last_assistant_message)
     if oaciq_line:
         lines.append(oaciq_line)
     contact_line = await maybe_add_seller_buyer_contact_from_lea(db, user_id, message, last_assistant_message)
