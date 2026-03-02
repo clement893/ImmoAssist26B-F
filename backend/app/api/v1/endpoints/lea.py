@@ -15,7 +15,7 @@ from decimal import Decimal
 from typing import Optional, Literal, List, Tuple, Any
 
 import httpx
-from fastapi import APIRouter, Depends, File, Form as FormParam, HTTPException, status, UploadFile
+from fastapi import APIRouter, Depends, File, Form as FormParam, HTTPException, Request, status, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -2521,8 +2521,8 @@ async def lea_chat(
 
 
 @router.post("/chat/voice")
-@rate_limit_decorator("30/minute")
 async def lea_chat_voice(
+    request: Request,
     audio: UploadFile = File(...),
     session_id: Optional[str] = FormParam(None),
     conversation_id: Optional[int] = FormParam(None),
