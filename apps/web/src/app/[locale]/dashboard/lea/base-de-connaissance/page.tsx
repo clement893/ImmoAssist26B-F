@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { leaAPI } from '@/lib/api';
 import { Container, Card, Button } from '@immoassist/ui';
-import { MessageSquare, Upload, FileText, Trash2, Loader2, Save, BookOpen } from 'lucide-react';
+import { MessageSquare, Upload, FileText, Trash2, Loader2, Save, BookOpen, ExternalLink, FileCode } from 'lucide-react';
 import { useToast } from '@/lib/toast';
 import ProtectedSuperAdminRoute from '@/components/auth/ProtectedSuperAdminRoute';
 
@@ -168,6 +168,162 @@ export default function BaseConnaissanceLeaPage() {
           et les documents que vous ajoutez. Ces éléments sont injectés dans le contexte de Léa à chaque conversation.
         </p>
       </div>
+
+      {/* Documentation et références – liens vers les règles et MD créés pour Léa */}
+      <Card className="p-6 mb-8">
+        <h2 className="text-lg font-semibold text-foreground mb-2 flex items-center gap-2">
+          <FileCode className="w-5 h-5 text-primary-500" />
+          Documentation et références Léa
+        </h2>
+        <p className="text-sm text-muted-foreground mb-4">
+          Règles, guides et plans créés pour la base de connaissance et l&apos;agent Léa (dépôt GitHub).
+        </p>
+        <ul className="space-y-2 text-sm">
+          <li>
+            <a
+              href="https://github.com/clement893/ImmoAssist26B-F/blob/main/docs/LEA_OACIQ_KNOWLEDGE_GUIDE.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-primary hover:underline"
+            >
+              <ExternalLink className="w-4 h-4 shrink-0" />
+              Guide : Donner une base de connaissance OACIQ à Léa
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://github.com/clement893/ImmoAssist26B-F/blob/main/docs/oaciq/LEA_KNOWLEDGE_OACIQ.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-primary hover:underline"
+            >
+              <ExternalLink className="w-4 h-4 shrink-0" />
+              Base de connaissance OACIQ (contenu de référence)
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://github.com/clement893/ImmoAssist26B-F/blob/main/docs/LEA_AI_AGENT_PLAN.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-primary hover:underline"
+            >
+              <ExternalLink className="w-4 h-4 shrink-0" />
+              Plan agent AI Léa
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://github.com/clement893/ImmoAssist26B-F/blob/main/docs/LEA_IMPLEMENTATION_SUMMARY.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-primary hover:underline"
+            >
+              <ExternalLink className="w-4 h-4 shrink-0" />
+              Résumé d&apos;implémentation Léa
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://github.com/clement893/ImmoAssist26B-F/blob/main/docs/LEA_FORMULAIRES_ET_DOCUMENTS_PLAN.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-primary hover:underline"
+            >
+              <ExternalLink className="w-4 h-4 shrink-0" />
+              Plan formulaires et documents Léa
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://github.com/clement893/ImmoAssist26B-F/blob/main/docs/LEA_AUDIT_ET_PLAN_CONSOLIDATION.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-primary hover:underline"
+            >
+              <ExternalLink className="w-4 h-4 shrink-0" />
+              Audit et plan de consolidation Léa
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://github.com/clement893/ImmoAssist26B-F/blob/main/docs/LEA_CONVERSATION_UX_PLAN.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-primary hover:underline"
+            >
+              <ExternalLink className="w-4 h-4 shrink-0" />
+              Plan UX conversation Léa
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://github.com/clement893/ImmoAssist26B-F/blob/main/docs/LEA_SETTINGS_PLAN.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-primary hover:underline"
+            >
+              <ExternalLink className="w-4 h-4 shrink-0" />
+              Plan paramètres Léa
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://github.com/clement893/ImmoAssist26B-F/blob/main/docs/LEA_UI_REFACTOR_PLAN.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-primary hover:underline"
+            >
+              <ExternalLink className="w-4 h-4 shrink-0" />
+              Plan refonte UI Léa
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://github.com/clement893/ImmoAssist26B-F/blob/main/docs/LEA_IMPLEMENTATION_PLAN.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-primary hover:underline"
+            >
+              <ExternalLink className="w-4 h-4 shrink-0" />
+              Plan d&apos;implémentation Léa
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://github.com/clement893/ImmoAssist26B-F/blob/main/docs/LEA_AI_BACKEND_PLAN.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-primary hover:underline"
+            >
+              <ExternalLink className="w-4 h-4 shrink-0" />
+              Plan backend AI Léa
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://github.com/clement893/ImmoAssist26B-F/blob/main/docs/LEA_BACKEND_AI_CONNECTION_REPORT.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-primary hover:underline"
+            >
+              <ExternalLink className="w-4 h-4 shrink-0" />
+              Rapport connexion backend AI Léa
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://github.com/clement893/ImmoAssist26B-F/blob/main/docs/LEA_PERFORMANCE_ET_CONNEXION_RAPPORT.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-primary hover:underline"
+            >
+              <ExternalLink className="w-4 h-4 shrink-0" />
+              Rapport performance et connexion Léa
+            </a>
+          </li>
+        </ul>
+      </Card>
 
       {error && (
         <div className="mb-6 p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm">
