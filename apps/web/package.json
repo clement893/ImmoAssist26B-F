@@ -77,7 +77,7 @@
   "devDependencies": {
     "@next/bundle-analyzer": "^14.2.0",
     "@playwright/test": "^1.40.0",
-    "@storybook/addon-a11y": "^7.6.0",
+    "@storybook/addon-a11y": "^10.2.3",
     "@storybook/addon-docs": "^7.6.0",
     "@storybook/addon-essentials": "^7.6.0",
     "@storybook/addon-interactions": "^7.6.0",
