@@ -28,6 +28,8 @@ import {
   UserCheck,
   UserPlus,
   Mic,
+  Plug,
+  Cloud,
 } from 'lucide-react';
 
 export interface NavigationItem {
@@ -104,6 +106,11 @@ export function getNavigationConfig(isAdmin?: boolean, isClient?: boolean): Navi
               name: 'Léa2',
               href: '/dashboard/lea2',
               icon: <Mic className="w-5 h-5" />,
+            },
+            {
+              name: 'Base de connaissance Léa',
+              href: '/dashboard/lea/base-de-connaissance',
+              icon: <FileText className="w-5 h-5" />,
             },
             {
               name: 'Paramètres Léa',
@@ -198,6 +205,11 @@ export function getNavigationConfig(isAdmin?: boolean, isClient?: boolean): Navi
             icon: <Mic className="w-5 h-5" />,
           },
           {
+            name: 'Base de connaissance Léa',
+            href: '/dashboard/lea/base-de-connaissance',
+            icon: <FileText className="w-5 h-5" />,
+          },
+          {
             name: 'Paramètres Léa',
             href: '/dashboard/modules/admin/parametres-lea',
             icon: <Sliders className="w-5 h-5" />,
@@ -289,6 +301,20 @@ export function getNavigationConfig(isAdmin?: boolean, isClient?: boolean): Navi
             name: 'Inviter un client',
             href: '/dashboard/portail-client/courtier/clients/inviter',
             icon: <UserPlus className="w-5 h-5" />,
+          },
+        ],
+        collapsible: true,
+        defaultOpen: false,
+      },
+      // Module Connections (stockage, intégrations)
+      {
+        name: 'Connections',
+        icon: <Plug className="w-5 h-5" />,
+        items: [
+          {
+            name: 'Connexion R2',
+            href: '/dashboard/modules/connections/r2',
+            icon: <Cloud className="w-5 h-5" />,
           },
         ],
         collapsible: true,

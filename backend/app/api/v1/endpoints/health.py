@@ -427,3 +427,84 @@ async def network_connectivity_check() -> Dict[str, Any]:
     
     return results
 
+
+@router.get("/s3", response_model=Dict[str, Any])
+async def s3_health_check() -> Dict[str, Any]:
+    """
+    S3/R2 configuration and connectivity test.
+    Used by the Connections > Connexion R2 page to test bucket access.
+    """
+    from app.services import s3_service as s3_mod
+
+    S3Service = s3_mod.S3Service
+    results: Dict[str, Any] = {
+        "configured": False,
+        "bucket": s3_mod.AWS_S3_BUCKET,
+        "region": s3_mod.AWS_REGION,
+        "endpoint_url": s3_mod.AWS_S3_ENDPOINT_URL,
+        "tests": {},
+    }
+
+    if not S3Service.is_configured():
+        results["error"] = "S3/R2 is not configured. Missing required environment variables (AWS_* or R2_*)."
+        return results
+
+    results["configured"] = True
+
+    try:
+        s3_service = S3Service()
+        import boto3
+
+        s3_client = boto3.client(
+            "s3",
+            aws_access_key_id=s3_mod.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=s3_mod.AWS_SECRET_ACCESS_KEY,
+            region_name=s3_mod.AWS_REGION,
+            endpoint_url=s3_mod.AWS_S3_ENDPOINT_URL,
+        )
+        bucket_name = s3_mod.AWS_S3_BUCKET
+
+        # Test 1: Bucket access
+        try:
+            s3_client.head_bucket(Bucket=bucket_name)
+            results["tests"]["bucket_access"] = "✅ Success"
+        except Exception as e:
+            results["tests"]["bucket_access"] = f"❌ Failed: {str(e)}"
+            return results
+
+        # Test 2: File upload
+        test_key = "test/s3_test.txt"
+        test_content = b"S3 integration test file"
+        try:
+            s3_client.put_object(
+                Bucket=bucket_name,
+                Key=test_key,
+                Body=test_content,
+                ContentType="text/plain",
+            )
+            results["tests"]["upload"] = "✅ Success"
+        except Exception as e:
+            results["tests"]["upload"] = f"❌ Failed: {str(e)}"
+            return results
+
+        # Test 3: Presigned URL
+        try:
+            url = s3_service.generate_presigned_url(test_key, expiration=3600)
+            results["tests"]["presigned_url"] = "✅ Success"
+            results["tests"]["presigned_url_example"] = url[:100] + "..." if len(url) > 100 else url
+        except Exception as e:
+            results["tests"]["presigned_url"] = f"❌ Failed: {str(e)}"
+
+        # Test 4: File deletion
+        try:
+            s3_service.delete_file(test_key)
+            results["tests"]["delete"] = "✅ Success"
+        except Exception as e:
+            results["tests"]["delete"] = f"❌ Failed: {str(e)}"
+
+        results["status"] = "all_tests_passed"
+    except Exception as e:
+        results["error"] = f"S3/R2 service error: {str(e)}"
+
+    return results
+
