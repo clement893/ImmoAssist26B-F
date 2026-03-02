@@ -38,7 +38,8 @@ from app.core.config import get_settings
 from app.core.logging import logger
 from app.core.rate_limit import rate_limit_decorator
 
-from sqlalchemy import select, and_, or_
+from sqlalchemy import select, and_, or_, insert
+from sqlalchemy.exc import ProgrammingError, OperationalError
 
 try:
     from openai import AsyncOpenAI
@@ -3323,24 +3324,32 @@ async def list_lea_knowledge_documents(
 ):
     """
     Liste les documents de la base de connaissance Léa. Réservé aux super admins.
+    Sélection explicite des colonnes pour rester compatible si content_text n'existe pas encore (migration 048).
     """
     q = (
-        select(File)
+        select(
+            File.id,
+            File.filename,
+            File.original_filename,
+            File.size,
+            File.content_type,
+            File.created_at,
+        )
         .where(File.user_id == current_user.id, File.folder == LEA_KNOWLEDGE_FOLDER)
         .order_by(File.created_at.desc())
     )
     result = await db.execute(q)
-    files = result.scalars().all()
+    rows = result.all()
     return [
         LeaKnowledgeDocumentItem(
-            id=str(f.id),
-            filename=f.filename or "",
-            original_filename=f.original_filename or f.filename or "",
-            size=f.size or 0,
-            content_type=f.content_type or "application/octet-stream",
-            created_at=f.created_at.isoformat() if f.created_at else "",
+            id=str(r[0]),
+            filename=r[1] or "",
+            original_filename=r[2] or r[1] or "",
+            size=r[3] or 0,
+            content_type=r[4] or "application/octet-stream",
+            created_at=r[5].isoformat() if r[5] else "",
         )
-        for f in files
+        for r in rows
     ]
 
 
@@ -3399,28 +3408,61 @@ async def upload_lea_knowledge_document(
             folder=LEA_KNOWLEDGE_FOLDER,
             user_id=str(current_user.id),
         )
-        file_record = File(
-            user_id=current_user.id,
-            file_key=upload_result["file_key"],
-            filename=upload_result.get("filename") or file.filename or "document",
-            original_filename=file.filename or upload_result.get("filename") or "document",
-            content_type=upload_result.get("content_type") or content_type or "application/octet-stream",
-            size=upload_result.get("size", 0),
-            url=upload_result.get("url", ""),
-            folder=LEA_KNOWLEDGE_FOLDER,
-            content_text=content_text,
-        )
-        db.add(file_record)
-        await db.commit()
-        await db.refresh(file_record)
-        return LeaKnowledgeDocumentUploadResponse(
-            id=str(file_record.id),
-            filename=file_record.filename or "",
-            original_filename=file_record.original_filename or "",
-            size=file_record.size or 0,
-            content_type=file_record.content_type or "application/octet-stream",
-            created_at=file_record.created_at.isoformat() if file_record.created_at else "",
-        )
+        filename_val = upload_result.get("filename") or file.filename or "document"
+        original_val = file.filename or upload_result.get("filename") or "document"
+        content_type_val = upload_result.get("content_type") or content_type or "application/octet-stream"
+        size_val = upload_result.get("size", 0)
+        url_val = upload_result.get("url", "")
+        try:
+            file_record = File(
+                user_id=current_user.id,
+                file_key=upload_result["file_key"],
+                filename=filename_val,
+                original_filename=original_val,
+                content_type=content_type_val,
+                size=size_val,
+                url=url_val,
+                folder=LEA_KNOWLEDGE_FOLDER,
+                content_text=content_text,
+            )
+            db.add(file_record)
+            await db.commit()
+            await db.refresh(file_record)
+            return LeaKnowledgeDocumentUploadResponse(
+                id=str(file_record.id),
+                filename=file_record.filename or "",
+                original_filename=file_record.original_filename or "",
+                size=file_record.size or 0,
+                content_type=file_record.content_type or "application/octet-stream",
+                created_at=file_record.created_at.isoformat() if file_record.created_at else "",
+            )
+        except (ProgrammingError, OperationalError) as db_err:
+            err_msg = str(db_err).lower()
+            if "content_text" in err_msg or "column" in err_msg:
+                await db.rollback()
+                file_id = uuid.uuid4()
+                stmt = insert(File.__table__).values(
+                    id=file_id,
+                    user_id=current_user.id,
+                    file_key=upload_result["file_key"],
+                    filename=filename_val,
+                    original_filename=original_val,
+                    content_type=content_type_val,
+                    size=size_val,
+                    url=url_val,
+                    folder=LEA_KNOWLEDGE_FOLDER,
+                )
+                await db.execute(stmt)
+                await db.commit()
+                return LeaKnowledgeDocumentUploadResponse(
+                    id=str(file_id),
+                    filename=filename_val,
+                    original_filename=original_val,
+                    size=size_val,
+                    content_type=content_type_val,
+                    created_at=datetime.utcnow().isoformat() + "Z",
+                )
+            raise
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
