@@ -325,6 +325,11 @@ def _wants_to_create_transaction(message: str) -> tuple[bool, str]:
     if not t:
         return False, ""
 
+    # « Créer une promesse d'achat » = créer la promesse / le formulaire sur la transaction EXISTANTE, pas une nouvelle transaction
+    if "promesse" in t and "achat" in t and "créer" in t:
+        if "promesse d'achat" in t or "une promesse" in t or "la promesse" in t:
+            return False, ""
+
     def default_type() -> str:
         """Retourne le type explicite dans le message ('achat'|'vente') ou '' si non précisé."""
         if "vente" in t or "de vente" in t:
@@ -1027,11 +1032,13 @@ def _wants_to_geocode_existing_address(message: str) -> bool:
         or "recherche" in t or "rechercher" in t
         or "écris" in t or "écrire" in t
         or "ajout" in t  # "ajouter le code postal", "ajoutons le code postal"
+        or "fais" in t or "faire" in t  # "toi fais la recherche en ligne", "fais la recherche"
     )
     # Adresse complète, code postal ou ville (recherche en ligne)
     has_address = (
         "adresse" in t or "l'adresse" in t
         or "code postal" in t or "ville" in t
+        or "complète" in t or "compléter" in t or "complétons" in t  # "compléter l'adresse"
     )
     has_trigger = (
         "internet" in t or "en ligne" in t or "ligne" in t
@@ -1149,6 +1156,18 @@ def _extract_seller_buyer_names_list(
                 role = "Acheteur"
                 m = re.search(r"ils\s+sont\s+(.+?)(?:\.|$|\s+pour\s+)", t, re.I | re.DOTALL)
         if not m:
+            # "le vendeur s'appelle X" / "enregistre les vendeurs le vendeur s'appelle X"
+            if re.search(r"(?:le\s+)?vendeur\s+s['']appelle\s+", t, re.I) or re.search(r"enregistre(?:r?|s?)\s+(?:les?\s+)?vendeurs?\s+.*s['']appelle\s+", t, re.I):
+                role = "Vendeur"
+                m = re.search(r"(?:le\s+)?vendeur\s+s['']appelle\s+([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$|\s+pour|\s+téléphone|\s+courriel|vocales?\s+terminé)", t, re.I)
+                if not m:
+                    m = re.search(r"enregistre(?:r?|s?)\s+(?:les?\s+)?vendeurs?\s+(?:le\s+vendeur\s+)?s['']appelle\s+([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$|\s+pour|vocales?)", t, re.I)
+            elif re.search(r"l['']?acheteur\s+s['']appelle\s+", t, re.I) or re.search(r"enregistre(?:r?|s?)\s+(?:les?\s+)?acheteurs?\s+.*s['']appelle\s+", t, re.I):
+                role = "Acheteur"
+                m = re.search(r"l['']?acheteur\s+s['']appelle\s+([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$|\s+pour|\s+téléphone|\s+courriel|vocales?\s+terminé)", t, re.I)
+                if not m:
+                    m = re.search(r"enregistre(?:r?|s?)\s+(?:les?\s+)?acheteurs?\s+(?:l['']?acheteur\s+)?s['']appelle\s+([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$|\s+pour|vocales?)", t, re.I)
+        if not m:
             return None
         raw = m.group(1).strip()
     # Transcription vocale : "est" pour "et" dans les listes de noms ("Christian est abatti" -> "Christian et abatti")
@@ -1186,11 +1205,10 @@ def _extract_seller_buyer_names_list(
     return (role, names)
 
 
-def _extract_seller_buyer_contact_from_message(message: str) -> Optional[tuple[str, str, Optional[str], Optional[str], str]]:
+def _extract_seller_buyer_contact_from_message(message: str, last_assistant_message: Optional[str] = None) -> Optional[tuple[str, str, Optional[str], Optional[str], str]]:
     """
     Détecte si l'utilisateur donne les coordonnées d'un vendeur ou d'un acheteur.
-    Retourne (first_name, last_name, phone, email, role) où role est "Vendeur" ou "Acheteur", ou None.
-    Ex: "ajoute la coordonnée du vendeur il s'appelle Michael Jordan son numéro est le 514 266-5543"
+    Retourne (first_name, last_name, phone, email, role). Avec last_assistant_message, on peut inférer le rôle pour une réponse de suivi (« Johnny a … gmail.com et 438… »).
     """
     if not message or len(message.strip()) < 10:
         return None
@@ -1200,14 +1218,21 @@ def _extract_seller_buyer_contact_from_message(message: str) -> Optional[tuple[s
         role = "Vendeur"
     elif re.search(r"\bacheteur(s?)\b", t, re.I) or "coordonnée de l'acheteur" in t.lower() or "coordonnées de l'acheteur" in t.lower():
         role = "Acheteur"
+    if not role and last_assistant_message:
+        last_lower = last_assistant_message.strip().lower()
+        if "vendeur" in last_lower and ("téléphone" in last_lower or "courriel" in last_lower or "coordonnées" in last_lower):
+            role = "Vendeur"
+        elif "acheteur" in last_lower and ("téléphone" in last_lower or "courriel" in last_lower or "coordonnées" in last_lower):
+            role = "Acheteur"
     if not role:
         return None
+    name_from_followup: Optional[str] = None
 
     # "les vendeurs sont A et B" / "les vendeurs sont A, B et C" → géré par _extract_seller_buyer_names_list
     if re.search(r"les\s+vendeurs\s+sont\s+.+\s+et\s+", t, re.I) or re.search(r"les\s+acheteurs\s+sont\s+.+\s+et\s+", t, re.I):
         return None
 
-    # Nom : "il s'appelle X" / "s'appelle X" / "c'est X"
+    # Nom : "il s'appelle X" / "s'appelle X" / "c'est X" / en suivi "Johnny a ... gmail.com et ..."
     name_match = re.search(
         r"(?:il\s+)?s['']appelle\s+([A-Za-zÀ-ÿ\s\-]+?)(?:\s+son\s+numéro|\s+numéro|\s+téléphone|\s+phone|\s+courriel|\s+email|$|,)",
         t,
@@ -1215,7 +1240,17 @@ def _extract_seller_buyer_contact_from_message(message: str) -> Optional[tuple[s
     )
     if not name_match:
         name_match = re.search(r"c'est\s+([A-Za-zÀ-ÿ\s\-]+?)(?:\s+son\s+numéro|\s+numéro|\s+téléphone|$|,)", t, re.I)
-    name = name_match.group(1).strip() if name_match else None
+    name_from_followup = None
+    if not name_match and ("@" in t or "gmail.com" in t) and last_assistant_message:
+        # Réponse de suivi : "Johnny a commercial gmail.com et 4 3 8..." -> nom au début ou dans le message assistant
+        m_start = re.match(r"^([A-Za-zÀ-ÿ]+)(?:\s+([A-Za-zÀ-ÿ\-]+))?\s+(?:a|à)\s+", t, re.I)
+        if m_start:
+            name_from_followup = (m_start.group(1) + " " + (m_start.group(2) or "")).strip()
+        else:
+            m_last = re.search(r"(?:de|du|pour)\s+([A-Za-zÀ-ÿ]+\s+[A-Za-zÀ-ÿ\-]+)(?:\s|,|\.|$)", last_assistant_message.strip(), re.I)
+            if m_last:
+                name_from_followup = m_last.group(1).strip()
+    name = (name_match.group(1).strip() if name_match else name_from_followup) or None
     if not name or len(name) < 2:
         return None
     parts = name.split()
@@ -1223,7 +1258,7 @@ def _extract_seller_buyer_contact_from_message(message: str) -> Optional[tuple[s
         first_name, last_name = parts[0], " ".join(parts[1:])
     else:
         first_name = last_name = parts[0]
-    # Téléphone : 514-266-5543, 514 266 5543, 5142665543, "son numéro de téléphone est le 514 266-5543"
+    # Téléphone : 514-266-5543, 514 266 5543, ou chiffres espacés "4 3 8 4 9 2 5 3 0 7"
     phone_match = re.search(
         r"(?:numéro|téléphone|phone)(?:\s+de\s+(?:téléphone|phone))?\s*(?:est\s*)?(?:le\s*)?[:\s]*(\d{3}[\s.\-]*\d{3}[\s.\-]*\d{4})",
         t,
@@ -1231,12 +1266,23 @@ def _extract_seller_buyer_contact_from_message(message: str) -> Optional[tuple[s
     )
     if not phone_match:
         phone_match = re.search(r"\b(\d{3}[\s.\-]\d{3}[\s.\-]\d{4})\b", t)
-    phone = phone_match.group(1).replace(" ", "").replace(".", "").replace("-", "") if phone_match else None
-    if phone and len(phone) == 10:
-        phone = f"{phone[0:3]}-{phone[3:6]}-{phone[6:10]}"
+    if not phone_match:
+        phone_match = re.search(r"(\d(?:\s*\d){9})", t)
+    phone = None
+    if phone_match:
+        raw_phone = phone_match.group(1).replace(" ", "").replace(".", "").replace("-", "")
+        if len(raw_phone) == 10 and raw_phone.isdigit():
+            phone = f"{raw_phone[0:3]}-{raw_phone[3:6]}-{raw_phone[6:10]}"
     # Email optionnel
     email_match = re.search(r"(?:courriel|email)\s*(?:est\s*)?[:\s]*([^\s,\.]+@[^\s,\.]+)", t, re.I)
     email = email_match.group(1).strip() if email_match else None
+    if not email and "gmail.com" in t:
+        local = re.search(r"(\w+)\s+(?:a|à|@)?\s*(?:commercial\s+)?gmail\.com", t, re.I)
+        if local:
+            email = f"{local.group(1).strip()}@gmail.com"
+    # En suivi (nom depuis contexte), exiger au moins téléphone ou courriel pour éviter doublon
+    if name_from_followup is not None and not phone and not email:
+        return None
     return (first_name.strip(), last_name.strip(), phone, email, role)
 
 
@@ -1379,7 +1425,7 @@ async def maybe_add_seller_buyer_contact_from_lea(
             await db.rollback()
             return None
 
-    extracted = _extract_seller_buyer_contact_from_message(message)
+    extracted = _extract_seller_buyer_contact_from_message(message, last_assistant_message)
     if not extracted:
         return None
     first_name, last_name, phone, email, role = extracted
