@@ -2256,12 +2256,9 @@ async def _stream_lea_sse(
             tx_to_link = created_tx or await get_user_latest_transaction(db, user_id)
             if tx_to_link:
                 await link_lea_session_to_transaction(db, user_id, session_id, tx_to_link.id)
-        results = await asyncio.gather(
-            get_lea_user_context(db, user_id),
-            get_or_create_lea_conversation(db, user_id, session_id),
-        )
-        user_context = results[0]
-        conv, sid = results[1]
+        # Sequential DB calls: AsyncSession does not allow concurrent operations on the same session.
+        user_context = await get_lea_user_context(db, user_id)
+        conv, sid = await get_or_create_lea_conversation(db, user_id, session_id)
         if action_lines:
             user_context += "\n\n--- Action effectuée ---\n" + "\n".join(action_lines)
         messages_for_llm = build_llm_messages_from_history(conv.messages or [], message)

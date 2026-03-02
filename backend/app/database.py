@@ -1,13 +1,17 @@
 """Database configuration and session management."""
 
+import logging
 import os
 from typing import AsyncGenerator
 
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 # Import settings to get DATABASE_URL
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 # Get database URL from settings and ensure it uses asyncpg
 DATABASE_URL = str(settings.DATABASE_URL).strip()
@@ -58,7 +62,10 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
         try:
             yield session
         finally:
-            await session.close()
+            try:
+                await session.close()
+            except SQLAlchemyError as e:
+                logger.warning("Session close failed (session may be in invalid state): %s", e)
 
 
 async def init_db():
