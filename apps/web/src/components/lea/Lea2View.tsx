@@ -140,6 +140,7 @@ export default function Lea2View() {
 
   const [input, setInput] = useState('');
   const [autoSpeak, setAutoSpeak] = useState(true);
+  const [micMuted, setMicMuted] = useState(false);
   const lastSpokenMessageRef = useRef<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const prevListeningRef = useRef(false);
@@ -336,6 +337,25 @@ export default function Lea2View() {
   };
 
   const handleCentralVoiceAction = async () => {
+    if (micMuted) {
+      // Si micro coupé et qu'on écoute/enregistre, arrêter
+      if (isListening) {
+        stopListening();
+        const text = transcript.trim();
+        if (text) {
+          stopSpeaking();
+          lastSpokenMessageRef.current = null;
+          justSentFromVoiceRef.current = true;
+          setInput('');
+          sendMessage(text);
+          restartListeningAfterResponseRef.current = true;
+        }
+      } else if (isRecording) {
+        const blob = await stopRecording();
+        if (blob) await sendVoiceMessage(blob);
+      }
+      return;
+    }
     if (voiceSupported) {
       await toggleListening();
     } else if (recordSupported) {
@@ -450,6 +470,39 @@ export default function Lea2View() {
             <span className="font-semibold text-white/95">Léa</span>
           </div>
           <div className="flex items-center gap-2">
+            {(voiceSupported || recordSupported) && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (micMuted) {
+                    setMicMuted(false);
+                  } else {
+                    setMicMuted(true);
+                    if (isListening) {
+                      stopListening();
+                      const text = transcript.trim();
+                      if (text) {
+                        stopSpeaking();
+                        lastSpokenMessageRef.current = null;
+                        justSentFromVoiceRef.current = true;
+                        setInput('');
+                        sendMessage(text);
+                        restartListeningAfterResponseRef.current = true;
+                      }
+                    } else if (isRecording) {
+                      stopRecording().then((blob) => blob && sendVoiceMessage(blob));
+                    }
+                  }
+                }}
+                className={clsx(
+                  'p-2 rounded-lg transition-colors',
+                  micMuted ? 'text-red-400/90 bg-red-500/20' : 'text-white/70 hover:text-white hover:bg-white/10'
+                )}
+                title={micMuted ? 'Micro coupé - Cliquer pour réactiver' : 'Micro actif - Cliquer pour couper'}
+              >
+                <MicOff className="w-5 h-5" />
+              </button>
+            )}
             {ttsSupported && (
               <button
                 type="button"
@@ -681,18 +734,30 @@ export default function Lea2View() {
                 <button
                   type="button"
                   onClick={handleCentralVoiceAction}
-                  disabled={isLoading || (!voiceSupported && !recordSupported)}
+                  disabled={isLoading || (!voiceSupported && !recordSupported) || (micMuted && !isCentralActive)}
                   className={clsx(
                     'flex items-center justify-center rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/40',
                     'disabled:opacity-50 disabled:cursor-not-allowed',
                     'w-14 h-14 shrink-0',
-                    isCentralActive
-                      ? 'bg-amber-500 hover:bg-amber-400 text-white shadow-lg shadow-amber-500/30'
-                      : 'bg-blue-500/90 hover:bg-blue-400 text-white shadow-lg shadow-blue-500/20'
+                    micMuted && !isCentralActive
+                      ? 'bg-white/20 text-white/60'
+                      : isCentralActive
+                        ? 'bg-amber-500 hover:bg-amber-400 text-white shadow-lg shadow-amber-500/30'
+                        : 'bg-blue-500/90 hover:bg-blue-400 text-white shadow-lg shadow-blue-500/20'
                   )}
-                  title={isListening ? 'Arrêter l\'écoute' : isRecording ? 'Arrêter et envoyer' : 'Parler à Léa'}
+                  title={
+                    micMuted && !isCentralActive
+                      ? 'Micro coupé - Cliquer sur l\'icône micro en haut pour réactiver'
+                      : isListening
+                        ? 'Arrêter l\'écoute'
+                        : isRecording
+                          ? 'Arrêter et envoyer'
+                          : 'Parler à Léa'
+                  }
                 >
-                  {isListening ? (
+                  {micMuted && !isCentralActive ? (
+                    <MicOff className="w-7 h-7" />
+                  ) : isListening ? (
                     <MicOff className="w-7 h-7" />
                   ) : isRecording ? (
                     <Square className="w-7 h-7" />
@@ -706,7 +771,11 @@ export default function Lea2View() {
             {/* Rappel court */}
             {(voiceSupported || recordSupported) && !isListening && !isRecording && (
               <p className="text-center text-white/45 text-sm">
-                Tapez ou appuyez sur le micro pour parler
+                {micMuted ? (
+                  <span className="text-amber-400/80">Micro coupé — Cliquez sur l&apos;icône micro en haut pour réactiver</span>
+                ) : (
+                  'Tapez ou appuyez sur le micro pour parler'
+                )}
               </p>
             )}
           </div>
