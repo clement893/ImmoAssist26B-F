@@ -25,8 +25,8 @@ export default function ConnectionR2Page() {
     setError(null);
     setResult(null);
     try {
-      const data = await apiClient.get<S3HealthResult>('/v1/health/s3');
-      setResult(data);
+      const res = await apiClient.get<S3HealthResult>('/v1/health/s3');
+      setResult(res.data ?? null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors du test de connexion.');
     } finally {
