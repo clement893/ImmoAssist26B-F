@@ -46,11 +46,17 @@ def test_s3_connection():
     print("=" * 60)
     print()
     
-    # Get AWS credentials from environment
-    aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID', '').strip()
-    aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY', '').strip()
-    aws_region = os.getenv('AWS_REGION', 'us-east-1').strip()
-    aws_s3_bucket = os.getenv('AWS_S3_BUCKET', '').strip()
+    # Get credentials from environment (AWS_* or R2_*)
+    aws_access_key_id = (os.getenv('AWS_ACCESS_KEY_ID') or os.getenv('R2_ACCESS_KEY_ID') or '').strip()
+    aws_secret_access_key = (os.getenv('AWS_SECRET_ACCESS_KEY') or os.getenv('R2_SECRET_ACCESS_KEY') or '').strip()
+    aws_region = (os.getenv('AWS_REGION') or os.getenv('R2_REGION') or 'us-east-1').strip()
+    aws_s3_bucket = (os.getenv('AWS_S3_BUCKET') or os.getenv('R2_BUCKET_NAME') or '').strip()
+    aws_s3_endpoint_url = (os.getenv('AWS_S3_ENDPOINT_URL') or os.getenv('R2_ENDPOINT_URL') or '').strip()
+    
+    # For R2 (Cloudflare), region should be 'auto'
+    if aws_s3_endpoint_url and 'r2.cloudflarestorage.com' in aws_s3_endpoint_url:
+        aws_region = 'auto'
+        print("[INFO] Using region=auto for Cloudflare R2")
     
     # Check environment variables
     print("1. Checking Environment Variables...")
@@ -84,34 +90,44 @@ def test_s3_connection():
         print("[WARNING] AWS_S3_BUCKET not set")
         print("  -> Add to backend/.env: AWS_S3_BUCKET=your-bucket-name")
     
+    if aws_s3_endpoint_url:
+        url_display = aws_s3_endpoint_url[:60] + "..." if len(aws_s3_endpoint_url) > 60 else aws_s3_endpoint_url
+        print(f"[OK] AWS_S3_ENDPOINT_URL: {url_display}")
+        print("  (S3-compatible backend: R2, DigitalOcean Spaces, etc.)")
+    else:
+        print("[INFO] AWS_S3_ENDPOINT_URL not set (using default AWS S3)")
+    
     print()
-    print("2. Testing AWS S3 Connection...")
+    print("2. Testing S3/R2 Connection...")
     print("-" * 60)
     
     try:
-        # Initialize S3 client
+        # Initialize S3 client (supports AWS S3, R2, DigitalOcean Spaces via endpoint_url)
         s3_client = boto3.client(
             's3',
             aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key,
-            region_name=aws_region
+            region_name=aws_region,
+            endpoint_url=aws_s3_endpoint_url or None,
         )
         
-        # Test connection by listing buckets
-        print("-> Listing S3 buckets...")
-        response = s3_client.list_buckets()
-        
-        print()
-        print("[SUCCESS] Connection successful!")
-        print("-" * 60)
-        print(f"Account has access to {len(response['Buckets'])} bucket(s)")
-        
-        if response['Buckets']:
-            print("\nBuckets found:")
-            for bucket in response['Buckets']:
-                bucket_name = bucket['Name']
-                creation_date = bucket['CreationDate'].strftime('%Y-%m-%d %H:%M:%S')
-                print(f"  • {bucket_name} (created: {creation_date})")
+        # Test connection: list_buckets (AWS S3 only; R2/S3-compatible may not support it)
+        if not aws_s3_endpoint_url:
+            print("-> Listing S3 buckets...")
+            response = s3_client.list_buckets()
+            print()
+            print("[SUCCESS] Connection successful!")
+            print("-" * 60)
+            print(f"Account has access to {len(response['Buckets'])} bucket(s)")
+            if response['Buckets']:
+                print("\nBuckets found:")
+                for bucket in response['Buckets']:
+                    bn = bucket['Name']
+                    cd = bucket['CreationDate'].strftime('%Y-%m-%d %H:%M:%S')
+                    print(f"  • {bn} (created: {cd})")
+        else:
+            print("-> Using custom endpoint (R2 / S3-compatible).")
+            print("[OK] Client configured; testing bucket access next.")
         
         # Test bucket access if bucket name is provided
         if aws_s3_bucket:

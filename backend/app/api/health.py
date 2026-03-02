@@ -28,19 +28,20 @@ async def api_health_check():
 @router.get("/api/health/s3")
 async def s3_health_check():
     """S3 configuration and connectivity test."""
-    from app.services.s3_service import S3Service
+    from app.services import s3_service as s3_mod
     
+    S3Service = s3_mod.S3Service
     results = {
         "configured": False,
-        "bucket": os.getenv("AWS_S3_BUCKET"),
-        "region": os.getenv("AWS_REGION", "us-east-1"),
-        "endpoint_url": os.getenv("AWS_S3_ENDPOINT_URL"),
+        "bucket": s3_mod.AWS_S3_BUCKET,
+        "region": s3_mod.AWS_REGION,
+        "endpoint_url": s3_mod.AWS_S3_ENDPOINT_URL,
         "tests": {},
     }
     
     # Check if S3 is configured
     if not S3Service.is_configured():
-        results["error"] = "S3 is not configured. Missing required environment variables."
+        results["error"] = "S3 is not configured. Missing required environment variables (AWS_* or R2_*)."
         return results
     
     results["configured"] = True
@@ -49,17 +50,17 @@ async def s3_health_check():
         # Initialize S3 service
         s3_service = S3Service()
         
-        # Test 1: Bucket access
+        # Test 1: Bucket access (use same config as s3_service: AWS_* or R2_*)
         try:
             import boto3
             s3_client = boto3.client(
                 's3',
-                aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
-                aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
-                region_name=os.getenv('AWS_REGION', 'us-east-1'),
-                endpoint_url=os.getenv('AWS_S3_ENDPOINT_URL'),
+                aws_access_key_id=s3_mod.AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=s3_mod.AWS_SECRET_ACCESS_KEY,
+                region_name=s3_mod.AWS_REGION,
+                endpoint_url=s3_mod.AWS_S3_ENDPOINT_URL,
             )
-            bucket_name = os.getenv('AWS_S3_BUCKET')
+            bucket_name = s3_mod.AWS_S3_BUCKET
             s3_client.head_bucket(Bucket=bucket_name)
             results["tests"]["bucket_access"] = "✅ Success"
         except Exception as e:

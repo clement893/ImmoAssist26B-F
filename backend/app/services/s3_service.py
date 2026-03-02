@@ -10,12 +10,46 @@ import boto3
 from botocore.exceptions import ClientError
 from fastapi import UploadFile
 
-# AWS S3 configuration
-AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
-AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
-AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
-AWS_S3_BUCKET = os.getenv("AWS_S3_BUCKET")
-AWS_S3_ENDPOINT_URL = os.getenv("AWS_S3_ENDPOINT_URL")  # For S3-compatible services like DigitalOcean Spaces
+
+def _get_s3_config() -> dict:
+    """Resolve S3/R2 config from AWS_* or R2_* environment variables."""
+    access_key = (
+        (os.getenv("AWS_ACCESS_KEY_ID") or "").strip()
+        or (os.getenv("R2_ACCESS_KEY_ID") or "").strip()
+    )
+    secret_key = (
+        (os.getenv("AWS_SECRET_ACCESS_KEY") or "").strip()
+        or (os.getenv("R2_SECRET_ACCESS_KEY") or "").strip()
+    )
+    bucket = (
+        (os.getenv("AWS_S3_BUCKET") or "").strip()
+        or (os.getenv("R2_BUCKET_NAME") or "").strip()
+    )
+    endpoint_url = (
+        (os.getenv("AWS_S3_ENDPOINT_URL") or "").strip()
+        or (os.getenv("R2_ENDPOINT_URL") or "").strip()
+    )
+    region = (os.getenv("AWS_REGION") or "").strip() or (os.getenv("R2_REGION") or "").strip()
+    is_r2 = endpoint_url and "r2.cloudflarestorage.com" in endpoint_url
+    if is_r2:
+        region = region or "auto"  # R2 requires region "auto"
+    elif not region:
+        region = "us-east-1"
+    return {
+        "access_key_id": access_key or None,
+        "secret_access_key": secret_key or None,
+        "region": region,
+        "bucket": bucket or None,
+        "endpoint_url": endpoint_url or None,
+    }
+
+
+_CONFIG = _get_s3_config()
+AWS_ACCESS_KEY_ID = _CONFIG["access_key_id"]
+AWS_SECRET_ACCESS_KEY = _CONFIG["secret_access_key"]
+AWS_REGION = _CONFIG["region"]
+AWS_S3_BUCKET = _CONFIG["bucket"]
+AWS_S3_ENDPOINT_URL = _CONFIG["endpoint_url"]
 
 # Initialize S3 client
 s3_client = None

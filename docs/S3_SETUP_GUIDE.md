@@ -2,6 +2,8 @@
 
 Ce guide vous explique comment configurer un bucket S3 (ou DigitalOcean Spaces) pour stocker les fichiers de l'application.
 
+> **Cloudflare R2** : pour connecter un bucket **R2**, suivez le guide dédié : [Guide de configuration R2 (Cloudflare)](./R2_SETUP_GUIDE.md).
+
 ## Options disponibles
 
 ### Option 1 : DigitalOcean Spaces (Recommandé - Plus simple et moins cher)
