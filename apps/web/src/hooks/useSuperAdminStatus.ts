@@ -19,13 +19,21 @@ export function useSuperAdminStatus(): boolean {
       return;
     }
     let cancelled = false;
-    checkMySuperAdminStatus(token || undefined)
-      .then((res) => {
-        if (!cancelled) setIsSuperAdmin(res.is_superadmin === true);
-      })
-      .catch(() => {
-        if (!cancelled) setIsSuperAdmin(false);
-      });
+    const check = (retryCount = 0) => {
+      checkMySuperAdminStatus(token || undefined)
+        .then((res) => {
+          if (!cancelled) setIsSuperAdmin(res.is_superadmin === true);
+        })
+        .catch(() => {
+          if (!cancelled && retryCount < 2) {
+            // Retry up to 2 times (e.g. transient network/CORS)
+            setTimeout(() => check(retryCount + 1), 800);
+          } else if (!cancelled) {
+            setIsSuperAdmin(false);
+          }
+        });
+    };
+    check();
     return () => {
       cancelled = true;
     };

@@ -354,6 +354,12 @@ export function getNavigationConfig(isAdmin?: boolean, isClient?: boolean, isSup
           href: '/dashboard/modules/admin',
           icon: <LayoutDashboard className="w-5 h-5" />,
         },
+        // Base de connaissance Léa - visible aux admins (accès réel réservé aux superadmins)
+        {
+          name: 'Base de connaissance Léa',
+          href: '/dashboard/lea/base-de-connaissance',
+          icon: <FileText className="w-5 h-5" />,
+        },
         {
           name: 'Utilisateurs',
           href: '/dashboard/modules/admin/users',

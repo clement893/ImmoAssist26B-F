@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState, useRef, type ReactNode } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
+import { useRouter } from '@/i18n/routing';
 import { useAuthStore } from '@/lib/store';
 import { TokenStorage } from '@/lib/auth/tokenStorage';
 import { checkMySuperAdminStatus } from '@/lib/api/admin';
