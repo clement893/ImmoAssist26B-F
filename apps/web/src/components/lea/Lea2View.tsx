@@ -305,8 +305,12 @@ export default function Lea2View() {
     return;
   }, [isLoading, messages, isSpeaking, autoSpeak, ttsSupported, voiceSupported, isListening, startListening]);
 
-  // Pas d'auto-scroll : la page reste fixe, pas de défilement vers le bas quand la conversation avance
-  // (messagesEndRef conservé pour compatibilité si besoin plus tard)
+  // Auto-scroll vers le bas pour garder le bas de la conversation visible
+  useEffect(() => {
+    if (messages.length > 0 && messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+  }, [messages.length, isLoading]);
 
   const toggleListening = async () => {
     if (isListening) {
@@ -498,7 +502,7 @@ export default function Lea2View() {
           <div className="flex-1 min-h-0 flex flex-col h-full">
             <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden rounded-2xl mx-3 mt-3 md:mx-4 md:mt-4 md:mr-2 bg-white/5 border border-white/10 shadow-inner overscroll-contain scrollbar-hide">
               {/* Contenu centré : max-width pour centraliser les bulles */}
-              <div className="max-w-2xl mx-auto px-4 py-5 min-h-full flex flex-col">
+              <div className="max-w-2xl mx-auto px-4 pt-5 pb-24 min-h-full flex flex-col">
                 {hasMessages ? (
                   <>
                     <p className="text-white/50 text-xs uppercase tracking-wider mb-4 sticky top-0 bg-slate-950/90 backdrop-blur py-1 z-10">
@@ -562,7 +566,7 @@ export default function Lea2View() {
                         </div>
                       )}
                     </div>
-                    <div ref={messagesEndRef} className="h-2 shrink-0" />
+                    <div ref={messagesEndRef} className="h-20 shrink-0" aria-hidden />
                   </>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-16 text-center text-white/40 text-sm flex-1">
