@@ -8,6 +8,8 @@ import type { LeaMessage } from '@/hooks/useLea';
 interface LeaMessagesListProps {
   messages: LeaMessage[];
   isLoading?: boolean;
+  /** True when stream is established but no content yet (show "Léa réfléchit...") */
+  isConnecting?: boolean;
   className?: string;
   /** If false, list doesn't grow to fill space (e.g. for vertically centered layout) */
   grow?: boolean;
@@ -20,6 +22,7 @@ interface LeaMessagesListProps {
 export default function LeaMessagesList({
   messages,
   isLoading = false,
+  isConnecting = false,
   className = '',
   grow = true,
   isSpeaking = false,
@@ -75,6 +78,13 @@ export default function LeaMessagesList({
                 <div className="flex justify-start">
                   <div className="bg-muted rounded-xl px-4 py-3 border border-border">
                     <Loading size="sm" />
+                  </div>
+                </div>
+              )}
+              {isConnecting && visible.length > 0 && visible[visible.length - 1]?.role === 'assistant' && !visible[visible.length - 1]?.content?.trim() && (
+                <div className="flex justify-start">
+                  <div className="bg-muted/80 rounded-xl px-4 py-2 border border-border text-sm text-muted-foreground">
+                    Connexion établie, Léa réfléchit…
                   </div>
                 </div>
               )}

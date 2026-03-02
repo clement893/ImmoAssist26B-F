@@ -3,6 +3,7 @@ Léa AI Assistant Endpoints
 """
 
 import base64
+import asyncio
 import io
 import json
 import os
@@ -28,6 +29,7 @@ from app.services.lea_service import LeaService
 from app.services.ai_service import AIService, AIProvider
 from app.core.config import get_settings
 from app.core.logging import logger
+from app.core.rate_limit import rate_limit_decorator
 
 from sqlalchemy import select, and_, or_
 
@@ -2235,38 +2237,53 @@ async def _call_external_agent_chat(message: str, session_id: str | None, conver
 async def _stream_lea_sse(
     message: str,
     session_id: str | None,
-    user_context: str | None = None,
-    action_lines: list | None = None,
-    confirmation_text: str | None = None,
+    last_assistant_message: str | None,
     *,
-    db: AsyncSession | None = None,
-    user_id: int | None = None,
-    user_message: str | None = None,
-    messages_for_llm: list | None = None,
+    db: AsyncSession,
+    user_id: int,
 ):
     """
     Génère les événements SSE pour le chat Léa intégré (streaming).
-    Si confirmation_text est fourni (ex: transaction créée), on envoie ce texte en stream
-    sans appeler l'IA, pour garantir que l'utilisateur voit la confirmation.
-    Envoie immédiatement un commentaire SSE pour éviter les timeouts proxy (503 Connection reset by peer).
-    Si db, user_id et session_id sont fournis, persiste user + assistant dans LeaConversation après le stream.
+    Envoie immédiatement un premier octet (": ok" + status connecting) pour réduire le TTFB,
+    puis exécute run_lea_actions, get_lea_user_context, get_or_create_lea_conversation dans le générateur.
     """
     sid = session_id or str(uuid.uuid4())
-    # Premier octet immédiat pour éviter timeout Varnish/Fastly (503 Connection reset by peer)
     yield ": ok\n\n"
+    yield f"data: {json.dumps({'status': 'connecting'})}\n\n"
     try:
+        action_lines, created_tx = await run_lea_actions(db, user_id, message, last_assistant_message)
+        if session_id and action_lines:
+            tx_to_link = created_tx or await get_user_latest_transaction(db, user_id)
+            if tx_to_link:
+                await link_lea_session_to_transaction(db, user_id, session_id, tx_to_link.id)
+        results = await asyncio.gather(
+            get_lea_user_context(db, user_id),
+            get_or_create_lea_conversation(db, user_id, session_id),
+        )
+        user_context = results[0]
+        conv, sid = results[1]
+        if action_lines:
+            user_context += "\n\n--- Action effectuée ---\n" + "\n".join(action_lines)
+        messages_for_llm = build_llm_messages_from_history(conv.messages or [], message)
+        confirmation_text = None
+        if created_tx and action_lines:
+            ref = created_tx.dossier_number or f"#{created_tx.id}"
+            confirmation_text = (
+                f"C'est fait ! J'ai créé la transaction {ref} pour vous. "
+                "Vous pouvez la voir et la compléter dans la section Transactions. "
+                "Quelle est l'adresse du bien ?"
+            )
         if confirmation_text:
-            # Réponse directe sans appeler l'IA (ex: transaction créée)
             for i in range(0, len(confirmation_text), 1):
                 yield f"data: {json.dumps({'delta': confirmation_text[i]})}\n\n"
             payload = {"done": True, "session_id": sid}
             if action_lines:
                 payload["actions"] = action_lines
             yield f"data: {json.dumps(payload)}\n\n"
-            if db is not None and user_id is not None and sid:
+            if sid:
                 await persist_lea_messages(
                     db, user_id, sid,
-                    user_message or message, confirmation_text,
+                    message, confirmation_text,
                     meta={"actions": action_lines},
                 )
             return
@@ -2275,7 +2292,7 @@ async def _stream_lea_sse(
         if user_context:
             system += "\n\n--- Informations actuelles de l'utilisateur (plateforme) ---\n" + user_context
         service = AIService(provider=AIProvider.AUTO)
-        messages = messages_for_llm if messages_for_llm else [{"role": "user", "content": message}]
+        messages = messages_for_llm
         accumulated = []
         async for delta in service.stream_chat_completion(
             messages=messages,
@@ -2295,10 +2312,10 @@ async def _stream_lea_sse(
         if model is not None:
             payload["model"] = model
         yield f"data: {json.dumps(payload)}\n\n"
-        if db is not None and user_id is not None and sid:
+        if sid:
             await persist_lea_messages(
                 db, user_id, sid,
-                user_message or message, content,
+                message, content,
                 meta={"actions": action_lines, "model": model, "provider": str(provider) if provider else None},
             )
     except Exception as e:
@@ -2309,6 +2326,7 @@ async def _stream_lea_sse(
 
 
 @router.post("/chat/stream")
+@rate_limit_decorator("30/minute")
 async def lea_chat_stream(
     request: LeaChatRequest,
     current_user: User = Depends(get_current_user),
@@ -2324,38 +2342,13 @@ async def lea_chat_stream(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
             detail="Streaming requires OPENAI_API_KEY or ANTHROPIC_API_KEY in the Backend.",
         )
-    action_lines, created_tx = await run_lea_actions(db, current_user.id, request.message, request.last_assistant_message)
-    user_context = await get_lea_user_context(db, current_user.id)
-    if action_lines:
-        user_context += "\n\n--- Action effectuée ---\n" + "\n".join(action_lines)
-    # Lier la session à la transaction pour l'historique sur la fiche transaction
-    if request.session_id and action_lines:
-        tx_to_link = created_tx if created_tx else await get_user_latest_transaction(db, current_user.id)
-        if tx_to_link:
-            await link_lea_session_to_transaction(db, current_user.id, request.session_id, tx_to_link.id)
-    # Charger l'historique pour le LLM
-    conv, sid = await get_or_create_lea_conversation(db, current_user.id, request.session_id)
-    messages_for_llm = build_llm_messages_from_history(conv.messages or [], request.message)
-    # Quand une transaction vient d'être créée, confirmation directe en stream (comme pour l'agent externe)
-    confirmation_text = None
-    if created_tx and action_lines:
-        ref = created_tx.dossier_number or f"#{created_tx.id}"
-        confirmation_text = (
-            f"C'est fait ! J'ai créé la transaction {ref} pour vous. "
-            "Vous pouvez la voir et la compléter dans la section Transactions. "
-            "Quelle est l'adresse du bien ?"
-        )
     return StreamingResponse(
         _stream_lea_sse(
             request.message,
-            sid or request.session_id,
-            user_context=user_context,
-            action_lines=action_lines if action_lines else None,
-            confirmation_text=confirmation_text,
+            request.session_id,
+            request.last_assistant_message,
             db=db,
             user_id=current_user.id,
-            user_message=request.message,
-            messages_for_llm=messages_for_llm,
         ),
         media_type="text/event-stream",
         headers={
@@ -2367,6 +2360,7 @@ async def lea_chat_stream(
 
 
 @router.post("/chat", response_model=LeaChatResponse)
+@rate_limit_decorator("30/minute")
 async def lea_chat(
     request: LeaChatRequest,
     current_user: User = Depends(get_current_user),
@@ -2527,6 +2521,7 @@ async def lea_chat(
 
 
 @router.post("/chat/voice")
+@rate_limit_decorator("30/minute")
 async def lea_chat_voice(
     audio: UploadFile = File(...),
     session_id: Optional[str] = FormParam(None),

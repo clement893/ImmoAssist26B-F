@@ -61,6 +61,8 @@ function formatConversationForCopy(messages: LeaMessage[], sessionId?: string | 
 interface LeaConversationViewProps {
   messages: LeaMessage[];
   isLoading: boolean;
+  /** True when stream is established but no content yet (show "Léa réfléchit...") */
+  isConnecting?: boolean;
   error: string | null;
   voiceError: string | null;
   onMessageSend: (message: string) => Promise<void>;
@@ -90,6 +92,7 @@ interface LeaConversationViewProps {
 export default function LeaConversationView({
   messages,
   isLoading,
+  isConnecting = false,
   error,
   voiceError,
   onMessageSend,
@@ -151,6 +154,7 @@ export default function LeaConversationView({
           <LeaMessagesList
             messages={messages}
             isLoading={isLoading}
+            isConnecting={isConnecting}
             grow={false}
             isSpeaking={isSpeaking}
             onSkipReading={onStopSpeaking}

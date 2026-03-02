@@ -320,6 +320,7 @@ export const leaAPI = {
   /**
    * Chat with Léa in streaming mode (SSE). Calls onDelta for each chunk, onDone when finished.
    * onDone receives sessionId and optional metadata: actions, model, provider, usage (for copy/logs).
+   * onConnecting is called when the stream is established (first SSE event) for UI feedback.
    * Returns true if streaming was used, false if backend does not support streaming (fallback to chat).
    */
   chatStream: async (
@@ -328,81 +329,149 @@ export const leaAPI = {
       onDelta: (delta: string) => void;
       onDone: (sessionId: string, meta?: { actions?: string[]; model?: string; provider?: string; usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } }) => void;
       onError: (message: string) => void;
+      onConnecting?: () => void;
     }
   ): Promise<boolean> => {
-    const token = TokenStorage.getToken();
-    const url = `${getApiUrl().replace(/\/$/, '')}/api/v1/lea/chat/stream`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      credentials: 'include',
-      body: JSON.stringify({
-        message: params.message,
-        session_id: params.sessionId ?? null,
-        last_assistant_message: params.lastAssistantMessage ?? null,
-      }),
-    });
-    if (res.status === 501 || res.status === 404) return false;
-    if (!res.ok) {
-      const text = await res.text();
-      try {
-        const j = JSON.parse(text);
-        callbacks.onError(j.detail ?? text);
-      } catch {
-        callbacks.onError(text || res.statusText);
+    const STREAM_TIMEOUT_MS = 120000; // 120 s
+    const doFetch = async (token: string | null): Promise<{ res: Response; clearTimeout: () => void }> => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), STREAM_TIMEOUT_MS);
+      const url = `${getApiUrl().replace(/\/$/, '')}/api/v1/lea/chat/stream`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          message: params.message,
+          session_id: params.sessionId ?? null,
+          last_assistant_message: params.lastAssistantMessage ?? null,
+        }),
+        signal: controller.signal,
+      });
+      return {
+        res,
+        clearTimeout: () => clearTimeout(timeoutId),
+      };
+    };
+
+    const readStream = async (res: Response, clearTimeoutRef: () => void): Promise<boolean> => {
+      const reader = res.body?.getReader();
+      if (!reader) {
+        callbacks.onError('Stream non disponible');
+        return true;
       }
-      return true; // we "used" streaming (got an error response)
-    }
-    const reader = res.body?.getReader();
-    if (!reader) {
-      callbacks.onError('Stream non disponible');
-      return true;
-    }
-    const decoder = new TextDecoder();
-    let buffer = '';
-    let sessionId = params.sessionId ?? '';
-    let receivedDone = false;
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() ?? '';
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              if (data.error) {
-                callbacks.onError(data.error);
-                return true;
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let sessionId = params.sessionId ?? '';
+      let receivedDone = false;
+      let connectingNotified = false;
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() ?? '';
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                if (!connectingNotified && callbacks.onConnecting) {
+                  connectingNotified = true;
+                  callbacks.onConnecting();
+                }
+                if (data.error) {
+                  callbacks.onError(data.error);
+                  return true;
+                }
+                if (data.status === 'connecting' && callbacks.onConnecting && !connectingNotified) {
+                  connectingNotified = true;
+                  callbacks.onConnecting();
+                }
+                if (typeof data.delta === 'string') callbacks.onDelta(data.delta);
+                if (data.done && data.session_id) {
+                  receivedDone = true;
+                  sessionId = data.session_id;
+                  const meta = {
+                    actions: data.actions,
+                    model: data.model,
+                    provider: data.provider,
+                    usage: data.usage,
+                  };
+                  callbacks.onDone(data.session_id, meta);
+                }
+              } catch {
+                /* ignore parse errors */
               }
-              if (typeof data.delta === 'string') callbacks.onDelta(data.delta);
-              if (data.done && data.session_id) {
-                receivedDone = true;
-                sessionId = data.session_id;
-                const meta = {
-                  actions: data.actions,
-                  model: data.model,
-                  provider: data.provider,
-                  usage: data.usage,
-                };
-                callbacks.onDone(data.session_id, meta);
-              }
-            } catch {
-              /* ignore parse errors */
+            } else if (line.startsWith(': ') && callbacks.onConnecting && !connectingNotified) {
+              connectingNotified = true;
+              callbacks.onConnecting();
             }
           }
         }
+        if (!receivedDone) callbacks.onDone(sessionId || params.sessionId || '', {});
+      } catch (e) {
+        if (e instanceof Error && e.name === 'AbortError') {
+          callbacks.onError('Délai dépassé. Réessayez.');
+        } else {
+          callbacks.onError(e instanceof Error ? e.message : 'Erreur de lecture du flux');
+        }
+      } finally {
+        clearTimeoutRef();
       }
-      if (!receivedDone) callbacks.onDone(sessionId || params.sessionId || '', {});
-    } catch (e) {
-      callbacks.onError(e instanceof Error ? e.message : 'Erreur de lecture du flux');
+      return true;
+    };
+
+    let token: string | null = TokenStorage.getToken();
+    let result = await doFetch(token);
+    let { res, clearTimeout: clearTimeoutRef } = result;
+    if (res.status === 401) {
+      clearTimeoutRef();
+      const refreshToken = TokenStorage.getRefreshToken();
+      if (refreshToken) {
+        try {
+          const refreshRes = await apiClient.post<{ access_token: string }>('/v1/auth/refresh', {
+            token: token || undefined,
+            refresh_token: refreshToken,
+          });
+          const access_token = refreshRes.data.access_token;
+          await TokenStorage.setToken(access_token, refreshToken);
+          const retryResult = await doFetch(access_token);
+          res = retryResult.res;
+          clearTimeoutRef = retryResult.clearTimeout;
+        } catch {
+          callbacks.onError('Session expirée. Veuillez vous reconnecter.');
+          return true;
+        }
+      } else {
+        callbacks.onError('Session expirée. Veuillez vous reconnecter.');
+        return true;
+      }
     }
-    return true;
+    if (res.status === 501 || res.status === 404) {
+      clearTimeoutRef();
+      return false;
+    }
+    if (res.status === 429) {
+      clearTimeoutRef();
+      callbacks.onError('Trop de requêtes. Réessayez dans un instant.');
+      return true;
+    }
+    if (!res.ok) {
+      clearTimeoutRef();
+      const text = await res.text();
+      try {
+        const j = JSON.parse(text);
+        callbacks.onError(j.detail ?? j.message ?? text);
+      } catch {
+        callbacks.onError(text || res.statusText);
+      }
+      return true;
+    }
+    return readStream(res, clearTimeoutRef);
   },
   chatVoice: (audioBlob: Blob, sessionId?: string, conversationId?: number) => {
     const formData = new FormData();

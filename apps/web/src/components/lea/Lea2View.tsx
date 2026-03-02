@@ -101,6 +101,7 @@ export default function Lea2View() {
   const {
     messages,
     isLoading,
+    isConnecting,
     error,
     sendMessage,
     sendVoiceMessage,
@@ -556,7 +557,7 @@ export default function Lea2View() {
                       {isLoading && (
                         <div className="flex justify-start">
                           <div className="px-4 py-2.5 rounded-2xl bg-white/10 text-white/80 text-sm border border-white/20">
-                            Léa réfléchit...
+                            {isConnecting ? 'Connexion établie, Léa réfléchit…' : 'Léa réfléchit...'}
                           </div>
                         </div>
                       )}

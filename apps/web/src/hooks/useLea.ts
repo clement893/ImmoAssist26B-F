@@ -49,21 +49,22 @@ export interface LeaVoiceResponse {
 export interface UseLeaReturn {
   messages: LeaMessage[];
   isLoading: boolean;
+  /** True when stream is established but no content yet (for "Léa réfléchit..." indicator) */
+  isConnecting: boolean;
   error: string | null;
   sessionId: string | null;
   sendMessage: (message: string) => Promise<void>;
   sendVoiceMessage: (audioBlob: Blob) => Promise<void>;
   clearChat: () => void;
   resetContext: () => Promise<void>;
-  /** Load a conversation by session_id (fetches messages from API). */
   loadConversation: (sessionId: string) => Promise<void>;
-  /** Start a new conversation (clear state; next send will create new session). */
   startNewConversation: () => void;
 }
 
 export function useLea(initialSessionId?: string): UseLeaReturn {
   const [messages, setMessages] = useState<LeaMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(initialSessionId || null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -73,6 +74,7 @@ export function useLea(initialSessionId?: string): UseLeaReturn {
 
     setIsLoading(true);
     setError(null);
+    setIsConnecting(false);
 
     // Add user message immediately
     const userMessage: LeaMessage = {
@@ -105,6 +107,7 @@ export function useLea(initialSessionId?: string): UseLeaReturn {
         lastAssistantMessage: lastAssistantContent,
       },
       {
+        onConnecting: () => setIsConnecting(true),
         onDelta: (delta) => {
           setMessages((prev) => {
             const next = [...prev];
@@ -146,9 +149,11 @@ export function useLea(initialSessionId?: string): UseLeaReturn {
           });
           setIsLoading(false);
           abortControllerRef.current = null;
+          setIsConnecting(false);
         },
         onError: (errMsg) => {
           setError(errMsg);
+          setIsConnecting(false);
           setMessages((prev) => {
             const next = [...prev];
             const last = next[next.length - 1];
@@ -353,6 +358,7 @@ export function useLea(initialSessionId?: string): UseLeaReturn {
   return {
     messages,
     isLoading,
+    isConnecting,
     error,
     sessionId,
     sendMessage,
