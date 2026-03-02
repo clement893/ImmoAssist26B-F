@@ -60,6 +60,7 @@ LEA_SYSTEM_PROMPT = (
     "Tu as TOUJOURS accès aux données de la plateforme pour l'utilisateur connecté. "
     "Un bloc « Données plateforme » est fourni ci-dessous avec ses transactions et dossiers. "
     "Base-toi UNIQUEMENT sur ces données pour répondre aux questions sur ses transactions en cours, ses dossiers, etc.\n\n"
+    "** Ne jamais assumer une adresse ou une transaction d'une ancienne conversation : ** Si l'utilisateur demande de préparer une promesse d'achat (ou un formulaire) sans donner d'adresse ni de numéro de transaction, ne prends PAS la dernière transaction par défaut. Demande toujours : « Pour quelle propriété (adresse ou transaction) ? »\n\n"
     "** RÈGLE CRUCIALE - ACTIONS RÉELLES : **\n"
     "Tu ne dois JAMAIS prétendre avoir fait une action (créer une transaction, mettre à jour une adresse, créer une promesse d'achat, etc.) "
     "si le bloc « Action effectuée » ci-dessous ne le mentionne pas explicitement. "
@@ -73,20 +74,21 @@ LEA_SYSTEM_PROMPT = (
     "** Quand « Action effectuée » contient « Recherche en ligne (géocodage) » ou « Résultat géocodage » avec une ville et un code postal, tu DOIS écrire dans ta réponse l'adresse complète trouvée (rue, ville, province, code postal) et confirmer que c'est enregistré. Tu ne DOIS JAMAIS répondre « Je ne peux pas effectuer cette action » dans ce cas — le géocodage a déjà été fait par le système. **\n\n"
     "** ADRESSE OBLIGATOIREMENT COMPLÈTE AVANT LA SUITE : **\n"
     "Tu ne DOIS JAMAIS poser « Qui sont les vendeurs ? », « Qui sont les acheteurs ? », « Quel est le prix ? » ou toute autre question sur le dossier tant que l'adresse du bien (dernière transaction) n'est pas complète avec ville, province et code postal. "
-    "Si l'adresse n'a pas encore de ville/code postal : soit tu proposes de la trouver en ligne (recherche/géocodage), soit tu demandes à l'utilisateur la ville et le code postal. "
+    "Si l'adresse n'a pas encore de ville/code postal : demande uniquement la **ville** à l'utilisateur (ne demande pas le code postal). Une fois la ville donnée, propose de trouver le code postal en ligne (géocodage) ou fais la recherche. "
     "Une fois l'adresse complète (éventuellement après recherche en ligne), tu DOIS d'abord indiquer cette adresse complète à l'utilisateur dans ta réponse ; seulement après tu peux poser la question suivante (vendeurs, etc.).\n\n"
     "** INFORMATIONS CLÉS À COLLECTER – POSE LES BONNES QUESTIONS : **\n"
     "Quand l'utilisateur crée une transaction ou travaille sur un dossier, aide-le à le compléter en posant des questions pertinentes, une à la fois ou par thème. "
     "Ordre logique des informations clés :\n"
     "1. **Adresse du bien** : « Quelle est l'adresse du bien ? » (ex. 123 rue Principale, Montréal). Tu peux enregistrer l'adresse si l'utilisateur la donne dans sa réponse. "
-    "**Une adresse complète doit toujours inclure : rue ou civique, ville, province et code postal**, au format : « [numéro et rue], [ville] ([province]) [code postal] » (ex. 2643 Sherbrooke Est, Montréal (Québec) H2K 1E1). Si l'utilisateur ne donne que la rue, propose de trouver la ville et le code postal en ligne (géocodage) ou demande la ville et le code postal.\n"
+    "**Une adresse complète doit toujours inclure : rue ou civique, ville, province et code postal**, au format : « [numéro et rue], [ville] ([province]) [code postal] » (ex. 2643 Sherbrooke Est, Montréal (Québec) H2K 1E1). **Ne demande jamais le code postal à l'utilisateur** : demande uniquement la **ville** ; une fois la ville donnée, propose de trouver le code postal en ligne (géocodage). "
+    "**Quand le géocodage fournit une ville que l'utilisateur n'a pas donnée**, tu DOIS demander confirmation de la ville avant de valider l'adresse (ex. « Est-ce bien à [ville] ? » ou « La ville est-elle bien [ville] ? ») ; seulement après sa confirmation tu peux passer aux vendeurs ou à la suite.\n"
     "2. **Vendeur(s)** : « Qui sont les vendeurs ? » (nom, téléphone, courriel). Tu peux enregistrer ces infos si l'utilisateur les donne.\n"
     "3. **Acheteur(s)** : « Qui sont les acheteurs ? » (nom, téléphone, courriel). Idem.\n"
     "4. **Prix et dates** : « Quel est le prix demandé ? » ou « le prix offert ? », « Date de clôture prévue ? »\n"
     "5. **Notaire, courtiers** : si pertinent, « As-tu les coordonnées du notaire ? du courtier vendeur/acheteur ? »\n"
     "Après avoir créé une transaction ou enregistré une info, propose **la prochaine question logique** (ex. après l'adresse : « Qui sont les vendeurs pour ce dossier ? »). "
     "**Ne redemande jamais une information déjà fournie** (ex. le prix, l'adresse, les coordonnées d'un vendeur/acheteur déjà donnés). Utilise le bloc « Données plateforme » et l'historique pour proposer la prochaine étape (ex. coordonnées acheteur si le vendeur est fait, ou date de clôture). "
-    "Si le bloc « Données plateforme » indique déjà des vendeurs ou acheteurs pour la dernière transaction, ne redemande pas « Qui sont les vendeurs ? » ou « Qui sont les acheteurs ? » — passe à l'étape suivante (ex. prix). "
+    "Si le bloc « Données plateforme » indique déjà des vendeurs ou acheteurs pour une transaction (ex. « vendeurs: X, Y » ou « acheteurs: A, B »), ne redemande jamais « Qui sont les vendeurs ? » ni « Qui sont les acheteurs ? » pour cette transaction — passe à l'étape suivante (ex. prix). "
     "Si dans l'échange précédent tu as toi-même répondu en listant les vendeurs (ex. « Les vendeurs sont X et Y »), ne redemande jamais « Qui sont les vendeurs ? » : considère que c'est enregistré et passe à la suite (acheteurs ou prix). "
     "**Quand tu viens de demander « Quelle est la date de clôture prévue ? » ou « date d'écriture prévue »** et que l'utilisateur répond par une date (ex. « le 15 mars 2026 »), considère que c'est la date de clôture pour cette transaction — ne demande pas « à quoi elle se rapporte ».\n"
     "Si l'utilisateur dit qu'il n'y a pas encore d'acheteurs (ex. « en période de vente », « pas encore d'acheteurs », « aucun acheteur pour l'instant »), considère que c'est noté et propose la suite (ex. « Quel est le prix demandé ? »). Ne redemande pas les vendeurs ni les acheteurs dans ce cas.\n\n"
@@ -238,7 +240,19 @@ async def get_lea_user_context(db: AsyncSession, user_id: int) -> str:
                 if not addr.strip():
                     addr = t.property_address or t.property_city or "Sans adresse"
                 num = t.dossier_number or f"#{t.id}"
-                lines.append(f"  - {num}: {t.name} — {addr} — statut: {t.status}")
+                # Pour chaque transaction : afficher vendeurs/acheteurs déjà enregistrés pour ne pas redemander à la réouverture
+                detail = []
+                if t.sellers and isinstance(t.sellers, list) and len(t.sellers) > 0:
+                    names_s = [e.get("name") for e in t.sellers if isinstance(e, dict) and e.get("name")]
+                    detail.append(f"vendeurs: {', '.join(names_s)}" if names_s else "vendeurs: (aucun)")
+                else:
+                    detail.append("vendeurs: (aucun)")
+                if t.buyers and isinstance(t.buyers, list) and len(t.buyers) > 0:
+                    names_b = [e.get("name") for e in t.buyers if isinstance(e, dict) and e.get("name")]
+                    detail.append(f"acheteurs: {', '.join(names_b)}" if names_b else "acheteurs: (aucun)")
+                else:
+                    detail.append("acheteurs: (aucun)")
+                lines.append(f"  - {num}: {t.name} — {addr} — statut: {t.status} — {' ; '.join(detail)}")
             # Pour la transaction la plus récente : détail vendeurs/acheteurs/prix pour ne pas redemander
             latest = re_list[0]
             detail_parts = []
@@ -276,7 +290,7 @@ async def get_lea_user_context(db: AsyncSession, user_id: int) -> str:
                 if not (has_city and has_postal):
                     lines.append(
                         "  → Adresse du bien enregistrée mais INCOMPLÈTE (il manque ville et/ou code postal). "
-                        "Ne PAS poser « Qui sont les vendeurs ? » ni aucune autre question : compléter l'adresse d'abord (recherche en ligne ou demander ville et code postal à l'utilisateur)."
+                        "Ne PAS poser « Qui sont les vendeurs ? » ni aucune autre question. Demande uniquement la **ville** à l'utilisateur (pas le code postal) ; une fois la ville donnée, propose de trouver le code postal en ligne (géocodage)."
                     )
             address_complete = bool(latest.property_address or latest.property_city) and (
                 bool(getattr(latest, "property_city", None) and str(latest.property_city or "").strip() not in ("", "À compléter"))
@@ -739,6 +753,25 @@ def _extract_address_hint_from_message(message: str) -> Optional[str]:
     return None
 
 
+def _extract_address_hint_from_assistant_message(message: str) -> Optional[str]:
+    """
+    Extrait un indice d'adresse du message assistant quand Léa vient de donner l'adresse (ex. "est : 8569 delorimier, Val-d'Or").
+    Permet de cibler la bonne transaction quand l'utilisateur répond "les vendeurs sont X et Y" sans répéter l'adresse.
+    """
+    if not message or len(message.strip()) < 5:
+        return None
+    t = message.strip()
+    # "L'adresse ... est : 8569 delorimier, Val-d'Or" / "est : 8569 delorimier," / "adresse suivante est : 8569 delorimier"
+    m = re.search(r"(?:adresse\s+(?:suivante\s+)?(?:est\s*:\s*)|est\s*:\s*)\s*(\d+\s+[A-Za-zÀ-ÿ\-]+)", t, re.I)
+    if m:
+        return m.group(1).strip()
+    # Dernier recours : un mot typique de rue (ex. "delorimier", "Bordeaux") après "transaction" ou "dossier"
+    m = re.search(r"(?:transaction|dossier).*?\b([A-Za-zÀ-ÿ]{4,})\b", t, re.I)
+    if m:
+        return m.group(1).strip()
+    return None
+
+
 async def get_user_transaction_by_address_hint(
     db: AsyncSession, user_id: int, hint: str
 ) -> Optional[RealEstateTransaction]:
@@ -1154,11 +1187,31 @@ async def maybe_geocode_existing_transaction_address(
         return None
 
 
-async def maybe_set_promise_from_lea(db: AsyncSession, user_id: int, message: str):
-    """Si le message demande de créer la promesse d'achat, enregistre la date sur la dernière transaction."""
+async def maybe_set_promise_from_lea(
+    db: AsyncSession, user_id: int, message: str, last_assistant_message: Optional[str] = None
+):
+    """
+    Si le message demande de créer la promesse d'achat, enregistre la date sur la transaction concernée.
+    N'utilise la dernière transaction que si l'utilisateur (ou le contexte) a référencé une transaction (ref ou adresse).
+    Sinon retourne None : ne pas assumer une adresse d'une ancienne conversation.
+    """
     if not _wants_to_set_promise(message):
         return None
-    transaction = await get_user_latest_transaction(db, user_id)
+    ref = _extract_transaction_ref_from_message(message) or (
+        _extract_transaction_ref_from_message(last_assistant_message or "") if last_assistant_message else None
+    )
+    if ref:
+        transaction = await get_user_transaction_by_ref(db, user_id, ref)
+    else:
+        hint = (
+            _extract_address_hint_from_message(message)
+            or _extract_address_hint_from_message(last_assistant_message or "")
+            or _extract_address_hint_from_assistant_message(last_assistant_message or "")
+        )
+        transaction = await get_user_transaction_by_address_hint(db, user_id, hint) if hint else None
+        if not transaction:
+            # Ne pas utiliser la dernière transaction : l'utilisateur n'a pas précisé laquelle
+            return None
     if not transaction:
         return None
     try:
@@ -1437,11 +1490,13 @@ async def maybe_add_seller_buyer_contact_from_lea(
             names_list = _extract_seller_buyer_names_from_assistant_question(last_assistant_message)
     if names_list:
         role, names = names_list
-        ref = _extract_transaction_ref_from_message(message)
+        ref = _extract_transaction_ref_from_message(message) or (
+            _extract_transaction_ref_from_message(last_assistant_message or "") if last_assistant_message else None
+        )
         if ref:
             transaction = await get_user_transaction_by_ref(db, user_id, ref)
         else:
-            hint = _extract_address_hint_from_message(message)
+            hint = _extract_address_hint_from_message(message) or _extract_address_hint_from_message(last_assistant_message or "") or _extract_address_hint_from_assistant_message(last_assistant_message or "")
             transaction = await get_user_transaction_by_address_hint(db, user_id, hint) if hint else None
             if not transaction:
                 transaction = await get_user_latest_transaction(db, user_id)
@@ -1747,7 +1802,7 @@ def _get_lea_guidance_lines(message: str) -> list[str]:
     if re.match(r"^(se\s+coucher|c['']est\s+couché|couche)\s*\.?$", t, re.I) or t.strip() in ("se coucher", "c'est couché", "couché"):
         lines.append(
             "L'utilisateur a peut-être dit « c'est bon » ou « c'est correct » (reconnaissance vocale : « se coucher »). "
-            "Interprète comme une confirmation. Passe à la section suivante du formulaire ou confirme que c'est noté, puis propose la prochaine étape (ex. ville et code postal pour l'adresse, ou section suivante)."
+            "Interprète comme une confirmation. Passe à la section suivante du formulaire ou confirme que c'est noté, puis propose la prochaine étape (ex. demander la ville pour l'adresse puis proposer le géocodage pour le code postal, ou section suivante)."
         )
 
     # "Je t'ai déjà donné les vendeurs" / "je t'ai déjà dit" (prix, vendeurs, etc.) — ne pas redemander
@@ -1929,18 +1984,21 @@ async def maybe_create_oaciq_form_submission_from_lea(
     if not _wants_to_create_oaciq_form_for_transaction(message):
         return None
     form_code = _get_oaciq_form_code_for_lea_message(message)
-    ref = _extract_transaction_ref_from_message(message)
+    ref = _extract_transaction_ref_from_message(message) or (
+        _extract_transaction_ref_from_message(last_assistant_message or "") if last_assistant_message else None
+    )
     if ref:
         transaction = await get_user_transaction_by_ref(db, user_id, ref)
     else:
-        transaction = None
-        hint = _extract_address_hint_from_message(message)
-        if not hint and last_assistant_message:
-            hint = _extract_address_hint_from_message(last_assistant_message)
-        if hint:
-            transaction = await get_user_transaction_by_address_hint(db, user_id, hint)
+        hint = (
+            _extract_address_hint_from_message(message)
+            or _extract_address_hint_from_message(last_assistant_message or "")
+            or _extract_address_hint_from_assistant_message(last_assistant_message or "")
+        )
+        transaction = await get_user_transaction_by_address_hint(db, user_id, hint) if hint else None
+        # Ne pas utiliser la dernière transaction si l'utilisateur n'a pas précisé laquelle (éviter une adresse d'une ancienne conversation)
         if not transaction:
-            transaction = await get_user_latest_transaction(db, user_id)
+            return None
     if not transaction:
         return None
     try:
@@ -2038,6 +2096,12 @@ async def run_lea_actions(
                         "Tu DOIS écrire cette adresse complète dans ta réponse (format : rue, ville (province) code postal), sans rien enlever. "
                         "INTERDICTION de poser « Qui sont les vendeurs ? » ou toute autre question avant d'avoir écrit cette adresse complète. Une seule phrase pour l'adresse, puis tu pourras poser la suite."
                     )
+                    # Si l'utilisateur n'a pas donné la ville (ex. seulement « 8569 delorimier »), exiger confirmation de la ville avant de valider
+                    if "," not in (addr or "").strip():
+                        lines.append(
+                            f"L'utilisateur n'a pas indiqué la ville. Tu DOIS lui demander de confirmer la ville avant de valider l'adresse (ex. « Est-ce bien à {city} ? » ou « La ville est-elle bien {city} ? »). "
+                            "Indique l'adresse trouvée avec la ville du géocodage, puis demande explicitement confirmation de la ville ; seulement après sa confirmation tu pourras passer aux vendeurs."
+                        )
                 else:
                     lines.append(
                         f"Recherche en ligne (géocodage) : « {geocode_str} ». "
@@ -2047,7 +2111,7 @@ async def run_lea_actions(
             lines.append(
                 "La recherche de l'adresse complète en ligne n'a pas donné de résultat. "
                 "L'adresse n'est donc PAS encore complète. INTERDICTION de passer aux vendeurs, acheteurs ou prix. "
-                "Tu DOIS rester sur l'adresse : demande à l'utilisateur la ville et le code postal (ou la province), ou propose de réessayer avec une formulation différente. "
+                "Tu DOIS rester sur l'adresse : demande uniquement la **ville** à l'utilisateur (ne demande pas le code postal). Une fois la ville donnée, propose de trouver le code postal en ligne (géocodage). "
                 "Ne pose PAS « Qui sont les vendeurs ? » ni aucune autre question tant que l'adresse n'a pas ville + code postal."
             )
     # Géocodage de l'adresse déjà enregistrée sur la dernière transaction (sans nouvelle adresse dans le message)
@@ -2084,15 +2148,30 @@ async def run_lea_actions(
                             "INTERDICTION de dire « Je ne peux pas effectuer cette action » ou « je ne peux pas » : le géocodage a été fait par le système, confirme le résultat à l'utilisateur. "
                             "INTERDICTION de poser « Qui sont les vendeurs ? » ou toute autre question avant d'avoir écrit cette adresse complète."
                         )
-    promise_tx = await maybe_set_promise_from_lea(db, user_id, message)
+                        # Si l'adresse de la transaction n'avait pas de ville (ex. seulement la rue), exiger confirmation de la ville
+                        if "," not in (_addr or "").strip():
+                            lines.append(
+                                f"L'utilisateur n'a pas indiqué la ville. Tu DOIS lui demander de confirmer la ville avant de valider l'adresse (ex. « Est-ce bien à {city} ? » ou « La ville est-elle bien {city} ? »). "
+                                "Indique l'adresse trouvée avec la ville du géocodage, puis demande explicitement confirmation de la ville ; seulement après sa confirmation tu pourras passer aux vendeurs."
+                            )
+    promise_tx = await maybe_set_promise_from_lea(db, user_id, message, last_assistant_message)
     if promise_tx:
+        ref = promise_tx.dossier_number or f"#{promise_tx.id}"
         lines.append(
-            "La date de promesse d'achat a été enregistrée sur la dernière transaction. "
+            f"La date de promesse d'achat a été enregistrée sur la transaction {ref}. "
             "Confirme à l'utilisateur que la promesse d'achat est enregistrée et qu'il peut compléter le formulaire dans la section Transactions."
         )
     oaciq_line = await maybe_create_oaciq_form_submission_from_lea(db, user_id, message, last_assistant_message)
     if oaciq_line:
         lines.append(oaciq_line)
+    # Si l'utilisateur demande une promesse d'achat / formulaire PA sans préciser la transaction ni l'adresse, ne pas assumer la dernière
+    if not promise_tx and not oaciq_line and (
+        _wants_to_set_promise(message) or _wants_to_create_oaciq_form_for_transaction(message)
+    ):
+        lines.append(
+            "L'utilisateur n'a pas précisé pour quelle propriété ni quelle transaction. "
+            "Ne prends PAS la dernière transaction par défaut. Demande-lui : « Pour quelle propriété (adresse ou numéro de transaction) souhaitez-vous préparer la promesse d'achat ? »"
+        )
     contact_line = await maybe_add_seller_buyer_contact_from_lea(db, user_id, message, last_assistant_message)
     if contact_line:
         lines.append(contact_line)

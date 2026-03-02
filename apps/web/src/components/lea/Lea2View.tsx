@@ -647,25 +647,25 @@ export default function Lea2View() {
               </div>
             )}
 
-            {/* Grande barre type Ombrion : input + micro à droite */}
+            {/* Grande barre type Ombrion : input + micro à droite (saisie clavier possible même micro activé) */}
             <div className="flex items-stretch gap-2 rounded-2xl bg-white/10 border border-white/20 p-2 focus-within:border-blue-400/50 focus-within:ring-2 focus-within:ring-blue-400/20 transition-all shadow-lg">
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Posez votre question…"
-                disabled={isLoading || isListening}
+                placeholder={isListening ? "Vous pouvez aussi taper ici…" : "Posez votre question…"}
+                disabled={isLoading}
                 className="flex-1 min-w-0 bg-transparent text-white placeholder:text-white/40 px-4 py-3 outline-none text-base"
               />
               <div className="flex items-center gap-1">
                 <button
                   type="button"
                   onClick={() => input.trim() && handleMessageSend(input.trim())}
-                  disabled={!input.trim() || isLoading || isListening}
+                  disabled={!input.trim() || isLoading}
                   className={clsx(
                     'p-2 rounded-xl transition-colors',
-                    input.trim() && !isLoading && !isListening
+                    input.trim() && !isLoading
                       ? 'bg-blue-500 hover:bg-blue-400 text-white'
                       : 'text-white/40 cursor-not-allowed'
                   )}

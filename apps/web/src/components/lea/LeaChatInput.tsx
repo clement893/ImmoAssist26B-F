@@ -38,7 +38,7 @@ export default function LeaChatInput({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async () => {
-    if (!value.trim() || isLoading || isListening) return;
+    if (!value.trim() || isLoading) return;
     await onSubmit(value.trim());
     onChange('');
     inputRef.current?.focus();
@@ -159,8 +159,8 @@ export default function LeaChatInput({
               value={value}
               onChange={(e) => onChange(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder={placeholder}
-              disabled={isLoading || isListening}
+              placeholder={isListening ? "Vous pouvez aussi taper ici…" : placeholder}
+              disabled={isLoading}
               className={clsx(
                 'w-full px-4 py-3 pr-12 rounded-xl border-2 border-border',
                 'bg-background text-foreground placeholder:text-muted-foreground',
@@ -220,10 +220,10 @@ export default function LeaChatInput({
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={!value.trim() || isLoading || isListening}
+            disabled={!value.trim() || isLoading}
             className={clsx(
               'p-3 rounded-xl transition-all flex-shrink-0',
-              value.trim() && !isLoading && !isListening
+              value.trim() && !isLoading
                 ? 'bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white shadow-standard-lg' // UI Revamp - shadow-standard-lg
                 : 'bg-muted text-muted-foreground opacity-50 cursor-not-allowed'
             )}
