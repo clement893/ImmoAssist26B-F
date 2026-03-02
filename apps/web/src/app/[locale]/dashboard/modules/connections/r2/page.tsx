@@ -76,6 +76,7 @@ export default function ConnectionR2Page() {
                 Tester la connexion
               </>
             )}
+          </Button>
         </div>
 
         {error && (
