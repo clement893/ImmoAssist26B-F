@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, DateTime, String, Integer, Index, ForeignKey, func
+from sqlalchemy import Column, DateTime, String, Integer, Text, Index, ForeignKey, func
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
 from sqlalchemy.orm import relationship
 
@@ -29,6 +29,7 @@ class File(Base):
     size = Column(Integer, nullable=False)  # File size in bytes
     url = Column(String(1000), nullable=False)
     folder = Column(String(100), nullable=True)
+    content_text = Column(Text, nullable=True)  # Extracted text for knowledge base docs (TXT/MD), used by Léa
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
     updated_at = Column(
         DateTime(timezone=True),

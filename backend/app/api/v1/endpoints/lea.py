@@ -6,6 +6,7 @@ import base64
 import asyncio
 import io
 import json
+from io import BytesIO
 import os
 import re
 import unicodedata
@@ -3105,6 +3106,72 @@ class LeaKnowledgeDocumentUploadResponse(BaseModel):
     created_at: str
 
 
+class LeaKnowledgeContentResponse(BaseModel):
+    """Contenu éditable de la base de connaissance (ex. OACIQ)"""
+    content: str
+
+
+class LeaKnowledgeContentUpdate(BaseModel):
+    """Mise à jour du contenu (ex. OACIQ)"""
+    content: str = ""
+
+
+@router.get("/knowledge-base/content", response_model=LeaKnowledgeContentResponse)
+async def get_lea_knowledge_content(
+    key: str = "oaciq",
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    _: None = Depends(require_superadmin),
+):
+    """
+    Retourne le contenu éditable de la base de connaissance Léa (ex. key=oaciq pour les formulaires OACIQ).
+    Utilisé par la page Base de connaissance Léa pour afficher et éditer le texte.
+    """
+    if key != LEA_KNOWLEDGE_KEY_OACIQ:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Clé non supportée.")
+    q = select(LeaKnowledgeContent).where(LeaKnowledgeContent.key == key)
+    result = await db.execute(q)
+    row = result.scalar_one_or_none()
+    content = (row.content or "").strip() if row else ""
+    if not content and _LEA_OACIQ_KNOWLEDGE_PATH.exists():
+        try:
+            content = _LEA_OACIQ_KNOWLEDGE_PATH.read_text(encoding="utf-8").strip()
+        except Exception:
+            pass
+    return LeaKnowledgeContentResponse(content=content or "")
+
+
+@router.put("/knowledge-base/content", response_model=LeaKnowledgeContentResponse)
+async def update_lea_knowledge_content(
+    body: LeaKnowledgeContentUpdate,
+    key: str = "oaciq",
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    _: None = Depends(require_superadmin),
+):
+    """
+    Met à jour le contenu éditable de la base de connaissance Léa (ex. key=oaciq).
+    Ce contenu est injecté dans le prompt système de Léa à chaque conversation.
+    """
+    if key != LEA_KNOWLEDGE_KEY_OACIQ:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Clé non supportée.")
+    q = select(LeaKnowledgeContent).where(LeaKnowledgeContent.key == key)
+    result = await db.execute(q)
+    row = result.scalar_one_or_none()
+    content = (body.content or "").strip()
+    if row:
+        row.content = content
+        row.updated_at = datetime.utcnow()
+        await db.commit()
+        await db.refresh(row)
+    else:
+        new_row = LeaKnowledgeContent(key=key, content=content)
+        db.add(new_row)
+        await db.commit()
+        await db.refresh(new_row)
+    return LeaKnowledgeContentResponse(content=content)
+
+
 @router.get("/capabilities")
 async def list_lea_capabilities(
     current_user: User = Depends(get_current_user),
@@ -3298,9 +3365,22 @@ async def upload_lea_knowledge_document(
             detail="Service de stockage non configuré. Impossible d'ajouter des documents.",
         )
     try:
+        body = await file.read()
+        content_text = None
+        if content_type in ("text/plain", "text/markdown"):
+            try:
+                content_text = body.decode("utf-8", errors="replace").strip()[:100000] or None
+            except Exception:
+                pass
+        from starlette.datastructures import UploadFile as StarletteUploadFile
+        refile = StarletteUploadFile(
+            file=BytesIO(body),
+            filename=file.filename or "document",
+            headers={"content-type": content_type or "application/octet-stream"},
+        )
         s3_service = S3Service()
         upload_result = s3_service.upload_file(
-            file=file,
+            file=refile,
             folder=LEA_KNOWLEDGE_FOLDER,
             user_id=str(current_user.id),
         )
@@ -3313,6 +3393,7 @@ async def upload_lea_knowledge_document(
             size=upload_result.get("size", 0),
             url=upload_result.get("url", ""),
             folder=LEA_KNOWLEDGE_FOLDER,
+            content_text=content_text,
         )
         db.add(file_record)
         await db.commit()

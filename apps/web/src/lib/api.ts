@@ -523,6 +523,10 @@ export const leaAPI = {
     return apiClient.post<{ ok: boolean; message?: string }>('/v1/lea/capabilities/check', { action_id });
   },
   /** Base de connaissance Léa */
+  getKnowledgeContent: (key: string = 'oaciq') =>
+    apiClient.get<{ content: string }>(`/v1/lea/knowledge-base/content?key=${encodeURIComponent(key)}`),
+  updateKnowledgeContent: (content: string, key: string = 'oaciq') =>
+    apiClient.put<{ content: string }>(`/v1/lea/knowledge-base/content?key=${encodeURIComponent(key)}`, { content }),
   listKnowledgeDocuments: () =>
     apiClient.get<Array<{ id: string; filename: string; original_filename: string; size: number; content_type: string; created_at: string }>>(
       '/v1/lea/knowledge-base/documents'
