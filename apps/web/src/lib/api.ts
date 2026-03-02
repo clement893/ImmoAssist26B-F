@@ -107,7 +107,8 @@ apiClient.interceptors.request.use(
         config.url?.includes('/admin/') ||
         config.url?.includes('/v1/users/me') ||
         config.url?.includes('/v1/auth/me') ||
-        config.url?.includes('/v1/lea/');
+        config.url?.includes('/v1/lea/') ||
+        config.url?.includes('/v1/forms');
 
       if (isAuthenticatedEndpoint && !token) {
         // Reject the request immediately if it's an authenticated endpoint without token

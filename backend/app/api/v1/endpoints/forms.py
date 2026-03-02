@@ -3,15 +3,17 @@ Forms API Endpoints
 Dynamic forms and submissions
 """
 
-from typing import List, Optional
+from datetime import datetime
+from typing import List, Optional, Any
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
 from app.models.form import Form, FormSubmission
 from app.models.user import User
 from app.dependencies import get_current_user, get_db, is_superadmin
+from app.core.logging import logger
 from app.core.security_audit import SecurityAuditLogger, SecurityEventType
 from app.core.tenancy_helpers import apply_tenant_scope
 from app.services.compliance_service import validate as compliance_validate
@@ -60,6 +62,33 @@ class FormResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+    @field_validator("created_at", "updated_at", mode="before")
+    @classmethod
+    def _coerce_datetime_to_str(cls, v: Any) -> str:
+        if v is None:
+            return ""
+        if isinstance(v, datetime):
+            return v.isoformat()
+        if isinstance(v, str):
+            return v
+        return str(v)
+
+    @field_validator("fields", mode="before")
+    @classmethod
+    def _coerce_fields_to_list(cls, v: Any) -> List[dict]:
+        if v is None:
+            return []
+        if isinstance(v, list):
+            return v
+        return []
+
+    @field_validator("submit_button_text", mode="before")
+    @classmethod
+    def _coerce_submit_button_text(cls, v: Any) -> str:
+        if v is None or v == "":
+            return "Submit"
+        return str(v)
 
 
 class FormSubmissionCreate(BaseModel):
@@ -114,7 +143,18 @@ async def list_forms(
     query = apply_tenant_scope(query, Form)
     result = await db.execute(query)
     forms = result.scalars().all()
-    return [FormResponse.model_validate(form) for form in forms]
+    out = []
+    for form in forms:
+        try:
+            out.append(FormResponse.model_validate(form))
+        except Exception:
+            logger.warning(
+                "Skipping form that failed serialization: form_id=%s",
+                getattr(form, "id", None),
+                exc_info=True,
+            )
+            continue
+    return out
 
 
 @router.get("/forms/{form_id}", response_model=FormResponse, tags=["forms"])
