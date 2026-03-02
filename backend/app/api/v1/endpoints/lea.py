@@ -58,11 +58,17 @@ LEA_SYSTEM_PROMPT = (
     "Ne invente jamais une confirmation du type « c'est fait » ou « j'ai créé » sans que « Action effectuée » le confirme.\n\n"
     "Quand « Action effectuée » indique une ou plusieurs actions (ex: transaction créée, adresse ajoutée, promesse d'achat enregistrée), "
     "confirme uniquement ce qui est indiqué et invite l'utilisateur à compléter dans la section Transactions si pertinent. "
-    "Tu peux aussi effectuer une **recherche en ligne** (géocodage) pour compléter une adresse (ville, code postal, province) : si l'utilisateur demande de « trouver le code postal en ligne », « chercher l'adresse sur internet » ou « ajouter le code postal trouvé en ligne », le bloc « Action effectuée » indiquera le résultat ; confirme-le alors à l'utilisateur (ne dis pas que tu ne peux pas).\n\n"
+    "Tu peux aussi effectuer une **recherche en ligne** (géocodage) pour compléter une adresse (ville, code postal, province) : si l'utilisateur demande de « trouver le code postal en ligne », « chercher l'adresse sur internet » ou « ajouter le code postal trouvé en ligne », le bloc « Action effectuée » indiquera le résultat ; confirme-le alors à l'utilisateur (ne dis pas que tu ne peux pas). "
+    "** Quand « Action effectuée » contient « Recherche en ligne (géocodage) » ou « Résultat géocodage » avec une ville et un code postal, tu DOIS écrire dans ta réponse l'adresse complète trouvée (rue, ville, province, code postal) avant de poser une autre question. **\n\n"
+    "** ADRESSE OBLIGATOIREMENT COMPLÈTE AVANT LA SUITE : **\n"
+    "Tu ne DOIS JAMAIS poser « Qui sont les vendeurs ? », « Qui sont les acheteurs ? », « Quel est le prix ? » ou toute autre question sur le dossier tant que l'adresse du bien (dernière transaction) n'est pas complète avec ville, province et code postal. "
+    "Si l'adresse n'a pas encore de ville/code postal : soit tu proposes de la trouver en ligne (recherche/géocodage), soit tu demandes à l'utilisateur la ville et le code postal. "
+    "Une fois l'adresse complète (éventuellement après recherche en ligne), tu DOIS d'abord indiquer cette adresse complète à l'utilisateur dans ta réponse ; seulement après tu peux poser la question suivante (vendeurs, etc.).\n\n"
     "** INFORMATIONS CLÉS À COLLECTER – POSE LES BONNES QUESTIONS : **\n"
     "Quand l'utilisateur crée une transaction ou travaille sur un dossier, aide-le à le compléter en posant des questions pertinentes, une à la fois ou par thème. "
     "Ordre logique des informations clés :\n"
-    "1. **Adresse du bien** : « Quelle est l'adresse du bien ? » (ex. 123 rue Principale, Montréal). Tu peux enregistrer l'adresse si l'utilisateur la donne dans sa réponse.\n"
+    "1. **Adresse du bien** : « Quelle est l'adresse du bien ? » (ex. 123 rue Principale, Montréal). Tu peux enregistrer l'adresse si l'utilisateur la donne dans sa réponse. "
+    "**Une adresse complète doit toujours inclure : rue ou civique, ville, province et code postal**, au format : « [numéro et rue], [ville] ([province]) [code postal] » (ex. 2643 Sherbrooke Est, Montréal (Québec) H2K 1E1). Si l'utilisateur ne donne que la rue, propose de trouver la ville et le code postal en ligne (géocodage) ou demande la ville et le code postal.\n"
     "2. **Vendeur(s)** : « Qui sont les vendeurs ? » (nom, téléphone, courriel). Tu peux enregistrer ces infos si l'utilisateur les donne.\n"
     "3. **Acheteur(s)** : « Qui sont les acheteurs ? » (nom, téléphone, courriel). Idem.\n"
     "4. **Prix et dates** : « Quel est le prix demandé ? » ou « le prix offert ? », « Date de clôture prévue ? »\n"
@@ -76,6 +82,7 @@ LEA_SYSTEM_PROMPT = (
     "Reste concise : une question à la fois, ou deux maximum si le contexte s'y prête.\n\n"
     "Règles générales:\n"
     "- Réponds en français, de façon courtoise et professionnelle.\n"
+    "- **Adresses** : quand tu indiques une adresse, utilise toujours le format complet « [rue], [ville] ([province]) [code postal] » (ex. 2643 Sherbrooke Est, Montréal (Québec) H2K 1E1). Une adresse sans code postal ou sans ville n'est pas complète.\n"
     "- Garde tes réponses **courtes** (2 à 4 phrases max), sauf si l'utilisateur demande explicitement plus de détails.\n"
     "- Pour faire avancer la conversation, **pose une question pertinente** ou propose la prochaine étape quand c'est naturel.\n"
     "- Sois directe et efficace : pas de formules de politesse longues, va à l'essentiel."
@@ -195,7 +202,16 @@ async def get_lea_user_context(db: AsyncSession, user_id: int) -> str:
             lines.append(f"  → Transaction la plus récente (à utiliser par défaut) : {ref_latest}.")
             lines.append("  → Ne jamais mentionner ou basculer vers une autre transaction sauf si l'utilisateur le demande explicitement par son numéro.")
             for t in re_list:
-                addr = t.property_address or t.property_city or "Sans adresse"
+                prov = (getattr(t, "property_province", None) or "").strip().upper()
+                prov_display = "Québec" if prov == "QC" else ("Ontario" if prov == "ON" else (t.property_province or ""))
+                addr = _format_full_address_ca(
+                    t.property_address or "",
+                    t.property_city or "",
+                    prov_display,
+                    getattr(t, "property_postal_code", None) or "",
+                )
+                if not addr.strip():
+                    addr = t.property_address or t.property_city or "Sans adresse"
                 num = t.dossier_number or f"#{t.id}"
                 lines.append(f"  - {num}: {t.name} — {addr} — statut: {t.status}")
             # Pour la transaction la plus récente : détail vendeurs/acheteurs/prix pour ne pas redemander
@@ -228,13 +244,26 @@ async def get_lea_user_context(db: AsyncSession, user_id: int) -> str:
             missing = []
             if not (latest.property_address or latest.property_city):
                 missing.append("adresse du bien")
+            else:
+                # Adresse partielle (rue sans ville/code postal) = incomplète, ne pas passer à la suite
+                has_city = bool(getattr(latest, "property_city", None) and str(latest.property_city).strip() and str(latest.property_city).strip() not in ("À compléter", ""))
+                has_postal = bool(getattr(latest, "property_postal_code", None) and str(latest.property_postal_code).strip() and str(latest.property_postal_code).strip() not in ("À compléter", ""))
+                if not (has_city and has_postal):
+                    lines.append(
+                        "  → Adresse du bien enregistrée mais INCOMPLÈTE (il manque ville et/ou code postal). "
+                        "Ne PAS poser « Qui sont les vendeurs ? » ni aucune autre question : compléter l'adresse d'abord (recherche en ligne ou demander ville et code postal à l'utilisateur)."
+                    )
+            address_complete = bool(latest.property_address or latest.property_city) and (
+                bool(getattr(latest, "property_city", None) and str(latest.property_city or "").strip() not in ("", "À compléter"))
+                and bool(getattr(latest, "property_postal_code", None) and str(latest.property_postal_code or "").strip() not in ("", "À compléter"))
+            )
             sellers_ok = latest.sellers and len(latest.sellers) > 0 if isinstance(latest.sellers, list) else bool(latest.sellers)
-            if not sellers_ok:
+            if not sellers_ok and address_complete:
                 missing.append("vendeur(s)")
             buyers_ok = latest.buyers and len(latest.buyers) > 0 if isinstance(latest.buyers, list) else bool(latest.buyers)
-            if not buyers_ok:
+            if not buyers_ok and address_complete:
                 missing.append("acheteur(s)")
-            if not latest.listing_price and not latest.offered_price:
+            if not latest.listing_price and not latest.offered_price and address_complete:
                 missing.append("prix (demandé ou offert)")
             if missing:
                 ref = latest.dossier_number or f"#{latest.id}"
@@ -830,16 +859,29 @@ async def _validate_address_via_geocode(addr: str) -> Optional[dict]:
     Vérifie une adresse via géocodage (Nominatim / OpenStreetMap).
     Retourne un dict avec postcode, city, state (province), country_code pour que Léa puisse confirmer à l'utilisateur.
     Pour les adresses québécoises sans ville, tente un second essai avec ", Québec, Canada".
+    Pour les rues typiques de Montréal (ex. Sherbrooke Est, Papineau), tente d'abord avec ", Montréal, Québec, Canada"
+    pour éviter un mauvais match (ex. Ottawa).
     """
     if not addr or len(addr.strip()) < 5:
         return None
     addr_clean = addr.strip()
+    addr_lower = addr_clean.lower()
+    # Rues typiques de Montréal (Sherbrooke Est/Ouest, etc.) : prioriser Montréal pour éviter Ottawa/ailleurs
+    montreal_street_indicators = (
+        "sherbrooke est", "sherbrooke ouest", "sherbrooke e.", "sherbrooke o.",
+        "papineau", "lorimier", "saint-denis", "saint-laurent", "drolet",
+        "rue sherbrooke", "av. sherbrooke", "avenue sherbrooke",
+    )
+    if any(ind in addr_lower for ind in montreal_street_indicators):
+        result = await _geocode_one(addr_clean + ", Montréal, Québec, Canada")
+        if result and (result.get("state") or "").upper() in ("QC", "QUÉBEC", "QUEBEC"):
+            return result
     # Premier essai avec l'adresse telle quelle
     result = await _geocode_one(addr_clean)
     if result:
         return result
     # Adresse sans ville (pas de virgule ou pas Montréal/Québec) : retry avec ", Québec, Canada"
-    if "," not in addr_clean and "montréal" not in addr_clean.lower() and "québec" not in addr_clean.lower():
+    if "," not in addr_clean and "montréal" not in addr_lower and "québec" not in addr_lower:
         result = await _geocode_one(addr_clean + ", Québec, Canada")
         if result:
             return result
@@ -883,6 +925,38 @@ async def _geocode_one(addr: str) -> Optional[dict]:
     if not result:
         return None
     return result
+
+
+def _format_canadian_postal_code(raw: str) -> str:
+    """Normalise un code postal canadien au format A1A 1A1 (espace au milieu)."""
+    if not raw:
+        return ""
+    s = re.sub(r"\s+", "", str(raw).strip().upper())
+    if len(s) == 6 and s[0].isalpha() and s[1].isdigit() and s[2].isalpha() and s[3].isdigit() and s[4].isalpha() and s[5].isdigit():
+        return f"{s[0]}{s[1]}{s[2]} {s[3]}{s[4]}{s[5]}"
+    return str(raw).strip()
+
+
+def _format_full_address_ca(street: str, city: str, province: str, postcode: str) -> str:
+    """
+    Formate une adresse complète au format canadien standard :
+    « 2643 Sherbrooke Est, Montréal (Québec) H2K 1E1 »
+    """
+    street = (street or "").strip()
+    city = (city or "").strip()
+    province = (province or "").strip()
+    postcode = _format_canadian_postal_code(postcode or "")
+    parts = []
+    if street:
+        parts.append(street)
+    if city:
+        if province:
+            parts.append(f"{city} ({province})")
+        else:
+            parts.append(city)
+    if postcode:
+        parts.append(postcode)
+    return ", ".join(parts) if parts else ""
 
 
 async def maybe_update_transaction_address_from_lea(db: AsyncSession, user_id: int, message: str) -> Optional[Tuple[str, RealEstateTransaction, Optional[dict]]]:
@@ -932,7 +1006,7 @@ async def maybe_update_transaction_address_from_lea(db: AsyncSession, user_id: i
             if validation.get("city"):
                 transaction.property_city = validation["city"]
             if validation.get("postcode"):
-                transaction.property_postal_code = validation["postcode"]
+                transaction.property_postal_code = _format_canadian_postal_code(validation["postcode"])
         await db.commit()
         await db.refresh(transaction)
         logger.info(f"Lea updated transaction id={transaction.id} address to {addr[:50]}...")
@@ -995,7 +1069,7 @@ async def maybe_geocode_existing_transaction_address(
         if validation.get("city"):
             transaction.property_city = validation["city"]
         if validation.get("postcode"):
-            transaction.property_postal_code = validation["postcode"]
+            transaction.property_postal_code = _format_canadian_postal_code(validation["postcode"])
         await db.commit()
         await db.refresh(transaction)
         logger.info(f"Lea geocoded existing transaction id={transaction.id} address")
@@ -1770,10 +1844,13 @@ async def run_lea_actions(
                 city = validation.get("city") or ""
                 postcode = validation.get("postcode") or ""
                 state = validation.get("state") or ""
+                full_formatted = _format_full_address_ca(addr, city, state, postcode)
                 if city and postcode:
                     lines.append(
                         f"Recherche en ligne (géocodage) : « {geocode_str} ». "
-                        f"Dans ta réponse, confirme explicitement à l'utilisateur la ville ({city}), la province ({state or 'N/A'}) et le code postal ({postcode}) trouvés pour l'adresse."
+                        f"Adresse complète au format officiel à indiquer à l'utilisateur : « {full_formatted} ». "
+                        "Tu DOIS écrire cette adresse complète dans ta réponse (format : rue, ville (province) code postal), sans rien enlever. "
+                        "INTERDICTION de poser « Qui sont les vendeurs ? » ou toute autre question avant d'avoir écrit cette adresse complète. Une seule phrase pour l'adresse, puis tu pourras poser la suite."
                     )
                 else:
                     lines.append(
@@ -1783,7 +1860,9 @@ async def run_lea_actions(
         else:
             lines.append(
                 "La recherche de l'adresse complète en ligne n'a pas donné de résultat. "
-                "Demande à l'utilisateur la ville et la province (ou le code postal) pour compléter et confirmer l'adresse."
+                "L'adresse n'est donc PAS encore complète. INTERDICTION de passer aux vendeurs, acheteurs ou prix. "
+                "Tu DOIS rester sur l'adresse : demande à l'utilisateur la ville et le code postal (ou la province), ou propose de réessayer avec une formulation différente. "
+                "Ne pose PAS « Qui sont les vendeurs ? » ni aucune autre question tant que l'adresse n'a pas ville + code postal."
             )
     # Géocodage de l'adresse déjà enregistrée sur la dernière transaction (sans nouvelle adresse dans le message)
     if not addr_result and _wants_to_geocode_existing_address(message):
@@ -1810,10 +1889,13 @@ async def run_lea_actions(
                     city = validation.get("city") or ""
                     postcode = validation.get("postcode") or ""
                     state = validation.get("state") or ""
+                    full_formatted = _format_full_address_ca(_addr, city, state, postcode)
                     if city and postcode:
                         lines.append(
                             f"Résultat géocodage : « {geocode_str} ». "
-                            f"Dans ta réponse, indique explicitement : ville {city}, code postal {postcode}" + (f", {state}" if state else "") + "."
+                            f"Adresse complète au format officiel à indiquer : « {full_formatted} ». "
+                            "Tu DOIS écrire cette adresse complète dans ta réponse (format : rue, ville (province) code postal). "
+                            "INTERDICTION de poser « Qui sont les vendeurs ? » ou toute autre question avant d'avoir écrit cette adresse complète."
                         )
     promise_tx = await maybe_set_promise_from_lea(db, user_id, message)
     if promise_tx:
