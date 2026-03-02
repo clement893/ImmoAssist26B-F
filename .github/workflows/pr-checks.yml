@@ -168,7 +168,7 @@ jobs:
         continue-on-error: true
 
       - name: Setup Python for backend security scan
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
