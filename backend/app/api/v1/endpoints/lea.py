@@ -3347,6 +3347,7 @@ async def list_lea_knowledge_documents(
 @router.post("/knowledge-base/documents", response_model=LeaKnowledgeDocumentUploadResponse)
 @rate_limit_decorator("30/minute")
 async def upload_lea_knowledge_document(
+    request: Request,
     file: UploadFile = FileParam(...),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
