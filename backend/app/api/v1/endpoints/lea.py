@@ -167,7 +167,7 @@ class LeaSettingsUpdate(BaseModel):
 # Actions que Léa peut effectuer (affichées dans Paramètres Léa)
 LEA_CAPABILITIES = [
     {"id": "create_transaction", "label": "Créer une transaction", "description": "Léa peut créer un dossier (transaction d'achat ou de vente) depuis la conversation."},
-    {"id": "update_transaction", "label": "Modifier une transaction", "description": "Léa peut mettre à jour l'adresse, la promesse d'achat, etc. sur une transaction existante."},
+    {"id": "update_transaction", "label": "Modifier une transaction", "description": "Léa peut mettre à jour une transaction : adresse, vendeurs, acheteurs, prix, promesse d'achat, date de clôture, etc. L'utilisateur peut dire par ex. « enregistre les vendeurs Lily et Lilou » ou « les acheteurs sont Paul et Marie »."},
     {"id": "create_contact", "label": "Créer un contact", "description": "À venir : Léa pourra créer un contact dans le Réseau (API contacts)."},
     {"id": "update_contact", "label": "Modifier un contact", "description": "À venir : Léa pourra modifier un contact existant dans le Réseau."},
     {"id": "access_oaciq_forms", "label": "Accéder aux formulaires OACIQ", "description": "Léa peut lister les formulaires OACIQ disponibles et l'état des formulaires (brouillon/complété/signé) pour vos transactions."},
@@ -1197,38 +1197,60 @@ def _extract_seller_buyer_names_list(
                 raw = m_cest.group(1).strip()
 
     if raw is None:
-        if re.search(r"les\s+vendeurs\s+sont\s+", t, re.I):
+        # "enregistre les vendeurs suivants Lily et Lilou" / "enregistre les vendeurs X et Y"
+        if re.search(r"enregistre(?:r?|s?)\s+(?:les?\s+)?vendeurs?\s+", t, re.I):
             role = "Vendeur"
-        elif re.search(r"les\s+acheteurs\s+sont\s+", t, re.I):
+            m_env = re.search(
+                r"enregistre(?:r?|s?)\s+(?:les?\s+)?vendeurs?\s+(?:suivants?)?\s*(.+?)(?:\s*\.|$|\s+pour\s+)",
+                t,
+                re.I | re.DOTALL,
+            )
+            if m_env and m_env.group(1).strip():
+                raw = m_env.group(1).strip()
+        elif re.search(r"enregistre(?:r?|s?)\s+(?:les?\s+)?acheteurs?\s+", t, re.I):
             role = "Acheteur"
-        if not role:
-            return None
-        m = re.search(r"les\s+vendeurs\s+sont\s+(.+?)(?:\.|$|\s+pour\s+)", t, re.I | re.DOTALL)
-        if not m and role == "Acheteur":
-            m = re.search(r"les\s+acheteurs\s+sont\s+(.+?)(?:\.|$|\s+pour\s+)", t, re.I | re.DOTALL)
-        if not m:
-            # "ils sont X et Y" (vocal) après une question sur les vendeurs/acheteurs
-            if "vendeur" in last_lower and re.search(r"ils\s+sont\s+", t, re.I):
+            m_env = re.search(
+                r"enregistre(?:r?|s?)\s+(?:les?\s+)?acheteurs?\s+(?:suivants?)?\s*(.+?)(?:\s*\.|$|\s+pour\s+)",
+                t,
+                re.I | re.DOTALL,
+            )
+            if m_env and m_env.group(1).strip():
+                raw = m_env.group(1).strip()
+        if raw is not None:
+            pass  # use raw as-is, will be parsed below (et, comma, etc.)
+        else:
+            if re.search(r"les\s+vendeurs\s+sont\s+", t, re.I):
                 role = "Vendeur"
-                m = re.search(r"ils\s+sont\s+(.+?)(?:\.|$|\s+pour\s+)", t, re.I | re.DOTALL)
-            elif "acheteur" in last_lower and re.search(r"ils\s+sont\s+", t, re.I):
+            elif re.search(r"les\s+acheteurs\s+sont\s+", t, re.I):
                 role = "Acheteur"
-                m = re.search(r"ils\s+sont\s+(.+?)(?:\.|$|\s+pour\s+)", t, re.I | re.DOTALL)
-        if not m:
-            # "le vendeur s'appelle X" / "enregistre les vendeurs le vendeur s'appelle X"
-            if re.search(r"(?:le\s+)?vendeur\s+s['']appelle\s+", t, re.I) or re.search(r"enregistre(?:r?|s?)\s+(?:les?\s+)?vendeurs?\s+.*s['']appelle\s+", t, re.I):
-                role = "Vendeur"
-                m = re.search(r"(?:le\s+)?vendeur\s+s['']appelle\s+([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$|\s+pour|\s+téléphone|\s+courriel|vocales?\s+terminé)", t, re.I)
-                if not m:
-                    m = re.search(r"enregistre(?:r?|s?)\s+(?:les?\s+)?vendeurs?\s+(?:le\s+vendeur\s+)?s['']appelle\s+([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$|\s+pour|vocales?)", t, re.I)
-            elif re.search(r"l['']?acheteur\s+s['']appelle\s+", t, re.I) or re.search(r"enregistre(?:r?|s?)\s+(?:les?\s+)?acheteurs?\s+.*s['']appelle\s+", t, re.I):
-                role = "Acheteur"
-                m = re.search(r"l['']?acheteur\s+s['']appelle\s+([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$|\s+pour|\s+téléphone|\s+courriel|vocales?\s+terminé)", t, re.I)
-                if not m:
-                    m = re.search(r"enregistre(?:r?|s?)\s+(?:les?\s+)?acheteurs?\s+(?:l['']?acheteur\s+)?s['']appelle\s+([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$|\s+pour|vocales?)", t, re.I)
-        if not m:
-            return None
-        raw = m.group(1).strip()
+            if not role:
+                return None
+            m = re.search(r"les\s+vendeurs\s+sont\s+(.+?)(?:\.|$|\s+pour\s+)", t, re.I | re.DOTALL)
+            if not m and role == "Acheteur":
+                m = re.search(r"les\s+acheteurs\s+sont\s+(.+?)(?:\.|$|\s+pour\s+)", t, re.I | re.DOTALL)
+            if not m:
+                # "ils sont X et Y" (vocal) après une question sur les vendeurs/acheteurs
+                if "vendeur" in last_lower and re.search(r"ils\s+sont\s+", t, re.I):
+                    role = "Vendeur"
+                    m = re.search(r"ils\s+sont\s+(.+?)(?:\.|$|\s+pour\s+)", t, re.I | re.DOTALL)
+                elif "acheteur" in last_lower and re.search(r"ils\s+sont\s+", t, re.I):
+                    role = "Acheteur"
+                    m = re.search(r"ils\s+sont\s+(.+?)(?:\.|$|\s+pour\s+)", t, re.I | re.DOTALL)
+            if not m:
+                # "le vendeur s'appelle X" / "enregistre les vendeurs le vendeur s'appelle X"
+                if re.search(r"(?:le\s+)?vendeur\s+s['']appelle\s+", t, re.I) or re.search(r"enregistre(?:r?|s?)\s+(?:les?\s+)?vendeurs?\s+.*s['']appelle\s+", t, re.I):
+                    role = "Vendeur"
+                    m = re.search(r"(?:le\s+)?vendeur\s+s['']appelle\s+([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$|\s+pour|\s+téléphone|\s+courriel|vocales?\s+terminé)", t, re.I)
+                    if not m:
+                        m = re.search(r"enregistre(?:r?|s?)\s+(?:les?\s+)?vendeurs?\s+(?:le\s+vendeur\s+)?s['']appelle\s+([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$|\s+pour|vocales?)", t, re.I)
+                elif re.search(r"l['']?acheteur\s+s['']appelle\s+", t, re.I) or re.search(r"enregistre(?:r?|s?)\s+(?:les?\s+)?acheteurs?\s+.*s['']appelle\s+", t, re.I):
+                    role = "Acheteur"
+                    m = re.search(r"l['']?acheteur\s+s['']appelle\s+([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$|\s+pour|\s+téléphone|\s+courriel|vocales?\s+terminé)", t, re.I)
+                    if not m:
+                        m = re.search(r"enregistre(?:r?|s?)\s+(?:les?\s+)?acheteurs?\s+(?:l['']?acheteur\s+)?s['']appelle\s+([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$|\s+pour|vocales?)", t, re.I)
+            if not m:
+                return None
+            raw = m.group(1).strip()
     # Transcription vocale : "est" pour "et" dans les listes de noms ("Christian est abatti" -> "Christian et abatti")
     raw = re.sub(r"\s+est\s+", " et ", raw, flags=re.I)
     # Artefact vocal en fin de phrase : "vocal terminé", "local terminé", "elle terminé", "e" (coupure)
@@ -1825,10 +1847,10 @@ def _wants_to_create_oaciq_form_for_transaction(message: str) -> bool:
     if not message or len(message.strip()) < 10:
         return False
     t = (message or "").strip().lower()
-    if "formulaire" not in t and "form" not in t and "promesse" not in t:
+    if "formulaire" not in t and "form" not in t and "promesse" not in t and "province" not in t:
         return False
-    # "créons une promesse d'achat avec un formulaire oaciq", "oacq" (sans i), etc.
-    if "oaciq" not in t and "oacq" not in t and not ("promesse" in t and "achat" in t):
+    # "créons une promesse d'achat avec un formulaire oaciq", "oacq" (sans i), "formulaire de province d'achats oacq"
+    if "oaciq" not in t and "oacq" not in t and not ("promesse" in t and "achat" in t) and not ("province" in t and "achat" in t):
         return False
     create_verbs = ("créons", "créer", "crée", "créez", "crééz", "faire", "ouvrir", "ajouter", "lancer")
     return any(v in t for v in create_verbs)
@@ -1841,8 +1863,45 @@ def _get_oaciq_form_code_for_lea_message(message: str) -> str:
     t = (message or "").strip().lower()
     if "promesse" in t and ("achat" in t or "d'achat" in t):
         return "PA"
+    if "province" in t and "achat" in t:
+        return "PA"  # "formulaire de province d'achats" = promesse d'achat
     # Autres codes possibles : ROI, CQ, etc. — pour l'instant on ne détecte que PA
     return "PA"
+
+
+OACIQ_FORM_CREATION_PREFIX = "Tu viens de créer le formulaire OACIQ "
+
+
+def _action_lines_contain_oaciq_form_creation(action_lines: list) -> bool:
+    """True si une des lignes d'action indique la création d'un formulaire OACIQ."""
+    if not action_lines:
+        return False
+    return any(
+        (line or "").strip().startswith(OACIQ_FORM_CREATION_PREFIX)
+        for line in action_lines
+    )
+
+
+def _build_oaciq_form_creation_confirmation(action_lines: list) -> str:
+    """Construit le message de confirmation utilisateur quand un formulaire OACIQ a été créé."""
+    # Extraire le nom du formulaire et la transaction depuis la ligne d'action si possible
+    for line in (action_lines or []):
+        line = (line or "").strip()
+        if not line.startswith(OACIQ_FORM_CREATION_PREFIX):
+            continue
+        # "Tu viens de créer le formulaire OACIQ « ... » (code PA) pour la transaction ..."
+        import re
+        m = re.search(r"formulaire OACIQ « ([^»]+) » \(code (\w+)\) pour la transaction ([^.]+)\.", line)
+        if m:
+            form_name, code, tx_label = m.group(1).strip(), m.group(2), m.group(3).strip()
+            return (
+                f"C'est fait ! J'ai créé le formulaire OACIQ « {form_name} » (code {code}) pour la transaction {tx_label}. "
+                "La soumission est en brouillon. Allez dans Transactions → ouvrir cette transaction → onglet Formulaires OACIQ pour compléter le formulaire."
+            )
+    return (
+        "C'est fait ! J'ai créé le formulaire OACIQ (Promesse d'achat) pour cette transaction. "
+        "Allez dans Transactions → ouvrir cette transaction → onglet Formulaires OACIQ pour le compléter."
+    )
 
 
 async def maybe_create_oaciq_form_submission_from_lea(
