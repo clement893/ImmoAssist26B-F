@@ -26,7 +26,10 @@ from app.dependencies import get_current_user, require_admin_or_superadmin, requ
 from app.models import User, RealEstateTransaction, PortailTransaction, RealEstateContact, TransactionContact, ContactType, File
 from app.models.lea_conversation import LeaSessionTransactionLink, LeaConversation
 from app.models.form import Form, FormSubmission, FormSubmissionVersion
-from app.models.lea_knowledge_content import LeaKnowledgeContent
+try:
+    from app.models.lea_knowledge_content import LeaKnowledgeContent
+except ModuleNotFoundError:
+    LeaKnowledgeContent = None  # Optional: model may be missing in some deployments
 from app.database import get_db
 from app.services.lea_service import LeaService
 from app.services.ai_service import AIService, AIProvider
@@ -74,13 +77,14 @@ async def _get_lea_knowledge_for_prompt(db: AsyncSession) -> str:
     """
     parts = []
     try:
-        # 1) Contenu OACIQ éditable (DB)
-        q = select(LeaKnowledgeContent).where(LeaKnowledgeContent.key == LEA_KNOWLEDGE_KEY_OACIQ)
-        result = await db.execute(q)
-        row = result.scalar_one_or_none()
-        if row and getattr(row, "content", None) and str(row.content).strip():
-            parts.append(str(row.content).strip())
-        else:
+        # 1) Contenu OACIQ éditable (DB) si le modèle est disponible
+        if LeaKnowledgeContent is not None:
+            q = select(LeaKnowledgeContent).where(LeaKnowledgeContent.key == LEA_KNOWLEDGE_KEY_OACIQ)
+            result = await db.execute(q)
+            row = result.scalar_one_or_none()
+            if row and getattr(row, "content", None) and str(row.content).strip():
+                parts.append(str(row.content).strip())
+        if not parts:
             # Secours : fichier statique
             if _LEA_OACIQ_KNOWLEDGE_PATH.exists():
                 content = _LEA_OACIQ_KNOWLEDGE_PATH.read_text(encoding="utf-8")
@@ -3127,6 +3131,11 @@ async def get_lea_knowledge_content(
     Retourne le contenu éditable de la base de connaissance Léa (ex. key=oaciq pour les formulaires OACIQ).
     Utilisé par la page Base de connaissance Léa pour afficher et éditer le texte.
     """
+    if LeaKnowledgeContent is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Base de connaissance non disponible (modèle manquant).",
+        )
     if key != LEA_KNOWLEDGE_KEY_OACIQ:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Clé non supportée.")
     q = select(LeaKnowledgeContent).where(LeaKnowledgeContent.key == key)
@@ -3153,6 +3162,11 @@ async def update_lea_knowledge_content(
     Met à jour le contenu éditable de la base de connaissance Léa (ex. key=oaciq).
     Ce contenu est injecté dans le prompt système de Léa à chaque conversation.
     """
+    if LeaKnowledgeContent is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Base de connaissance non disponible (modèle manquant).",
+        )
     if key != LEA_KNOWLEDGE_KEY_OACIQ:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Clé non supportée.")
     q = select(LeaKnowledgeContent).where(LeaKnowledgeContent.key == key)
