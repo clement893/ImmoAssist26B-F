@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Optional, Literal, List, Tuple, Any
 
 import httpx
-from fastapi import APIRouter, Depends, File, Form as FormParam, HTTPException, Request, status, UploadFile
+from fastapi import APIRouter, Depends, File as FileParam, Form as FormParam, HTTPException, Request, status, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,6 +25,7 @@ from app.dependencies import get_current_user, require_admin_or_superadmin, requ
 from app.models import User, RealEstateTransaction, PortailTransaction, RealEstateContact, TransactionContact, ContactType, File
 from app.models.lea_conversation import LeaSessionTransactionLink, LeaConversation
 from app.models.form import Form, FormSubmission, FormSubmissionVersion
+from app.models.lea_knowledge_content import LeaKnowledgeContent
 from app.database import get_db
 from app.services.lea_service import LeaService
 from app.services.ai_service import AIService, AIProvider
@@ -60,19 +61,46 @@ _LEA_OACIQ_KNOWLEDGE_PATH = (
 )
 
 
-def _get_oaciq_knowledge_for_lea() -> str:
+LEA_KNOWLEDGE_KEY_OACIQ = "oaciq"
+
+
+async def _get_lea_knowledge_for_prompt(db: AsyncSession) -> str:
     """
-    Charge le contenu du fichier de connaissance OACIQ (formulaires) pour l'injecter
-    dans le prompt système de Léa. Retourne une chaîne vide si le fichier est absent.
+    Charge toute la base de connaissance Léa pour l'injecter dans le prompt système :
+    1) Contenu OACIQ (formulaires) depuis la table lea_knowledge_content (clé 'oaciq'),
+       ou en secours le fichier docs/oaciq/LEA_KNOWLEDGE_OACIQ.md
+    2) Texte extrait des documents uploadés (folder lea_knowledge, content_text non null).
     """
+    parts = []
     try:
-        if _LEA_OACIQ_KNOWLEDGE_PATH.exists():
-            content = _LEA_OACIQ_KNOWLEDGE_PATH.read_text(encoding="utf-8")
-            if content.strip():
-                return content.strip()
+        # 1) Contenu OACIQ éditable (DB)
+        q = select(LeaKnowledgeContent).where(LeaKnowledgeContent.key == LEA_KNOWLEDGE_KEY_OACIQ)
+        result = await db.execute(q)
+        row = result.scalar_one_or_none()
+        if row and getattr(row, "content", None) and str(row.content).strip():
+            parts.append(str(row.content).strip())
+        else:
+            # Secours : fichier statique
+            if _LEA_OACIQ_KNOWLEDGE_PATH.exists():
+                content = _LEA_OACIQ_KNOWLEDGE_PATH.read_text(encoding="utf-8")
+                if content.strip():
+                    parts.append(content.strip())
     except Exception as e:
-        logger.warning("Could not load OACIQ knowledge file for Léa: %s", e)
-    return ""
+        logger.warning("Could not load OACIQ knowledge for Léa: %s", e)
+    try:
+        # 2) Documents de la base de connaissance (texte extrait)
+        q_files = (
+            select(File)
+            .where(File.folder == LEA_KNOWLEDGE_FOLDER, File.content_text.isnot(None))
+            .order_by(File.created_at.asc())
+        )
+        res = await db.execute(q_files)
+        for f in res.scalars().all():
+            if getattr(f, "content_text", None) and str(f.content_text).strip():
+                parts.append(f"\n\n--- Document : {f.original_filename or f.filename or 'sans nom'} ---\n{str(f.content_text).strip()}")
+    except Exception as e:
+        logger.warning("Could not load knowledge documents for Léa: %s", e)
+    return "\n\n".join(parts) if parts else ""
 
 # URL front : onglet Formulaires d'une transaction (Phase 3). Pattern : /dashboard/transactions/{id}?tab=forms
 LEA_TRANSACTION_FORMS_TAB_PATH = "/dashboard/transactions/{id}?tab=forms"
@@ -2494,9 +2522,9 @@ async def _stream_lea_sse(
             return
         settings = get_settings()
         system = LEA_SYSTEM_PROMPT
-        oaciq_knowledge = _get_oaciq_knowledge_for_lea()
-        if oaciq_knowledge:
-            system += "\n\n--- Base de connaissance formulaires OACIQ ---\n" + oaciq_knowledge
+        lea_knowledge = await _get_lea_knowledge_for_prompt(db)
+        if lea_knowledge:
+            system += "\n\n--- Base de connaissance Léa (formulaires OACIQ + documents) ---\n" + lea_knowledge
         if user_context:
             system += "\n\n--- Informations actuelles de l'utilisateur (plateforme) ---\n" + user_context
         service = AIService(provider=AIProvider.AUTO)
@@ -2756,7 +2784,7 @@ async def lea_chat(
 @router.post("/chat/voice")
 async def lea_chat_voice(
     request: Request,
-    audio: UploadFile = File(...),
+    audio: UploadFile = FileParam(...),
     session_id: Optional[str] = FormParam(None),
     conversation_id: Optional[int] = FormParam(None),
     current_user: User = Depends(get_current_user),
@@ -2790,9 +2818,9 @@ async def lea_chat_voice(
             if action_lines:
                 user_context += "\n\n--- Action effectuée ---\n" + "\n".join(action_lines)
             system_prompt = LEA_SYSTEM_PROMPT
-            oaciq_knowledge = _get_oaciq_knowledge_for_lea()
-            if oaciq_knowledge:
-                system_prompt += "\n\n--- Base de connaissance formulaires OACIQ ---\n" + oaciq_knowledge
+            lea_knowledge = await _get_lea_knowledge_for_prompt(db)
+            if lea_knowledge:
+                system_prompt += "\n\n--- Base de connaissance Léa (formulaires OACIQ + documents) ---\n" + lea_knowledge
             if user_context:
                 system_prompt += "\n\n--- Informations actuelles de l'utilisateur (plateforme) ---\n" + user_context
 
@@ -3238,7 +3266,7 @@ async def list_lea_knowledge_documents(
 @router.post("/knowledge-base/documents", response_model=LeaKnowledgeDocumentUploadResponse)
 @rate_limit_decorator("30/minute")
 async def upload_lea_knowledge_document(
-    file: UploadFile = File(...),
+    file: UploadFile = FileParam(...),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     _: None = Depends(require_superadmin),
@@ -3346,7 +3374,7 @@ async def delete_lea_knowledge_document(
 
 @router.post("/voice/transcribe")
 async def transcribe_audio(
-    audio: UploadFile = File(...),
+    audio: UploadFile = FileParam(...),
     current_user: User = Depends(get_current_user),
 ):
     """
