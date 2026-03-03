@@ -11,18 +11,16 @@ from app.models import User, Plan, Subscription
 from app.models.plan import PlanStatus, PlanInterval
 from app.models.subscription import SubscriptionStatus
 from app.core.security import create_access_token
+from app.core.auth import get_password_hash
 import pytest
 
 
 @pytest.fixture
 async def test_user(db: AsyncSession) -> User:
-    """Create a test user"""
-    from passlib.context import CryptContext
-    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-    
+    """Create a test user (use app hash to respect bcrypt 72-byte limit)."""
     user = User(
         email="test_subscription@example.com",
-        hashed_password=pwd_context.hash("testpassword123"),
+        hashed_password=get_password_hash("testpassword123"),
         first_name="Test",
         last_name="User",
         is_active=True,
