@@ -24,11 +24,11 @@ def _is_tenancy_enabled() -> bool:
 class TenantMixin:
     """
     Mixin to add tenant/team_id support to models
-    
+
     This mixin is conditionally applied based on TENANCY_MODE:
     - If TENANCY_MODE=single: No team_id column is added (returns None)
     - If TENANCY_MODE=shared_db or separate_db: team_id column is added
-    
+
     Usage:
         class Project(TenantMixin, Base):
             __tablename__ = "projects"
@@ -36,6 +36,7 @@ class TenantMixin:
             name = Column(String(200))
             # team_id is automatically added if tenancy is enabled
     """
+    __allow_unmapped__ = True  # allow legacy Column/declared_attr under SQLAlchemy 2.x
     
     @declared_attr
     def team_id(cls) -> Optional[Column]:
