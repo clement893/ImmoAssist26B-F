@@ -161,7 +161,8 @@ jobs:
       - name: Run Python dependency security scan
         working-directory: ./backend
         run: |
-          pip-audit --desc || (echo "Python security vulnerabilities found. Review and fix before merging." && exit 1)
+          # CVE-2024-23342: ecdsa (transitive) - upstream considers side-channel attacks out of scope, no fix planned
+          pip-audit --desc --ignore-vuln CVE-2024-23342 || (echo "Python security vulnerabilities found. Review and fix before merging." && exit 1)
         continue-on-error: false
 
       - name: Set up environment variables
