@@ -217,7 +217,7 @@ LEA_SYSTEM_PROMPT = (
     "Quand « Action effectuée » indique une ou plusieurs actions (ex: transaction créée, adresse ajoutée, promesse d'achat enregistrée), "
     "confirme uniquement ce qui est indiqué et invite l'utilisateur à compléter dans la section Transactions si pertinent. "
     "Tu peux aussi effectuer une **recherche en ligne** (géocodage) pour compléter une adresse (ville, code postal, province) : si l'utilisateur demande de « trouver le code postal en ligne », « chercher l'adresse sur internet » ou « ajouter le code postal trouvé en ligne », le bloc « Action effectuée » indiquera le résultat ; confirme-le alors à l'utilisateur (ne dis pas que tu ne peux pas). "
-    "** Quand « Action effectuée » contient « Recherche en ligne (géocodage) » ou « Résultat géocodage » avec une ville et un code postal, tu DOIS écrire dans ta réponse l'adresse complète trouvée (rue, ville, province, code postal) et confirmer que c'est enregistré. Tu ne DOIS JAMAIS répondre « Je ne peux pas effectuer cette action » dans ce cas — le géocodage a déjà été fait par le système. **\n\n"
+    "** Quand « Action effectuée » contient « Recherche en ligne (géocodage) » ou « Résultat géocodage » ou « Adresse complète à indiquer » avec une ville et un code postal, tu DOIS écrire dans ta réponse l'adresse complète trouvée (rue, ville, province, code postal) et confirmer que c'est enregistré. Tu ne DOIS JAMAIS répondre « Je ne peux pas effectuer cette action » dans ce cas — le géocodage a déjà été fait par le système. INTERDICTION TOTALE de répondre « Je vais chercher… », « Je vais effectuer la recherche », « Un instant, s'il vous plaît » ou toute phrase qui fait attendre l'utilisateur : le résultat est DÉJÀ dans « Action effectuée ». Ta première phrase DOIT être l'adresse complète (ex. « L'adresse complète est : 5136 Bd Décarie, Montréal (Québec) H3X 2H9. C'est enregistré. »), puis tu peux poser la question suivante (ex. Qui sont les vendeurs ?). **\n\n"
     "** ADRESSE OBLIGATOIREMENT COMPLÈTE AVANT LA SUITE : **\n"
     "Tu ne DOIS JAMAIS poser « Qui sont les vendeurs ? », « Qui sont les acheteurs ? », « Quel est le prix ? » ou toute autre question sur le dossier tant que l'adresse du bien (dernière transaction) n'est pas complète avec ville, province et code postal. "
     "Si l'adresse n'a pas encore de ville/code postal : demande uniquement la **ville** à l'utilisateur (ne demande pas le code postal). Une fois la ville donnée, propose de trouver le code postal en ligne (géocodage) ou fais la recherche. "
@@ -1245,11 +1245,33 @@ def _pick_best_geocode_result(data: list, addr_clean: str) -> Optional[dict]:
     return None
 
 
+def _normalize_address_for_geocode(addr: str) -> str:
+    """
+    Expandit les abréviations courantes pour améliorer le taux de succès Nominatim
+    (ex. Bd Décarie -> Boulevard Décarie).
+    """
+    if not addr or not addr.strip():
+        return addr
+    t = addr.strip()
+    replacements = [
+        (r"\bBd\b", "Boulevard"),
+        (r"\bBlvd\b", "Boulevard"),
+        (r"\bAv\.?\b", "Avenue"),
+        (r"\bAve\.?\b", "Avenue"),
+        (r"\bCh\.?\b", "Chemin"),
+        (r"\bRte\b", "Route"),
+    ]
+    for pattern, repl in replacements:
+        t = re.sub(pattern, repl, t, flags=re.I)
+    return t
+
+
 async def _geocode_one(addr: str, limit: int = 5) -> Optional[dict]:
     """
     Appel Nominatim. Retourne le meilleur résultat pour les adresses québécoises.
     Avec limit>1, sélectionne le résultat le plus pertinent (même numéro civique, Montréal, Canada).
     """
+    addr = _normalize_address_for_geocode(addr)
     url = "https://nominatim.openstreetmap.org/search"
     params = {"q": addr.strip(), "format": "json", "addressdetails": 1, "limit": limit}
     headers = {"User-Agent": "ImmoAssist-Lea/1.0 (contact@immoassist.com)"}
@@ -1413,6 +1435,82 @@ def _transaction_has_partial_address(tx: RealEstateTransaction) -> bool:
     if len(postal) < 6 or "compléter" in postal.lower():
         return True
     return False
+
+
+def _is_confirmation_to_search_postal_code(message: str, last_assistant_message: Optional[str] = None) -> bool:
+    """True si l'utilisateur confirme qu'il veut la recherche du code postal (ex. « ok », « oui ») après que Léa ait proposé de chercher en ligne."""
+    if not message or not last_assistant_message:
+        return False
+    t = (message or "").strip().lower()
+    if len(t) > 50:
+        return False
+    last_lower = (last_assistant_message or "").strip().lower()
+    proposal_phrases = (
+        "code postal en ligne",
+        "cherche le code postal",
+        "chercher le code postal",
+        "recherche en ligne pour le code postal",
+        "voulez-vous que je cherche",
+        "veux-tu que je cherche",
+        "trouver le code postal en ligne",
+        "géocodage",
+        "pour compléter l'adresse",
+        "recherche en ligne",
+    )
+    if not any(p in last_lower for p in proposal_phrases):
+        return False
+    confirmation_words = (
+        "ok", "oui", "d'accord", "accord", "vas-y", "oui merci", "oui stp", "oui s'il te plaît",
+        "oui s'il vous plaît", "s'il te plaît", "s'il vous plaît", "oui fais", "fais-le", "go",
+    )
+    normalized = t.rstrip(".!?").strip().lower()
+    return normalized in confirmation_words
+
+
+async def maybe_geocode_on_user_confirmation(
+    db: AsyncSession, user_id: int, message: str, last_assistant_message: Optional[str] = None
+) -> Optional[Tuple[str, RealEstateTransaction, dict]]:
+    """
+    Quand l'utilisateur confirme (ex. « ok », « oui ») après que Léa ait proposé de chercher le code postal en ligne,
+    effectue le géocodage et retourne le résultat pour que la réponse inclue l'adresse complète (rue, ville, code postal).
+    """
+    if not _is_confirmation_to_search_postal_code(message, last_assistant_message):
+        return None
+    transaction = await get_user_latest_transaction(db, user_id)
+    if not transaction or not _transaction_has_partial_address(transaction):
+        return None
+    addr_base = (transaction.property_address or "").strip()
+    if not addr_base:
+        return None
+    city = (getattr(transaction, "property_city", None) or "").strip()
+    if city and city.lower() not in ("à compléter", "a completer", ""):
+        addr_to_geocode = f"{addr_base}, {city}" if "," not in addr_base else addr_base
+    else:
+        addr_to_geocode = addr_base
+    validation = await _validate_address_via_geocode(addr_to_geocode)
+    if not validation:
+        return None
+    try:
+        if "," not in addr_base and city and city.lower() not in ("à compléter", "a completer", ""):
+            transaction.property_address = addr_to_geocode
+        if validation.get("state"):
+            state = validation["state"]
+            if "québec" in state.lower() or "quebec" in state.lower() or state.upper() == "QC":
+                transaction.property_province = "QC"
+            elif state.upper() in ("ON", "ONTARIO"):
+                transaction.property_province = "ON"
+        if validation.get("city"):
+            transaction.property_city = validation["city"]
+        if validation.get("postcode"):
+            transaction.property_postal_code = _format_canadian_postal_code(validation["postcode"])
+        await db.commit()
+        await db.refresh(transaction)
+        logger.info(f"Lea geocoded on user confirmation for transaction id={transaction.id}")
+        return (addr_to_geocode, transaction, validation)
+    except Exception as e:
+        logger.warning(f"Lea geocode on confirmation failed: {e}", exc_info=True)
+        await db.rollback()
+        return None
 
 
 def _wants_to_geocode_existing_address(message: str) -> bool:
@@ -2789,8 +2887,39 @@ async def run_lea_actions(
                         "Tu DOIS écrire cette adresse complète dans ta réponse (format : rue, ville (province) code postal) et confirmer que c'est enregistré. "
                         "INTERDICTION de dire « Je vais chercher » ou « Un instant » : le résultat est déjà disponible ci-dessus."
                     )
+    # Utilisateur a répondu « ok » / « oui » après la proposition de chercher le code postal en ligne : géocoder et renvoyer le résultat
+    confirmation_geocode_result = None
+    if not addr_result and not city_geocode_result and _is_confirmation_to_search_postal_code(message, last_assistant_message):
+        confirmation_geocode_result = await maybe_geocode_on_user_confirmation(db, user_id, message, last_assistant_message)
+        if confirmation_geocode_result:
+            _addr, _tx, validation = confirmation_geocode_result
+            ref = _tx.dossier_number or f"#{_tx.id}"
+            lines.append(
+                "Tu viens d'effectuer la recherche en ligne (géocodage) pour le code postal. "
+                "Tu DOIS indiquer à l'utilisateur l'adresse complète trouvée (rue, ville (province) code postal) et confirmer que c'est enregistré. "
+                "Ne dis pas seulement « Un instant » : le résultat est déjà disponible ci-dessous, écris-le dans ta réponse."
+            )
+            if validation:
+                parts = []
+                if validation.get("postcode"):
+                    parts.append(f"code postal {validation['postcode']}")
+                if validation.get("city"):
+                    parts.append(validation["city"])
+                if validation.get("state"):
+                    parts.append(validation["state"])
+                if parts:
+                    geocode_str = " — ".join(parts)
+                    city = validation.get("city") or ""
+                    postcode = validation.get("postcode") or ""
+                    state = validation.get("state") or ""
+                    full_formatted = _format_full_address_ca(_addr, city, state, postcode)
+                    lines.append(
+                        f"Résultat géocodage : « {geocode_str} ». "
+                        f"Adresse complète à indiquer à l'utilisateur : « {full_formatted} ». "
+                        "Tu DOIS écrire cette adresse complète dans ta réponse et confirmer que c'est enregistré, puis poser la question suivante (ex. Qui sont les vendeurs ?)."
+                    )
     # Géocodage de l'adresse déjà enregistrée sur la dernière transaction (sans nouvelle adresse dans le message)
-    if not addr_result and not city_geocode_result and _wants_to_geocode_existing_address(message):
+    if not addr_result and not city_geocode_result and not confirmation_geocode_result and _wants_to_geocode_existing_address(message):
         geocode_result = await maybe_geocode_existing_transaction_address(db, user_id, message, last_assistant_message)
         if geocode_result:
             _addr, _tx, validation = geocode_result
