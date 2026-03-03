@@ -5,8 +5,7 @@ User notifications system
 
 from datetime import datetime
 from typing import Optional, Dict, Any
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Index, func, Boolean
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Index, func, Boolean, JSON
 from sqlalchemy.orm import relationship
 import enum
 
@@ -52,7 +51,7 @@ class Notification(Base):
     # Additional metadata (JSON)
     # Note: Python attribute is 'notification_metadata' to avoid SQLAlchemy reserved name conflict
     # Database column remains 'metadata' for backward compatibility
-    notification_metadata = Column("metadata", JSONB, nullable=True)
+    notification_metadata = Column("metadata", JSON, nullable=True)
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
