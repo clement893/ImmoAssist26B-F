@@ -6,7 +6,7 @@ This is a minimal stub model to satisfy the Booking relationship.
 
 from datetime import datetime
 import enum
-from sqlalchemy import Column, DateTime, Integer, String, ForeignKey, func, Index, Enum as SQLEnum
+from sqlalchemy import Column, DateTime, Integer, String, func, Index, Enum as SQLEnum
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
@@ -30,9 +30,10 @@ class CityEvent(Base):
     )
 
     id = Column(Integer, primary_key=True, index=True)
-    event_id = Column(Integer, ForeignKey("masterclass_events.id"), nullable=True)
-    city_id = Column(Integer, ForeignKey("cities.id"), nullable=True)
-    venue_id = Column(Integer, ForeignKey("venues.id"), nullable=True)
+    # Optional refs (no FK to avoid missing tables: masterclass_events, cities, venues)
+    event_id = Column(Integer, nullable=True)
+    city_id = Column(Integer, nullable=True)
+    venue_id = Column(Integer, nullable=True)
     start_date = Column(DateTime(timezone=True), nullable=True)
     end_date = Column(DateTime(timezone=True), nullable=True)
     status = Column(String(50), nullable=True)  # Can be EventStatus enum values
