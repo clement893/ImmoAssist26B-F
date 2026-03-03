@@ -31,6 +31,7 @@ Base = declarative_base()
 
 class TestModel(TenantMixin, Base):
     """Test model with TenantMixin"""
+    __allow_unmapped__ = True
     __tablename__ = "test_model"
     id = Column(Integer, primary_key=True)
     name = Column(String(200))

@@ -4,6 +4,8 @@ Tests for SEO API endpoints
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models.user import User
 from app.core.auth import create_access_token
 

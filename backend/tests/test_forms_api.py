@@ -3,6 +3,7 @@ Tests for Forms API endpoints
 """
 
 import pytest
+from fastapi.testclient import TestClient
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
