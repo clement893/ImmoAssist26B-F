@@ -8,6 +8,8 @@
     "lint": "pnpm --recursive lint",
     "type-check": "pnpm --recursive type-check",
     "test": "pnpm --recursive test",
+    "test:web": "pnpm --filter @modele/web test",
+    "test:web:coverage": "pnpm --filter @modele/web test:coverage",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "setup": "node scripts/setup.js",
     "validate:env": "pnpm --filter @modele/web env:validate",
