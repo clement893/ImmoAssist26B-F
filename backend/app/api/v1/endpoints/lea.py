@@ -1405,8 +1405,8 @@ async def _geocode_geocoder_ca(addr: str) -> Optional[dict]:
 
 async def _validate_address_via_geocode(addr: str) -> Optional[dict]:
     """
-    Vérifie une adresse via géocodage : geocoder.ca en priorité (meilleurs codes postaux Canada),
-    fallback sur Nominatim (OpenStreetMap).
+    Vérifie une adresse via géocodage : geopy (Nominatim / OpenStreetMap) en priorité,
+    fallback sur appel Nominatim HTTP direct.
     Retourne un dict avec postcode, city, state (province), country_code pour que Léa puisse confirmer à l'utilisateur.
     """
     if not addr or len(addr.strip()) < 5:
@@ -1415,14 +1415,14 @@ async def _validate_address_via_geocode(addr: str) -> Optional[dict]:
     addr_lower = addr_clean.lower()
     has_city = "," in addr_clean or "montréal" in addr_lower or "montreal" in addr_lower or "québec" in addr_lower
 
-    # 1) Essai geocoder.ca (priorité) sur les variantes d'adresse
+    # 1) Essai geopy (Nominatim) sur les variantes d'adresse
     for to_try in _build_address_for_geocode(addr_clean):
-        result = await _geocode_geocoder_ca(to_try)
+        result = await _geocode_geopy(to_try)
         if result and (result.get("country_code") or "").upper() == "CA":
             if result.get("postcode") or result.get("city"):
                 return result
 
-    # 2) Fallback Nominatim (comportement existant)
+    # 2) Fallback Nominatim HTTP (comportement existant)
     for to_try in _build_address_for_geocode(addr_clean):
         result = await _geocode_one(to_try)
         if result and (result.get("country_code") or "").upper() == "CA":

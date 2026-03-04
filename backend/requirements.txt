@@ -22,6 +22,9 @@ qrcode[pil]>=7.4.2  # QR code generation for 2FA
 httpx>=0.25.0
 requests>=2.31.0
 
+# Geocoding (Léa: adresses Québec / Canada, code postal)
+geopy>=2.4.0
+
 # Utilities
 python-dotenv>=1.0.0
 email-validator>=2.1.0
