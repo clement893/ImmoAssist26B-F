@@ -217,7 +217,7 @@ LEA_SYSTEM_PROMPT = (
     "Quand « Action effectuée » indique une ou plusieurs actions (ex: transaction créée, adresse ajoutée, promesse d'achat enregistrée), "
     "confirme uniquement ce qui est indiqué et invite l'utilisateur à compléter dans la section Transactions si pertinent. "
     "Tu peux aussi effectuer une **recherche en ligne** (géocodage) pour compléter une adresse (ville, code postal, province) : si l'utilisateur demande de « trouver le code postal en ligne », « chercher l'adresse sur internet » ou « ajouter le code postal trouvé en ligne », le bloc « Action effectuée » indiquera le résultat ; confirme-le alors à l'utilisateur (ne dis pas que tu ne peux pas). "
-    "** Quand « Action effectuée » contient « Recherche en ligne (géocodage) » ou « Résultat géocodage » ou « Adresse complète à indiquer » avec une ville et un code postal, tu DOIS écrire dans ta réponse l'adresse complète trouvée (rue, ville, province, code postal) et confirmer que c'est enregistré. Tu ne DOIS JAMAIS répondre « Je ne peux pas effectuer cette action » dans ce cas — le géocodage a déjà été fait par le système. INTERDICTION TOTALE de répondre « Je vais chercher… », « Je vais effectuer la recherche », « Un instant, s'il vous plaît » ou toute phrase qui fait attendre l'utilisateur : le résultat est DÉJÀ dans « Action effectuée ». Ta première phrase DOIT être l'adresse complète (ex. « L'adresse complète est : 5136 Bd Décarie, Montréal (Québec) H3X 2H9. C'est enregistré. »), puis tu peux poser la question suivante (ex. Qui sont les vendeurs ?). **\n\n"
+    "** CODE POSTAL TROUVÉ = RÉPONDRE AVEC LE RÉSULTAT : ** Quand « Action effectuée » contient « Recherche en ligne (géocodage) », « Résultat géocodage » ou « Adresse complète à indiquer » avec une ville et un code postal, le système a DÉJÀ trouvé le code postal. Ta réponse doit être celle d'**après** la recherche : tu DOIS donner l'adresse complète (rue, ville, province, code postal) dans CE message et confirmer que c'est enregistré. Ne fais jamais attendre l'utilisateur : ne dis JAMAIS « Je vais chercher », « Un instant », « Je vais effectuer la recherche » — réponds une fois que tu as le résultat, en le fournissant directement (ex. « L'adresse complète est : 5136 Bd Décarie, Montréal (Québec) H3X 2H9. C'est enregistré. Qui sont les vendeurs pour ce dossier ? »). **\n\n"
     "** ADRESSE OBLIGATOIREMENT COMPLÈTE AVANT LA SUITE : **\n"
     "Tu ne DOIS JAMAIS poser « Qui sont les vendeurs ? », « Qui sont les acheteurs ? », « Quel est le prix ? » ou toute autre question sur le dossier tant que l'adresse du bien (dernière transaction) n'est pas complète avec ville, province et code postal. "
     "Si l'adresse n'a pas encore de ville/code postal : demande uniquement la **ville** à l'utilisateur (ne demande pas le code postal). Une fois la ville donnée, propose de trouver le code postal en ligne (géocodage) ou fais la recherche. "
@@ -1094,6 +1094,17 @@ def _extract_address_from_message(message: str) -> Optional[str]:
     return None
 
 
+def _last_message_asked_for_address(last_assistant_message: Optional[str] = None) -> bool:
+    """True si le dernier message de Léa demandait l'adresse du bien (ex. « Quelle est l'adresse du bien ? »)."""
+    if not last_assistant_message or len(last_assistant_message.strip()) < 10:
+        return False
+    t = last_assistant_message.strip().lower()
+    return (
+        "adresse" in t
+        and ("quelle" in t or "du bien" in t or "propriété" in t or "l'adresse" in t or "me dire" in t)
+    )
+
+
 def _wants_to_update_address(message: str) -> bool:
     t = (message or "").strip().lower()
     if not t:
@@ -1400,6 +1411,63 @@ async def maybe_update_transaction_address_from_lea(db: AsyncSession, user_id: i
         return (addr, transaction, validation)
     except Exception as e:
         logger.warning(f"Lea update address failed: {e}", exc_info=True)
+        await db.rollback()
+        return None
+
+
+async def _update_transaction_address_from_context(
+    db: AsyncSession, user_id: int, addr: str
+) -> Optional[Tuple[str, RealEstateTransaction, Optional[dict]]]:
+    """
+    Enregistre l'adresse sur la dernière transaction quand l'utilisateur répond par une adresse
+    à la question de Léa (« Quelle est l'adresse du bien ? »). Retourne (adresse, transaction, validation).
+    """
+    if not addr or len(addr.strip()) < 5:
+        return None
+    addr = addr.strip()
+    transaction = await get_user_latest_transaction(db, user_id)
+    if not transaction:
+        try:
+            transaction = RealEstateTransaction(
+                user_id=user_id,
+                name="Transaction Vente",
+                dossier_number=None,
+                status="En cours",
+                sellers=[],
+                buyers=[],
+                property_province="QC",
+                property_address=addr,
+                property_city="À compléter",
+                property_postal_code="À compléter",
+            )
+            db.add(transaction)
+            await db.flush()
+            await db.refresh(transaction)
+            logger.info(f"Lea created transaction id={transaction.id} (from context address) for user_id={user_id}")
+        except Exception as e:
+            logger.warning(f"Lea create transaction from context address failed: {e}", exc_info=True)
+            await db.rollback()
+            return None
+    try:
+        transaction.property_address = addr
+        validation = await _validate_address_via_geocode(addr)
+        if validation:
+            if validation.get("state"):
+                state = validation["state"]
+                if "québec" in state.lower() or "quebec" in state.lower() or state.upper() == "QC":
+                    transaction.property_province = "QC"
+                elif state.upper() in ("ON", "ONTARIO"):
+                    transaction.property_province = "ON"
+            if validation.get("city"):
+                transaction.property_city = validation["city"]
+            if validation.get("postcode"):
+                transaction.property_postal_code = _format_canadian_postal_code(validation["postcode"])
+        await db.commit()
+        await db.refresh(transaction)
+        logger.info(f"Lea updated transaction id={transaction.id} address from context to {addr[:50]}...")
+        return (addr, transaction, validation)
+    except Exception as e:
+        logger.warning(f"Lea update address from context failed: {e}", exc_info=True)
         await db.rollback()
         return None
 
@@ -2808,6 +2876,10 @@ async def run_lea_actions(
                 "Demande-lui : « Est-ce une vente ou un achat ? » Puis crée la transaction une fois qu'il a répondu (achat ou vente)."
             )
     addr_result = await maybe_update_transaction_address_from_lea(db, user_id, message)
+    if not addr_result and last_assistant_message and _last_message_asked_for_address(last_assistant_message):
+        addr_from_msg = _extract_address_from_message(message)
+        if addr_from_msg:
+            addr_result = await _update_transaction_address_from_context(db, user_id, addr_from_msg)
     if addr_result:
         addr, tx, validation = addr_result[0], addr_result[1], addr_result[2] if len(addr_result) >= 3 else None
         ref = tx.dossier_number or f"#{tx.id}"
@@ -2864,8 +2936,9 @@ async def run_lea_actions(
             addr, tx, validation = city_geocode_result
             ref = tx.dossier_number or f"#{tx.id}"
             lines.append(
-                f"Tu viens de compléter l'adresse avec la ville indiquée par l'utilisateur et d'effectuer la recherche en ligne (géocodage) pour la transaction {ref}. "
-                "Tu DOIS écrire l'adresse complète trouvée dans ta réponse et confirmer que c'est enregistré. Ne dis pas « Un instant » ni « Je vais chercher » : le géocodage est déjà fait."
+                f"Tu viens de trouver le code postal pour la transaction {ref}. C'est fait. "
+                "Ta réponse doit être celle d'APRÈS la recherche : donne immédiatement l'adresse complète dans ce message (rue, ville (province) code postal), confirme que c'est enregistré, puis pose la question suivante. "
+                "INTERDICTION de dire « Je vais chercher » ou « Un instant » : tu as déjà le résultat, fournis-le maintenant."
             )
             if validation:
                 parts = []
@@ -2882,10 +2955,8 @@ async def run_lea_actions(
                     state = validation.get("state") or ""
                     full_formatted = _format_full_address_ca(addr, city, state, postcode)
                     lines.append(
-                        f"Résultat géocodage : « {geocode_str} ». "
-                        f"Adresse complète à indiquer à l'utilisateur : « {full_formatted} ». "
-                        "Tu DOIS écrire cette adresse complète dans ta réponse (format : rue, ville (province) code postal) et confirmer que c'est enregistré. "
-                        "INTERDICTION de dire « Je vais chercher » ou « Un instant » : le résultat est déjà disponible ci-dessus."
+                        f"Résultat (à donner à l'utilisateur maintenant) : « {full_formatted} ». "
+                        "Écris cette adresse complète dans ta réponse, puis « C'est enregistré. » et la prochaine question (ex. Qui sont les vendeurs ?)."
                     )
     # Utilisateur a répondu « ok » / « oui » après la proposition de chercher le code postal en ligne : géocoder et renvoyer le résultat
     confirmation_geocode_result = None
@@ -2895,9 +2966,8 @@ async def run_lea_actions(
             _addr, _tx, validation = confirmation_geocode_result
             ref = _tx.dossier_number or f"#{_tx.id}"
             lines.append(
-                "Tu viens d'effectuer la recherche en ligne (géocodage) pour le code postal. "
-                "Tu DOIS indiquer à l'utilisateur l'adresse complète trouvée (rue, ville (province) code postal) et confirmer que c'est enregistré. "
-                "Ne dis pas seulement « Un instant » : le résultat est déjà disponible ci-dessous, écris-le dans ta réponse."
+                "Tu viens de trouver le code postal. Ta réponse doit être celle d'APRÈS la recherche : donne l'adresse complète dans ce message. "
+                "Ne dis pas « Un instant » : tu as déjà le résultat, fournis-le maintenant à l'utilisateur."
             )
             if validation:
                 parts = []
@@ -2914,9 +2984,7 @@ async def run_lea_actions(
                     state = validation.get("state") or ""
                     full_formatted = _format_full_address_ca(_addr, city, state, postcode)
                     lines.append(
-                        f"Résultat géocodage : « {geocode_str} ». "
-                        f"Adresse complète à indiquer à l'utilisateur : « {full_formatted} ». "
-                        "Tu DOIS écrire cette adresse complète dans ta réponse et confirmer que c'est enregistré, puis poser la question suivante (ex. Qui sont les vendeurs ?)."
+                        f"Résultat (à donner maintenant) : « {full_formatted} ». Écris cette adresse dans ta réponse, confirme que c'est enregistré, puis pose la question suivante (ex. Qui sont les vendeurs ?)."
                     )
     # Géocodage de l'adresse déjà enregistrée sur la dernière transaction (sans nouvelle adresse dans le message)
     if not addr_result and not city_geocode_result and not confirmation_geocode_result and _wants_to_geocode_existing_address(message):
