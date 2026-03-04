@@ -88,6 +88,10 @@ async def get_current_user(
     return user
 
 
+# Token used by Next.js proxy in development when LEA_DEMO_TOKEN is not set
+DEV_LEA_DEMO_TOKEN = "dev-lea-demo-token"
+
+
 async def get_lea_user(
     request: Request,
     db: AsyncSession = Depends(get_db),
@@ -96,13 +100,16 @@ async def get_lea_user(
     Resolve user for LEA endpoints: either via X-LEA-Demo-Token (demo mode)
     or via Bearer JWT. When LEA_DEMO_TOKEN is set and the request sends
     that value in X-LEA-Demo-Token, returns the user for LEA_DEMO_EMAIL.
+    In development, accepts DEV_LEA_DEMO_TOKEN when LEA_DEMO_TOKEN is not set.
     """
     settings = get_settings()
     demo_token = request.headers.get("X-LEA-Demo-Token")
+    # When LEA_DEMO_TOKEN is not set, accept default token so demo works out of the box
+    effective_demo_token = settings.LEA_DEMO_TOKEN or DEV_LEA_DEMO_TOKEN
     if (
-        settings.LEA_DEMO_TOKEN
+        effective_demo_token
         and demo_token
-        and demo_token == settings.LEA_DEMO_TOKEN
+        and demo_token == effective_demo_token
     ):
         result = await db.execute(
             select(User).where(User.email == settings.LEA_DEMO_EMAIL)

@@ -2,9 +2,17 @@
  * Proxy for LEA demo mode: forwards requests to the backend with X-LEA-Demo-Token.
  * Allows the public demo page to use Léa as clement@nukleo.com without login.
  * LEA_DEMO_TOKEN must match the backend env (server-only, not exposed to client).
+ * In development, a default token is used so the demo works without config.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+
+/** Default token when LEA_DEMO_TOKEN is not set so the demo works out of the box. Set LEA_DEMO_TOKEN for a secret value in production if desired. */
+const DEFAULT_LEA_DEMO_TOKEN = 'dev-lea-demo-token';
+
+function getDemoToken(): string {
+  return process.env.LEA_DEMO_TOKEN || DEFAULT_LEA_DEMO_TOKEN;
+}
 
 function getBackendUrl(): string {
   const url =
@@ -19,13 +27,7 @@ export async function GET(
   context: { params: Promise<{ path?: string[] }> }
 ) {
   const { path } = await context.params;
-  const demoToken = process.env.LEA_DEMO_TOKEN;
-  if (!demoToken) {
-    return NextResponse.json(
-      { detail: 'LEA demo is not configured' },
-      { status: 503 }
-    );
-  }
+  const demoToken = getDemoToken();
   const pathStr = path?.length ? path.join('/') : '';
   const backendUrl = `${getBackendUrl()}/api/v1/lea/${pathStr}`;
   const url = new URL(backendUrl);
@@ -55,13 +57,7 @@ export async function POST(
   context: { params: Promise<{ path?: string[] }> }
 ) {
   const { path } = await context.params;
-  const demoToken = process.env.LEA_DEMO_TOKEN;
-  if (!demoToken) {
-    return NextResponse.json(
-      { detail: 'LEA demo is not configured' },
-      { status: 503 }
-    );
-  }
+  const demoToken = getDemoToken();
   const pathStr = path?.length ? path.join('/') : '';
   const backendUrl = `${getBackendUrl()}/api/v1/lea/${pathStr}`;
   const contentType = request.headers.get('content-type') || '';
@@ -150,13 +146,7 @@ export async function DELETE(
   context: { params: Promise<{ path?: string[] }> }
 ) {
   const { path } = await context.params;
-  const demoToken = process.env.LEA_DEMO_TOKEN;
-  if (!demoToken) {
-    return NextResponse.json(
-      { detail: 'LEA demo is not configured' },
-      { status: 503 }
-    );
-  }
+  const demoToken = getDemoToken();
   const pathStr = path?.length ? path.join('/') : '';
   const backendUrl = `${getBackendUrl()}/api/v1/lea/${pathStr}`;
   const url = new URL(backendUrl);
