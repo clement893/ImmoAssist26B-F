@@ -14,7 +14,7 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import Optional, Literal, List, Tuple, Any, Union
+from typing import Optional, Literal, List, Tuple, Any
 
 import httpx
 from fastapi import APIRouter, Depends, File as FileParam, Form as FormParam, HTTPException, Query, Request, status, UploadFile
@@ -213,7 +213,8 @@ LEA_SYSTEM_PROMPT = (
     "Si le bloc contient « Tu viens de créer le formulaire OACIQ » ou « Promesse d'achat », confirme que le formulaire a bien été créé et indique la prochaine étape (Transactions → ouvrir la transaction → onglet Formulaires OACIQ). "
     "Si l'utilisateur demande quelque chose et qu'il n'y a AUCUN bloc « Action effectuée » pour cette demande, "
     "dis-lui que tu ne peux pas encore faire cela automatiquement et invite-le à aller dans la section Transactions pour le faire. "
-    "Ne invente jamais une confirmation du type « c'est fait » ou « j'ai créé » sans que « Action effectuée » le confirme.\n\n"
+    "Ne invente jamais une confirmation du type « c'est fait » ou « j'ai créé » sans que « Action effectuée » le confirme. "
+    "** Corrections (code postal, ville, etc.) : ** Quand l'utilisateur te corrige (ex. « non le code postal c'est H2K 1E1 », « corrige la ville en Laval »), ne dis jamais que c'est corrigé ou enregistré si le bloc « Action effectuée » ne mentionne pas explicitement que la correction a été appliquée à la transaction — sinon l'utilisateur verrait la transaction inchangée. Si « Action effectuée » indique que le code postal ou la ville a été corrigé(e), confirme alors que c'est bien enregistré dans la transaction.\n\n"
     "** DEMANDE D'INFORMATION vs DEMANDE D'ACTION : ** "
     "Si l'utilisateur pose une question sur ce qui est possible (ex. « as-t-on d'autres informations qu'on peut ajouter ? », « quelles infos peut-on ajouter pour une telle transaction ? », « qu'est-ce qu'on peut faire ? »), il demande une **explication ou une liste**, pas d'exécuter une action. "
     "Réponds alors uniquement en donnant des informations (formulaires utiles, données à compléter, prochaines étapes). Ne prétends jamais avoir créé un formulaire ou effectué une action à la place de l'utilisateur dans ce cas — sauf si le bloc « Action effectuée » indique explicitement qu'une action a été faite pour cette demande.\n\n"
@@ -3255,6 +3256,24 @@ async def run_lea_actions(
                 "Tu DOIS rester sur l'adresse : demande uniquement la **ville** à l'utilisateur (ne demande pas le code postal). Une fois la ville donnée, propose de trouver le code postal en ligne (géocodage). "
                 "Ne pose PAS « Qui sont les vendeurs ? » ni aucune autre question tant que l'adresse n'a pas ville + code postal."
             )
+    # Correction par l'utilisateur du code postal ou de la ville (sans refournir toute l'adresse) — appliquer en base
+    if not addr_result:
+        correction_result = await maybe_correct_transaction_postal_or_city_from_lea(
+            db, user_id, message, last_assistant_message
+        )
+        if correction_result:
+            tx, field, new_value = correction_result
+            ref = tx.dossier_number or f"#{tx.id}"
+            if field == "postal":
+                lines.append(
+                    f"Le code postal de la transaction {ref} a été corrigé en « {new_value} ». "
+                    "Confirme à l'utilisateur que la correction est bien enregistrée dans la transaction."
+                )
+            else:
+                lines.append(
+                    f"La ville de la transaction {ref} a été corrigée en « {new_value} ». "
+                    "Confirme à l'utilisateur que la correction est bien enregistrée dans la transaction."
+                )
     # Utilisateur a répondu par la ville seule (ex. « Montréal ») : compléter l'adresse partielle et géocoder dans le même tour
     city_geocode_result = None
     if not addr_result:
