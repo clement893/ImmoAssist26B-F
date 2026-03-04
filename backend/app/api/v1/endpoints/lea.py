@@ -14,7 +14,7 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import Optional, Literal, List, Tuple, Any
+from typing import Optional, Literal, List, Tuple, Any, Union
 
 import httpx
 from fastapi import APIRouter, Depends, File as FileParam, Form as FormParam, HTTPException, Query, Request, status, UploadFile
@@ -214,6 +214,9 @@ LEA_SYSTEM_PROMPT = (
     "Si l'utilisateur demande quelque chose et qu'il n'y a AUCUN bloc « Action effectuée » pour cette demande, "
     "dis-lui que tu ne peux pas encore faire cela automatiquement et invite-le à aller dans la section Transactions pour le faire. "
     "Ne invente jamais une confirmation du type « c'est fait » ou « j'ai créé » sans que « Action effectuée » le confirme.\n\n"
+    "** DEMANDE D'INFORMATION vs DEMANDE D'ACTION : ** "
+    "Si l'utilisateur pose une question sur ce qui est possible (ex. « as-t-on d'autres informations qu'on peut ajouter ? », « quelles infos peut-on ajouter pour une telle transaction ? », « qu'est-ce qu'on peut faire ? »), il demande une **explication ou une liste**, pas d'exécuter une action. "
+    "Réponds alors uniquement en donnant des informations (formulaires utiles, données à compléter, prochaines étapes). Ne prétends jamais avoir créé un formulaire ou effectué une action à la place de l'utilisateur dans ce cas — sauf si le bloc « Action effectuée » indique explicitement qu'une action a été faite pour cette demande.\n\n"
     "Quand « Action effectuée » indique une ou plusieurs actions (ex: transaction créée, adresse ajoutée, promesse d'achat enregistrée), "
     "confirme uniquement ce qui est indiqué et invite l'utilisateur à compléter dans la section Transactions si pertinent. "
     "Tu peux aussi effectuer une **recherche en ligne** (géocodage) pour compléter une adresse (ville, code postal, province) : si l'utilisateur demande de « trouver le code postal en ligne », « chercher l'adresse sur internet » ou « ajouter le code postal trouvé en ligne », le bloc « Action effectuée » indiquera le résultat ; confirme-le alors à l'utilisateur (ne dis pas que tu ne peux pas). "
@@ -1578,6 +1581,129 @@ async def _update_transaction_address_from_context(
         return None
 
 
+def _extract_postal_code_from_message(message: str) -> Optional[str]:
+    """Extrait un code postal canadien (A1A 1A1) du message, s'il y en a un."""
+    if not message or len(message.strip()) < 5:
+        return None
+    t = message.strip()
+    # Format A1A 1A1 ou A1A1A1 (avec ou sans espaces)
+    m = re.search(r"[A-Za-z]\d[A-Za-z]\s*\d[A-Za-z]\d", t)
+    if m:
+        raw = re.sub(r"\s+", "", m.group(0).upper())
+        if len(raw) == 6 and raw[0].isalpha() and raw[1].isdigit() and raw[2].isalpha() and raw[3].isdigit() and raw[4].isalpha() and raw[5].isdigit():
+            return _format_canadian_postal_code(raw)
+    return None
+
+
+def _extract_city_correction_from_message(message: str) -> Optional[str]:
+    """Extrait une ville indiquée en correction (ex. « la ville c'est Montréal », « corrige la ville en Laval »)."""
+    if not message or len(message.strip()) < 2:
+        return None
+    t = (message or "").strip()
+    t_lower = t.lower()
+    # "la ville c'est X" / "c'est X" (contexte ville) / "corrige la ville en X" / "la bonne ville c'est X"
+    for pattern in (
+        r"(?:la\s+ville\s+(?:c'est|est)\s+|ville\s*:\s*)([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$|\s+,|\s+et\s+)",
+        r"(?:corrige(?:r?)\s+la\s+ville\s+(?:en\s+|à\s+)?|remplace\s+la\s+ville\s+par\s+)([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$|\s+,)",
+        r"(?:le\s+bon\s+code\s+postal|la\s+bonne\s+ville)\s+(?:c'est|est)\s+([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$)",
+    ):
+        m = re.search(pattern, t, re.I)
+        if m:
+            city = m.group(1).strip()
+            if 2 <= len(city) <= 50 and not any(c.isdigit() for c in city):
+                return city
+    # Message court type « Montréal » ou « Laval » après une question sur la ville
+    if len(t.split()) <= 3 and not any(c.isdigit() for c in t) and t[0].isupper():
+        return t.strip()
+    return None
+
+
+def _last_message_mentioned_address_or_postal(last_assistant_message: Optional[str]) -> bool:
+    """True si le dernier message de Léa mentionnait une adresse ou un code postal (contexte de correction)."""
+    if not last_assistant_message or len(last_assistant_message.strip()) < 10:
+        return False
+    lower = last_assistant_message.strip().lower()
+    return (
+        "adresse" in lower
+        or "code postal" in lower
+        or "montréal" in lower
+        or "québec" in lower
+        or re.search(r"[A-Za-z]\d[A-Za-z]\s*\d[A-Za-z]\d", last_assistant_message) is not None
+    )
+
+
+def _is_correcting_postal_or_city(message: str, last_assistant_message: Optional[str]) -> bool:
+    """True si l'utilisateur corrige le code postal ou la ville (après que Léa ait indiqué une adresse)."""
+    if not message or len(message.strip()) < 2:
+        return False
+    t = (message or "").strip().lower()
+    if not _last_message_mentioned_address_or_postal(last_assistant_message):
+        return False
+    correction_phrases = (
+        "non ",
+        "non,",
+        "corrige",
+        "correction",
+        "c'est ",
+        "c’est ",
+        "le code postal",
+        "code postal c'est",
+        "code postal est",
+        "le bon code postal",
+        "la ville c'est",
+        "la ville est",
+        "corrige la ville",
+        "changer le code postal",
+        "modifier le code postal",
+        "pas ça",
+        "pas le bon",
+        "erreur",
+    )
+    return any(p in t for p in correction_phrases)
+
+
+async def maybe_correct_transaction_postal_or_city_from_lea(
+    db: AsyncSession,
+    user_id: int,
+    message: str,
+    last_assistant_message: Optional[str],
+) -> Optional[Tuple[RealEstateTransaction, Literal["postal", "city"], str]]:
+    """
+    Si l'utilisateur corrige le code postal ou la ville pour la transaction en cours,
+    met à jour la transaction et retourne (transaction, "postal"|"city", nouvelle_valeur).
+    """
+    if not _is_correcting_postal_or_city(message, last_assistant_message):
+        return None
+    transaction = await get_user_latest_transaction(db, user_id)
+    if not transaction:
+        return None
+    new_postal = _extract_postal_code_from_message(message)
+    new_city = _extract_city_correction_from_message(message)
+    if new_postal:
+        try:
+            transaction.property_postal_code = _format_canadian_postal_code(new_postal)
+            await db.commit()
+            await db.refresh(transaction)
+            logger.info(f"Lea corrected postal code to {transaction.property_postal_code} for transaction id={transaction.id}")
+            return (transaction, "postal", transaction.property_postal_code)
+        except Exception as e:
+            logger.warning(f"Lea correct postal code failed: {e}", exc_info=True)
+            await db.rollback()
+            return None
+    if new_city:
+        try:
+            transaction.property_city = new_city.strip()
+            await db.commit()
+            await db.refresh(transaction)
+            logger.info(f"Lea corrected city to {transaction.property_city} for transaction id={transaction.id}")
+            return (transaction, "city", transaction.property_city)
+        except Exception as e:
+            logger.warning(f"Lea correct city failed: {e}", exc_info=True)
+            await db.rollback()
+            return None
+    return None
+
+
 def _looks_like_city_only(message: str) -> bool:
     """True si le message ressemble à une simple indication de ville (ex. « Montréal », « Québec »), sans verbe ni adresse complète."""
     if not message or len(message.strip()) < 2:
@@ -2713,11 +2839,16 @@ def _get_lea_guidance_lines(message: str) -> list[str]:
     return lines
 
 
+# Tournures françaises où "as" = verbe avoir (ne pas interpréter comme code OACIQ AS)
+_AS_FALSE_POSITIVE_PREFIXES = ("as-t-on", "as-tu", "as-t-il", "as-t-elle", "as-t-ils", "as-t-elles")
+
+
 def _extract_oaciq_form_code_from_message(message: str) -> Optional[str]:
     """
     Extrait le code du formulaire OACIQ demandé dans le message.
     Cherche d'abord un code explicite (ex. « crée un CP », « formulaire CCVE »),
     puis les mots-clés (contre-proposition → CP, etc.). Retourne None si rien trouvé.
+    Exclut le code AS quand "as" fait partie de « as-t-on », « as-tu », etc. (verbe avoir).
     """
     if not message or not message.strip():
         return None
@@ -2727,12 +2858,21 @@ def _extract_oaciq_form_code_from_message(message: str) -> Optional[str]:
         code_lower = code.lower()
         # Mot entier ou précédé/suivi par espace, ponctuation, fin/début
         if code_lower in t:
-            # Vérifier frontières (éviter "cap" pour "PA")
             idx = t.find(code_lower)
             before_ok = idx == 0 or t[idx - 1] in " \t\n\r,;.?!»\"'(-"
             after_ok = idx + len(code_lower) >= len(t) or t[idx + len(code_lower)] in " \t\n\r,;.?!«\"')-"
-            if before_ok and after_ok:
-                return code
+            if not (before_ok and after_ok):
+                continue
+            # Ne pas interpréter "as" comme code OACIQ AS dans « as-t-on », « as-tu », etc.
+            if code == "AS" and idx == 0:
+                rest = t[idx:]
+                if any(rest.startswith(prefix) for prefix in _AS_FALSE_POSITIVE_PREFIXES):
+                    continue
+            if code == "AS" and idx > 0:
+                rest = t[idx:]
+                if any(rest.startswith(prefix) for prefix in _AS_FALSE_POSITIVE_PREFIXES):
+                    continue
+            return code
     # 2) Mots-clés
     for keywords, code in LEA_OACIQ_KEYWORD_TO_CODE:
         if any(kw in t for kw in keywords):
@@ -2740,9 +2880,44 @@ def _extract_oaciq_form_code_from_message(message: str) -> Optional[str]:
     return None
 
 
+def _is_information_request_only(message: str) -> bool:
+    """
+    True si le message est une demande d'information / explication (ce qu'on peut faire,
+    quelles infos ajouter, etc.) et non une demande d'action à exécuter.
+    """
+    if not message or len(message.strip()) < 10:
+        return False
+    t = (message or "").strip().lower()
+    info_phrases = (
+        "as-t-on ",
+        "as-t-on d'",
+        "as-t-on des ",
+        "as-t-on d'autres ",
+        "est-ce qu'on peut ",
+        "qu'est-ce qu'on peut ",
+        "quelles autres informations",
+        "quelles autres infos",
+        "quelles informations ",
+        "quelles infos ",
+        "d'autres informations qu'on peut",
+        "d'autres infos qu'on peut",
+        "qu'on peut ajouter",
+        "qu'on peut faire",
+        "quelles données ",
+        "quoi d'autre ",
+    )
+    if any(p in t for p in info_phrases):
+        return True
+    if "?" in message and ("informations" in t or "infos" in t) and ("qu'on peut" in t or "peut-on" in t or "peut on" in t):
+        return True
+    return False
+
+
 def _wants_to_create_oaciq_form_for_transaction(message: str) -> bool:
     """True si l'utilisateur demande de créer un formulaire OACIQ pour une transaction."""
     if not message or len(message.strip()) < 5:
+        return False
+    if _is_information_request_only(message):
         return False
     t = (message or "").strip().lower()
     create_verbs = ("créons", "créer", "crée", "créez", "crééz", "faire", "ouvrir", "ajouter", "lancer", "préparer", "préparons", "générer", "génère")
