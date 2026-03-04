@@ -486,10 +486,12 @@ async def login(
     )
     
     # Return JSONResponse explicitly to work with rate limiting middleware
+    expires_in_seconds = settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
     token_data = TokenWithUser(
         access_token=access_token,
         token_type="bearer",
         refresh_token=refresh_token,
+        expires_in=expires_in_seconds,
         user=user_response
     )
     return JSONResponse(
@@ -581,7 +583,12 @@ async def refresh_token(
         logger.info(f"Token refreshed for user {user.email}")
         
         # Return JSONResponse explicitly to work with rate limiting middleware
-        token_data = Token(access_token=access_token, token_type="bearer")
+        expires_in_seconds = settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        token_data = Token(
+            access_token=access_token,
+            token_type="bearer",
+            expires_in=expires_in_seconds,
+        )
         return JSONResponse(
             status_code=status.HTTP_200_OK,
             content=token_data.model_dump()
@@ -607,7 +614,12 @@ async def refresh_token(
                     )
                     logger.info(f"Expired token refreshed for user {user.email}")
                     # Return JSONResponse explicitly to work with rate limiting middleware
-                    token_data = Token(access_token=access_token, token_type="bearer")
+                    expires_in_seconds = settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+                    token_data = Token(
+                        access_token=access_token,
+                        token_type="bearer",
+                        expires_in=expires_in_seconds,
+                    )
                     return JSONResponse(
                         status_code=status.HTTP_200_OK,
                         content=token_data.model_dump()

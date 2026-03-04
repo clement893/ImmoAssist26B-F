@@ -12,6 +12,7 @@ class Token(BaseModel):
     """Token response schema"""
     access_token: str = Field(..., description="JWT access token")
     token_type: str = Field(default="bearer", description="Token type")
+    expires_in: Optional[int] = Field(None, description="Token lifetime in seconds")
 
 
 class RefreshTokenRequest(BaseModel):
@@ -169,6 +170,7 @@ class TokenWithUser(BaseModel):
     access_token: str = Field(..., description="JWT access token")
     token_type: str = Field(default="bearer", description="Token type")
     refresh_token: Optional[str] = Field(None, description="JWT refresh token")
+    expires_in: Optional[int] = Field(None, description="Token lifetime in seconds")
     user: UserResponse = Field(..., description="User data")
     
     model_config = {

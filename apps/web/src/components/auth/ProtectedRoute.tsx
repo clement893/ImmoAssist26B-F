@@ -8,6 +8,7 @@ import { checkMySuperAdminStatus } from '@/lib/api/admin';
 import { logger } from '@/lib/logger';
 import { getErrorStatus } from '@/lib/errors';
 import { useHydrated } from '@/hooks/useHydrated';
+import { useProactiveTokenRefresh } from '@/hooks/useProactiveTokenRefresh';
 
 /** Max time to wait for auth check before redirecting (avoids infinite "Verifying authentication..."). */
 const AUTH_CHECK_TIMEOUT_MS = 15000;
@@ -44,6 +45,9 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Prote
   const pathname = usePathname();
   const { user, token, setUser } = useAuthStore();
   const isHydrated = useHydrated();
+
+  // Proactive token refresh while tab is visible so session does not expire while user is active
+  useProactiveTokenRefresh();
 
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
