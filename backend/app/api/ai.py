@@ -127,6 +127,24 @@ async def simple_chat(
         )
 
 
+def _response_indicates_pending_search(content: str) -> bool:
+    """True if the assistant said it will search (e.g. for postal code) but did not yet provide the full result."""
+    if not content or len(content.strip()) < 10:
+        return False
+    content_lower = content.lower().strip()
+    # Phrases indicating "I'll search" / "one moment" without the final answer in the same message
+    indicators = (
+        "recherche en ligne",
+        "effectuer la recherche",
+        "un instant, s'il vous plaît",
+        "un instant s'il vous plaît",
+        "je vais effectuer",
+        "je vais rechercher",
+        "je vais chercher",
+    )
+    return any(ind in content_lower for ind in indicators)
+
+
 @router.post("/chat/template", response_model=ChatResponse)
 async def template_chat(
     request: ChatRequest,
@@ -135,6 +153,9 @@ async def template_chat(
     """
     Chat completion with template documentation context.
     This endpoint automatically includes template documentation in the system prompt.
+    When the assistant says it will search (e.g. for postal code) but does not return the full
+    address in the same message, a second completion is triggered automatically so the user
+    gets the complete address without having to reply.
     """
     if not AIService.is_configured():
         raise HTTPException(
@@ -192,6 +213,38 @@ Remember: You have access to the complete template documentation above. Use it t
             max_tokens=request.max_tokens or 2000,  # Increased for longer responses
             system_prompt=enhanced_system_prompt,
         )
+        
+        content = response.get("content") or ""
+        # If the assistant said it would search (e.g. for postal code) but did not give the full address,
+        # trigger a second completion so the user gets the complete address without replying.
+        if _response_indicates_pending_search(content):
+            follow_up_messages = messages + [
+                {"role": "assistant", "content": content},
+                {
+                    "role": "user",
+                    "content": (
+                        "Tu as effectué la recherche. Donne maintenant l'adresse complète (ou le résultat attendu) "
+                        "dans un seul message, sans redemander à l'utilisateur de répondre."
+                    ),
+                },
+            ]
+            follow_up = await service.chat_completion(
+                messages=follow_up_messages,
+                model=request.model,
+                temperature=request.temperature,
+                max_tokens=request.max_tokens or 2000,
+                system_prompt=enhanced_system_prompt,
+            )
+            follow_up_content = (follow_up.get("content") or "").strip()
+            if follow_up_content:
+                response["content"] = content.rstrip() + "\n\n" + follow_up_content
+                # Merge usage if present
+                if "usage" in follow_up and "usage" in response:
+                    ru = response["usage"]
+                    fu = follow_up["usage"]
+                    for key in ("prompt_tokens", "completion_tokens", "total_tokens", "input_tokens", "output_tokens"):
+                        if key in fu:
+                            ru[key] = ru.get(key, 0) + fu[key]
         
         return ChatResponse(**response)
         
