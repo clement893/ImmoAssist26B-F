@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.core.database import get_db
+from app.core.config import get_settings
 from app.models import User
 from app.core.security import decode_token
 from app.services.subscription_service import SubscriptionService
@@ -87,6 +88,68 @@ async def get_current_user(
     return user
 
 
+async def get_lea_user(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    """
+    Resolve user for LEA endpoints: either via X-LEA-Demo-Token (demo mode)
+    or via Bearer JWT. When LEA_DEMO_TOKEN is set and the request sends
+    that value in X-LEA-Demo-Token, returns the user for LEA_DEMO_EMAIL.
+    """
+    settings = get_settings()
+    demo_token = request.headers.get("X-LEA-Demo-Token")
+    if (
+        settings.LEA_DEMO_TOKEN
+        and demo_token
+        and demo_token == settings.LEA_DEMO_TOKEN
+    ):
+        result = await db.execute(
+            select(User).where(User.email == settings.LEA_DEMO_EMAIL)
+        )
+        user = result.scalar_one_or_none()
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="LEA demo user not found",
+            )
+        return user
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    token = auth_header[7:].strip()
+    payload = decode_token(token, token_type="access")
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    email = payload.get("sub")
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User is inactive",
+        )
+    return user
 
 
 async def get_optional_user(
