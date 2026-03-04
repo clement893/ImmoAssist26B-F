@@ -22,6 +22,7 @@ export function useVoiceRecognition(language: string = 'fr-FR'): UseVoiceRecogni
   const [supported, setSupported] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const streamRef = useRef<MediaStream | null>(null); // Keep stream active during recognition
+  const userRequestedStopRef = useRef(false); // true only when user clicked stop → close mic; else keep open and restart
 
   useEffect(() => {
     // Check if browser supports Speech Recognition
@@ -65,17 +66,19 @@ export function useVoiceRecognition(language: string = 'fr-FR'): UseVoiceRecogni
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      let errorMessage = 'Erreur de reconnaissance vocale';
-      
       switch (event.error) {
         case 'no-speech':
-          // Don't show error for no-speech, just stop listening
-          setIsListening(false);
+          // Engine stopped (no speech); do not close mic — onend will fire and we'll restart
           return;
         case 'aborted':
-          // User stopped, not an error
-          setIsListening(false);
+          // Only close if user requested stop; else onend will handle restart
+          if (userRequestedStopRef.current) setIsListening(false);
           return;
+        default:
+          break;
+      }
+      let errorMessage = 'Erreur de reconnaissance vocale';
+      switch (event.error) {
         case 'audio-capture':
           errorMessage = 'Microphone non accessible. Vérifiez que le microphone est connecté et que les permissions sont accordées.';
           break;
@@ -91,18 +94,35 @@ export function useVoiceRecognition(language: string = 'fr-FR'): UseVoiceRecogni
         default:
           errorMessage = `Erreur de reconnaissance vocale: ${event.error}`;
       }
-      
       setError(errorMessage);
       setIsListening(false);
     };
 
     recognition.onend = () => {
-      setIsListening(false);
-      // Stop the microphone stream when recognition ends
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-        streamRef.current = null;
+      if (userRequestedStopRef.current) {
+        userRequestedStopRef.current = false;
+        setIsListening(false);
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(track => track.stop());
+          streamRef.current = null;
+        }
+        return;
       }
+      // Engine ended by itself (e.g. silence timeout): keep mic "open" by restarting
+      if (!streamRef.current || !recognitionRef.current) return;
+      const rec = recognitionRef.current;
+      setTimeout(() => {
+        if (userRequestedStopRef.current || !recognitionRef.current) return;
+        try {
+          rec.start();
+        } catch (e) {
+          setIsListening(false);
+          if (streamRef.current) {
+            streamRef.current.getTracks().forEach(track => track.stop());
+            streamRef.current = null;
+          }
+        }
+      }, 100);
     };
 
     recognitionRef.current = recognition;
@@ -324,10 +344,11 @@ export function useVoiceRecognition(language: string = 'fr-FR'): UseVoiceRecogni
   }, [supported, isListening, requestPermission]);
 
   const stopListening = useCallback(() => {
+    userRequestedStopRef.current = true;
     if (recognitionRef.current && isListening) {
       recognitionRef.current.stop();
     }
-    // Stop stream when stopping listening
+    // Stop stream when stopping listening (onend will also run and do cleanup)
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
