@@ -49,6 +49,15 @@ except ImportError:
     _OPENAI_AVAILABLE = False
     AsyncOpenAI = None
 
+try:
+    from geopy.geocoders import Nominatim
+    from geopy.exc import GeocoderTimedOut, GeocoderServiceError
+    _GEOPY_AVAILABLE = True
+except ImportError:
+    Nominatim = None
+    GeocoderTimedOut = GeocoderServiceError = None
+    _GEOPY_AVAILABLE = False
+
 AGENT_ERR_MSG = (
     "AGENT_API_URL and AGENT_API_KEY must be set in the Backend service (Railway → Backend → Variables). "
     "Example: AGENT_API_URL=https://agentia-immo-production.up.railway.app"
@@ -214,7 +223,8 @@ LEA_SYSTEM_PROMPT = (
     "Si l'utilisateur demande quelque chose et qu'il n'y a AUCUN bloc « Action effectuée » pour cette demande, "
     "dis-lui que tu ne peux pas encore faire cela automatiquement et invite-le à aller dans la section Transactions pour le faire. "
     "Ne invente jamais une confirmation du type « c'est fait » ou « j'ai créé » sans que « Action effectuée » le confirme. "
-    "** Corrections (code postal, ville, etc.) : ** Quand l'utilisateur te corrige (ex. « non le code postal c'est H2K 1E1 », « corrige la ville en Laval »), ne dis jamais que c'est corrigé ou enregistré si le bloc « Action effectuée » ne mentionne pas explicitement que la correction a été appliquée à la transaction — sinon l'utilisateur verrait la transaction inchangée. Si « Action effectuée » indique que le code postal ou la ville a été corrigé(e), confirme alors que c'est bien enregistré dans la transaction.\n\n"
+    "** Corrections (code postal, ville, etc.) : ** Quand l'utilisateur te corrige (ex. « non le code postal c'est H2K 1E1 », « corrige la ville en Laval »), ne dis jamais que c'est corrigé ou enregistré si le bloc « Action effectuée » ne mentionne pas explicitement que la correction a été appliquée à la transaction — sinon l'utilisateur verrait la transaction inchangée. Si « Action effectuée » indique que le code postal ou la ville a été corrigé(e), confirme alors que c'est bien enregistré dans la transaction. "
+    "** Changement de nom (vendeur/acheteur) : ** Quand l'utilisateur demande de changer le nom d'un vendeur ou d'un acheteur (ex. « changer le nom de l'acheteur Paul en Pierre », « l'acheteur c'est Pierre Martin pas Paul »), ne dis jamais que c'est modifié si le bloc « Action effectuée » ne mentionne pas explicitement que le nom a été corrigé dans la transaction. Si « Action effectuée » indique que le nom du vendeur ou de l'acheteur a été corrigé, confirme alors que c'est bien enregistré.\n\n"
     "** DEMANDE D'INFORMATION vs DEMANDE D'ACTION : ** "
     "Si l'utilisateur pose une question sur ce qui est possible (ex. « as-t-on d'autres informations qu'on peut ajouter ? », « quelles infos peut-on ajouter pour une telle transaction ? », « qu'est-ce qu'on peut faire ? »), il demande une **explication ou une liste**, pas d'exécuter une action. "
     "Réponds alors uniquement en donnant des informations (formulaires utiles, données à compléter, prochaines étapes). Ne prétends jamais avoir créé un formulaire ou effectué une action à la place de l'utilisateur dans ce cas — sauf si le bloc « Action effectuée » indique explicitement qu'une action a été faite pour cette demande.\n\n"
@@ -333,7 +343,7 @@ class LeaSettingsUpdate(BaseModel):
 # Actions que Léa peut effectuer (affichées dans Paramètres Léa)
 LEA_CAPABILITIES = [
     {"id": "create_transaction", "label": "Créer une transaction", "description": "Léa peut créer un dossier (transaction d'achat ou de vente) depuis la conversation."},
-    {"id": "update_transaction", "label": "Modifier une transaction", "description": "Léa peut mettre à jour une transaction : adresse, vendeurs, acheteurs, prix, promesse d'achat, date de clôture, etc. L'utilisateur peut dire par ex. « enregistre les vendeurs Lily et Lilou » ou « les acheteurs sont Paul et Marie ». Léa peut aussi supprimer un vendeur ou un acheteur (ex. « supprimer Hind », « retirer le vendeur Pierre »)."},
+    {"id": "update_transaction", "label": "Modifier une transaction", "description": "Léa peut mettre à jour une transaction : adresse, vendeurs, acheteurs, prix, promesse d'achat, date de clôture, etc. L'utilisateur peut dire par ex. « enregistre les vendeurs Lily et Lilou » ou « les acheteurs sont Paul et Marie ». Léa peut changer le nom d'un acheteur ou vendeur (ex. « changer le nom de l'acheteur Paul en Pierre », « l'acheteur c'est Pierre Martin »). Léa peut aussi supprimer un vendeur ou un acheteur (ex. « supprimer Hind », « retirer le vendeur Pierre »)."},
     {"id": "create_contact", "label": "Créer un contact", "description": "À venir : Léa pourra créer un contact dans le Réseau (API contacts)."},
     {"id": "update_contact", "label": "Modifier un contact", "description": "À venir : Léa pourra modifier un contact existant dans le Réseau."},
     {"id": "access_oaciq_forms", "label": "Accéder aux formulaires OACIQ", "description": "Léa peut lister les formulaires OACIQ disponibles et l'état des formulaires (brouillon/complété/signé) pour vos transactions."},
@@ -1259,10 +1269,64 @@ def _build_address_for_geocode(addr_clean: str) -> List[str]:
     return variants
 
 
+def _geocode_geopy_sync(addr: str, limit: int = 5) -> Optional[dict]:
+    """
+    Géocodage synchrone via geopy (Nominatim / OpenStreetMap).
+    Retourne un dict avec postcode, city, state, country_code pour adresses Canada.
+    Utilisé dans un thread pour ne pas bloquer l'event loop.
+    """
+    if not _GEOPY_AVAILABLE or not Nominatim or not addr or len(addr.strip()) < 5:
+        return None
+    addr = _normalize_address_for_geocode(addr.strip())
+    try:
+        geolocator = Nominatim(user_agent="ImmoAssist-Lea/1.0 (contact@immoassist.com)", timeout=10)
+        locations = geolocator.geocode(addr, addressdetails=True, exactly_one=False, limit=limit)
+    except (GeocoderTimedOut, GeocoderServiceError, Exception) as e:
+        logger.debug("Lea geopy geocode failed for %s: %s", addr[:50], e)
+        return None
+    if not locations:
+        return None
+    # Construire la liste au format attendu par _pick_best_geocode_result (address dict)
+    data = []
+    for loc in locations:
+        raw = getattr(loc, "raw", None) or {}
+        adr = raw.get("address") if isinstance(raw, dict) else {}
+        if isinstance(adr, dict) and adr.get("country_code", "").upper() == "CA":
+            data.append({"address": adr})
+    if not data:
+        return None
+    best = _pick_best_geocode_result(data, addr)
+    if not best:
+        # Premier résultat Canada
+        adr = data[0].get("address") or {}
+        best = {}
+        if adr.get("postcode"):
+            best["postcode"] = str(adr["postcode"]).strip()
+        if adr.get("city") or adr.get("town") or adr.get("village") or adr.get("municipality"):
+            best["city"] = str(
+                adr.get("city") or adr.get("town") or adr.get("village") or adr.get("municipality") or ""
+            ).strip()
+        if adr.get("state") or adr.get("province"):
+            best["state"] = str(adr.get("state") or adr.get("province") or "").strip()
+        best["country_code"] = "CA"
+    return best if best else None
+
+
+async def _geocode_geopy(addr: str) -> Optional[dict]:
+    """Géocodage via geopy (Nominatim) en async (exécution dans un thread)."""
+    if not addr or len(addr.strip()) < 5:
+        return None
+    try:
+        return await asyncio.to_thread(_geocode_geopy_sync, addr, 5)
+    except Exception as e:
+        logger.debug("Lea geopy async geocode failed: %s", e)
+        return None
+
+
 async def _geocode_geocoder_ca(addr: str) -> Optional[dict]:
     """
-    Géocodage via geocoder.ca (priorité Canada, bons codes postaux).
-    API: geoit=XML requis, json=1 pour JSON, standard=1 et showpostal=1 pour adresse complète.
+    Géocodage via geocoder.ca (payant). Non utilisé par défaut : Léa utilise geopy (Nominatim).
+    Conservé pour référence ou réactivation via configuration.
     Retourne un dict avec postcode, city, state, country_code ou None.
     """
     if not addr or len(addr.strip()) < 5:
@@ -2289,6 +2353,178 @@ def _extract_seller_buyer_names_from_assistant_question(assistant_message: str) 
     if not names:
         return None
     return (role, names)
+
+
+def _extract_rename_seller_buyer_from_message(
+    message: str, last_assistant_message: Optional[str] = None
+) -> Optional[Tuple[str, str, str]]:
+    """
+    Détecte une demande de changement de nom d'un vendeur ou acheteur.
+    Retourne (ancien_nom_ou_recherche, nouveau_nom, "Acheteur"|"Vendeur") ou None.
+    """
+    if not message or len(message.strip()) < 5:
+        return None
+    t = (message or "").strip()
+    t_lower = t.lower()
+    role: Optional[str] = None
+    if re.search(r"\bacheteur(s?)\b", t_lower):
+        role = "Acheteur"
+    if re.search(r"\bvendeur(s?)\b", t_lower):
+        role = role or "Vendeur"
+    if not role and last_assistant_message:
+        last_lower = (last_assistant_message or "").strip().lower()
+        if "acheteur" in last_lower:
+            role = "Acheteur"
+        elif "vendeur" in last_lower:
+            role = "Vendeur"
+    if not role:
+        return None
+
+    # "changer le nom de l'acheteur X en Y" / "remplacer l'acheteur X par Y"
+    m = re.search(
+        r"(?:changer|modifier|corriger)\s+(?:le\s+)?nom\s+(?:de\s+l['']?)?(?:acheteur|vendeur)\s+(?:c['']est\s+)?([A-Za-zÀ-ÿ\s\-]+?)\s+en\s+([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$|\s+pour)",
+        t,
+        re.I,
+    )
+    if m:
+        old_name = m.group(1).strip()
+        new_name = m.group(2).strip()
+        if len(old_name) >= 2 and len(new_name) >= 2:
+            return (old_name, new_name, role)
+
+    m = re.search(
+        r"remplacer\s+(?:l['']?)?(?:acheteur|vendeur)\s+([A-Za-zÀ-ÿ\s\-]+?)\s+par\s+([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$|\s+pour)",
+        t,
+        re.I,
+    )
+    if m:
+        old_name = m.group(1).strip()
+        new_name = m.group(2).strip()
+        if len(old_name) >= 2 and len(new_name) >= 2:
+            return (old_name, new_name, role)
+
+    # "l'acheteur c'est pas X, c'est Y" / "non l'acheteur c'est Y" / "c'est Y pas X"
+    m = re.search(
+        r"(?:l['']?|le\s+)(?:acheteur|vendeur)\s+(?:c['']est\s+)?(?:pas\s+)?([A-Za-zÀ-ÿ\s\-]+?)\s*,\s*(?:c['']est\s+)?([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$)",
+        t,
+        re.I,
+    )
+    if m:
+        old_name = m.group(1).strip()
+        new_name = m.group(2).strip()
+        if len(old_name) >= 2 and len(new_name) >= 2:
+            return (old_name, new_name, role)
+
+    m = re.search(
+        r"non\s+(?:l['']?|le\s+)(?:acheteur|vendeur)\s+(?:c['']est\s+)?([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$)",
+        t,
+        re.I,
+    )
+    if m:
+        new_name = m.group(1).strip()
+        if len(new_name) >= 2 and last_assistant_message:
+            # Ancien nom peut être dans le message assistant (ex. "L'acheteur est Paul Dupont")
+            last = last_assistant_message.strip()
+            name_in_last = re.search(
+                r"(?:acheteur|vendeur)\s+(?:est\s+|c['']est\s+|:)\s*([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$|\s+,)",
+                last,
+                re.I,
+            )
+            old_name = name_in_last.group(1).strip() if name_in_last else ""
+            if old_name and len(old_name) >= 2:
+                return (old_name, new_name, role)
+
+    # "corriger le nom (de l'acheteur), c'est Y"
+    m = re.search(
+        r"(?:corriger|changer|modifier)\s+(?:le\s+)?nom\s+(?:de\s+l['']?)?(?:acheteur|vendeur)?\s*[,:]?\s*c['']est\s+([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$)",
+        t,
+        re.I,
+    )
+    if m:
+        new_name = m.group(1).strip()
+        if len(new_name) >= 2 and last_assistant_message:
+            last = last_assistant_message.strip()
+            name_in_last = re.search(
+                r"(?:acheteur|vendeur)\s+(?:est\s+|c['']est\s+|:)\s*([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$|\s+,)",
+                last,
+                re.I,
+            )
+            old_name = name_in_last.group(1).strip() if name_in_last else ""
+            if old_name and len(old_name) >= 2:
+                return (old_name, new_name, role)
+
+    return None
+
+
+async def maybe_update_seller_buyer_name_from_lea(
+    db: AsyncSession,
+    user_id: int,
+    message: str,
+    last_assistant_message: Optional[str] = None,
+) -> Optional[str]:
+    """
+    Si l'utilisateur demande de changer le nom d'un vendeur ou acheteur,
+    met à jour l'entrée correspondante dans la transaction. Retourne une ligne pour « Action effectuée » ou None.
+    """
+    extracted = _extract_rename_seller_buyer_from_message(message, last_assistant_message)
+    if not extracted:
+        return None
+    old_name_search, new_name, role = extracted
+    old_lower = old_name_search.lower().strip()
+    new_name = new_name.strip()
+    if not new_name or len(new_name) < 2:
+        return None
+
+    ref = _extract_transaction_ref_from_message(message) or (
+        _extract_transaction_ref_from_message(last_assistant_message or "") if last_assistant_message else None
+    )
+    if ref:
+        transaction = await get_user_transaction_by_ref(db, user_id, ref)
+    else:
+        hint = (
+            _extract_address_hint_from_message(message)
+            or _extract_address_hint_from_message(last_assistant_message or "")
+            or _extract_address_hint_from_assistant_message(last_assistant_message or "")
+        )
+        transaction = await get_user_transaction_by_address_hint(db, user_id, hint) if hint else None
+        if not transaction:
+            transaction = await get_user_latest_transaction(db, user_id)
+    if not transaction:
+        return None
+
+    def _name_matches(entry_name: str) -> bool:
+        if not entry_name:
+            return False
+        return old_lower in (entry_name or "").lower()
+
+    list_name = "sellers" if role == "Vendeur" else "buyers"
+    items = list(getattr(transaction, list_name, []) or [])
+    if not items:
+        return None
+    updated = False
+    for e in items:
+        if isinstance(e, dict) and _name_matches(e.get("name") or ""):
+            e["name"] = new_name
+            updated = True
+            break
+    if not updated:
+        return None
+    try:
+        setattr(transaction, list_name, items)
+        flag_modified(transaction, list_name)
+        await db.commit()
+        await db.refresh(transaction)
+        ref_label = transaction.dossier_number or f"#{transaction.id}"
+        role_label = "vendeur" if role == "Vendeur" else "acheteur"
+        logger.info(f"Lea renamed {role_label} to « {new_name} » in transaction id={transaction.id}")
+        return (
+            f"Le nom du {role_label} a été corrigé en « {new_name} » pour la transaction {ref_label}. "
+            "Confirme à l'utilisateur que c'est enregistré dans la transaction."
+        )
+    except Exception as e:
+        logger.warning(f"Lea update seller/buyer name failed: {e}", exc_info=True)
+        await db.rollback()
+        return None
 
 
 async def maybe_add_seller_buyer_contact_from_lea(
@@ -3497,6 +3733,9 @@ async def run_lea_actions(
             "L'utilisateur n'a pas précisé pour quelle propriété ni quelle transaction. "
             "Ne prends PAS la dernière transaction par défaut. Demande-lui : « Pour quelle propriété (adresse ou numéro de transaction) souhaitez-vous préparer ce formulaire ? »"
         )
+    rename_line = await maybe_update_seller_buyer_name_from_lea(db, user_id, message, last_assistant_message)
+    if rename_line:
+        lines.append(rename_line)
     remove_line = await maybe_remove_seller_buyer_from_lea(db, user_id, message, last_assistant_message)
     if remove_line:
         lines.append(remove_line)
