@@ -401,6 +401,35 @@ export default function Lea2View({ demoMode, demoUserName, leaApi }: Lea2ViewPro
   };
 
   const displayError = error || voiceError;
+  const isDemoNotConfigured =
+    demoMode &&
+    error &&
+    (error.includes('LEA demo is not configured') || error.toLowerCase().includes('demo is not configured'));
+
+  if (isDemoNotConfigured) {
+    return (
+      <div className="flex flex-col h-full min-h-0 bg-slate-950 text-white overflow-hidden">
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="max-w-md w-full rounded-2xl bg-slate-800/80 border border-white/10 p-8 text-center space-y-4">
+            <div className="w-14 h-14 mx-auto rounded-full bg-amber-500/20 flex items-center justify-center">
+              <MessageSquare className="w-7 h-7 text-amber-400" />
+            </div>
+            <h2 className="text-xl font-semibold text-white">Démo Léa non activée</h2>
+            <p className="text-sm text-white/70">
+              La page de test sans connexion n&apos;est pas configurée sur ce serveur. Pour l&apos;activer, l&apos;administrateur doit définir la variable <strong className="text-white/90">LEA_DEMO_TOKEN</strong> (même valeur) côté application Next.js et backend.
+            </p>
+            <button
+              type="button"
+              onClick={() => startNewConversation()}
+              className="mt-4 px-5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium transition-colors"
+            >
+              Réessayer
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full min-h-0 bg-slate-950 text-white overflow-hidden">
