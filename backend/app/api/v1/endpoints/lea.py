@@ -1187,13 +1187,25 @@ def _build_address_for_geocode(addr_clean: str) -> List[str]:
 async def _geocode_geocoder_ca(addr: str) -> Optional[dict]:
     """
     Géocodage via geocoder.ca (priorité Canada, bons codes postaux).
+    API: geoit=XML requis, json=1 pour JSON, standard=1 et showpostal=1 pour adresse complète.
     Retourne un dict avec postcode, city, state, country_code ou None.
     """
     if not addr or len(addr.strip()) < 5:
         return None
     addr = _normalize_address_for_geocode(addr.strip())
     url = "https://geocoder.ca"
-    params = {"locate": addr, "json": 1, "region": "canada"}
+    params = {
+        "locate": addr,
+        "geoit": "xml",
+        "json": 1,
+        "region": "canada",
+        "standard": 1,
+        "showpostal": 1,
+        "showcountry": 1,
+    }
+    auth = os.environ.get("GEOCODER_CA_AUTH", "").strip()
+    if auth:
+        params["auth"] = auth
     headers = {"User-Agent": "ImmoAssist-Lea/1.0 (contact@immoassist.com)"}
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
@@ -1201,19 +1213,43 @@ async def _geocode_geocoder_ca(addr: str) -> Optional[dict]:
             r.raise_for_status()
             data = r.json()
     except Exception as e:
-        logger.debug(f"Lea geocoder.ca failed for {addr[:50]}: {e}")
+        logger.debug(f"Lea geocoder.ca request failed for {addr[:50]}: {e}")
         return None
     if not data or not isinstance(data, dict):
         return None
-    # geocoder.ca peut retourner postal, city, prov (ou province), country
-    postcode = data.get("postal") or data.get("postcode") or data.get("PostalCode")
-    city = data.get("city") or data.get("City") or data.get("locality")
-    state = data.get("prov") or data.get("province") or data.get("Province") or data.get("state")
-    country = (data.get("country") or data.get("Country") or data.get("country_code") or "CA")
+    # Erreur API (ex: 008 = no results, 003 = auth not found)
+    if data.get("error"):
+        logger.debug(f"Lea geocoder.ca error: {data.get('error')}")
+        return None
+    # Pas de coordonnées = pas de résultat valide
+    latt = data.get("latt")
+    longt = data.get("longt")
+    if (latt is None or longt is None) or (str(latt).strip() == "" or str(longt).strip() == ""):
+        return None
+    # Confidence < 0.5 = suggestion, pas un vrai match
+    confidence = data.get("confidence")
+    if confidence is not None:
+        try:
+            if float(confidence) < 0.5:
+                return None
+        except (TypeError, ValueError):
+            pass
+    # Pays : seulement Canada
+    country = data.get("country") or data.get("Country") or data.get("showcountry") or "CA"
     if isinstance(country, str):
         country = country.upper() if len(country) == 2 else "CA"
     if country != "CA":
         return None
+    # Ville/province dans "standard" ou en top-level
+    standard = data.get("standard")
+    if isinstance(standard, dict):
+        city = standard.get("city") or standard.get("City")
+        state = standard.get("prov") or standard.get("Province")
+    else:
+        city = state = None
+    city = city or data.get("city") or data.get("City") or data.get("locality")
+    state = state or data.get("prov") or data.get("province") or data.get("Province") or data.get("state")
+    postcode = data.get("postal") or data.get("postcode") or data.get("PostalCode")
     result = {}
     if postcode:
         result["postcode"] = str(postcode).strip()
@@ -1222,6 +1258,7 @@ async def _geocode_geocoder_ca(addr: str) -> Optional[dict]:
     if state:
         result["state"] = str(state).strip()
     result["country_code"] = "CA"
+    # Exiger au moins code postal ou ville pour être utile
     if not result.get("postcode") and not result.get("city"):
         return None
     return result
