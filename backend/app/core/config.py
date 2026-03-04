@@ -375,6 +375,16 @@ class Settings(BaseSettings):
         description="Nombre max de tokens pour les réponses de Léa (réponses courtes = 200–300)",
     )
 
+    # Léa demo mode (public test page without login – uses this account's data)
+    LEA_DEMO_TOKEN: Optional[str] = Field(
+        default=None,
+        description="Secret token for LEA demo mode. When set, X-LEA-Demo-Token header with this value allows access as LEA_DEMO_EMAIL without JWT.",
+    )
+    LEA_DEMO_EMAIL: str = Field(
+        default="clement@nukleo.com",
+        description="Email of the user whose account is used when LEA demo token is provided.",
+    )
+
     # SendGrid Marketing Lists
     SENDGRID_NEWSLETTER_LIST_ID: str = Field(
         default="",

@@ -4,14 +4,19 @@ Provides authentication and authorization dependencies
 """
 
 from typing import Annotated, Optional
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.config import get_settings
 from app.models.user import User
 from app.models.role import Role, UserRole
-from app.api.v1.endpoints.auth import get_current_user as auth_get_current_user
+from app.api.v1.endpoints.auth import (
+    get_current_user as auth_get_current_user,
+    get_user_from_token,
+    optional_oauth2_scheme,
+)
 from app.services.subscription_service import SubscriptionService
 from app.services.stripe_service import StripeService
 from app.core.tenancy import (
@@ -27,6 +32,42 @@ def get_current_user(
 ) -> User:
     """Get current authenticated user"""
     return current_user
+
+
+async def get_lea_user(
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    token: Annotated[Optional[str], Depends(optional_oauth2_scheme)],
+) -> User:
+    """
+    Resolve user for LEA endpoints: either via X-LEA-Demo-Token (demo mode)
+    or via Bearer JWT. When LEA_DEMO_TOKEN is set and the request sends
+    that value in X-LEA-Demo-Token, returns the user for LEA_DEMO_EMAIL.
+    """
+    settings = get_settings()
+    demo_token = request.headers.get("X-LEA-Demo-Token")
+    if (
+        settings.LEA_DEMO_TOKEN
+        and demo_token
+        and demo_token == settings.LEA_DEMO_TOKEN
+    ):
+        result = await db.execute(
+            select(User).where(User.email == settings.LEA_DEMO_EMAIL)
+        )
+        user = result.scalar_one_or_none()
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="LEA demo user not found",
+            )
+        return user
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return await get_user_from_token(token, db)
 
 
 async def is_superadmin(

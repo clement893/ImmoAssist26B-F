@@ -11,6 +11,7 @@ import {
   Menu as MenuIcon,
   LogOut,
   Home,
+  MessageSquare,
 } from 'lucide-react';
 
 interface DemoLayoutProps {
@@ -50,6 +51,11 @@ export default function DemoLayout({ children }: DemoLayoutProps) {
       name: 'Menu Demo',
       href: '/demo/menu-demo',
       icon: MenuIcon,
+    },
+    {
+      name: 'Léa (test sans login)',
+      href: '/demo/lea-test',
+      icon: MessageSquare,
     },
   ];
 

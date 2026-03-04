@@ -4,8 +4,18 @@
  */
 
 import { useState, useCallback, useRef } from 'react';
-import { apiClient, leaAPI } from '@/lib/api';
+import { apiClient, leaAPI, demoLeaAPI } from '@/lib/api';
 import { AxiosError } from 'axios';
+
+/** API shape used by useLea (leaAPI or demoLeaAPI). */
+export type LeaAPIClient = {
+  chatStream: typeof leaAPI.chatStream;
+  chat: (message: string, sessionId?: string, provider?: string) => Promise<{ data: LeaChatResponse }>;
+  chatVoice: typeof leaAPI.chatVoice;
+  getContext: typeof leaAPI.getContext;
+  resetContext: (sessionId?: string) => Promise<void>;
+  listConversations: (limit?: number) => Promise<{ data: Array<{ session_id: string; title: string; updated_at: string | null }> }>;
+};
 
 export interface LeaMessage {
   role: 'user' | 'assistant' | 'system';
@@ -61,7 +71,7 @@ export interface UseLeaReturn {
   startNewConversation: () => void;
 }
 
-export function useLea(initialSessionId?: string): UseLeaReturn {
+export function useLea(initialSessionId?: string, api: LeaAPIClient = leaAPI): UseLeaReturn {
   const [messages, setMessages] = useState<LeaMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -100,7 +110,7 @@ export function useLea(initialSessionId?: string): UseLeaReturn {
 
     const lastAssistantContent = messages.filter((m) => m.role === 'assistant').pop()?.content ?? undefined;
 
-    const usedStream = await leaAPI.chatStream(
+    const usedStream = await api.chatStream(
       {
         message,
         sessionId: sessionId ?? undefined,
@@ -172,16 +182,7 @@ export function useLea(initialSessionId?: string): UseLeaReturn {
     if (!usedStream) {
       setMessages((prev) => prev.slice(0, -1)); // remove placeholder
       try {
-        const response = await apiClient.post<LeaChatResponse>(
-          '/v1/lea/chat',
-          {
-            message,
-            session_id: sessionId,
-            last_assistant_message: lastAssistantContent,
-            provider: 'openai',
-          },
-          { signal: abortControllerRef.current.signal }
-        );
+        const response = await api.chat(message, sessionId ?? undefined, 'openai');
 
         if (response.data.session_id && !sessionId) {
           setSessionId(response.data.session_id);
@@ -198,12 +199,12 @@ export function useLea(initialSessionId?: string): UseLeaReturn {
         };
         setMessages((prev) => [...prev, assistantMessage]);
       } catch (err) {
-        if (err instanceof Error && err.name === 'CanceledError') return;
+        if (err instanceof Error && (err.name === 'CanceledError' || err.name === 'AbortError')) return;
 
         const axiosError = err as AxiosError<{ detail?: string }>;
         const errorMessage =
-          axiosError.response?.data?.detail ||
-          axiosError.message ||
+          (axiosError.response?.data as { detail?: string } | undefined)?.detail ||
+          (err instanceof Error ? err.message : String(err)) ||
           'Erreur lors de la communication avec Léa';
 
         setError(errorMessage);
@@ -218,7 +219,7 @@ export function useLea(initialSessionId?: string): UseLeaReturn {
         abortControllerRef.current = null;
       }
     }
-  }, [isLoading, sessionId]);
+  }, [isLoading, sessionId, api]);
 
   const sendVoiceMessage = useCallback(
     async (audioBlob: Blob) => {
@@ -235,7 +236,7 @@ export function useLea(initialSessionId?: string): UseLeaReturn {
       setMessages((prev) => [...prev, userPlaceholder]);
 
       try {
-        const response = await leaAPI.chatVoice(audioBlob, sessionId ?? undefined);
+        const response = await api.chatVoice(audioBlob, sessionId ?? undefined);
         const data = response.data as LeaVoiceResponse;
 
         if (!data.success) {
@@ -300,7 +301,7 @@ export function useLea(initialSessionId?: string): UseLeaReturn {
         setIsLoading(false);
       }
     },
-    [isLoading, sessionId]
+    [isLoading, sessionId, api]
   );
 
   const clearChat = useCallback(() => {
@@ -312,8 +313,8 @@ export function useLea(initialSessionId?: string): UseLeaReturn {
   const loadConversation = useCallback(async (sid: string) => {
     setError(null);
     try {
-      const res = await leaAPI.getContext(sid);
-      const data = res.data as { session_id: string; messages?: Array<{ role?: string; content?: string; timestamp?: string }> };
+      const res = await api.getContext(sid);
+      const data = (res as { data: { session_id: string; messages?: Array<{ role?: string; content?: string; timestamp?: string }> } }).data;
       const raw = data.messages ?? [];
       const mapped: LeaMessage[] = raw
         .filter((m) => m && typeof m.role === 'string' && typeof m.content === 'string')
@@ -326,9 +327,9 @@ export function useLea(initialSessionId?: string): UseLeaReturn {
       setSessionId(data.session_id ?? sid);
     } catch (err) {
       const axiosError = err as AxiosError<{ detail?: string }>;
-      setError(axiosError.response?.data?.detail ?? 'Impossible de charger la conversation');
+      setError((axiosError.response?.data as { detail?: string } | undefined)?.detail ?? (err instanceof Error ? err.message : 'Impossible de charger la conversation'));
     }
-  }, []);
+  }, [api]);
 
   const startNewConversation = useCallback(() => {
     setMessages([]);
@@ -340,20 +341,18 @@ export function useLea(initialSessionId?: string): UseLeaReturn {
     if (!sessionId) return;
 
     try {
-      await apiClient.delete('/v1/lea/context', {
-        params: { session_id: sessionId },
-      });
+      await api.resetContext(sessionId);
       setMessages([]);
       setSessionId(null);
       setError(null);
     } catch (err) {
       const axiosError = err as AxiosError<{ detail?: string }>;
       setError(
-        axiosError.response?.data?.detail ||
-          'Erreur lors de la réinitialisation du contexte'
+        (axiosError.response?.data as { detail?: string } | undefined)?.detail ||
+          (err instanceof Error ? err.message : 'Erreur lors de la réinitialisation du contexte')
       );
     }
-  }, [sessionId]);
+  }, [sessionId, api]);
 
   return {
     messages,

@@ -36,6 +36,11 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # OAuth2 scheme
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
+# Optional Bearer (no 401 when missing) – used by LEA demo to allow either demo token or JWT
+optional_oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl=f"{settings.API_V1_STR}/auth/login",
+    auto_error=False,
+)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -189,6 +194,37 @@ async def get_current_user(
         # Keep generic Exception as last resort, but log with context
         logger.error(f"Database error in get_current_user: {e}", exc_info=True)
         raise credentials_exception
+
+
+async def get_user_from_token(
+    token: str,
+    db: AsyncSession,
+) -> User:
+    """
+    Validate JWT and return User. Raises HTTPException on invalid/missing user.
+    Used by get_lea_user when not in demo mode.
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    if not token:
+        raise credentials_exception
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        if payload.get("type") != "access":
+            raise credentials_exception
+        username = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+    result = await db.execute(select(User).where(User.email == username))
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise credentials_exception
+    return user
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)

@@ -22,7 +22,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dependencies import get_current_user, require_admin_or_superadmin, require_superadmin
+from app.dependencies import get_current_user, get_lea_user, require_admin_or_superadmin, require_superadmin
 from app.models import User, RealEstateTransaction, PortailTransaction, RealEstateContact, TransactionContact, ContactType, File
 from app.models.lea_conversation import LeaSessionTransactionLink, LeaConversation
 from app.models.form import Form, FormSubmission, FormSubmissionVersion
@@ -3296,7 +3296,7 @@ async def _stream_lea_sse(
 async def lea_chat_stream(
     request: Request,
     body: LeaChatRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_lea_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -3331,7 +3331,7 @@ async def lea_chat_stream(
 async def lea_chat(
     request: Request,
     body: LeaChatRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_lea_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -3529,7 +3529,7 @@ async def lea_chat_voice(
     audio: UploadFile = FileParam(...),
     session_id: Optional[str] = FormParam(None),
     conversation_id: Optional[int] = FormParam(None),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_lea_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -3660,7 +3660,7 @@ async def lea_chat_voice(
 
 @router.get("/conversations", response_model=List[LeaConversationItem])
 async def list_lea_conversations(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_lea_user),
     db: AsyncSession = Depends(get_db),
     limit: int = 50,
 ):
@@ -3680,7 +3680,7 @@ async def list_lea_conversations(
 @router.get("/conversations/by-transaction/{transaction_id}", response_model=List[LeaConversationItem])
 async def list_lea_conversations_by_transaction(
     transaction_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_lea_user),
     db: AsyncSession = Depends(get_db),
 ):
     """List Léa conversations linked to the given transaction (for transaction detail page)."""
@@ -3719,7 +3719,7 @@ async def list_lea_conversations_by_transaction(
 @router.get("/context", response_model=LeaContextResponse)
 async def get_lea_context(
     session_id: Optional[str] = Query(None, description="Session ID of the conversation to load"),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_lea_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -3746,7 +3746,7 @@ async def get_lea_context(
 @router.delete("/context")
 async def reset_lea_context(
     session_id: Optional[str] = None,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_lea_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -4295,7 +4295,7 @@ async def delete_lea_knowledge_document(
 @router.post("/voice/transcribe")
 async def transcribe_audio(
     audio: UploadFile = FileParam(...),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_lea_user),
 ):
     """
     Transcrit l'audio en texte (OpenAI Whisper).
@@ -4323,7 +4323,7 @@ async def transcribe_audio(
 @router.post("/voice/synthesize")
 async def synthesize_speech(
     request: LeaSynthesizeRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_lea_user),
 ):
     """
     Synthèse vocale (OpenAI TTS). Retourne l'audio en base64.

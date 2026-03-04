@@ -544,6 +544,182 @@ export const leaAPI = {
     apiClient.delete<{ ok: boolean; message?: string }>(`/v1/lea/knowledge-base/documents/${fileId}`),
 };
 
+const DEMO_LEA_BASE = '/api/demo-lea';
+const STREAM_TIMEOUT_MS = 120000;
+
+/**
+ * LEA API that calls the Next.js demo proxy (no auth). Use for the public demo page.
+ * Same interface as leaAPI for: chatStream, chat, chatVoice, getContext, resetContext, listConversations, synthesizeSpeech.
+ */
+export const demoLeaAPI = {
+  chat: async (
+    message: string,
+    sessionId?: string,
+    _provider?: string
+  ): Promise<{ data: { content: string; session_id: string; model?: string; provider?: string; usage?: object; actions?: string[] } }> => {
+    const res = await fetch(`${DEMO_LEA_BASE}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message, session_id: sessionId ?? null, provider: 'auto' }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error((err as { detail?: string }).detail ?? res.statusText);
+    }
+    const data = await res.json();
+    return { data };
+  },
+  chatStream: async (
+    params: { message: string; sessionId?: string; lastAssistantMessage?: string },
+    callbacks: {
+      onDelta: (delta: string) => void;
+      onDone: (sessionId: string, meta?: { actions?: string[]; model?: string; provider?: string; usage?: object }) => void;
+      onError: (message: string) => void;
+      onConnecting?: () => void;
+    }
+  ): Promise<boolean> => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), STREAM_TIMEOUT_MS);
+    const res = await fetch(`${DEMO_LEA_BASE}/chat/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: params.message,
+        session_id: params.sessionId ?? null,
+        last_assistant_message: params.lastAssistantMessage ?? null,
+      }),
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      clearTimeout(timeoutId);
+      const text = await res.text();
+      try {
+        const j = JSON.parse(text);
+        callbacks.onError((j as { detail?: string }).detail ?? text);
+      } catch {
+        callbacks.onError(text || res.statusText);
+      }
+      return true;
+    }
+    const reader = res.body?.getReader();
+    if (!reader) {
+      clearTimeout(timeoutId);
+      callbacks.onError('Stream non disponible');
+      return true;
+    }
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let sessionId = params.sessionId ?? '';
+    let receivedDone = false;
+    let connectingNotified = false;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6)) as {
+                delta?: string;
+                done?: boolean;
+                session_id?: string;
+                error?: string;
+                status?: string;
+                actions?: string[];
+                model?: string;
+                provider?: string;
+                usage?: object;
+              };
+              if (!connectingNotified && callbacks.onConnecting) {
+                connectingNotified = true;
+                callbacks.onConnecting();
+              }
+              if (data.error) {
+                callbacks.onError(data.error);
+                return true;
+              }
+              if (typeof data.delta === 'string') callbacks.onDelta(data.delta);
+              if (data.done && data.session_id) {
+                receivedDone = true;
+                sessionId = data.session_id;
+                callbacks.onDone(data.session_id, {
+                  actions: data.actions,
+                  model: data.model,
+                  provider: data.provider,
+                  usage: data.usage,
+                });
+              }
+            } catch {
+              /* ignore */
+            }
+          } else if (line.startsWith(': ') && callbacks.onConnecting && !connectingNotified) {
+            connectingNotified = true;
+            callbacks.onConnecting();
+          }
+        }
+      }
+      if (!receivedDone) callbacks.onDone(sessionId || params.sessionId || '', {});
+    } catch (e) {
+      if (e instanceof Error && e.name === 'AbortError') {
+        callbacks.onError('Délai dépassé. Réessayez.');
+      } else {
+        callbacks.onError(e instanceof Error ? e.message : 'Erreur de lecture du flux');
+      }
+    } finally {
+      clearTimeout(timeoutId);
+    }
+    return true;
+  },
+  chatVoice: async (
+    audioBlob: Blob,
+    sessionId?: string,
+    conversationId?: number
+  ): Promise<{ data: { success: boolean; transcription?: string; response?: string; session_id?: string; assistant_audio_base64?: string; actions?: string[] } }> => {
+    const formData = new FormData();
+    formData.append('audio', audioBlob, 'recording.webm');
+    if (sessionId) formData.append('session_id', sessionId);
+    if (conversationId != null) formData.append('conversation_id', String(conversationId));
+    const res = await fetch(`${DEMO_LEA_BASE}/chat/voice`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error((err as { detail?: string }).detail ?? res.statusText);
+    }
+    const data = await res.json();
+    return { data };
+  },
+  getContext: async (sessionId?: string) => {
+    const url = sessionId ? `${DEMO_LEA_BASE}/context?session_id=${encodeURIComponent(sessionId)}` : `${DEMO_LEA_BASE}/context`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error((await res.json().catch(() => ({})) as { detail?: string }).detail ?? res.statusText);
+    return { data: await res.json() };
+  },
+  listConversations: async (limit = 50) => {
+    const res = await fetch(`${DEMO_LEA_BASE}/conversations?limit=${limit}`);
+    if (!res.ok) throw new Error((await res.json().catch(() => ({})) as { detail?: string }).detail ?? res.statusText);
+    return { data: await res.json() };
+  },
+  resetContext: async (sessionId?: string) => {
+    const url = sessionId ? `${DEMO_LEA_BASE}/context?session_id=${encodeURIComponent(sessionId)}` : `${DEMO_LEA_BASE}/context`;
+    const res = await fetch(url, { method: 'DELETE' });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({})) as { detail?: string }).detail ?? res.statusText);
+  },
+  synthesizeSpeech: (text: string, voice?: 'nova' | 'shimmer', speed?: number) =>
+    fetch(`${DEMO_LEA_BASE}/voice/synthesize`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, voice: voice ?? 'shimmer', speed: speed ?? 1.2 }),
+    }).then(async (res) => {
+      if (!res.ok) throw new Error((await res.json().catch(() => ({})) as { detail?: string }).detail ?? res.statusText);
+      return { data: await res.json() as { audio_base64: string; content_type: string } };
+    }),
+};
+
 // transactionsAPI et realEstateContactsAPI sont exportés depuis les adaptateurs du module Transactions
 export { transactionsAPI, realEstateContactsAPI } from './api/transactions-adapters';
 

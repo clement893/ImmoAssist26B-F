@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/lib/store';
-import { useLea } from '@/hooks/useLea';
+import { useLea, type LeaAPIClient } from '@/hooks/useLea';
 import { useVoiceRecognition } from '@/hooks/useVoiceRecognition';
 import { useVoiceSynthesis } from '@/hooks/useVoiceSynthesis';
 import { useVoiceRecording } from '@/hooks/useVoiceRecording';
@@ -89,15 +89,25 @@ function formatConversationForCopy(messages: LeaMessage[], sessionId: string | n
   return lines.join('\n');
 }
 
+export interface Lea2ViewProps {
+  /** Use demo LEA API (proxy, no login). When true, demoUserName is used for greeting. */
+  demoMode?: boolean;
+  /** Display name for greeting in demo mode (e.g. "Invité" or account owner name). */
+  demoUserName?: string;
+  /** LEA API client (default: leaAPI). Pass demoLeaAPI for public demo page. */
+  leaApi?: LeaAPIClient;
+}
+
 /**
  * Léa2 - Agent AI vocal + texte avec volet vocal mis en avant.
  * UI inspirée des interfaces voice-first : grand cercle central micro,
  * thème sombre bleu/violet, "Tap to Start", état "Je vous écoute...".
  */
-export default function Lea2View() {
+export default function Lea2View({ demoMode, demoUserName, leaApi }: Lea2ViewProps = {}) {
   const { user } = useAuthStore();
   const searchParams = useSearchParams();
   const sessionFromUrl = searchParams.get('session');
+  const api = leaApi ?? leaAPI;
   const {
     messages,
     isLoading,
@@ -109,7 +119,7 @@ export default function Lea2View() {
     sessionId,
     loadConversation,
     startNewConversation,
-  } = useLea();
+  } = useLea(undefined, api);
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [copyFeedback, setCopyFeedback] = useState(false);
@@ -150,12 +160,12 @@ export default function Lea2View() {
   const prevIsSpeakingRef = useRef(false);
 
   const hasMessages = messages.length > 0;
-  const firstName = user?.name?.split(' ')[0] || 'Vous';
+  const firstName = demoMode ? (demoUserName || 'Invité') : (user?.name?.split(' ')[0] || 'Vous');
 
   const fetchConversations = useCallback(async () => {
     setLoadingConversations(true);
     try {
-      const res = await leaAPI.listConversations();
+      const res = await api.listConversations();
       const data = res.data as ConversationItem[] | { data?: ConversationItem[] };
       const list = Array.isArray(data) ? data : (data as { data?: ConversationItem[] }).data ?? [];
       setConversations(list);
@@ -164,7 +174,7 @@ export default function Lea2View() {
     } finally {
       setLoadingConversations(false);
     }
-  }, []);
+  }, [api]);
 
   useEffect(() => {
     fetchConversations();
@@ -187,7 +197,7 @@ export default function Lea2View() {
     e.stopPropagation();
     if (!window.confirm('Supprimer cette conversation ?')) return;
     try {
-      await leaAPI.resetContext(sid);
+      await api.resetContext(sid);
       if (sessionId === sid) startNewConversation();
       setConversations((prev) => prev.filter((c) => c.session_id !== sid));
       await fetchConversations();
