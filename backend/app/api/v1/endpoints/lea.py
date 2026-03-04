@@ -240,7 +240,11 @@ LEA_SYSTEM_PROMPT = (
     "**Quand le géocodage fournit une ville que l'utilisateur n'a pas donnée**, tu DOIS demander confirmation de la ville avant de valider l'adresse (ex. « Est-ce bien à [ville] ? » ou « La ville est-elle bien [ville] ? ») ; seulement après sa confirmation tu peux passer aux vendeurs ou à la suite.\n"
     "2. **Vendeur(s)** : « Qui sont les vendeurs ? » (nom, téléphone, courriel). Tu peux enregistrer ces infos si l'utilisateur les donne.\n"
     "3. **Acheteur(s)** : « Qui sont les acheteurs ? » (nom, téléphone, courriel). Idem.\n"
-    "4. **Prix et dates** : « Quel est le prix demandé ? » ou « le prix offert ? », « Date de clôture prévue ? »\n"
+    "4. **Prix et dates** : « Quel est le prix demandé ? » ou « le prix offert ? », « Date de clôture prévue ? » "
+    "**Quand l'utilisateur indique un prix** (demandé ou offert), sous n'importe quelle forme (ex. « 600k », « 600 000 $ », « six cent mille », « le prix c'est 550 000 »), tu dois interpréter le montant en nombre et l'écrire **exactement une fois** dans ta réponse, sur une ligne dédiée à la fin : "
+    "pour un **prix demandé** (vente) : PRIX_LISTING: suivi du nombre (ex. PRIX_LISTING: 600000) ; "
+    "pour un **prix offert** (achat) : PRIX_OFFERT: suivi du nombre (ex. PRIX_OFFERT: 500000). "
+    "Le nombre doit être sans espaces, sans symbole $ (ex. 600000 pour « 600k » ou « 600 000 $ »). Le système enregistrera ce prix dans la transaction ; place cette ligne en fin de message.\n"
     "5. **Notaire, courtiers** : si pertinent, « As-tu les coordonnées du notaire ? du courtier vendeur/acheteur ? »\n"
     "Après avoir créé une transaction ou enregistré une info, propose **la prochaine question logique** (ex. après l'adresse : « Qui sont les vendeurs pour ce dossier ? »). "
     "**Ne redemande jamais une information déjà fournie** (ex. le prix, l'adresse, les coordonnées d'un vendeur/acheteur déjà donnés). Utilise le bloc « Données plateforme » et l'historique pour proposer la prochaine étape (ex. coordonnées acheteur si le vendeur est fait, ou date de clôture). "
@@ -2676,6 +2680,48 @@ async def maybe_update_transaction_price_from_lea(
         return None
 
 
+async def apply_lea_price_from_assistant_content(
+    db: AsyncSession, user_id: int, assistant_content: str
+) -> str:
+    """
+    Parse la réponse assistant pour PRIX_LISTING: ou PRIX_OFFERT: (définis dans le prompt Léa),
+    met à jour la dernière transaction, et retire ces lignes du contenu renvoyé.
+    Retourne le contenu nettoyé (sans les lignes de prix).
+    """
+    if not assistant_content or not isinstance(assistant_content, str):
+        return assistant_content or ""
+    content = assistant_content
+    transaction = await get_user_latest_transaction(db, user_id)
+    if not transaction:
+        return content
+    # PRIX_LISTING: 600000 ou PRIX_OFFERT: 500000 (nombre entier, optionnellement espaces autour du :)
+    listing_m = re.search(r"PRIX_LISTING\s*:\s*(\d+)", content, re.I)
+    offered_m = re.search(r"PRIX_OFFERT\s*:\s*(\d+)", content, re.I)
+    try:
+        if listing_m:
+            amount = Decimal(listing_m.group(1).strip())
+            if amount > 0 and amount <= 999_999_999:
+                transaction.listing_price = amount
+                await db.commit()
+                await db.refresh(transaction)
+                logger.info(f"Lea updated transaction id={transaction.id} listing_price to {amount} (from LLM)")
+        if offered_m:
+            amount = Decimal(offered_m.group(1).strip())
+            if amount > 0 and amount <= 999_999_999:
+                transaction.offered_price = amount
+                await db.commit()
+                await db.refresh(transaction)
+                logger.info(f"Lea updated transaction id={transaction.id} offered_price to {amount} (from LLM)")
+    except Exception as e:
+        logger.warning(f"Lea apply price from assistant content failed: {e}", exc_info=True)
+        await db.rollback()
+    # Retirer les lignes pour ne pas les afficher ni les persister
+    content = re.sub(r"\s*PRIX_LISTING\s*:\s*\d+\s*", "\n", content, flags=re.I).strip()
+    content = re.sub(r"\s*PRIX_OFFERT\s*:\s*\d+\s*", "\n", content, flags=re.I).strip()
+    content = re.sub(r"\n{2,}", "\n\n", content).strip()
+    return content
+
+
 def _parse_french_date_from_message(message: str, last_assistant_message: Optional[str] = None) -> Optional[date]:
     """
     Parse une date en français dans le message (ex: "le 15 mars 2026", "15 mars 2026").
@@ -3473,15 +3519,7 @@ async def run_lea_actions(
             "L'utilisateur a indiqué qu'il n'y a pas encore d'acheteurs (mise en vente). "
             "Ne pas redemander les acheteurs ; passer à la suite."
         )
-    price_result = await maybe_update_transaction_price_from_lea(db, user_id, message)
-    if price_result:
-        amount, tx, kind = price_result
-        ref = tx.dossier_number or f"#{tx.id}"
-        label = "prix demandé" if kind == "listing" else "prix offert"
-        lines.append(
-            f"Le {label} a été enregistré pour la transaction {ref} : {amount:,.0f} $. "
-            "Confirme à l'utilisateur que c'est enregistré et qu'il peut voir la transaction dans la section Transactions."
-        )
+    # Prix : enregistré via la réponse du LLM (PRIX_LISTING / PRIX_OFFERT dans le prompt), pas par regex ici
     closing_date_result = await maybe_set_expected_closing_date_from_lea(
         db, user_id, message, last_assistant_message
     )
@@ -3743,6 +3781,7 @@ async def _stream_lea_sse(
             accumulated.append(delta)
             yield f"data: {json.dumps({'delta': delta})}\n\n"
         content = "".join(accumulated)
+        content = await apply_lea_price_from_assistant_content(db, user_id, content)
         payload = {"done": True, "session_id": sid}
         if action_lines:
             payload["actions"] = action_lines
@@ -3881,6 +3920,7 @@ async def lea_chat(
                 max_tokens=getattr(settings, "LEA_MAX_TOKENS", 256),
             )
             content = result.get("content", "")
+            content = await apply_lea_price_from_assistant_content(db, current_user.id, content)
             if sid:
                 await persist_lea_messages(
                     db, current_user.id, sid,
@@ -4050,6 +4090,7 @@ async def lea_chat_voice(
                 max_tokens=getattr(settings, "LEA_MAX_TOKENS", 256),
             )
             response_text = result.get("content") or ""
+            response_text = await apply_lea_price_from_assistant_content(db, current_user.id, response_text)
 
             audio_bytes: bytes | None = None
             if response_text:
