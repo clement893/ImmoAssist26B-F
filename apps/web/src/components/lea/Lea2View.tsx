@@ -241,24 +241,31 @@ export default function Lea2View({ demoMode, demoUserName, leaApi }: Lea2ViewPro
     prevListeningRef.current = isListening;
   }, [isListening, transcript, sendMessage]);
 
-  // Détection "Vocal Terminé" (ou "Terminé", "Envoyer") → envoi immédiat sans cliquer
-  const VOCAL_TERMINE_REGEX = /\s*(vocal(e)?\s+terminé|terminé\s*vocal(e)?|^\s*terminé\s*$|^\s*envoyer\s*$)\s*/gi;
+  // Détection "Vocal Terminé" (et variantes souvent mal reconnues: local, bocal, terminer, terminée) → envoi immédiat sans cliquer
+  const hasVocalTermineTrigger = (text: string) => {
+    const t = text.trim().toLowerCase();
+    const withWord =
+      /\b(vocal|vocale|local|locales|bocal)\s+termin(é|er|ée|és)?\b/.test(t) ||
+      /\btermin(é|er|ée|és)?\s*(vocal|vocale|local|locales|bocal)\b/.test(t);
+    const endsWithTermine = /\btermin(é|er|ée|és)?\s*$/.test(t);
+    const onlyCommand = /^\s*(termin(é|er|ée|és)?|envoyer)\s*$/.test(t);
+    return withWord || endsWithTermine || onlyCommand;
+  };
+  const stripVocalTermineFromEnd = (text: string) => {
+    return text
+      .replace(/\s+(vocal|vocale|local|locales|bocal)\s+termin(é|er|ée|és)?\s*$/gi, '')
+      .replace(/\s+termin(é|er|ée|és)?\s*$/gi, '')
+      .replace(/^\s*envoyer\s*$/gi, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
   useEffect(() => {
     if (!isListening || !transcript.trim() || vocalTermineSentRef.current) return;
-    const t = transcript.trim().toLowerCase();
-    const hasTrigger =
-      t.includes('vocal terminé') ||
-      t.includes('vocale terminé') ||
-      t.includes('terminé vocal') ||
-      t.includes('terminé vocale') ||
-      /\bterminé\s*$/.test(t) || // phrase qui se termine par "terminé" (ex: "créant une transaction vocale terminé")
-      /^\s*terminé\s*$/.test(t) ||
-      /^\s*envoyer\s*$/.test(t);
-    if (!hasTrigger) return;
+    if (!hasVocalTermineTrigger(transcript)) return;
     vocalTermineSentRef.current = true;
     stopSpeaking();
     lastSpokenMessageRef.current = null;
-    const messageToSend = transcript.replace(VOCAL_TERMINE_REGEX, ' ').replace(/\s+/g, ' ').trim();
+    const messageToSend = stripVocalTermineFromEnd(transcript);
     stopListening();
     justSentFromVoiceRef.current = true;
     setInput('');
@@ -722,7 +729,7 @@ export default function Lea2View({ demoMode, demoUserName, leaApi }: Lea2ViewPro
                 <div className="flex items-center justify-between mt-2">
                   <span className="inline-flex items-center gap-2 text-amber-400/90 text-sm">
                     <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                    Léa vous écoute. Dites « Vocal terminé » pour envoyer.
+                    Léa vous écoute. Dites « Vocal terminé », « Terminé » ou « Envoyer » pour envoyer.
                   </span>
                   <button
                     type="button"
