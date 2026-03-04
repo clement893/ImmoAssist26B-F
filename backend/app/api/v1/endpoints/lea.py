@@ -238,6 +238,7 @@ LEA_SYSTEM_PROMPT = (
     "**Ne redemande jamais une information déjà fournie** (ex. le prix, l'adresse, les coordonnées d'un vendeur/acheteur déjà donnés). Utilise le bloc « Données plateforme » et l'historique pour proposer la prochaine étape (ex. coordonnées acheteur si le vendeur est fait, ou date de clôture). "
     "Si le bloc « Données plateforme » indique déjà des vendeurs ou acheteurs pour une transaction (ex. « vendeurs: X, Y » ou « acheteurs: A, B »), ne redemande jamais « Qui sont les vendeurs ? » ni « Qui sont les acheteurs ? » pour cette transaction — passe à l'étape suivante (ex. prix). "
     "Si dans l'échange précédent tu as toi-même répondu en listant les vendeurs (ex. « Les vendeurs sont X et Y »), ne redemande jamais « Qui sont les vendeurs ? » : considère que c'est enregistré et passe à la suite (acheteurs ou prix). "
+    "** Singulier / pluriel : ** Quand tu mentionnes les vendeurs ou acheteurs déjà enregistrés (d'après les Données plateforme ou l'Action effectuée), adapte ta formulation au nombre de personnes : **une seule personne** → singulier (ex. « L'acheteur, Celia Gomez, a déjà été enregistré » ; « Le vendeur, X, a été enregistré ») ; **plusieurs personnes** → pluriel (ex. « Les acheteurs, Paul et Marie, ont déjà été enregistrés » ; « Les vendeurs ont été mis à jour »). "
     "**Quand tu viens de demander « Quelle est la date de clôture prévue ? » ou « date d'écriture prévue »** et que l'utilisateur répond par une date (ex. « le 15 mars 2026 »), considère que c'est la date de clôture pour cette transaction — ne demande pas « à quoi elle se rapporte ».\n"
     "Si l'utilisateur dit qu'il n'y a pas encore d'acheteurs (ex. « en période de vente », « pas encore d'acheteurs », « aucun acheteur pour l'instant »), considère que c'est noté et propose la suite (ex. « Quel est le prix demandé ? »). Ne redemande pas les vendeurs ni les acheteurs dans ce cas.\n\n"
     "Reste concise : une question à la fois, ou deux maximum si le contexte s'y prête.\n\n"
@@ -402,16 +403,24 @@ async def get_lea_user_context(db: AsyncSession, user_id: int) -> str:
                 if not addr.strip():
                     addr = t.property_address or t.property_city or "Sans adresse"
                 num = t.dossier_number or f"#{t.id}"
-                # Pour chaque transaction : afficher vendeurs/acheteurs déjà enregistrés pour ne pas redemander à la réouverture
+                # Pour chaque transaction : afficher vendeur(s)/acheteur(s) déjà enregistrés (singulier si 1, pluriel sinon)
                 detail = []
                 if t.sellers and isinstance(t.sellers, list) and len(t.sellers) > 0:
                     names_s = [e.get("name") for e in t.sellers if isinstance(e, dict) and e.get("name")]
-                    detail.append(f"vendeurs: {', '.join(names_s)}" if names_s else "vendeurs: (aucun)")
+                    if names_s:
+                        label_s = "vendeur: " if len(names_s) == 1 else "vendeurs: "
+                        detail.append(f"{label_s}{', '.join(names_s)}")
+                    else:
+                        detail.append("vendeurs: (aucun)")
                 else:
                     detail.append("vendeurs: (aucun)")
                 if t.buyers and isinstance(t.buyers, list) and len(t.buyers) > 0:
                     names_b = [e.get("name") for e in t.buyers if isinstance(e, dict) and e.get("name")]
-                    detail.append(f"acheteurs: {', '.join(names_b)}" if names_b else "acheteurs: (aucun)")
+                    if names_b:
+                        label_b = "acheteur: " if len(names_b) == 1 else "acheteurs: "
+                        detail.append(f"{label_b}{', '.join(names_b)}")
+                    else:
+                        detail.append("acheteurs: (aucun)")
                 else:
                     detail.append("acheteurs: (aucun)")
                 lines.append(f"  - {num}: {t.name} — {addr} — statut: {t.status} — {' ; '.join(detail)}")
@@ -421,11 +430,13 @@ async def get_lea_user_context(db: AsyncSession, user_id: int) -> str:
             if latest.sellers and isinstance(latest.sellers, list) and len(latest.sellers) > 0:
                 names_s = [e.get("name") for e in latest.sellers if isinstance(e, dict) and e.get("name")]
                 if names_s:
-                    detail_parts.append(f"vendeurs: {', '.join(names_s)}")
+                    label_s = "vendeur: " if len(names_s) == 1 else "vendeurs: "
+                    detail_parts.append(f"{label_s}{', '.join(names_s)}")
             if latest.buyers and isinstance(latest.buyers, list) and len(latest.buyers) > 0:
                 names_b = [e.get("name") for e in latest.buyers if isinstance(e, dict) and e.get("name")]
                 if names_b:
-                    detail_parts.append(f"acheteurs: {', '.join(names_b)}")
+                    label_b = "acheteur: " if len(names_b) == 1 else "acheteurs: "
+                    detail_parts.append(f"{label_b}{', '.join(names_b)}")
             if latest.listing_price is not None or latest.offered_price is not None:
                 p = latest.listing_price or latest.offered_price
                 detail_parts.append(f"prix: {p:,.0f} $")
@@ -435,9 +446,9 @@ async def get_lea_user_context(db: AsyncSession, user_id: int) -> str:
             if detail_parts:
                 lines.append(f"  → Dernière transaction ({latest.dossier_number or f'#{latest.id}'}) : {'; '.join(detail_parts)}.")
                 lines.append(f"  → Ne pas redemander les informations déjà enregistrées pour cette transaction.")
-                if any("vendeurs:" in p for p in detail_parts):
+                if any("vendeur:" in p for p in detail_parts):
                     lines.append("  → Ne jamais redemander « Qui sont les vendeurs ? » pour cette transaction.")
-                if any("acheteurs:" in p for p in detail_parts):
+                if any("acheteur:" in p for p in detail_parts):
                     lines.append("  → Ne jamais redemander « Qui sont les acheteurs ? » pour cette transaction.")
                 if any("prix:" in p for p in detail_parts):
                     lines.append("  → Ne jamais redemander le prix pour cette transaction.")
@@ -2151,13 +2162,32 @@ async def maybe_add_seller_buyer_contact_from_lea(
             await db.refresh(transaction)
             ref_label = transaction.dossier_number or f"#{transaction.id}"
             logger.info(f"Lea added {role}s {added} to transaction id={transaction.id}" + (" (replaced)" if replace_mode else ""))
+            n = len(added)
+            role_lower = role.lower()
+            # Singulier : L'acheteur / Le vendeur, a été enregistré / mis à jour
+            if n == 1:
+                nom = added[0]
+                if role_lower == "acheteur":
+                    sujet = "L'acheteur"
+                else:
+                    sujet = "Le vendeur"
+                if replace_mode:
+                    return (
+                        f"{sujet} a été mis à jour pour la transaction {ref_label} : {nom}. "
+                        "Confirme à l'utilisateur que c'est enregistré."
+                    )
+                return (
+                    f"{sujet}, {nom}, a été enregistré pour la transaction {ref_label}. "
+                    "Confirme à l'utilisateur que c'est enregistré."
+                )
+            # Pluriel
             if replace_mode:
                 return (
-                    f"Les {role.lower()}s ont été mis à jour pour la transaction {ref_label} : {', '.join(added)}. "
+                    f"Les {role_lower}s ont été mis à jour pour la transaction {ref_label} : {', '.join(added)}. "
                     "Confirme à l'utilisateur que c'est enregistré."
                 )
             return (
-                f"Les {role.lower()}s ({', '.join(added)}) ont été enregistrés pour la transaction {ref_label}. "
+                f"Les {role_lower}s ({', '.join(added)}) ont été enregistrés pour la transaction {ref_label}. "
                 "Confirme à l'utilisateur que c'est enregistré."
             )
         except Exception as e:
