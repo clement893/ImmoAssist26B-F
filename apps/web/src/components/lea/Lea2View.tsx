@@ -177,12 +177,12 @@ export default function Lea2View({ demoMode, demoUserName, leaApi }: Lea2ViewPro
   }, [api]);
 
   useEffect(() => {
-    fetchConversations();
-  }, [fetchConversations]);
+    if (!demoMode) fetchConversations();
+  }, [demoMode, fetchConversations]);
 
   useEffect(() => {
-    if (sessionId) fetchConversations();
-  }, [sessionId, fetchConversations]);
+    if (!demoMode && sessionId) fetchConversations();
+  }, [demoMode, sessionId, fetchConversations]);
 
   const handleNewConversation = () => {
     startNewConversation();
@@ -443,7 +443,7 @@ export default function Lea2View({ demoMode, demoUserName, leaApi }: Lea2ViewPro
       </div>
 
       <div className="relative flex flex-col md:flex-row flex-1 min-h-0 z-10">
-        {/* ——— SIDEBAR: Historique des conversations ——— */}
+        {/* ——— SIDEBAR: Nouvelle conversation + Historique (caché en démo) ——— */}
         <aside className="w-full md:w-64 shrink-0 border-b md:border-b-0 md:border-r border-white/10 flex flex-col bg-slate-900/50">
           <div className="p-3 border-b border-white/10">
             <button
@@ -455,47 +455,49 @@ export default function Lea2View({ demoMode, demoUserName, leaApi }: Lea2ViewPro
               Nouvelle conversation
             </button>
           </div>
-          <div className="flex-1 min-h-0 overflow-y-auto py-2">
-            <p className="px-3 text-white/50 text-xs uppercase tracking-wider mb-2">Historique</p>
-            {loadingConversations ? (
-              <div className="px-3 text-white/40 text-sm">Chargement…</div>
-            ) : conversations.length === 0 ? (
-              <div className="px-3 text-white/40 text-sm">Aucune conversation</div>
-            ) : (
-              <ul className="space-y-0.5">
-                {conversations.map((c) => (
-                  <li key={c.session_id}>
-                    <button
-                      type="button"
-                      onClick={() => handleSelectConversation(c.session_id)}
-                      className={clsx(
-                        'w-full text-left px-3 py-2.5 rounded-lg flex items-center gap-2 group',
-                        sessionId === c.session_id
-                          ? 'bg-violet-600/80 text-white'
-                          : 'text-white/80 hover:bg-white/10 hover:text-white'
-                      )}
-                    >
-                      <MessageCircle className="w-4 h-4 shrink-0 opacity-70" />
-                      <span className="flex-1 min-w-0 truncate text-sm" title={c.title}>
-                        {c.title}
-                      </span>
-                      <span className="text-[10px] text-white/50 shrink-0">
-                        {formatConversationDate(c.updated_at)}
-                      </span>
+          {!demoMode && (
+            <div className="flex-1 min-h-0 overflow-y-auto py-2">
+              <p className="px-3 text-white/50 text-xs uppercase tracking-wider mb-2">Historique</p>
+              {loadingConversations ? (
+                <div className="px-3 text-white/40 text-sm">Chargement…</div>
+              ) : conversations.length === 0 ? (
+                <div className="px-3 text-white/40 text-sm">Aucune conversation</div>
+              ) : (
+                <ul className="space-y-0.5">
+                  {conversations.map((c) => (
+                    <li key={c.session_id}>
                       <button
                         type="button"
-                        onClick={(e) => handleDeleteConversation(e, c.session_id)}
-                        className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-white/20 text-white/70 hover:text-white"
-                        title="Supprimer"
+                        onClick={() => handleSelectConversation(c.session_id)}
+                        className={clsx(
+                          'w-full text-left px-3 py-2.5 rounded-lg flex items-center gap-2 group',
+                          sessionId === c.session_id
+                            ? 'bg-violet-600/80 text-white'
+                            : 'text-white/80 hover:bg-white/10 hover:text-white'
+                        )}
                       >
-                        <X className="w-3.5 h-3.5" />
+                        <MessageCircle className="w-4 h-4 shrink-0 opacity-70" />
+                        <span className="flex-1 min-w-0 truncate text-sm" title={c.title}>
+                          {c.title}
+                        </span>
+                        <span className="text-[10px] text-white/50 shrink-0">
+                          {formatConversationDate(c.updated_at)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => handleDeleteConversation(e, c.session_id)}
+                          className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-white/20 text-white/70 hover:text-white"
+                          title="Supprimer"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
                       </button>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
         </aside>
 
         {/* Main: header + (conversation | voice) */}
