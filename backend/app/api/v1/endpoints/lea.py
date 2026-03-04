@@ -857,6 +857,44 @@ async def get_user_latest_transaction(db: AsyncSession, user_id: int):
     return r.scalar_one_or_none()
 
 
+# Transaction doublon : un dossier déjà existant pour le même utilisateur qui est encore « vide »
+# (adresse à compléter, aucun vendeur, aucun acheteur, aucun prix). Créer une nouvelle transaction
+# dans ce cas ferait un doublon ; on bloque la création et on indique à l'utilisateur d'utiliser le dossier existant.
+def _is_empty_transaction(tx: RealEstateTransaction) -> bool:
+    """True si la transaction est un dossier vide (adresse à compléter, pas de vendeurs/acheteurs/prix)."""
+    addr = (tx.property_address or "").strip()
+    if addr and addr != "À compléter":
+        return False
+    sellers = tx.sellers if isinstance(tx.sellers, list) else []
+    buyers = tx.buyers if isinstance(tx.buyers, list) else []
+    if sellers or buyers:
+        return False
+    if getattr(tx, "listing_price", None) is not None or getattr(tx, "offered_price", None) is not None:
+        return False
+    return True
+
+
+async def get_existing_empty_transaction(
+    db: AsyncSession, user_id: int
+) -> Optional[RealEstateTransaction]:
+    """
+    Retourne une transaction existante de l'utilisateur qui est encore vide (doublon potentiel).
+    Une transaction vide : adresse « À compléter » ou vide, aucun vendeur, aucun acheteur, aucun prix.
+    Retourne la plus récente si plusieurs (pour afficher son numéro à l'utilisateur).
+    """
+    q = (
+        select(RealEstateTransaction)
+        .where(RealEstateTransaction.user_id == user_id)
+        .order_by(RealEstateTransaction.updated_at.desc())
+        .limit(20)
+    )
+    r = await db.execute(q)
+    for tx in r.scalars().all():
+        if _is_empty_transaction(tx):
+            return tx
+    return None
+
+
 def _extract_transaction_ref_from_message(message: str) -> Optional[str]:
     """
     Extrait une référence à une transaction (numéro de dossier ou id) du message.
@@ -3542,6 +3580,9 @@ LEA_TTS_FEMALE_VOICES = ("nova", "shimmer")
 
 async def _synthesize_tts(text: str, voice: str | None = None, speed: float | None = None) -> bytes:
     """Synthèse vocale avec OpenAI TTS (qualité HD). Léa utilise une voix féminine (shimmer par défaut, plus douce et humaine) et un débit légèrement plus rapide."""
+    text = (text or "").strip()
+    if not text:
+        raise ValueError("Texte vide pour TTS")
     settings = get_settings()
     model = (settings.LEA_TTS_MODEL or "tts-1-hd").strip() or "tts-1-hd"
     raw = (voice or settings.LEA_TTS_VOICE or "shimmer").strip() or "shimmer"

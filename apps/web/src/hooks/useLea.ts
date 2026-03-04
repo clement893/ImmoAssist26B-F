@@ -7,6 +7,21 @@ import { useState, useCallback, useRef } from 'react';
 import { leaAPI } from '@/lib/api';
 import { AxiosError } from 'axios';
 
+/** Joue l'audio une fois le buffer prêt pour éviter que la première lettre soit coupée. Exporté pour LeaChat TTS. */
+export function playLeaAudioWhenReady(audio: HTMLAudioElement): void {
+  let played = false;
+  const doPlay = () => {
+    if (played) return;
+    played = true;
+    audio.play().catch(() => {});
+  };
+  audio.addEventListener('canplaythrough', doPlay, { once: true });
+  audio.addEventListener('loadeddata', doPlay, { once: true });
+  setTimeout(() => {
+    if (!played && audio.readyState >= 2) doPlay();
+  }, 2000);
+}
+
 /** Minimal voice response shape so both leaAPI (Axios) and demoLeaAPI (fetch) are assignable. */
 export type LeaVoiceResponseData = {
   success: boolean;
@@ -281,12 +296,10 @@ export function useLea(initialSessionId?: string, api: LeaAPIClient = leaAPI): U
         });
 
         if (data.assistant_audio_url) {
-          const audio = new Audio(data.assistant_audio_url);
-          audio.play().catch(() => {});
+          playLeaAudioWhenReady(new Audio(data.assistant_audio_url));
         } else if (data.assistant_audio_base64) {
           const dataUrl = `data:audio/mpeg;base64,${data.assistant_audio_base64}`;
-          const audio = new Audio(dataUrl);
-          audio.play().catch(() => {});
+          playLeaAudioWhenReady(new Audio(dataUrl));
         }
       } catch (err) {
         const axiosError = err as AxiosError<{ detail?: string }>;

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useLea } from '@/hooks/useLea';
+import { useLea, playLeaAudioWhenReady } from '@/hooks/useLea';
 import { useVoiceRecognition } from '@/hooks/useVoiceRecognition';
 import { useVoiceSynthesis } from '@/hooks/useVoiceSynthesis';
 import { useVoiceRecording } from '@/hooks/useVoiceRecording';
@@ -105,13 +105,10 @@ export default function LeaChat({ onClose, className = '', initialMessage }: Lea
                 audio.onerror = () => {
                   backendAudioRef.current = null;
                   setIsPlayingBackendAudio(false);
+                  speak(textToSpeak, { lang: 'fr-FR', rate: 1.15, pitch: 1.02, volume: 1.0 });
                 };
                 setIsPlayingBackendAudio(true);
-                audio.play().catch(() => {
-                  backendAudioRef.current = null;
-                  setIsPlayingBackendAudio(false);
-                  speak(textToSpeak, { lang: 'fr-FR', rate: 1.15, pitch: 1.02, volume: 1.0 });
-                });
+                playLeaAudioWhenReady(audio);
               } else {
                 speak(textToSpeak, { lang: 'fr-FR', rate: 1.15, pitch: 1.02, volume: 1.0 });
               }
