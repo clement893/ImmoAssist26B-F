@@ -4,16 +4,31 @@
  */
 
 import { useState, useCallback, useRef } from 'react';
-import { apiClient, leaAPI, demoLeaAPI } from '@/lib/api';
+import { leaAPI } from '@/lib/api';
 import { AxiosError } from 'axios';
 
-/** API shape used by useLea (leaAPI or demoLeaAPI). */
+/** Minimal voice response shape so both leaAPI (Axios) and demoLeaAPI (fetch) are assignable. */
+export type LeaVoiceResponseData = {
+  success: boolean;
+  transcription?: string;
+  response?: string;
+  session_id?: string;
+  assistant_audio_base64?: string;
+  actions?: string[];
+  [key: string]: unknown;
+};
+
+/** API shape used by useLea (leaAPI or demoLeaAPI). Uses { data } return shape so both Axios and fetch clients fit. */
 export type LeaAPIClient = {
   chatStream: typeof leaAPI.chatStream;
   chat: (message: string, sessionId?: string, provider?: string) => Promise<{ data: LeaChatResponse }>;
-  chatVoice: typeof leaAPI.chatVoice;
-  getContext: typeof leaAPI.getContext;
-  resetContext: (sessionId?: string) => Promise<void>;
+  chatVoice: (
+    audioBlob: Blob,
+    sessionId?: string,
+    conversationId?: number
+  ) => Promise<{ data: LeaVoiceResponseData }>;
+  getContext: (sessionId?: string) => Promise<{ data: { session_id: string; messages?: Array<{ role?: string; content?: string; timestamp?: string }> } }>;
+  resetContext: (sessionId?: string) => Promise<unknown>;
   listConversations: (limit?: number) => Promise<{ data: Array<{ session_id: string; title: string; updated_at: string | null }> }>;
 };
 
