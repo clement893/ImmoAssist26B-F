@@ -1864,6 +1864,33 @@ def _extract_seller_buyer_names_list(
             if m_cest:
                 raw = m_cest.group(1).strip()
 
+    # Réponse avec uniquement le(s) nom(s) après « Qui sont les vendeurs ? » / « Qui sont les acheteurs ? »
+    if raw is None and last_assistant_message and len(t) <= 120:
+        asking_vendeurs = "vendeur" in last_lower and (
+            "qui sont" in last_lower or "vendeurs pour" in last_lower or "vendeurs ?" in last_lower or "noms des vendeurs" in last_lower
+        )
+        asking_acheteurs = "acheteur" in last_lower and (
+            "qui sont" in last_lower or "acheteurs pour" in last_lower or "acheteurs ?" in last_lower or "noms des acheteurs" in last_lower
+        )
+        # Exclure réponses négatives ou non-noms
+        if not re.search(r"\b(pas|aucun|rien|je ne sais|à compléter)\b", t, re.I):
+            name_like = re.match(
+                r"^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s\-]*(?:\s+et\s+[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s\-]+)*\s*\.?$",
+                t,
+                re.I,
+            ) or re.match(
+                r"^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s\-]*(?:\s*,\s*[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s\-]+)+\s*\.?$",
+                t,
+                re.I,
+            )
+            if name_like and len(t.strip()) >= 2:
+                if asking_vendeurs:
+                    role = "Vendeur"
+                    raw = t.strip().rstrip(".")
+                elif asking_acheteurs:
+                    role = "Acheteur"
+                    raw = t.strip().rstrip(".")
+
     if raw is None:
         # "enregistre les vendeurs suivants Lily et Lilou" / "enregistre les vendeurs X et Y"
         if re.search(r"enregistre(?:r?|s?)\s+(?:les?\s+)?vendeurs?\s+", t, re.I):
