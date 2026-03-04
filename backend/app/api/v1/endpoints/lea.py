@@ -1155,25 +1155,17 @@ def _wants_to_set_promise(message: str) -> bool:
     )
 
 
-async def _validate_address_via_geocode(addr: str) -> Optional[dict]:
+def _build_address_for_geocode(addr_clean: str) -> List[str]:
     """
-    Vérifie une adresse via géocodage (Nominatim / OpenStreetMap).
-    Retourne un dict avec postcode, city, state (province), country_code pour que Léa puisse confirmer à l'utilisateur.
-    Pour les adresses à Montréal, ajoute toujours ", Québec, Canada" pour éviter les mauvais matchs
-    (ex. 7236 rue Waverly → H2S 3C6 au lieu de H2R 0C2 sans le suffixe).
+    Construit une ou plusieurs variantes d'adresse pour le géocodage (priorité Montréal/Québec).
+    Retourne une liste d'adresses à essayer dans l'ordre.
     """
-    if not addr or len(addr.strip()) < 5:
-        return None
-    addr_clean = addr.strip()
     addr_lower = addr_clean.lower()
     has_city = "," in addr_clean or "montréal" in addr_lower or "montreal" in addr_lower or "québec" in addr_lower
-    # Toujours ajouter ", Québec, Canada" pour les adresses montréalaises → résultat plus précis
+    variants = []
     if "montréal" in addr_lower or "montreal" in addr_lower:
         if not addr_clean.endswith(", Québec, Canada") and not addr_clean.endswith(", Quebec, Canada"):
-            result = await _geocode_one(addr_clean + ", Québec, Canada")
-            if result and (result.get("country_code") or "").upper() == "CA":
-                return result
-    # Rues typiques de Montréal (sans ville dans l'adresse) : prioriser Montréal, Québec, Canada
+            variants.append(addr_clean + ", Québec, Canada")
     montreal_street_indicators = (
         "sherbrooke est", "sherbrooke ouest", "sherbrooke e.", "sherbrooke o.",
         "papineau", "lorimier", "saint-denis", "saint-laurent", "drolet",
@@ -1181,18 +1173,84 @@ async def _validate_address_via_geocode(addr: str) -> Optional[dict]:
         "rue de bordeaux", "de bordeaux", "waverly", "rue waverly",
     )
     if not has_city and any(ind in addr_lower for ind in montreal_street_indicators):
-        result = await _geocode_one(addr_clean + ", Montréal, Québec, Canada")
-        if result and (result.get("country_code") or "").upper() == "CA":
-            return result
-    # Adresse sans ville : prioriser Québec/Canada
+        variants.append(addr_clean + ", Montréal, Québec, Canada")
     if not has_city:
-        result = await _geocode_one(addr_clean + ", Québec, Canada")
+        variants.append(addr_clean + ", Québec, Canada")
+        variants.append(addr_clean + ", Montréal, Québec, Canada")
+    if has_city:
+        variants.append(addr_clean)
+    else:
+        variants.append(addr_clean + ", Québec, Canada")
+    return variants
+
+
+async def _geocode_geocoder_ca(addr: str) -> Optional[dict]:
+    """
+    Géocodage via geocoder.ca (priorité Canada, bons codes postaux).
+    Retourne un dict avec postcode, city, state, country_code ou None.
+    """
+    if not addr or len(addr.strip()) < 5:
+        return None
+    addr = _normalize_address_for_geocode(addr.strip())
+    url = "https://geocoder.ca"
+    params = {"locate": addr, "json": 1, "region": "canada"}
+    headers = {"User-Agent": "ImmoAssist-Lea/1.0 (contact@immoassist.com)"}
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            r = await client.get(url, params=params, headers=headers)
+            r.raise_for_status()
+            data = r.json()
+    except Exception as e:
+        logger.debug(f"Lea geocoder.ca failed for {addr[:50]}: {e}")
+        return None
+    if not data or not isinstance(data, dict):
+        return None
+    # geocoder.ca peut retourner postal, city, prov (ou province), country
+    postcode = data.get("postal") or data.get("postcode") or data.get("PostalCode")
+    city = data.get("city") or data.get("City") or data.get("locality")
+    state = data.get("prov") or data.get("province") or data.get("Province") or data.get("state")
+    country = (data.get("country") or data.get("Country") or data.get("country_code") or "CA")
+    if isinstance(country, str):
+        country = country.upper() if len(country) == 2 else "CA"
+    if country != "CA":
+        return None
+    result = {}
+    if postcode:
+        result["postcode"] = str(postcode).strip()
+    if city:
+        result["city"] = str(city).strip()
+    if state:
+        result["state"] = str(state).strip()
+    result["country_code"] = "CA"
+    if not result.get("postcode") and not result.get("city"):
+        return None
+    return result
+
+
+async def _validate_address_via_geocode(addr: str) -> Optional[dict]:
+    """
+    Vérifie une adresse via géocodage : geocoder.ca en priorité (meilleurs codes postaux Canada),
+    fallback sur Nominatim (OpenStreetMap).
+    Retourne un dict avec postcode, city, state (province), country_code pour que Léa puisse confirmer à l'utilisateur.
+    """
+    if not addr or len(addr.strip()) < 5:
+        return None
+    addr_clean = addr.strip()
+    addr_lower = addr_clean.lower()
+    has_city = "," in addr_clean or "montréal" in addr_lower or "montreal" in addr_lower or "québec" in addr_lower
+
+    # 1) Essai geocoder.ca (priorité) sur les variantes d'adresse
+    for to_try in _build_address_for_geocode(addr_clean):
+        result = await _geocode_geocoder_ca(to_try)
+        if result and (result.get("country_code") or "").upper() == "CA":
+            if result.get("postcode") or result.get("city"):
+                return result
+
+    # 2) Fallback Nominatim (comportement existant)
+    for to_try in _build_address_for_geocode(addr_clean):
+        result = await _geocode_one(to_try)
         if result and (result.get("country_code") or "").upper() == "CA":
             return result
-        result = await _geocode_one(addr_clean + ", Montréal, Québec, Canada")
-        if result and (result.get("country_code") or "").upper() == "CA":
-            return result
-    # Essai avec l'adresse telle quelle (pour has_city) ou + Québec, Canada (sans ville)
     if has_city:
         result = await _geocode_one(addr_clean)
     else:
