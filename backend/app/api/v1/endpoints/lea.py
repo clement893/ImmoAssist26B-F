@@ -875,6 +875,8 @@ async def maybe_create_transaction_from_lea(
             property_address="À compléter",
             property_city="À compléter",
             property_postal_code="À compléter",
+            transaction_kind=tx_type,
+            pipeline_stage="creation_dossier",
         )
         db.add(transaction)
         await db.commit()
@@ -1204,6 +1206,9 @@ def _wants_to_update_address(message: str) -> bool:
     t = (message or "").strip().lower()
     if not t:
         return False
+    # "créer une transaction (de vente/d'achat) pour 123 rue X" — adresse dans la même phrase que la création
+    if ("créer" in t or "creer" in t) and "transaction" in t and _extract_address_from_message(message):
+        return True
     # "le bien est au X" / "est au X" sans le mot "adresse"
     if "est au" in t or "c'est au" in t or "bien est" in t or "biais est" in t:
         if _extract_address_from_message(message):
@@ -3882,6 +3887,16 @@ async def run_lea_actions(
     )
     if contact_line:
         lines.append(contact_line)
+    # Prix depuis le message utilisateur (ex. « le prix c'est 600 000 », « 500k ») — aussi enregistré via réponse LLM (PRIX_LISTING/PRIX_OFFERT)
+    price_result = await maybe_update_transaction_price_from_lea(db, user_id, message)
+    if price_result:
+        amount, tx, kind = price_result
+        ref = tx.dossier_number or f"#{tx.id}"
+        label = "prix demandé" if kind == "listing" else "prix offert"
+        lines.append(
+            f"Le {label} a été enregistré pour la transaction {ref} : {int(amount):,} $. "
+            "Confirme à l'utilisateur que c'est enregistré."
+        )
     # Toujours rappeler à Léa de ne pas redemander les acheteurs si l'utilisateur a dit « pas d'acheteurs » / mise en vente
     if any(
         phrase in (message or "").strip().lower()
@@ -3898,7 +3913,6 @@ async def run_lea_actions(
             "L'utilisateur a indiqué qu'il n'y a pas encore d'acheteurs (mise en vente). "
             "Ne pas redemander les acheteurs ; passer à la suite."
         )
-    # Prix : enregistré via la réponse du LLM (PRIX_LISTING / PRIX_OFFERT dans le prompt), pas par regex ici
     closing_date_result = await maybe_set_expected_closing_date_from_lea(
         db, user_id, message, last_assistant_message
     )
