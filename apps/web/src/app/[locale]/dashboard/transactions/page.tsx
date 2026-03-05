@@ -120,16 +120,14 @@ function TransactionsContent() {
   };
 
   const handleDelete = async (id: number) => {
-    setLoading(true);
     setError(null);
     try {
       await transactionsAPI.delete(id);
+      setTransactions((prev) => prev.filter((t) => t.id !== id));
       await loadTransactions();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la suppression de la transaction';
       setError(errorMessage);
-    } finally {
-      setLoading(false);
     }
   };
 
