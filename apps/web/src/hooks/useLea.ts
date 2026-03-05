@@ -36,7 +36,13 @@ export type LeaVoiceResponseData = {
 /** API shape used by useLea (leaAPI or demoLeaAPI). Uses { data } return shape so both Axios and fetch clients fit. */
 export type LeaAPIClient = {
   chatStream: typeof leaAPI.chatStream;
-  chat: (message: string, sessionId?: string, provider?: string, transactionId?: number) => Promise<{ data: LeaChatResponse }>;
+  chat: (
+    message: string,
+    sessionId?: string,
+    provider?: string,
+    transactionId?: number,
+    lastAssistantMessage?: string
+  ) => Promise<{ data: LeaChatResponse }>;
   chatVoice: (
     audioBlob: Blob,
     sessionId?: string,
@@ -112,6 +118,9 @@ export function useLea(
   const [error, setError] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(initialSessionId || null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  /** Ref pour toujours envoyer le dernier message assistant au backend (évite closure périmée). */
+  const messagesRef = useRef<LeaMessage[]>([]);
+  messagesRef.current = messages;
 
   const sendMessage = useCallback(async (message: string) => {
     if (!message.trim() || isLoading) return;
@@ -142,7 +151,9 @@ export function useLea(
     };
     setMessages((prev) => [...prev, assistantPlaceholder]);
 
-    const lastAssistantContent = messages.filter((m) => m.role === 'assistant').pop()?.content ?? undefined;
+    // Dernier message assistant = contexte pour que le backend enregistre adresse / vendeurs / acheteurs
+    const lastAssistantContent =
+      messagesRef.current.filter((m) => m.role === 'assistant').pop()?.content?.trim() ?? undefined;
 
     const usedStream = await api.chatStream(
       {
@@ -217,7 +228,13 @@ export function useLea(
     if (!usedStream) {
       setMessages((prev) => prev.slice(0, -1)); // remove placeholder
       try {
-        const response = await api.chat(message, sessionId ?? undefined, 'openai', transactionId);
+        const response = await api.chat(
+          message,
+          sessionId ?? undefined,
+          'openai',
+          transactionId,
+          lastAssistantContent
+        );
 
         if (response.data.session_id && !sessionId) {
           setSessionId(response.data.session_id);

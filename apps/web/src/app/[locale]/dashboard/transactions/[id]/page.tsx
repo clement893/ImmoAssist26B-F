@@ -152,6 +152,7 @@ export default function TransactionDetailPage() {
     property_postal_code: '',
     property_province: 'QC',
   });
+  const [deleting, setDeleting] = useState(false);
 
   // Sync active tab with URL ?tab=...
   useEffect(() => {
@@ -357,6 +358,30 @@ export default function TransactionDetailPage() {
             <button className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl text-sm font-medium text-white hover:shadow-lg transition-shadow">
               <Send className="w-4 h-4 inline mr-2" />
               Send Update
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                if (!confirm('Êtes-vous sûr de vouloir supprimer cette transaction ? Cette action est irréversible.')) return;
+                setDeleting(true);
+                try {
+                  await transactionsAPI.delete(parseInt(transactionId, 10));
+                  showToast({ message: 'Transaction supprimée', type: 'success' });
+                  router.push('/dashboard/transactions');
+                } catch (err) {
+                  showToast({
+                    message: err instanceof Error ? err.message : 'Erreur lors de la suppression',
+                    type: 'error',
+                  });
+                } finally {
+                  setDeleting(false);
+                }
+              }}
+              disabled={deleting}
+              className="px-4 py-2 bg-white rounded-2xl text-sm font-medium text-red-600 hover:bg-red-50 transition-colors shadow-sm border border-red-200 inline-flex items-center gap-2 disabled:opacity-50"
+            >
+              <Trash2 className="w-4 h-4" />
+              Supprimer
             </button>
           </div>
         </div>

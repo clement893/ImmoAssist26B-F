@@ -311,12 +311,19 @@ export const authAPI = {
 };
 
 export const leaAPI = {
-  chat: (message: string, sessionId?: string, provider: string = 'auto', transactionId?: number) => {
+  chat: (
+    message: string,
+    sessionId?: string,
+    provider: string = 'auto',
+    transactionId?: number,
+    lastAssistantMessage?: string
+  ) => {
     return apiClient.post('/v1/lea/chat', {
       message,
       session_id: sessionId,
       provider,
       transaction_id: transactionId,
+      last_assistant_message: lastAssistantMessage ?? null,
     });
   },
   /**
