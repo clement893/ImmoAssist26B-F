@@ -71,6 +71,7 @@ LEA_KNOWLEDGE_FOLDER = "lea_knowledge"
 _LEA_DOCS_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent.parent / "docs" / "oaciq"
 _LEA_OACIQ_KNOWLEDGE_PATH = _LEA_DOCS_ROOT / "LEA_KNOWLEDGE_OACIQ.md"
 _LEA_OACIQ_GUIDE_EXPERT_PATH = _LEA_DOCS_ROOT / "OACIQ_Guide_Expert_IA.md"
+_LEA_PA_KNOWLEDGE_PATH = _LEA_DOCS_ROOT / "LEA_KNOWLEDGE_PA.md"
 
 
 LEA_KNOWLEDGE_KEY_OACIQ = "oaciq"
@@ -182,6 +183,14 @@ async def _get_lea_knowledge_for_prompt(db: AsyncSession) -> str:
                     parts.append(guide_content.strip())
             except Exception as e:
                 logger.warning("Could not load OACIQ Guide Expert for Léa: %s", e)
+        # Document PA – Promesse d'achat (mapping des champs et instructions)
+        if _LEA_PA_KNOWLEDGE_PATH.exists():
+            try:
+                pa_content = _LEA_PA_KNOWLEDGE_PATH.read_text(encoding="utf-8")
+                if pa_content.strip():
+                    parts.append(pa_content.strip())
+            except Exception as e:
+                logger.warning("Could not load PA knowledge for Léa: %s", e)
     except Exception as e:
         logger.warning("Could not load OACIQ knowledge for Léa: %s", e)
     try:
@@ -3442,6 +3451,24 @@ def _build_oaciq_prefill_from_transaction(tx: RealEstateTransaction) -> dict:
         d = tx.expected_closing_date
         prefill["expected_closing_date"] = d.isoformat() if hasattr(d, "isoformat") else str(d)
         prefill["date_cloture"] = prefill["expected_closing_date"]
+        prefill["date_acte_vente"] = prefill["expected_closing_date"]
+        prefill["date_signature_acte"] = prefill["expected_closing_date"]
+    # Alias supplémentaires pour compatibilité PA et formulaires OACIQ
+    if prefill.get("property_address"):
+        prefill["adresse_immeuble"] = prefill["property_address"]
+        prefill["adresse_bien"] = prefill["property_address"]
+    if prefill.get("offered_price") is not None:
+        prefill["prix_achat"] = prefill["offered_price"]
+        prefill["purchase_price"] = prefill["offered_price"]
+        prefill["prix"] = prefill["offered_price"]
+    if prefill.get("vendeurs"):
+        prefill["vendeur"] = prefill["vendeurs"]
+        prefill["noms_vendeurs"] = prefill["vendeurs"]
+    if prefill.get("acheteurs"):
+        prefill["acheteur"] = prefill["acheteurs"]
+        prefill["noms_acheteurs"] = prefill["acheteurs"]
+    if prefill.get("full_address"):
+        prefill["adresse_complete_immeuble"] = prefill["full_address"]
     return {k: v for k, v in prefill.items() if v is not None}
 
 
