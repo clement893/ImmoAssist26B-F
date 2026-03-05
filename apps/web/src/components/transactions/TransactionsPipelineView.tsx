@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from '@/i18n/routing';
-import { Plus, Search, Filter, MapPin, DollarSign, Users, Calendar, Home } from 'lucide-react';
+import { Plus, Search, Filter, MapPin, DollarSign, Users, Calendar, Home, Trash2 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import TransactionImage from '@/components/transactions/TransactionImage';
@@ -48,6 +48,7 @@ interface TransactionsPipelineViewProps {
   onStatusChange?: (transactionId: number, newPipelineStage: string) => Promise<void>;
   onAddTransaction?: () => void;
   onTransactionClick?: (transaction: Transaction) => void;
+  onDelete?: (transactionId: number) => void | Promise<void>;
 }
 
 // Étapes du pipeline (kanban) alignées sur les étapes des offres
@@ -108,6 +109,7 @@ export default function TransactionsPipelineView({
   onStatusChange,
   onAddTransaction,
   onTransactionClick,
+  onDelete,
 }: TransactionsPipelineViewProps) {
   const router = useRouter();
   const [draggedTransaction, setDraggedTransaction] = useState<number | null>(null);
@@ -365,7 +367,7 @@ export default function TransactionsPipelineView({
                       {/* Card Footer */}
                       <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
                         {/* Avatars */}
-                        {allParties.length > 0 && (
+                        {allParties.length > 0 ? (
                           <div className="flex -space-x-2">
                             {allParties.slice(0, 3).map((name, index) => (
                               <div
@@ -382,15 +384,34 @@ export default function TransactionsPipelineView({
                               </div>
                             )}
                           </div>
+                        ) : (
+                          <span className="text-xs text-gray-400">—</span>
                         )}
 
-                        {/* Parties Count */}
-                        {allParties.length > 0 && (
-                          <div className="flex items-center gap-1 text-gray-400">
-                            <Users className="w-4 h-4" />
-                            <span className="text-xs">{allParties.length}</span>
-                          </div>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {allParties.length > 0 && (
+                            <div className="flex items-center gap-1 text-gray-400">
+                              <Users className="w-4 h-4" />
+                              <span className="text-xs">{allParties.length}</span>
+                            </div>
+                          )}
+                          {onDelete && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (confirm('Supprimer cette transaction ? Cette action est irréversible.')) {
+                                  onDelete(transaction.id);
+                                }
+                              }}
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                              title="Supprimer"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
                       </div>
                       </div>
                     </div>

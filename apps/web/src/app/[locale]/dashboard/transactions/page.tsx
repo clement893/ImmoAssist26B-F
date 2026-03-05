@@ -120,10 +120,6 @@ function TransactionsContent() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cette transaction ?')) {
-      return;
-    }
-    
     setLoading(true);
     setError(null);
     try {
@@ -329,6 +325,9 @@ function TransactionsContent() {
               onTransactionClick={(transaction) => {
                 window.location.href = `/dashboard/transactions/${transaction.id}`;
               }}
+              onDelete={async (id) => {
+                await handleDelete(id);
+              }}
             />
           </div>
         ) : (
@@ -493,10 +492,15 @@ function TransactionsContent() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleDelete(transaction.id)}
-                    className="text-destructive hover:text-destructive"
+                    onClick={() => {
+                      if (confirm('Supprimer cette transaction ? Cette action est irréversible.')) {
+                        handleDelete(transaction.id);
+                      }
+                    }}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-4 h-4 mr-1" />
+                    Supprimer
                   </Button>
                 </div>
               </Card>
