@@ -233,7 +233,7 @@ LEA_SYSTEM_PROMPT = (
     "dis-lui que tu ne peux pas encore faire cela automatiquement et invite-le à aller dans la section Transactions pour le faire. "
     "Ne invente jamais une confirmation du type « c'est fait » ou « j'ai créé » sans que « Action effectuée » le confirme. "
     "** Corrections (code postal, ville, etc.) : ** Quand l'utilisateur te corrige (ex. « non le code postal c'est H2K 1E1 », « corrige la ville en Laval »), ne dis jamais que c'est corrigé ou enregistré si le bloc « Action effectuée » ne mentionne pas explicitement que la correction a été appliquée à la transaction — sinon l'utilisateur verrait la transaction inchangée. Si « Action effectuée » indique que le code postal ou la ville a été corrigé(e), confirme alors que c'est bien enregistré dans la transaction. "
-    "** Changement de nom (vendeur/acheteur) : ** Quand l'utilisateur demande de changer le nom d'un vendeur ou d'un acheteur (ex. « changer le nom de l'acheteur Paul en Pierre », « l'acheteur c'est Pierre Martin pas Paul »), ne dis jamais que c'est modifié si le bloc « Action effectuée » ne mentionne pas explicitement que le nom a été corrigé dans la transaction. Si « Action effectuée » indique que le nom du vendeur ou de l'acheteur a été corrigé, confirme alors que c'est bien enregistré.\n\n"
+    "** Changement de nom (vendeur/acheteur) : ** Quand l'utilisateur demande de changer le nom d'un vendeur ou d'un acheteur (ex. « changer le nom de l'acheteur Paul en Pierre », « l'acheteur c'est Pierre Martin pas Paul », « change le vendeur pour Jean Dupont », « remplace l'acheteur par Marie », « ajoute Paul comme vendeur », « retire Pierre des vendeurs »), ne dis jamais que c'est modifié si le bloc « Action effectuée » ne mentionne pas explicitement que le nom a été corrigé dans la transaction. Si « Action effectuée » indique que le nom du vendeur ou de l'acheteur a été corrigé, confirme alors que c'est bien enregistré. Quand l'utilisateur est sur la fiche d'une transaction, les modifications s'appliquent à cette transaction.\n\n"
     "** DEMANDE D'INFORMATION vs DEMANDE D'ACTION : ** "
     "Si l'utilisateur pose une question sur ce qui est possible (ex. « as-t-on d'autres informations qu'on peut ajouter ? », « quelles infos peut-on ajouter pour une telle transaction ? », « qu'est-ce qu'on peut faire ? »), il demande une **explication ou une liste**, pas d'exécuter une action. "
     "Réponds alors uniquement en donnant des informations (formulaires utiles, données à compléter, prochaines étapes). Ne prétends jamais avoir créé un formulaire ou effectué une action à la place de l'utilisateur dans ce cas — sauf si le bloc « Action effectuée » indique explicitement qu'une action a été faite pour cette demande.\n\n"
@@ -296,6 +296,7 @@ class LeaChatRequest(BaseModel):
     message: str = Field(..., min_length=1, description="User message")
     session_id: Optional[str] = Field(None, description="Conversation session ID")
     last_assistant_message: Optional[str] = Field(None, description="Dernier message assistant (pour confirmer « oui enregistrez » avec les noms)")
+    transaction_id: Optional[int] = Field(None, description="ID de la transaction (pour lier la session et prioriser les mises à jour contacts)")
     provider: Optional[Literal["openai", "anthropic", "auto"]] = Field(
         default="auto",
         description="AI provider to use"
@@ -2178,6 +2179,16 @@ def _extract_seller_buyer_names_list(
                 role = "Vendeur"
             elif re.search(r"les\s+acheteurs\s+sont\s+", t, re.I):
                 role = "Acheteur"
+            elif re.search(r"ajoute\s+(?:le\s+)?(?:l['']?)?vendeur\s+", t, re.I) or re.search(r"ajoute\s+([A-Za-zÀ-ÿ\s\-]+)\s+comme\s+vendeur", t, re.I):
+                role = "Vendeur"
+                m_add = re.search(r"ajoute\s+(?:le\s+)?(?:l['']?)?vendeur\s+([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$)", t, re.I) or re.search(r"ajoute\s+([A-Za-zÀ-ÿ\s\-]+)\s+comme\s+vendeur", t, re.I)
+                if m_add:
+                    raw = m_add.group(1).strip()
+            elif re.search(r"ajoute\s+(?:le\s+)?(?:l['']?)?acheteur\s+", t, re.I) or re.search(r"ajoute\s+([A-Za-zÀ-ÿ\s\-]+)\s+comme\s+acheteur", t, re.I):
+                role = "Acheteur"
+                m_add = re.search(r"ajoute\s+(?:le\s+)?(?:l['']?)?acheteur\s+([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$)", t, re.I) or re.search(r"ajoute\s+([A-Za-zÀ-ÿ\s\-]+)\s+comme\s+acheteur", t, re.I)
+                if m_add:
+                    raw = m_add.group(1).strip()
             if not role:
                 return None
             m = re.search(r"les\s+vendeurs\s+sont\s+(.+?)(?:\.|$|\s+pour\s+)", t, re.I | re.DOTALL)
@@ -2203,9 +2214,10 @@ def _extract_seller_buyer_names_list(
                     m = re.search(r"l['']?acheteur\s+s['']appelle\s+([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$|\s+pour|\s+téléphone|\s+courriel|vocales?\s+terminé)", t, re.I)
                     if not m:
                         m = re.search(r"enregistre(?:r?|s?)\s+(?:les?\s+)?acheteurs?\s+(?:l['']?acheteur\s+)?s['']appelle\s+([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$|\s+pour|vocales?)", t, re.I)
-            if not m:
-                return None
-            raw = m.group(1).strip()
+            if raw is None:
+                if not m:
+                    return None
+                raw = m.group(1).strip()
     # Transcription vocale : "est" pour "et" dans les listes de noms ("Christian est abatti" -> "Christian et abatti")
     raw = re.sub(r"\s+est\s+", " et ", raw, flags=re.I)
     # Artefact vocal en fin de phrase : "vocal terminé", "local terminé", "elle terminé", "e" (coupure)
@@ -2462,6 +2474,46 @@ def _extract_rename_seller_buyer_from_message(
             if old_name and len(old_name) >= 2:
                 return (old_name, new_name, role)
 
+    # "change le vendeur pour X" / "remplace l'acheteur par X" / "change l'acheteur pour X"
+    m = re.search(
+        r"(?:change|remplace|mets?|définir?)\s+(?:le\s+)?(?:l['']?)?(?:acheteur|vendeur)\s+(?:pour|par|c['']est)\s+([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$|\s+pour)",
+        t,
+        re.I,
+    )
+    if m:
+        new_name = m.group(1).strip()
+        if len(new_name) >= 2 and last_assistant_message:
+            last = last_assistant_message.strip()
+            name_in_last = re.search(
+                r"(?:acheteur|vendeur)\s+(?:est\s+|c['']est\s+|:)\s*([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$|\s+,)",
+                last,
+                re.I,
+            )
+            old_name = name_in_last.group(1).strip() if name_in_last else ""
+            if old_name and len(old_name) >= 2:
+                return (old_name, new_name, role)
+        return ("*", new_name, role)
+
+    # "le vendeur c'est maintenant X" / "l'acheteur c'est X"
+    m = re.search(
+        r"(?:l['']?|le\s+)(?:acheteur|vendeur)\s+c['']est\s+(?:maintenant\s+)?([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$|\s+pour)",
+        t,
+        re.I,
+    )
+    if m:
+        new_name = m.group(1).strip()
+        if len(new_name) >= 2 and last_assistant_message:
+            last = last_assistant_message.strip()
+            name_in_last = re.search(
+                r"(?:acheteur|vendeur)\s+(?:est\s+|c['']est\s+|:)\s*([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$|\s+,)",
+                last,
+                re.I,
+            )
+            old_name = name_in_last.group(1).strip() if name_in_last else ""
+            if old_name and len(old_name) >= 2:
+                return (old_name, new_name, role)
+        return ("*", new_name, role)
+
     return None
 
 
@@ -2470,6 +2522,7 @@ async def maybe_update_seller_buyer_name_from_lea(
     user_id: int,
     message: str,
     last_assistant_message: Optional[str] = None,
+    transaction_preferred: Optional[RealEstateTransaction] = None,
 ) -> Optional[str]:
     """
     Si l'utilisateur demande de changer le nom d'un vendeur ou acheteur,
@@ -2484,26 +2537,30 @@ async def maybe_update_seller_buyer_name_from_lea(
     if not new_name or len(new_name) < 2:
         return None
 
-    ref = _extract_transaction_ref_from_message(message) or (
-        _extract_transaction_ref_from_message(last_assistant_message or "") if last_assistant_message else None
-    )
-    if ref:
-        transaction = await get_user_transaction_by_ref(db, user_id, ref)
-    else:
-        hint = (
-            _extract_address_hint_from_message(message)
-            or _extract_address_hint_from_message(last_assistant_message or "")
-            or _extract_address_hint_from_assistant_message(last_assistant_message or "")
+    transaction = transaction_preferred
+    if not transaction:
+        ref = _extract_transaction_ref_from_message(message) or (
+            _extract_transaction_ref_from_message(last_assistant_message or "") if last_assistant_message else None
         )
-        transaction = await get_user_transaction_by_address_hint(db, user_id, hint) if hint else None
-        if not transaction:
-            transaction = await get_user_latest_transaction(db, user_id)
+        if ref:
+            transaction = await get_user_transaction_by_ref(db, user_id, ref)
+        else:
+            hint = (
+                _extract_address_hint_from_message(message)
+                or _extract_address_hint_from_message(last_assistant_message or "")
+                or _extract_address_hint_from_assistant_message(last_assistant_message or "")
+            )
+            transaction = await get_user_transaction_by_address_hint(db, user_id, hint) if hint else None
+            if not transaction:
+                transaction = await get_user_latest_transaction(db, user_id)
     if not transaction:
         return None
 
     def _name_matches(entry_name: str) -> bool:
         if not entry_name:
             return False
+        if old_lower == "*":
+            return True
         return old_lower in (entry_name or "").lower()
 
     list_name = "sellers" if role == "Vendeur" else "buyers"
@@ -2537,7 +2594,11 @@ async def maybe_update_seller_buyer_name_from_lea(
 
 
 async def maybe_add_seller_buyer_contact_from_lea(
-    db: AsyncSession, user_id: int, message: str, last_assistant_message: Optional[str] = None
+    db: AsyncSession,
+    user_id: int,
+    message: str,
+    last_assistant_message: Optional[str] = None,
+    transaction_preferred: Optional[RealEstateTransaction] = None,
 ) -> Optional[str]:
     """
     Si le message contient les coordonnées d'un vendeur ou acheteur (ou une liste "les vendeurs sont A et B"),
@@ -2556,16 +2617,18 @@ async def maybe_add_seller_buyer_contact_from_lea(
             names_list = _extract_seller_buyer_names_from_assistant_question(last_assistant_message)
     if names_list:
         role, names = names_list
-        ref = _extract_transaction_ref_from_message(message) or (
-            _extract_transaction_ref_from_message(last_assistant_message or "") if last_assistant_message else None
-        )
-        if ref:
-            transaction = await get_user_transaction_by_ref(db, user_id, ref)
-        else:
-            hint = _extract_address_hint_from_message(message) or _extract_address_hint_from_message(last_assistant_message or "") or _extract_address_hint_from_assistant_message(last_assistant_message or "")
-            transaction = await get_user_transaction_by_address_hint(db, user_id, hint) if hint else None
-            if not transaction:
-                transaction = await get_user_latest_transaction(db, user_id)
+        transaction = transaction_preferred
+        if not transaction:
+            ref = _extract_transaction_ref_from_message(message) or (
+                _extract_transaction_ref_from_message(last_assistant_message or "") if last_assistant_message else None
+            )
+            if ref:
+                transaction = await get_user_transaction_by_ref(db, user_id, ref)
+            else:
+                hint = _extract_address_hint_from_message(message) or _extract_address_hint_from_message(last_assistant_message or "") or _extract_address_hint_from_assistant_message(last_assistant_message or "")
+                transaction = await get_user_transaction_by_address_hint(db, user_id, hint) if hint else None
+                if not transaction:
+                    transaction = await get_user_latest_transaction(db, user_id)
         if not transaction or not names:
             return None
         # Mode remplacement : si Léa venait de demander les "nouveaux vendeurs/acheteurs", on remplace la liste au lieu d'ajouter
@@ -2724,7 +2787,7 @@ def _extract_remove_person_from_message(message: str) -> Optional[Tuple[str, Opt
     # Extraire le nom après le verbe
     for verb in remove_verbs:
         pat = re.compile(
-            r"(?:" + verb + r")\s+(?:le\s+|la\s+|l[''])?\s*(?:vendeur\s+|acheteur\s+|vendeuse\s+|acheteuse\s+)?\s*([a-zàâäéèêëïîôùûüç\s\-]+?)(?:\s+des?\s+vendeurs?|\s+des?\s+acheteurs?|$)",
+            r"(?:" + verb + r")\s+(?:le\s+|la\s+|l[''])?\s*(?:vendeur\s+|acheteur\s+|vendeuse\s+|acheteuse\s+)?\s*([a-zàâäéèêëïîôùûüç\s\-]+?)(?:\s+des?\s+vendeurs?|\s+des?\s+acheteurs?|\s+du\s+rôle\s+(?:vendeur|acheteur)|$)",
             re.I,
         )
         m = pat.search(t)
@@ -2744,7 +2807,11 @@ def _extract_remove_person_from_message(message: str) -> Optional[Tuple[str, Opt
 
 
 async def maybe_remove_seller_buyer_from_lea(
-    db: AsyncSession, user_id: int, message: str, last_assistant_message: Optional[str] = None
+    db: AsyncSession,
+    user_id: int,
+    message: str,
+    last_assistant_message: Optional[str] = None,
+    transaction_preferred: Optional[RealEstateTransaction] = None,
 ) -> Optional[str]:
     """
     Si le message demande de supprimer/retirer un vendeur ou acheteur, le retire de la transaction.
@@ -2758,20 +2825,22 @@ async def maybe_remove_seller_buyer_from_lea(
     if not name_lower:
         return None
     # Récupérer la transaction
-    ref = _extract_transaction_ref_from_message(message) or (
-        _extract_transaction_ref_from_message(last_assistant_message or "") if last_assistant_message else None
-    )
-    if ref:
-        transaction = await get_user_transaction_by_ref(db, user_id, ref)
-    else:
-        hint = (
-            _extract_address_hint_from_message(message)
-            or _extract_address_hint_from_message(last_assistant_message or "")
-            or _extract_address_hint_from_assistant_message(last_assistant_message or "")
+    transaction = transaction_preferred
+    if not transaction:
+        ref = _extract_transaction_ref_from_message(message) or (
+            _extract_transaction_ref_from_message(last_assistant_message or "") if last_assistant_message else None
         )
-        transaction = await get_user_transaction_by_address_hint(db, user_id, hint) if hint else None
-        if not transaction:
-            transaction = await get_user_latest_transaction(db, user_id)
+        if ref:
+            transaction = await get_user_transaction_by_ref(db, user_id, ref)
+        else:
+            hint = (
+                _extract_address_hint_from_message(message)
+                or _extract_address_hint_from_message(last_assistant_message or "")
+                or _extract_address_hint_from_assistant_message(last_assistant_message or "")
+            )
+            transaction = await get_user_transaction_by_address_hint(db, user_id, hint) if hint else None
+            if not transaction:
+                transaction = await get_user_latest_transaction(db, user_id)
     if not transaction:
         return None
 
@@ -3546,14 +3615,22 @@ async def maybe_prefill_oaciq_form_from_lea(
 
 
 async def run_lea_actions(
-    db: AsyncSession, user_id: int, message: str, last_assistant_message: Optional[str] = None
+    db: AsyncSession,
+    user_id: int,
+    message: str,
+    last_assistant_message: Optional[str] = None,
+    session_id: Optional[str] = None,
 ) -> tuple[list, Optional[RealEstateTransaction]]:
     """
     Exécute les actions Léa (création transaction, mise à jour adresse, promesse d'achat).
     Retourne (liste de lignes pour « Action effectuée », transaction créée si création).
     last_assistant_message : dernier message de Léa (pour confirmer « oui enregistrez » avec les noms).
+    session_id : si fourni, la transaction liée à la session est utilisée en priorité pour les mises à jour contacts.
     """
     lines = []
+    transaction_preferred: Optional[RealEstateTransaction] = None
+    if session_id:
+        transaction_preferred = await get_transaction_for_session(db, user_id, session_id)
     created: Optional[RealEstateTransaction] = None
     created, duplicate_line = await maybe_create_transaction_from_lea(db, user_id, message)
     if duplicate_line:
@@ -3760,13 +3837,19 @@ async def run_lea_actions(
             "L'utilisateur n'a pas précisé pour quelle propriété ni quelle transaction. "
             "Ne prends PAS la dernière transaction par défaut. Demande-lui : « Pour quelle propriété (adresse ou numéro de transaction) souhaitez-vous préparer ce formulaire ? »"
         )
-    rename_line = await maybe_update_seller_buyer_name_from_lea(db, user_id, message, last_assistant_message)
+    rename_line = await maybe_update_seller_buyer_name_from_lea(
+        db, user_id, message, last_assistant_message, transaction_preferred
+    )
     if rename_line:
         lines.append(rename_line)
-    remove_line = await maybe_remove_seller_buyer_from_lea(db, user_id, message, last_assistant_message)
+    remove_line = await maybe_remove_seller_buyer_from_lea(
+        db, user_id, message, last_assistant_message, transaction_preferred
+    )
     if remove_line:
         lines.append(remove_line)
-    contact_line = await maybe_add_seller_buyer_contact_from_lea(db, user_id, message, last_assistant_message)
+    contact_line = await maybe_add_seller_buyer_contact_from_lea(
+        db, user_id, message, last_assistant_message, transaction_preferred
+    )
     if contact_line:
         lines.append(contact_line)
     # Toujours rappeler à Léa de ne pas redemander les acheteurs si l'utilisateur a dit « pas d'acheteurs » / mise en vente
@@ -3801,6 +3884,37 @@ async def run_lea_actions(
     if not lines:
         lines.extend(_get_lea_guidance_lines(message))
     return (lines, created)
+
+
+async def get_transaction_for_session(
+    db: AsyncSession, user_id: int, session_id: str
+) -> Optional[RealEstateTransaction]:
+    """Retourne la transaction liée à la session Léa, ou None."""
+    if not session_id:
+        return None
+    try:
+        r = await db.execute(
+            select(LeaSessionTransactionLink)
+            .where(LeaSessionTransactionLink.session_id == session_id)
+            .where(LeaSessionTransactionLink.user_id == user_id)
+            .order_by(LeaSessionTransactionLink.created_at.desc())
+            .limit(1)
+        )
+        link = r.scalar_one_or_none()
+        if not link:
+            return None
+        tx_r = await db.execute(
+            select(RealEstateTransaction).where(
+                and_(
+                    RealEstateTransaction.id == link.transaction_id,
+                    RealEstateTransaction.user_id == user_id,
+                )
+            )
+        )
+        return tx_r.scalar_one_or_none()
+    except Exception as e:
+        logger.warning(f"get_transaction_for_session failed: {e}", exc_info=True)
+        return None
 
 
 async def link_lea_session_to_transaction(
@@ -3981,6 +4095,7 @@ async def _stream_lea_sse(
     session_id: str | None,
     last_assistant_message: str | None,
     *,
+    transaction_id: Optional[int] = None,
     db: AsyncSession,
     user_id: int,
 ):
@@ -3993,11 +4108,27 @@ async def _stream_lea_sse(
     yield ": ok\n\n"
     yield f"data: {json.dumps({'status': 'connecting'})}\n\n"
     try:
-        action_lines, created_tx = await run_lea_actions(db, user_id, message, last_assistant_message)
-        if session_id and action_lines:
-            tx_to_link = created_tx or await get_user_latest_transaction(db, user_id)
+        if transaction_id and sid:
+            await link_lea_session_to_transaction(db, user_id, sid, transaction_id)
+        action_lines, created_tx = await run_lea_actions(
+            db, user_id, message, last_assistant_message, session_id=sid
+        )
+        if sid and action_lines:
+            tx_to_link = created_tx
+            if not tx_to_link and transaction_id:
+                r = await db.execute(
+                    select(RealEstateTransaction).where(
+                        and_(
+                            RealEstateTransaction.id == transaction_id,
+                            RealEstateTransaction.user_id == user_id,
+                        )
+                    )
+                )
+                tx_to_link = r.scalar_one_or_none()
+            if not tx_to_link:
+                tx_to_link = await get_user_latest_transaction(db, user_id)
             if tx_to_link:
-                await link_lea_session_to_transaction(db, user_id, session_id, tx_to_link.id)
+                await link_lea_session_to_transaction(db, user_id, sid, tx_to_link.id)
         # Charger contexte + conversation (même session) en parallèle avec la base de connaissance (cache/session dédiée)
         knowledge_task = asyncio.create_task(_load_lea_knowledge_async())
         user_context = await get_lea_user_context(db, user_id)
@@ -4094,6 +4225,7 @@ async def lea_chat_stream(
             body.message,
             body.session_id,
             body.last_assistant_message,
+            transaction_id=body.transaction_id,
             db=db,
             user_id=current_user.id,
         ),
@@ -4122,11 +4254,25 @@ async def lea_chat(
     # 1) IA intégrée en priorité : contexte + actions sont injectés dans le prompt → Léa peut confirmer les actions
     if _use_integrated_lea():
         try:
-            action_lines, created_tx = await run_lea_actions(db, current_user.id, body.message, body.last_assistant_message)
-            if body.session_id and action_lines:
-                tx_to_link = created_tx if created_tx else await get_user_latest_transaction(db, current_user.id)
+            sid = body.session_id or str(uuid.uuid4())
+            if body.transaction_id and sid:
+                await link_lea_session_to_transaction(db, current_user.id, sid, body.transaction_id)
+            action_lines, created_tx = await run_lea_actions(
+                db, current_user.id, body.message, body.last_assistant_message, session_id=sid
+            )
+            if sid and action_lines:
+                tx_to_link = created_tx or (
+                    (await db.execute(
+                        select(RealEstateTransaction).where(
+                            and_(
+                                RealEstateTransaction.id == body.transaction_id,
+                                RealEstateTransaction.user_id == current_user.id,
+                            )
+                        )
+                    )).scalar_one_or_none() if body.transaction_id else None
+                ) or await get_user_latest_transaction(db, current_user.id)
                 if tx_to_link:
-                    await link_lea_session_to_transaction(db, current_user.id, body.session_id, tx_to_link.id)
+                    await link_lea_session_to_transaction(db, current_user.id, sid, tx_to_link.id)
             user_context = await get_lea_user_context(db, current_user.id)
             if action_lines:
                 user_context += "\n\n--- Action effectuée ---\n" + "\n".join(action_lines)
@@ -4138,15 +4284,15 @@ async def lea_chat(
                     "Vous pouvez la voir et la compléter dans la section Transactions. "
                     "Quelle est l'adresse du bien ?"
                 )
-                if body.session_id:
+                if sid:
                     await persist_lea_messages(
-                        db, current_user.id, body.session_id,
+                        db, current_user.id, sid,
                         body.message, confirmation_content,
                         meta={"actions": action_lines},
                     )
                 return LeaChatResponse(
                     content=confirmation_content,
-                    session_id=body.session_id or "",
+                    session_id=sid,
                     model=None,
                     provider=None,
                     usage={},
@@ -4155,15 +4301,15 @@ async def lea_chat(
             # Quand un formulaire OACIQ vient d'être créé, renvoyer une confirmation directe (sans appeler l'IA)
             if _action_lines_contain_oaciq_form_creation(action_lines):
                 confirmation_content = _build_oaciq_form_creation_confirmation(action_lines)
-                if body.session_id:
+                if sid:
                     await persist_lea_messages(
-                        db, current_user.id, body.session_id,
+                        db, current_user.id, sid,
                         body.message, confirmation_content,
                         meta={"actions": action_lines},
                     )
                 return LeaChatResponse(
                     content=confirmation_content,
-                    session_id=body.session_id or "",
+                    session_id=sid,
                     model=None,
                     provider=None,
                     usage={},

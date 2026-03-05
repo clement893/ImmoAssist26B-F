@@ -748,7 +748,7 @@ export default function TransactionDetailPage() {
                   <h3 className="text-lg font-semibold text-gray-900">Conversations Léa</h3>
                   <button
                     type="button"
-                    onClick={() => router.push(`/${locale}/dashboard/lea2`)}
+                    onClick={() => router.push(`/${locale}/dashboard/lea2?transaction=${transactionId}`)}
                     className="px-4 py-2 bg-blue-500 text-white rounded-2xl text-sm font-medium hover:bg-blue-600 transition-colors inline-flex items-center gap-2"
                   >
                     <Bot className="w-4 h-4" />
@@ -795,7 +795,7 @@ export default function TransactionDetailPage() {
                     <p className="text-sm mb-4">Les conversations sont enregistrées lorsque vous parlez de cette transaction avec Léa.</p>
                     <button
                       type="button"
-                      onClick={() => router.push(`/${locale}/dashboard/lea2`)}
+                      onClick={() => router.push(`/${locale}/dashboard/lea2?transaction=${transactionId}`)}
                       className="text-blue-600 hover:text-blue-700 text-sm font-medium"
                     >
                       Démarrer une conversation avec Léa

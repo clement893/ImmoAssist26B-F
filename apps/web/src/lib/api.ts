@@ -311,11 +311,12 @@ export const authAPI = {
 };
 
 export const leaAPI = {
-  chat: (message: string, sessionId?: string, provider: string = 'auto') => {
+  chat: (message: string, sessionId?: string, provider: string = 'auto', transactionId?: number) => {
     return apiClient.post('/v1/lea/chat', {
       message,
       session_id: sessionId,
       provider,
+      transaction_id: transactionId,
     });
   },
   /**
@@ -325,7 +326,7 @@ export const leaAPI = {
    * Returns true if streaming was used, false if backend does not support streaming (fallback to chat).
    */
   chatStream: async (
-    params: { message: string; sessionId?: string; lastAssistantMessage?: string },
+    params: { message: string; sessionId?: string; lastAssistantMessage?: string; transactionId?: number },
     callbacks: {
       onDelta: (delta: string) => void;
       onDone: (sessionId: string, meta?: { actions?: string[]; model?: string; provider?: string; usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } }) => void;
@@ -349,6 +350,7 @@ export const leaAPI = {
           message: params.message,
           session_id: params.sessionId ?? null,
           last_assistant_message: params.lastAssistantMessage ?? null,
+          transaction_id: params.transactionId ?? null,
         }),
         signal: controller.signal,
       });
@@ -570,7 +572,7 @@ export const demoLeaAPI = {
     return { data };
   },
   chatStream: async (
-    params: { message: string; sessionId?: string; lastAssistantMessage?: string },
+    params: { message: string; sessionId?: string; lastAssistantMessage?: string; transactionId?: number },
     callbacks: {
       onDelta: (delta: string) => void;
       onDone: (sessionId: string, meta?: { actions?: string[]; model?: string; provider?: string; usage?: object }) => void;
@@ -587,6 +589,7 @@ export const demoLeaAPI = {
         message: params.message,
         session_id: params.sessionId ?? null,
         last_assistant_message: params.lastAssistantMessage ?? null,
+        transaction_id: params.transactionId ?? null,
       }),
       signal: controller.signal,
     });

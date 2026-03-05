@@ -107,6 +107,9 @@ export default function Lea2View({ demoMode, demoUserName, leaApi }: Lea2ViewPro
   const { user } = useAuthStore();
   const searchParams = useSearchParams();
   const sessionFromUrl = searchParams.get('session');
+  const transactionIdFromUrl = searchParams.get('transaction');
+  const parsedTxId = transactionIdFromUrl ? parseInt(transactionIdFromUrl, 10) : NaN;
+  const transactionId = Number.isNaN(parsedTxId) ? undefined : parsedTxId;
   const api = leaApi ?? leaAPI;
   const {
     messages,
@@ -119,7 +122,7 @@ export default function Lea2View({ demoMode, demoUserName, leaApi }: Lea2ViewPro
     sessionId,
     loadConversation,
     startNewConversation,
-  } = useLea(undefined, api);
+  } = useLea(undefined, api, transactionId);
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [copyFeedback, setCopyFeedback] = useState(false);

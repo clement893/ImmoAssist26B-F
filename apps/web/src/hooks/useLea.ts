@@ -36,7 +36,7 @@ export type LeaVoiceResponseData = {
 /** API shape used by useLea (leaAPI or demoLeaAPI). Uses { data } return shape so both Axios and fetch clients fit. */
 export type LeaAPIClient = {
   chatStream: typeof leaAPI.chatStream;
-  chat: (message: string, sessionId?: string, provider?: string) => Promise<{ data: LeaChatResponse }>;
+  chat: (message: string, sessionId?: string, provider?: string, transactionId?: number) => Promise<{ data: LeaChatResponse }>;
   chatVoice: (
     audioBlob: Blob,
     sessionId?: string,
@@ -101,7 +101,11 @@ export interface UseLeaReturn {
   startNewConversation: () => void;
 }
 
-export function useLea(initialSessionId?: string, api: LeaAPIClient = leaAPI): UseLeaReturn {
+export function useLea(
+  initialSessionId?: string,
+  api: LeaAPIClient = leaAPI,
+  transactionId?: number
+): UseLeaReturn {
   const [messages, setMessages] = useState<LeaMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -145,6 +149,7 @@ export function useLea(initialSessionId?: string, api: LeaAPIClient = leaAPI): U
         message,
         sessionId: sessionId ?? undefined,
         lastAssistantMessage: lastAssistantContent,
+        transactionId,
       },
       {
         onConnecting: () => setIsConnecting(true),
@@ -212,7 +217,7 @@ export function useLea(initialSessionId?: string, api: LeaAPIClient = leaAPI): U
     if (!usedStream) {
       setMessages((prev) => prev.slice(0, -1)); // remove placeholder
       try {
-        const response = await api.chat(message, sessionId ?? undefined, 'openai');
+        const response = await api.chat(message, sessionId ?? undefined, 'openai', transactionId);
 
         if (response.data.session_id && !sessionId) {
           setSessionId(response.data.session_id);
@@ -249,7 +254,7 @@ export function useLea(initialSessionId?: string, api: LeaAPIClient = leaAPI): U
         abortControllerRef.current = null;
       }
     }
-  }, [isLoading, sessionId, api]);
+  }, [isLoading, sessionId, api, transactionId]);
 
   const sendVoiceMessage = useCallback(
     async (audioBlob: Blob) => {
