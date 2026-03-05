@@ -1250,6 +1250,14 @@ def _wants_to_set_promise(message: str) -> bool:
     )
 
 
+# En-têtes pour éviter les réponses en cache et obtenir les données de géocodage les plus récentes
+_GEOCODE_NO_CACHE_HEADERS = {
+    "Cache-Control": "no-cache, no-store, must-revalidate",
+    "Pragma": "no-cache",
+    "Expires": "0",
+}
+
+
 def _build_address_for_geocode(addr_clean: str) -> List[str]:
     """
     Construit une ou plusieurs variantes d'adresse pour le géocodage (priorité Montréal/Québec).
@@ -1336,8 +1344,9 @@ async def _geocode_geopy(addr: str) -> Optional[dict]:
 
 async def _geocode_geocoder_ca(addr: str) -> Optional[dict]:
     """
-    Géocodage via geocoder.ca (payant). Non utilisé par défaut : Léa utilise geopy (Nominatim).
-    Conservé pour référence ou réactivation via configuration.
+    Géocodage via geocoder.ca (données Canada à jour, meilleur pour codes postaux).
+    Utilisé en priorité si disponible ; requêtes avec no-cache pour données fraîches.
+    Option : GEOCODER_CA_AUTH pour compte (gratuit 2500/jour ou payant).
     Retourne un dict avec postcode, city, state, country_code ou None.
     """
     if not addr or len(addr.strip()) < 5:
@@ -1356,7 +1365,10 @@ async def _geocode_geocoder_ca(addr: str) -> Optional[dict]:
     auth = os.environ.get("GEOCODER_CA_AUTH", "").strip()
     if auth:
         params["auth"] = auth
-    headers = {"User-Agent": "ImmoAssist-Lea/1.0 (contact@immoassist.com)"}
+    headers = {
+        "User-Agent": "ImmoAssist-Lea/1.0 (contact@immoassist.com)",
+        **_GEOCODE_NO_CACHE_HEADERS,
+    }
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             r = await client.get(url, params=params, headers=headers)
@@ -1417,9 +1429,10 @@ async def _geocode_geocoder_ca(addr: str) -> Optional[dict]:
 async def _validate_address_via_geocode(addr: str) -> Optional[dict]:
     """
     Vérifie une adresse via géocodage avec fallback du plus fiable au moins fiable :
-    1) geocoder.ca (meilleur pour codes postaux Canada, gratuit 2500/jour si compte)
-    2) geopy / Nominatim (OpenStreetMap)
+    1) geocoder.ca (uniquement si GEOCODER_CA_AUTH est défini — payant ou gratuit 2500/jour avec compte)
+    2) geopy / Nominatim (OpenStreetMap) — gratuit, sans clé
     3) Nominatim HTTP direct
+    Sans clé geocoder.ca, seuls Nominatim (2 et 3) sont utilisés. Les requêtes envoient no-cache pour données fraîches.
     Retourne un dict avec postcode, city, state (province), country_code pour que Léa puisse confirmer à l'utilisateur.
     """
     if not addr or len(addr.strip()) < 5:
@@ -1433,11 +1446,12 @@ async def _validate_address_via_geocode(addr: str) -> Optional[dict]:
             return False
         return bool(result.get("postcode") or result.get("city"))
 
-    # 1) geocoder.ca — le plus fiable pour codes postaux canadiens (optionnel : GEOCODER_CA_AUTH)
-    for to_try in _build_address_for_geocode(addr_clean):
-        result = await _geocode_geocoder_ca(to_try)
-        if _is_valid_ca_result(result):
-            return result
+    # 1) geocoder.ca — seulement si clé configurée (payant / gratuit avec compte)
+    if os.environ.get("GEOCODER_CA_AUTH", "").strip():
+        for to_try in _build_address_for_geocode(addr_clean):
+            result = await _geocode_geocoder_ca(to_try)
+            if _is_valid_ca_result(result):
+                return result
 
     # 2) geopy (Nominatim / OpenStreetMap)
     for to_try in _build_address_for_geocode(addr_clean):
@@ -1542,7 +1556,10 @@ async def _geocode_one(addr: str, limit: int = 5) -> Optional[dict]:
     addr = _normalize_address_for_geocode(addr)
     url = "https://nominatim.openstreetmap.org/search"
     params = {"q": addr.strip(), "format": "json", "addressdetails": 1, "limit": limit}
-    headers = {"User-Agent": "ImmoAssist-Lea/1.0 (contact@immoassist.com)"}
+    headers = {
+        "User-Agent": "ImmoAssist-Lea/1.0 (contact@immoassist.com)",
+        **_GEOCODE_NO_CACHE_HEADERS,
+    }
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             r = await client.get(url, params=params, headers=headers)
