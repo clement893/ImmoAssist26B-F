@@ -1307,11 +1307,12 @@ def _geocode_geopy_sync(addr: str, limit: int = 5) -> Optional[dict]:
         return None
     best = _pick_best_geocode_result(data, addr)
     if not best:
-        # Premier résultat Canada
+        # Premier résultat Canada — extraire postcode via raw['address'] (recommandé geopy/Nominatim)
         adr = data[0].get("address") or {}
         best = {}
-        if adr.get("postcode"):
-            best["postcode"] = str(adr["postcode"]).strip()
+        postcode = adr.get("postcode") or adr.get("postal_code")
+        if postcode:
+            best["postcode"] = str(postcode).strip()
         if adr.get("city") or adr.get("town") or adr.get("village") or adr.get("municipality"):
             best["city"] = str(
                 adr.get("city") or adr.get("town") or adr.get("village") or adr.get("municipality") or ""
@@ -1415,8 +1416,10 @@ async def _geocode_geocoder_ca(addr: str) -> Optional[dict]:
 
 async def _validate_address_via_geocode(addr: str) -> Optional[dict]:
     """
-    Vérifie une adresse via géocodage : geopy (Nominatim / OpenStreetMap) en priorité,
-    fallback sur appel Nominatim HTTP direct.
+    Vérifie une adresse via géocodage avec fallback du plus fiable au moins fiable :
+    1) geocoder.ca (meilleur pour codes postaux Canada, gratuit 2500/jour si compte)
+    2) geopy / Nominatim (OpenStreetMap)
+    3) Nominatim HTTP direct
     Retourne un dict avec postcode, city, state (province), country_code pour que Léa puisse confirmer à l'utilisateur.
     """
     if not addr or len(addr.strip()) < 5:
@@ -1425,17 +1428,27 @@ async def _validate_address_via_geocode(addr: str) -> Optional[dict]:
     addr_lower = addr_clean.lower()
     has_city = "," in addr_clean or "montréal" in addr_lower or "montreal" in addr_lower or "québec" in addr_lower
 
-    # 1) Essai geopy (Nominatim) sur les variantes d'adresse
+    def _is_valid_ca_result(result: Optional[dict]) -> bool:
+        if not result or (result.get("country_code") or "").upper() != "CA":
+            return False
+        return bool(result.get("postcode") or result.get("city"))
+
+    # 1) geocoder.ca — le plus fiable pour codes postaux canadiens (optionnel : GEOCODER_CA_AUTH)
+    for to_try in _build_address_for_geocode(addr_clean):
+        result = await _geocode_geocoder_ca(to_try)
+        if _is_valid_ca_result(result):
+            return result
+
+    # 2) geopy (Nominatim / OpenStreetMap)
     for to_try in _build_address_for_geocode(addr_clean):
         result = await _geocode_geopy(to_try)
-        if result and (result.get("country_code") or "").upper() == "CA":
-            if result.get("postcode") or result.get("city"):
-                return result
+        if _is_valid_ca_result(result):
+            return result
 
-    # 2) Fallback Nominatim HTTP (comportement existant)
+    # 3) Fallback Nominatim HTTP
     for to_try in _build_address_for_geocode(addr_clean):
         result = await _geocode_one(to_try)
-        if result and (result.get("country_code") or "").upper() == "CA":
+        if _is_valid_ca_result(result):
             return result
     if has_city:
         result = await _geocode_one(addr_clean)
