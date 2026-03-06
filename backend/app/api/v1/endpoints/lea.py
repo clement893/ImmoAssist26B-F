@@ -1782,27 +1782,7 @@ async def maybe_update_transaction_address_from_lea(
     else:
         transaction = await get_user_latest_transaction(db, user_id)
     if not transaction:
-        try:
-            transaction = RealEstateTransaction(
-                user_id=user_id,
-                name="Transaction Vente",
-                dossier_number=None,
-                status="En cours",
-                sellers=[],
-                buyers=[],
-                property_province="QC",
-                property_address=addr,
-                property_city="À compléter",
-                property_postal_code="À compléter",
-            )
-            db.add(transaction)
-            await db.flush()
-            await db.refresh(transaction)
-            logger.info(f"Lea created transaction id={transaction.id} (from address) for user_id={user_id}")
-        except Exception as e:
-            logger.warning(f"Lea create transaction from address failed: {e}", exc_info=True)
-            await db.rollback()
-            return None
+        return None
     try:
         transaction.property_address = addr
         validation = await _validate_address_via_geocode(addr)
@@ -1842,27 +1822,7 @@ async def _update_transaction_address_from_context(
     addr = addr.strip()
     transaction = transaction_preferred if transaction_preferred else await get_user_latest_transaction(db, user_id)
     if not transaction:
-        try:
-            transaction = RealEstateTransaction(
-                user_id=user_id,
-                name="Transaction Vente",
-                dossier_number=None,
-                status="En cours",
-                sellers=[],
-                buyers=[],
-                property_province="QC",
-                property_address=addr,
-                property_city="À compléter",
-                property_postal_code="À compléter",
-            )
-            db.add(transaction)
-            await db.flush()
-            await db.refresh(transaction)
-            logger.info(f"Lea created transaction id={transaction.id} (from context address) for user_id={user_id}")
-        except Exception as e:
-            logger.warning(f"Lea create transaction from context address failed: {e}", exc_info=True)
-            await db.rollback()
-            return None
+        return None
     try:
         transaction.property_address = addr
         validation = await _validate_address_via_geocode(addr)
@@ -3811,24 +3771,39 @@ async def run_lea_actions(
     transaction_preferred: Optional[RealEstateTransaction] = None
     if session_id:
         transaction_preferred = await get_transaction_for_session(db, user_id, session_id)
+    has_transaction = (
+        transaction_preferred is not None or (await get_user_latest_transaction(db, user_id)) is not None
+    )
+    conv = None
+    pending: dict = {}
+    if session_id:
+        conv, _ = await get_or_create_lea_conversation(db, user_id, session_id)
+        ctx = conv.context or {}
+        pending = dict(ctx.get("pending_transaction_creation") or {})
+
     created: Optional[RealEstateTransaction] = None
     created, duplicate_line = await maybe_create_transaction_from_lea(
         db, user_id, message, last_assistant_message=last_assistant_message
     )
+    ok_create, tx_type = _wants_to_create_transaction(message)
     if duplicate_line:
         lines.append(duplicate_line)
+        if ok_create and tx_type and conv is not None:
+            pending["type"] = tx_type
     elif created:
         lines.append(
             f"Tu viens de créer une nouvelle transaction pour l'utilisateur : « {created.name} » (id {created.id}). "
             "Confirme-lui que c'est fait et qu'il peut la compléter dans la section Transactions."
         )
     else:
-        ok_create, tx_type = _wants_to_create_transaction(message)
         if ok_create and not tx_type:
             lines.append(
                 "L'utilisateur souhaite créer une transaction mais n'a pas précisé si c'est une vente ou un achat. "
                 "Demande-lui : « Est-ce une vente ou un achat ? » Puis crée la transaction une fois qu'il a répondu (achat ou vente)."
             )
+        elif ok_create and tx_type and conv is not None:
+            pending["type"] = tx_type
+
     addr_result = await maybe_update_transaction_address_from_lea(
         db, user_id, message, transaction_preferred=transaction_preferred
     )
@@ -3886,6 +3861,29 @@ async def run_lea_actions(
                 "Tu DOIS rester sur l'adresse : demande uniquement la **ville** à l'utilisateur (ne demande pas le code postal). Une fois la ville donnée, propose de trouver le code postal en ligne (géocodage). "
                 "Ne pose PAS « Qui sont les vendeurs ? » ni aucune autre question tant que l'adresse n'a pas ville + code postal."
             )
+    # Pas de transaction : enregistrer l'adresse dans le brouillon de création (pending) si on collecte pour un nouveau dossier
+    if not addr_result and not has_transaction and pending.get("type") and session_id:
+        addr_from_msg = _extract_address_from_message(message)
+        if addr_from_msg:
+            pending["address"] = addr_from_msg
+            validation = await _validate_address_via_geocode(addr_from_msg)
+            if validation:
+                if validation.get("city"):
+                    pending["city"] = validation["city"]
+                if validation.get("postcode"):
+                    pending["postal_code"] = _format_canadian_postal_code(validation["postcode"])
+            missing = []
+            if not pending.get("price"):
+                missing.append("le prix")
+            if not pending.get("sellers"):
+                missing.append("les vendeurs")
+            if not pending.get("buyers"):
+                missing.append("les acheteurs")
+            if missing:
+                lines.append(
+                    f"Adresse notée pour le dossier en cours de création : « {addr_from_msg} ». "
+                    f"Il manque encore : {', '.join(missing)}. Demande-les à l'utilisateur."
+                )
     # Correction par l'utilisateur du code postal ou de la ville (sans refournir toute l'adresse) — appliquer en base
     if not addr_result:
         correction_result = await maybe_correct_transaction_postal_or_city_from_lea(
@@ -4038,6 +4036,25 @@ async def run_lea_actions(
     )
     if contact_line:
         lines.append(contact_line)
+    if not has_transaction and pending.get("type") and pending.get("address") and pending.get("price") and session_id:
+        sellers_list, buyers_list = _extract_sellers_and_buyers_from_creation_message(message, last_assistant_message)
+        if sellers_list or buyers_list:
+            pending.setdefault("sellers", [])
+            pending.setdefault("buyers", [])
+            for f, l in sellers_list:
+                pending["sellers"].append({"first_name": f, "last_name": l})
+            for f, l in buyers_list:
+                pending["buyers"].append({"first_name": f, "last_name": l})
+            if not (pending["sellers"] and pending["buyers"]):
+                missing = []
+                if not pending["sellers"]:
+                    missing.append("les vendeurs")
+                if not pending["buyers"]:
+                    missing.append("les acheteurs")
+                if missing:
+                    lines.append(
+                        f"Noms notés pour le dossier en cours de création. Il manque encore : {', '.join(missing)}. Demande-les à l'utilisateur."
+                    )
     # Prix depuis le message utilisateur (ex. « le prix c'est 600 000 », « 500k ») — aussi enregistré via réponse LLM (PRIX_LISTING/PRIX_OFFERT)
     price_result = await maybe_update_transaction_price_from_lea(
         db, user_id, message, transaction_preferred=transaction_preferred
@@ -4050,6 +4067,22 @@ async def run_lea_actions(
             f"Le {label} a été enregistré pour la transaction {ref} : {int(amount):,} $. "
             "Confirme à l'utilisateur que c'est enregistré."
         )
+    if not price_result and not has_transaction and pending.get("type") and pending.get("address") and session_id:
+        price_tup = _extract_price_from_message(message)
+        if price_tup:
+            amount, kind = price_tup
+            pending["price"] = float(amount)
+            pending["price_kind"] = kind
+            missing = []
+            if not pending.get("sellers"):
+                missing.append("les vendeurs")
+            if not pending.get("buyers"):
+                missing.append("les acheteurs")
+            if missing:
+                lines.append(
+                    f"Prix noté pour le dossier en cours de création : {int(amount):,} $. "
+                    f"Il manque encore : {', '.join(missing)}. Demande-les à l'utilisateur."
+                )
     # Toujours rappeler à Léa de ne pas redemander les acheteurs si l'utilisateur a dit « pas d'acheteurs » / mise en vente
     if any(
         phrase in (message or "").strip().lower()
@@ -4078,6 +4111,104 @@ async def run_lea_actions(
             f"La date de clôture prévue a été enregistrée pour la transaction {ref} : {date_str}. "
             "Confirme à l'utilisateur que c'est enregistré."
         )
+
+    # Créer la transaction à partir du brouillon (pending) une fois tout collecté : type, adresse, prix, vendeurs, acheteurs
+    if (
+        conv is not None
+        and session_id
+        and pending.get("type")
+        and pending.get("address")
+        and pending.get("price") is not None
+        and (pending.get("sellers") or [])
+        and (pending.get("buyers") or [])
+    ):
+        try:
+            tx_type = pending["type"]
+            name = f"Transaction {tx_type.capitalize()}"
+            amount = Decimal(str(pending["price"]))
+            price_kind = pending.get("price_kind") or "listing"
+            sellers_json = [
+                {"name": f"{s.get('first_name', '')} {s.get('last_name', '')}".strip(), "phone": None, "email": None}
+                for s in (pending.get("sellers") or [])
+            ]
+            buyers_json = [
+                {"name": f"{b.get('first_name', '')} {b.get('last_name', '')}".strip(), "phone": None, "email": None}
+                for b in (pending.get("buyers") or [])
+            ]
+            transaction = RealEstateTransaction(
+                user_id=user_id,
+                name=name,
+                dossier_number=None,
+                status="En cours",
+                sellers=sellers_json,
+                buyers=buyers_json,
+                property_province="QC",
+                property_address=pending["address"],
+                property_city=pending.get("city"),
+                property_postal_code=pending.get("postal_code"),
+                transaction_kind=tx_type,
+                pipeline_stage="creation_dossier",
+                listing_price=amount if price_kind == "listing" else None,
+                offered_price=amount if price_kind == "offered" else None,
+            )
+            db.add(transaction)
+            await db.flush()
+            for s in (pending.get("sellers") or []):
+                contact = RealEstateContact(
+                    first_name=s.get("first_name", ""),
+                    last_name=s.get("last_name", ""),
+                    phone=None,
+                    email=None,
+                    type=ContactType.CLIENT,
+                    user_id=user_id,
+                )
+                db.add(contact)
+                await db.flush()
+                db.add(TransactionContact(transaction_id=transaction.id, contact_id=contact.id, role="Vendeur"))
+            for b in (pending.get("buyers") or []):
+                contact = RealEstateContact(
+                    first_name=b.get("first_name", ""),
+                    last_name=b.get("last_name", ""),
+                    phone=None,
+                    email=None,
+                    type=ContactType.CLIENT,
+                    user_id=user_id,
+                )
+                db.add(contact)
+                await db.flush()
+                db.add(TransactionContact(transaction_id=transaction.id, contact_id=contact.id, role="Acheteur"))
+            await db.commit()
+            await db.refresh(transaction)
+            created = transaction
+            logger.info(
+                f"Lea created transaction id={transaction.id} from pending (type={tx_type}, address={pending['address'][:50]}...)"
+            )
+            lines.append(
+                f"Tu viens de créer une nouvelle transaction pour l'utilisateur : « {created.name} » (id {created.id}) avec l'adresse, le prix, les vendeurs et les acheteurs. "
+                "Confirme-lui que le dossier est créé et qu'il peut le consulter dans la section Transactions."
+            )
+            pending.clear()
+            if conv is not None:
+                conv.context = conv.context or {}
+                conv.context["pending_transaction_creation"] = None
+                flag_modified(conv, "context")
+                await db.commit()
+            if session_id and created:
+                await link_lea_session_to_transaction(db, user_id, session_id, created.id)
+        except Exception as e:
+            logger.warning(f"Lea create from pending failed: {e}", exc_info=True)
+            await db.rollback()
+
+    if conv is not None and pending and session_id:
+        conv.context = conv.context or {}
+        conv.context["pending_transaction_creation"] = pending
+        flag_modified(conv, "context")
+        try:
+            await db.commit()
+        except Exception as e:
+            logger.warning(f"Lea save pending context failed: {e}", exc_info=True)
+            await db.rollback()
+
     if not lines:
         lines.extend(_get_lea_guidance_lines(message))
     return (lines, created)
