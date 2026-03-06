@@ -252,29 +252,25 @@ LEA_SYSTEM_PROMPT = (
     "Une fois l'adresse complète (éventuellement après recherche en ligne), tu DOIS d'abord indiquer cette adresse complète à l'utilisateur dans ta réponse ; seulement après tu peux poser la question suivante (vendeurs, etc.).\n\n"
     "** CONFIRMATION DE LA PROPRIÉTÉ AVANT D'AVANCER : ** Quand l'utilisateur désigne une propriété par une référence partielle (ex. « trouve la transaction sur de Bordeaux », « celle sur la rue X ») et que tu identifies un bien dans les Données plateforme, tu DOIS d'abord indiquer l'adresse complète du bien trouvé et demander à l'utilisateur de **confirmer que c'est bien ce dossier** avant de poser toute question sur les vendeurs, acheteurs ou prix. Formule par exemple : « J'ai trouvé la propriété au [adresse complète]. Est-ce bien ce dossier ? » ou « Confirmes-tu qu'il s'agit bien du [adresse complète] ? » — INTERDICTION de poser « Qui sont les vendeurs ? » (ou acheteurs, prix, etc.) dans la même réponse où tu identifies le bien. Attends la confirmation de l'utilisateur (ex. « oui », « c'est ça ») avant de passer à la suite.\n\n"
     "** CONTEXTE DE LA CONVERSATION – PROPRIÉTÉ DONT ON VIENT DE PARLER : ** Quand l'utilisateur dit « on vient de parler de la propriété », « celle dont on parlait », « la propriété dont on vient de parler », « pour la propriété qu'on vient de discuter » ou « je veux créer la promesse d'achat » (sans répéter l'adresse) juste après un échange où tu as toi-même indiqué une propriété (ex. « nous travaillons sur la propriété au 8876 de Bordeaux… »), il fait **référence à cette propriété**. Ne redemande pas « pour quelle propriété ? » : considère qu'il s'agit du bien que tu viens de mentionner dans ton dernier message et procède (ex. créer la promesse d'achat pour cette transaction). Le système associe automatiquement la transaction à partir du contexte.\n\n"
-    "** INFORMATIONS CLÉS À COLLECTER – POSE LES BONNES QUESTIONS : **\n"
-    "Quand l'utilisateur crée une transaction ou travaille sur un dossier, aide-le à le compléter en posant des questions pertinentes, **une seule à la fois**. "
-    "Ne fais jamais une longue liste numérotée du type « Pour créer une transaction, j'ai besoin : 1. Adresse… 2. Vendeurs… 3. Acheteurs… 4. Prix… » — pose une seule question courte (ex. « Quelle est l'adresse du bien ? »), puis la suivante après sa réponse. "
-    "Ordre logique : adresse du bien → prix → vendeurs → acheteurs (date de clôture facultative). "
-    "1. **Adresse du bien** : « Quelle est l'adresse du bien ? » (ex. 123 rue Principale, Montréal). Tu peux enregistrer l'adresse si l'utilisateur la donne dans sa réponse. "
-    "**Une adresse complète doit toujours inclure : rue ou civique, ville, province et code postal**, au format : « [numéro et rue], [ville] ([province]) [code postal] » (ex. 2643 Sherbrooke Est, Montréal (Québec) H2K 1E1). **Ne demande jamais le code postal à l'utilisateur** : demande uniquement la **ville** ; une fois la ville donnée, propose de trouver le code postal en ligne (géocodage). "
-    "**Quand le géocodage fournit une ville que l'utilisateur n'a pas donnée**, tu DOIS demander confirmation de la ville avant de valider l'adresse (ex. « Est-ce bien à [ville] ? » ou « La ville est-elle bien [ville] ? ») ; seulement après sa confirmation tu peux passer aux vendeurs ou à la suite.\n"
-    "2. **Vendeur(s)** : « Qui sont les vendeurs ? » (nom, téléphone, courriel). Tu peux enregistrer ces infos si l'utilisateur les donne.\n"
-    "3. **Acheteur(s)** : « Qui sont les acheteurs ? » (nom, téléphone, courriel). Idem.\n"
-    "4. **Prix et dates** : « Quel est le prix demandé ? » ou « le prix offert ? », « Date de clôture prévue ? » "
-    "**Quand l'utilisateur indique un prix** (demandé ou offert), sous n'importe quelle forme (ex. « 600k », « 600 000 $ », « six cent mille », « le prix c'est 550 000 »), tu dois interpréter le montant en nombre et l'écrire **exactement une fois** dans ta réponse, sur une ligne dédiée à la fin : "
-    "pour un **prix demandé** (vente) : PRIX_LISTING: suivi du nombre (ex. PRIX_LISTING: 600000) ; "
-    "pour un **prix offert** (achat) : PRIX_OFFERT: suivi du nombre (ex. PRIX_OFFERT: 500000). "
-    "Le nombre doit être sans espaces, sans symbole $ (ex. 600000 pour « 600k » ou « 600 000 $ »). Le système enregistrera ce prix dans la transaction ; place cette ligne en fin de message.\n"
-    "5. **Notaire, courtiers** : si pertinent, « As-tu les coordonnées du notaire ? du courtier vendeur/acheteur ? »\n"
-    "Après avoir créé une transaction ou enregistré une info, propose **la prochaine question logique** (ex. après l'adresse : « Qui sont les vendeurs pour ce dossier ? »). "
+    "** INFORMATIONS À COLLECTER – LES 4 SEULES QUESTIONS À POSER : **\n"
+    "Tu ne poses des questions que pour les **4 informations principales** : adresse, vendeurs, acheteurs, prix. Une seule question à la fois. "
+    "Ordre : 1) adresse du bien, 2) vendeurs, 3) acheteurs, 4) prix. "
+    "1. **Adresse** : « Quelle est l'adresse du bien ? » "
+    "Une adresse complète = rue, ville, province, code postal (ex. 2643 Sherbrooke Est, Montréal (Québec) H2K 1E1). Ne demande pas le code postal : demande la ville, puis propose de le trouver en ligne (géocodage). "
+    "Si le géocodage donne une ville non précisée par l'utilisateur, demande confirmation (ex. « Est-ce bien à [ville] ? ») avant de passer à la suite.\n"
+    "2. **Vendeurs** : « Qui sont les vendeurs ? » (nom, téléphone, courriel si l'utilisateur les donne).\n"
+    "3. **Acheteurs** : « Qui sont les acheteurs ? » (idem).\n"
+    "4. **Prix** : « Quel est le prix demandé ? » ou « le prix offert ? » "
+    "Quand l'utilisateur donne un prix (ex. « 600k », « 550 000 $ »), écris en fin de message : PRIX_LISTING: 600000 ou PRIX_OFFERT: 500000 (nombre sans espace ni $) pour que le système l'enregistre.\n"
+    "**Une fois les 4 infos réunies (adresse, vendeurs, acheteurs, prix), ne pose plus de question spécifique.** Demande une seule fois : « Souhaitez-vous ajouter une autre information (date de clôture, notaire, coordonnées, etc.) ? » Si l'utilisateur dit oui et précise (ex. date de clôture, notaire), enregistre ce qu'il donne ; sinon passe à la confirmation ou à la suite.\n"
+    "Après chaque info enregistrée parmi les 4, pose **uniquement** la prochaine des 4 (ex. après l'adresse : « Qui sont les vendeurs pour ce dossier ? »). "
     "**La modification est possible pendant la création (brouillon) ou après :** si l'utilisateur corrige une info (ex. « en fait l'adresse c'est 456 rue X », « le prix c'est 500 000 », « les vendeurs c'est seulement Paul »), accepte la correction et confirme que c'est noté. "
-    "**Ne redemande jamais une information déjà fournie** (ex. le prix, l'adresse, les coordonnées d'un vendeur/acheteur déjà donnés). Utilise le bloc « Données plateforme » et l'historique pour proposer la prochaine étape (ex. coordonnées acheteur si le vendeur est fait, ou date de clôture). "
-    "Si le bloc « Données plateforme » indique déjà des vendeurs ou acheteurs pour une transaction (ex. « vendeurs: X, Y » ou « acheteurs: A, B »), ne redemande jamais « Qui sont les vendeurs ? » ni « Qui sont les acheteurs ? » pour cette transaction — passe à l'étape suivante (ex. prix). "
+    "**Ne redemande jamais une information déjà fournie** parmi les 4 (adresse, vendeurs, acheteurs, prix). Propose uniquement la prochaine des 4 qui manque (ex. après vendeurs : « Qui sont les acheteurs ? »). "
+    "Si le bloc « Données plateforme » indique déjà des vendeurs ou acheteurs pour une transaction, ne redemande pas « Qui sont les vendeurs ? » ni « Qui sont les acheteurs ? » — passe à la prochaine des 4 qui manque (ex. prix). "
     "Si dans l'échange précédent tu as toi-même répondu en listant les vendeurs (ex. « Les vendeurs sont X et Y »), ne redemande jamais « Qui sont les vendeurs ? » : considère que c'est enregistré et passe à la suite (acheteurs ou prix). "
     "** Singulier / pluriel : ** Quand tu mentionnes les vendeurs ou acheteurs déjà enregistrés (d'après les Données plateforme ou l'Action effectuée), adapte ta formulation au nombre de personnes : **une seule personne** → singulier (ex. « L'acheteur, Celia Gomez, a déjà été enregistré » ; « Le vendeur, X, a été enregistré ») ; **plusieurs personnes** → pluriel (ex. « Les acheteurs, Paul et Marie, ont déjà été enregistrés » ; « Les vendeurs ont été mis à jour »). "
     "**Quand tu viens de demander « Quelle est la date de clôture prévue ? » ou « date d'écriture prévue »** et que l'utilisateur répond par une date (ex. « le 15 mars 2026 »), considère que c'est la date de clôture pour cette transaction — ne demande pas « à quoi elle se rapporte ».\n"
-    "Si l'utilisateur dit qu'il n'y a pas encore d'acheteurs (ex. « en période de vente », « pas encore d'acheteurs », « aucun acheteur pour l'instant »), considère que c'est noté et propose la suite (ex. « Quel est le prix demandé ? »). Ne redemande pas les vendeurs ni les acheteurs dans ce cas.\n\n"
+    "Si l'utilisateur dit qu'il n'y a pas encore d'acheteurs (mise en vente), considère que c'est noté et pose la prochaine des 4 si il en manque (ex. « Quel est le prix demandé ? »).\n\n"
     "Reste concise : une question à la fois, ou deux maximum si le contexte s'y prête.\n\n"
     "Règles générales:\n"
     "- Réponds en français, de façon courtoise et professionnelle.\n"
@@ -514,7 +510,10 @@ async def get_lea_user_context(db: AsyncSession, user_id: int) -> str:
                 missing.append("prix (demandé ou offert)")
             if missing:
                 ref = latest.dossier_number or f"#{latest.id}"
-                lines.append(f"  → Pour {ref}, infos à compléter : {', '.join(missing)}. Pose la question correspondante pour faire avancer le dossier.")
+                lines.append(f"  → Pour {ref}, infos principales à compléter : {', '.join(missing)}. Pose uniquement la question correspondante (adresse, vendeurs, acheteurs ou prix).")
+            else:
+                ref = latest.dossier_number or f"#{latest.id}"
+                lines.append(f"  → Pour {ref}, les 4 infos principales (adresse, vendeurs, acheteurs, prix) sont complètes. Propose à l'utilisateur : « Souhaitez-vous ajouter une autre information (date de clôture, notaire, etc.) ? » — ne pose pas de question spécifique sur la date de clôture ou le notaire sans qu'il ait dit oui.")
             # Formulaires OACIQ pour la transaction la plus récente (Phase 1.2 + 2.2 : détail par code + prochaine étape)
             try:
                 q_oaciq = (
@@ -953,9 +952,9 @@ async def maybe_create_transaction_from_lea(
         instruction = (
             f"L'utilisateur souhaite créer une transaction ({tx_type}) mais il manque : {missing_str}. "
             "Ne crée pas encore le dossier. "
-            "Demande-lui une seule chose à la fois, dans cet ordre : 1) adresse du bien, 2) prix, 3) vendeurs, 4) acheteurs. "
-            "Ne liste jamais les 4 points dans un seul message (pas de « J'ai besoin des informations suivantes : 1. Adresse… 2. Vendeurs… »). "
-            "Pose une seule question courte, par ex. « Quelle est l'adresse du bien ? » ou « Qui sont les vendeurs ? » selon ce qui manque."
+            "Demande-lui une seule chose à la fois, dans cet ordre : 1) adresse du bien, 2) vendeurs, 3) acheteurs, 4) prix. "
+            "Ne liste jamais les 4 points dans un seul message. "
+            "Pose une seule question courte parmi les 4 (ex. « Quelle est l'adresse du bien ? », « Qui sont les vendeurs ? ») selon ce qui manque."
         )
         return (None, instruction)
 
@@ -3324,7 +3323,7 @@ def _get_lea_guidance_lines(message: str) -> list[str]:
         lines.append(
             "L'utilisateur parle de la même transaction que dans l'échange précédent. "
             "Ne redemande pas « Qui sont les vendeurs ? » ni les acheteurs si l'utilisateur vient de les donner. "
-            "Passe à la prochaine étape (ex. date de clôture, prix) ou confirme ce qui a été dit."
+            "Passe à la prochaine des 4 infos (adresse, vendeurs, acheteurs, prix) si il en manque ; sinon propose « Souhaitez-vous ajouter une autre information ? » ou confirme."
         )
 
     # Pas d'acheteurs / mise en vente — ne pas redemander les acheteurs
@@ -3918,6 +3917,25 @@ async def run_lea_actions(
                     pending["city"] = validation["city"]
                 if validation.get("postcode"):
                     pending["postal_code"] = _format_canadian_postal_code(validation["postcode"])
+                # Donner à Léa l'adresse complète géocodée pour qu'elle l'affiche à l'utilisateur
+                city = validation.get("city") or ""
+                postcode = validation.get("postcode") or ""
+                state = validation.get("state") or ""
+                full_formatted = _format_full_address_ca(
+                    addr_from_msg, city, state, postcode
+                )
+                if city and postcode:
+                    lines.append(
+                        "Recherche en ligne (géocodage) effectuée pour le dossier en cours de création. "
+                        f"Adresse complète au format officiel à indiquer à l'utilisateur : « {full_formatted} ». "
+                        "Tu DOIS écrire cette adresse complète dans ta réponse (rue, ville (province) code postal), puis confirmer que c'est enregistré, puis poser la question suivante (ex. Qui sont les vendeurs ?). "
+                        "Ne dis pas seulement « adresse notée » sans afficher l'adresse complète."
+                    )
+                else:
+                    lines.append(
+                        f"Géocodage partiel : « {full_formatted} ». "
+                        "Indique cette adresse à l'utilisateur et confirme que c'est noté."
+                    )
             missing = []
             if not pending.get("price"):
                 missing.append("le prix")
@@ -3926,10 +3944,15 @@ async def run_lea_actions(
             if not pending.get("buyers"):
                 missing.append("les acheteurs")
             if missing:
-                lines.append(
-                    f"Adresse notée pour le dossier en cours de création : « {addr_from_msg} ». "
-                    f"Il manque encore : {', '.join(missing)}. Demande-les à l'utilisateur."
-                )
+                if not validation:
+                    lines.append(
+                        f"Adresse notée pour le dossier en cours de création : « {addr_from_msg} ». "
+                        f"Il manque encore : {', '.join(missing)}. Demande-les à l'utilisateur."
+                    )
+                else:
+                    lines.append(
+                        f"Il manque encore pour ce dossier : {', '.join(missing)}. Demande la prochaine info (ex. Qui sont les vendeurs ?)."
+                    )
     # Correction par l'utilisateur du code postal ou de la ville (sans refournir toute l'adresse) — appliquer en base
     if not addr_result and not building_new_only:
         correction_result = await maybe_correct_transaction_postal_or_city_from_lea(
