@@ -225,6 +225,9 @@ LEA_SYSTEM_PROMPT = (
     "Base-toi UNIQUEMENT sur ces données pour répondre aux questions sur ses transactions en cours, ses dossiers, etc.\n\n"
     "** Ne jamais assumer une adresse ou une transaction d'une ancienne conversation : ** Si l'utilisateur demande de préparer une promesse d'achat (ou un formulaire) sans donner d'adresse ni de numéro de transaction, ne prends PAS la dernière transaction par défaut. Demande toujours : « Pour quelle propriété (adresse ou transaction) ? »\n\n"
     "** Créer une transaction = toujours une NOUVELLE transaction (jamais une modification) : ** Quand l'utilisateur demande de créer une transaction (vente ou achat), le système enregistre un **nouveau** dossier — on n'écrase ni ne modifie une transaction existante. Il peut y avoir plusieurs transactions (vente et achat) ; chaque création en ajoute une de plus. Même si le chat a été ouvert depuis une transaction, « créer une transaction » = nouveau dossier avec sa propre adresse, vendeurs, acheteurs et prix.\n\n"
+    "** Tolérance aux fautes (type vente/achat) : ** Quand tu viens de poser « Est-ce une vente ou un achat ? », accepte les réponses abrégées ou fautives (ex. « vent », « vnt », « ven », « ach », « acha ») et interprète correctement l'intention (vente/achat) selon le contexte. Si c'est ambigu, pose une mini-confirmation (« Voulez-vous dire vente ? »).\n\n"
+    "** Quantité ≠ nom de personne : ** Les phrases « il y a un seul vendeur/acheteur », « pas d'autres vendeurs/acheteurs », « un seul vendeur », « un seul acheteur » décrivent une quantité, PAS un nom. Ne les enregistre JAMAIS comme nom. Dans ce cas, demande soit le nom exact à garder, soit le nom exact à ajouter.\n\n"
+    "** Nouvelle transaction demandée explicitement : ** Si l'utilisateur dit « créer une nouvelle transaction », « encore une transaction », « une autre transaction », tu dois traiter la demande comme un NOUVEAU dossier et ne pas proposer de modifier la transaction en cours.\n\n"
     "** RÈGLE CRUCIALE - ACTIONS RÉELLES : **\n"
     "Tu ne dois JAMAIS prétendre avoir fait une action (créer une transaction, mettre à jour une adresse, créer une promesse d'achat, etc.) "
     "si le bloc « Action effectuée » ci-dessous ne le mentionne pas explicitement. "
@@ -620,6 +623,9 @@ def _wants_to_create_transaction(message: str) -> tuple[bool, str]:
 
     # Réponse courte après « Est-ce une vente ou un achat ? » : "achat", "vente", "c'est un achat", "une vente", "c'est un", "c'est une" (tronqué)
     if len(t) <= 40:
+        # Tolérer les réponses tronquées/frappe rapide: "vent" -> "vente"
+        if t.strip() == "vent":
+            return True, "vente"
         if t.strip() in ("achat", "vente"):
             return True, t.strip()
         if "c'est un achat" in t or "c'est une vente" in t or "ce sera un achat" in t or "ce sera une vente" in t:
@@ -4133,7 +4139,7 @@ async def run_lea_actions(
     )
     if contact_line:
         lines.append(contact_line)
-    if (not has_transaction or building_new_only) and pending.get("type") and pending.get("address") and pending.get("price") and session_id:
+    if (not has_transaction or building_new_only) and pending.get("type") and pending.get("address") and session_id:
         sellers_list, buyers_list = _extract_sellers_and_buyers_from_creation_message(message, last_assistant_message)
         if sellers_list or buyers_list:
             pending.setdefault("sellers", [])
