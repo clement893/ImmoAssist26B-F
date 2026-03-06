@@ -195,6 +195,17 @@ function TransactionsContent() {
   const getDisplayPrice = (t: Transaction) =>
     t.final_sale_price ?? t.offered_price ?? t.listing_price;
 
+  // Normalisation robuste du type pour éviter les faux classements
+  // (ex. "Achat", " ACHAT ", "vente", etc.).
+  const normalizeKind = (kind?: string | null): 'achat' | 'vente' | '' => {
+    const k = String(kind ?? '').trim().toLowerCase();
+    if (k === 'achat') return 'achat';
+    if (k === 'vente') return 'vente';
+    return '';
+  };
+  const isAchat = (t: Transaction) => normalizeKind(t.transaction_kind) === 'achat';
+  const isVente = (t: Transaction) => normalizeKind(t.transaction_kind) === 'vente';
+
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
@@ -302,7 +313,7 @@ function TransactionsContent() {
                 <TrendingUp className="w-4 h-4" />
                 Pipeline Vente
                 <span className="ml-1 text-xs opacity-90">
-                  ({transactions.filter(t => t.transaction_kind !== 'achat').length})
+                  ({transactions.filter((t) => isVente(t)).length})
                 </span>
               </button>
               <button
@@ -315,7 +326,7 @@ function TransactionsContent() {
                 <ShoppingCart className="w-4 h-4" />
                 Pipeline Achat
                 <span className="ml-1 text-xs opacity-90">
-                  ({transactions.filter(t => t.transaction_kind === 'achat').length})
+                  ({transactions.filter((t) => isAchat(t)).length})
                 </span>
               </button>
             </div>
@@ -324,8 +335,8 @@ function TransactionsContent() {
               key={pipelineKind}
               transactions={
                 pipelineKind === 'vente'
-                  ? transactions.filter((t) => t.transaction_kind !== 'achat')
-                  : transactions.filter((t) => t.transaction_kind === 'achat')
+                  ? transactions.filter((t) => isVente(t))
+                  : transactions.filter((t) => isAchat(t))
               }
               isLoading={loading}
               onStatusChange={handleStatusChange}
