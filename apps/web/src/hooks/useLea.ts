@@ -129,6 +129,10 @@ export function useLea(
     setError(null);
     setIsConnecting(false);
 
+    // Dernier message assistant = contexte pour que le backend enregistre adresse / vendeurs / acheteurs (lire AVANT d'ajouter le message utilisateur)
+    const lastAssistantContent =
+      messagesRef.current.filter((m) => m.role === 'assistant').pop()?.content?.trim() ?? undefined;
+
     // Add user message immediately
     const userMessage: LeaMessage = {
       role: 'user',
@@ -150,10 +154,6 @@ export function useLea(
       timestamp: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, assistantPlaceholder]);
-
-    // Dernier message assistant = contexte pour que le backend enregistre adresse / vendeurs / acheteurs
-    const lastAssistantContent =
-      messagesRef.current.filter((m) => m.role === 'assistant').pop()?.content?.trim() ?? undefined;
 
     const usedStream = await api.chatStream(
       {

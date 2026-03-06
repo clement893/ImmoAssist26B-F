@@ -166,6 +166,18 @@ export default function TransactionDetailPage() {
     loadTransaction();
   }, [transactionId]);
 
+  // Rafraîchir la transaction au retour sur l'onglet (ex. après mise à jour via Léa dans un autre onglet)
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && transactionId) {
+        reloadTransaction();
+        if (activeTab === 'contacts') loadTransactionContacts();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, [transactionId, activeTab]);
+
   const loadTransactionContacts = async () => {
     if (!transactionId) return;
     try {
@@ -349,6 +361,27 @@ export default function TransactionDetailPage() {
                 {formatPrice(displayPrice)}
               </p>
             )}
+            {/* Vendeurs et acheteurs (champs JSON de la transaction) */}
+            <div className="ml-8 mt-2 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-gray-600">
+              <span className="flex items-center gap-1.5">
+                <Users className="w-4 h-4 text-gray-400" />
+                <strong className="text-gray-700">Vendeurs :</strong>
+                {(transaction.sellers?.length && transaction.sellers.some((s: { name?: string }) => s?.name)) ? (
+                  transaction.sellers.map((s: { name?: string }, i: number) => s?.name).filter(Boolean).join(', ')
+                ) : (
+                  <span className="text-gray-400">—</span>
+                )}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Users className="w-4 h-4 text-gray-400" />
+                <strong className="text-gray-700">Acheteurs :</strong>
+                {(transaction.buyers?.length && transaction.buyers.some((b: { name?: string }) => b?.name)) ? (
+                  transaction.buyers.map((b: { name?: string }, i: number) => b?.name).filter(Boolean).join(', ')
+                ) : (
+                  <span className="text-gray-400">—</span>
+                )}
+              </span>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <button className="px-4 py-2 bg-white rounded-2xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
@@ -665,6 +698,43 @@ export default function TransactionDetailPage() {
                         </button>
                       </div>
                     ))}
+                  </div>
+                ) : (transaction.sellers?.length > 0 || transaction.buyers?.length > 0) ? (
+                  <div className="space-y-4">
+                    <p className="text-sm text-gray-500">Vendeurs et acheteurs enregistrés dans le dossier (onglet détail).</p>
+                    {transaction.sellers?.filter((s: { name?: string }) => s?.name).length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">Vendeurs</h4>
+                        <ul className="space-y-2">
+                          {transaction.sellers.filter((s: { name?: string }) => s?.name).map((s: { name?: string; phone?: string; email?: string }, i: number) => (
+                            <li key={i} className="p-3 bg-gray-50 rounded-xl text-sm">
+                              {s.name}
+                              {(s.phone || s.email) && <span className="text-gray-500 ml-2">· {[s.phone, s.email].filter(Boolean).join(' · ')}</span>}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {transaction.buyers?.filter((b: { name?: string }) => b?.name).length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">Acheteurs</h4>
+                        <ul className="space-y-2">
+                          {transaction.buyers.filter((b: { name?: string }) => b?.name).map((b: { name?: string; phone?: string; email?: string }, i: number) => (
+                            <li key={i} className="p-3 bg-gray-50 rounded-xl text-sm">
+                              {b.name}
+                              {(b.phone || b.email) && <span className="text-gray-500 ml-2">· {[b.phone, b.email].filter(Boolean).join(' · ')}</span>}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShowAddContactModal(true)}
+                      className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                    >
+                      Ajouter un contact
+                    </button>
                   </div>
                 ) : (
                   <div className="text-center py-12 text-gray-500">

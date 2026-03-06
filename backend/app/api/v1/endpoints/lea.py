@@ -930,7 +930,7 @@ async def maybe_create_transaction_from_lea(
         )
         return (None, duplicate_msg)
 
-    # Règle : ne créer que si adresse + prix + au moins un vendeur + au moins un acheteur
+    # Règle : ne créer que si adresse + prix + au moins un vendeur + au moins un acheteur (date de clôture facultative)
     address = _extract_address_from_message(message)
     price_tup = _extract_price_from_message(message)
     sellers, buyers = _extract_sellers_and_buyers_from_creation_message(message, last_assistant_message)
@@ -949,7 +949,8 @@ async def maybe_create_transaction_from_lea(
         missing_str = ", ".join(missing)
         instruction = (
             f"L'utilisateur souhaite créer une transaction ({tx_type}) mais il manque : {missing_str}. "
-            "Ne crée pas encore le dossier. Demande-lui de fournir ces informations ; une fois que tu as tout (adresse, prix, vendeurs et acheteurs), tu pourras créer la transaction."
+            "Ne crée pas encore le dossier. Les informations obligatoires pour créer sont : adresse, prix, vendeurs et acheteurs (la date de clôture est facultative). "
+            "Demande-lui de fournir les éléments manquants ; une fois que tu as tout (adresse, prix, vendeurs et acheteurs), tu pourras créer la transaction."
         )
         return (None, instruction)
 
@@ -2259,10 +2260,10 @@ def _extract_seller_buyer_names_list(
     # Réponse avec uniquement le(s) nom(s) après « Qui sont les vendeurs ? » / « Qui sont les acheteurs ? »
     if raw is None and last_assistant_message and len(t) <= 120:
         asking_vendeurs = "vendeur" in last_lower and (
-            "qui sont" in last_lower or "vendeurs pour" in last_lower or "vendeurs ?" in last_lower or "noms des vendeurs" in last_lower
+            "qui sont" in last_lower or "vendeurs pour" in last_lower or "vendeurs ?" in last_lower or "vendeurs pour ce" in last_lower or "noms des vendeurs" in last_lower
         )
         asking_acheteurs = "acheteur" in last_lower and (
-            "qui sont" in last_lower or "acheteurs pour" in last_lower or "acheteurs ?" in last_lower or "noms des acheteurs" in last_lower
+            "qui sont" in last_lower or "acheteurs pour" in last_lower or "acheteurs ?" in last_lower or "acheteurs pour ce" in last_lower or "noms des acheteurs" in last_lower
         )
         # Exclure réponses négatives ou non-noms
         if not re.search(r"\b(pas|aucun|rien|je ne sais|à compléter)\b", t, re.I):
@@ -2282,6 +2283,16 @@ def _extract_seller_buyer_names_list(
                 elif asking_acheteurs:
                     role = "Acheteur"
                     raw = t.strip().rstrip(".")
+
+    # Fallback : message court type "Prénom Nom" (ex. "sarah lopez", "Eric smith") après une question vendeurs/acheteurs
+    if raw is None and last_assistant_message and len(t) <= 80:
+        if not re.search(r"\b(pas|aucun|rien|je ne sais)\b", t, re.I) and re.match(r"^[A-Za-zÀ-ÿ\s\-]+$", t, re.I) and len(t.strip()) >= 3:
+            if "vendeur" in last_lower and ("qui sont" in last_lower or "vendeurs" in last_lower):
+                role = "Vendeur"
+                raw = t.strip()
+            elif "acheteur" in last_lower and ("qui sont" in last_lower or "acheteurs" in last_lower):
+                role = "Acheteur"
+                raw = t.strip()
 
     if raw is None:
         # "enregistre les vendeurs suivants Lily et Lilou" / "enregistre les vendeurs X et Y"
@@ -4112,7 +4123,7 @@ async def run_lea_actions(
             "Confirme à l'utilisateur que c'est enregistré."
         )
 
-    # Créer la transaction à partir du brouillon (pending) une fois tout collecté : type, adresse, prix, vendeurs, acheteurs
+    # Créer la transaction à partir du brouillon (pending) une fois tout collecté : type, adresse, prix, vendeurs, acheteurs (date de clôture facultative)
     if (
         conv is not None
         and session_id
@@ -4184,7 +4195,7 @@ async def run_lea_actions(
                 f"Lea created transaction id={transaction.id} from pending (type={tx_type}, address={pending['address'][:50]}...)"
             )
             lines.append(
-                f"Tu viens de créer une nouvelle transaction pour l'utilisateur : « {created.name} » (id {created.id}) avec l'adresse, le prix, les vendeurs et les acheteurs. "
+                f"Tu viens de créer une nouvelle transaction pour l'utilisateur : « {created.name} » (id {created.id}) avec l'adresse, le prix, les vendeurs et les acheteurs (date de clôture facultative). "
                 "Confirme-lui que le dossier est créé et qu'il peut le consulter dans la section Transactions."
             )
             pending.clear()

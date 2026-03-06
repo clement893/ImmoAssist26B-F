@@ -6,7 +6,7 @@ Schémas Pydantic pour les transactions immobilières
 from typing import Optional, List, Dict, Any
 from datetime import date, datetime
 from decimal import Decimal
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from app.models.real_estate_transaction import RealEstateTransaction
 
 
@@ -270,9 +270,9 @@ class RealEstateTransactionResponse(BaseModel):
     bedrooms: Optional[int] = None
     bathrooms: Optional[int] = None
     
-    # Parties
-    sellers: List[Dict[str, Any]]
-    buyers: List[Dict[str, Any]]
+    # Parties (JSON en base ; null en DB → liste vide)
+    sellers: Optional[List[Dict[str, Any]]] = Field(default_factory=list, description="Liste des vendeurs (name, phone, email)")
+    buyers: Optional[List[Dict[str, Any]]] = Field(default_factory=list, description="Liste des acheteurs (name, phone, email)")
     
     # Prix
     listing_price: Optional[Decimal] = None
@@ -294,7 +294,16 @@ class RealEstateTransactionResponse(BaseModel):
     cover_photo_id: Optional[int] = None
     
     user_id: int
-    
+
+    @model_validator(mode="after")
+    def coerce_sellers_buyers_to_list(self) -> "RealEstateTransactionResponse":
+        """En base, sellers/buyers peuvent être null (JSON) ; on renvoie toujours des listes."""
+        if self.sellers is None:
+            object.__setattr__(self, "sellers", [])
+        if self.buyers is None:
+            object.__setattr__(self, "buyers", [])
+        return self
+
     class Config:
         from_attributes = True
 
