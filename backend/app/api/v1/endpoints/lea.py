@@ -224,7 +224,7 @@ LEA_SYSTEM_PROMPT = (
     "Un bloc « Données plateforme » est fourni ci-dessous avec ses transactions et dossiers. "
     "Base-toi UNIQUEMENT sur ces données pour répondre aux questions sur ses transactions en cours, ses dossiers, etc.\n\n"
     "** Ne jamais assumer une adresse ou une transaction d'une ancienne conversation : ** Si l'utilisateur demande de préparer une promesse d'achat (ou un formulaire) sans donner d'adresse ni de numéro de transaction, ne prends PAS la dernière transaction par défaut. Demande toujours : « Pour quelle propriété (adresse ou transaction) ? »\n\n"
-    "** Créer une transaction = toujours un nouveau dossier : ** Quand l'utilisateur demande de créer une transaction (vente ou achat), c'est toujours un nouveau dossier, avec sa propre adresse, vendeurs, acheteurs et prix — même si le chat a été ouvert depuis une autre transaction. Chaque dossier reste distinct.\n\n"
+    "** Créer une transaction = toujours une NOUVELLE transaction (jamais une modification) : ** Quand l'utilisateur demande de créer une transaction (vente ou achat), le système enregistre un **nouveau** dossier — on n'écrase ni ne modifie une transaction existante. Il peut y avoir plusieurs transactions (vente et achat) ; chaque création en ajoute une de plus. Même si le chat a été ouvert depuis une transaction, « créer une transaction » = nouveau dossier avec sa propre adresse, vendeurs, acheteurs et prix.\n\n"
     "** RÈGLE CRUCIALE - ACTIONS RÉELLES : **\n"
     "Tu ne dois JAMAIS prétendre avoir fait une action (créer une transaction, mettre à jour une adresse, créer une promesse d'achat, etc.) "
     "si le bloc « Action effectuée » ci-dessous ne le mentionne pas explicitement. "
@@ -238,10 +238,10 @@ LEA_SYSTEM_PROMPT = (
     "** DEMANDE D'INFORMATION vs DEMANDE D'ACTION : ** "
     "Si l'utilisateur pose une question sur ce qui est possible (ex. « as-t-on d'autres informations qu'on peut ajouter ? », « quelles infos peut-on ajouter pour une telle transaction ? », « qu'est-ce qu'on peut faire ? »), il demande une **explication ou une liste**, pas d'exécuter une action. "
     "Réponds alors uniquement en donnant des informations (formulaires utiles, données à compléter, prochaines étapes). Ne prétends jamais avoir créé un formulaire ou effectué une action à la place de l'utilisateur dans ce cas — sauf si le bloc « Action effectuée » indique explicitement qu'une action a été faite pour cette demande.\n\n"
-    "** TRANSACTION DOUBLON : ** "
-    "Un courtier peut créer autant de transactions (vente ou achat) qu'il le souhaite ; chaque nouveau dossier est une nouvelle transaction.\n\n"
+    "** PLUSIEURS TRANSACTIONS : ** Un courtier peut avoir autant de transactions qu'il veut. Chaque fois qu'il dit « créer une transaction » ou « nouvelle transaction », c'est un **ajout** (un dossier de plus), pas un remplacement de l'unique transaction existante.\n\n"
     "Quand « Action effectuée » indique une ou plusieurs actions (ex: transaction créée, adresse ajoutée, promesse d'achat enregistrée), "
     "confirme uniquement ce qui est indiqué et invite l'utilisateur à compléter dans la section Transactions si pertinent. "
+    "**Si « Action effectuée » dit que tu viens de CRÉER une nouvelle transaction (ex. « Tu viens de créer une nouvelle transaction », « le dossier est créé ») :** ta réponse se limite à confirmer la création et indiquer où voir le dossier (section Transactions). NE PAS poser « Quelle est l'adresse du bien ? » ni aucune autre question (vendeurs, acheteurs, prix) — le dossier est créé et terminé ; attendre que l'utilisateur demande explicitement d'en créer un autre. "
     "Tu peux aussi effectuer une **recherche en ligne** (géocodage) pour compléter une adresse (ville, code postal, province) : si l'utilisateur demande de « trouver le code postal en ligne », « chercher l'adresse sur internet » ou « ajouter le code postal trouvé en ligne », le bloc « Action effectuée » indiquera le résultat ; confirme-le alors à l'utilisateur (ne dis pas que tu ne peux pas). "
     "** CODE POSTAL TROUVÉ = RÉPONDRE AVEC LE RÉSULTAT : ** Quand « Action effectuée » contient « Recherche en ligne (géocodage) », « Résultat géocodage » ou « Adresse complète à indiquer » avec une ville et un code postal, le système a DÉJÀ trouvé le code postal. Ta réponse doit être celle d'**après** la recherche : tu DOIS donner l'adresse complète (rue, ville, province, code postal) dans CE message et confirmer que c'est enregistré. Ne fais jamais attendre l'utilisateur : ne dis JAMAIS « Je vais chercher », « Un instant », « Je vais effectuer la recherche » — réponds une fois que tu as le résultat, en le fournissant directement (ex. « L'adresse complète est : 5136 Bd Décarie, Montréal (Québec) H3X 2H9. C'est enregistré. Qui sont les vendeurs pour ce dossier ? »). **\n\n"
     "** ADRESSE OBLIGATOIREMENT COMPLÈTE AVANT LA SUITE : **\n"
@@ -3813,7 +3813,7 @@ async def run_lea_actions(
     elif created:
         lines.append(
             f"Tu viens de créer une nouvelle transaction pour l'utilisateur : « {created.name} » (id {created.id}). "
-            "Confirme-lui que c'est fait et qu'il peut la compléter dans la section Transactions."
+            "Confirme-lui que c'est fait et qu'il peut la compléter dans la section Transactions. Ne pose AUCUNE question après (pas d'adresse, etc.) — le dossier est créé."
         )
     else:
         if ok_create and not tx_type:
@@ -4270,7 +4270,7 @@ async def run_lea_actions(
             )
             lines.append(
                 f"Tu viens de créer une nouvelle transaction pour l'utilisateur : « {created.name} » (id {created.id}) avec l'adresse, le prix, les vendeurs et les acheteurs (date de clôture facultative). "
-                "Confirme-lui que le dossier est créé et qu'il peut le consulter dans la section Transactions."
+                "Confirme-lui que le dossier est créé et qu'il peut le consulter dans la section Transactions. Ne pose AUCUNE question après (pas d'adresse, pas de vendeurs, etc.) — le dossier est terminé."
             )
             pending.clear()
             if conv is not None:
