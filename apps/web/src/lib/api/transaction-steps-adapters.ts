@@ -41,6 +41,14 @@ export interface TransactionStepsTransaction {
   name: string;
   address: string;
   price?: number | null;
+  offered_price?: number | null;
+  promise_to_purchase_date?: string | null;
+  promise_acceptance_date?: string | null;
+  inspection_deadline?: string | null;
+  inspection_condition_lifted_date?: string | null;
+  financing_deadline?: string | null;
+  financing_condition_lifted_date?: string | null;
+  expected_closing_date?: string | null;
   buyer: string;
   seller: string;
   status: string;

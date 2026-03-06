@@ -320,6 +320,63 @@ export default function TransactionStepsV2({
           </div>
         </div>
 
+        {/* Promesse d'achat (PA) - données récupérées de la transaction (BD) */}
+        <div className="bg-white rounded-2xl shadow-sm p-6 mb-6 border border-gray-100">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Promesse d'achat (PA)
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 text-sm">
+            <div>
+              <p className="text-gray-500">Prix offert</p>
+              <p className="font-medium text-gray-900">
+                {transaction.offered_price != null ? formatCurrency(transaction.offered_price) : '-'}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-500">Date promesse</p>
+              <p className="font-medium text-gray-900">
+                {transaction.promise_to_purchase_date ? formatDate(transaction.promise_to_purchase_date) : '-'}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-500">Date acceptation</p>
+              <p className="font-medium text-gray-900">
+                {transaction.promise_acceptance_date ? formatDate(transaction.promise_acceptance_date) : '-'}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-500">Date clôture prévue</p>
+              <p className="font-medium text-gray-900">
+                {transaction.expected_closing_date ? formatDate(transaction.expected_closing_date) : '-'}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-500">Limite inspection</p>
+              <p className="font-medium text-gray-900">
+                {transaction.inspection_deadline ? formatDate(transaction.inspection_deadline) : '-'}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-500">Condition inspection</p>
+              <p className="font-medium text-gray-900">
+                {transaction.inspection_condition_lifted_date ? `Levee le ${formatDate(transaction.inspection_condition_lifted_date)}` : 'En attente'}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-500">Limite financement</p>
+              <p className="font-medium text-gray-900">
+                {transaction.financing_deadline ? formatDate(transaction.financing_deadline) : '-'}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-500">Condition financement</p>
+              <p className="font-medium text-gray-900">
+                {transaction.financing_condition_lifted_date ? `Levee le ${formatDate(transaction.financing_condition_lifted_date)}` : 'En attente'}
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* View Toggle */}
         <div className="bg-white rounded-2xl shadow-sm p-4 mb-6 border border-gray-100">
           <div className="flex items-center gap-4">

@@ -122,6 +122,27 @@ export function useLea(
   const messagesRef = useRef<LeaMessage[]>([]);
   messagesRef.current = messages;
 
+  const actionsIndicateTransactionCreated = useCallback((actions?: string[]) => {
+    if (!Array.isArray(actions) || actions.length === 0) return false;
+    return actions.some((line) => {
+      const txt = String(line ?? '').toLowerCase();
+      return (
+        txt.includes('créer une nouvelle transaction') ||
+        txt.includes('créé la transaction') ||
+        txt.includes('created transaction')
+      );
+    });
+  }, []);
+
+  const notifyTransactionCreated = useCallback((sid?: string | null) => {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(
+      new CustomEvent('immoassist:transaction-created', {
+        detail: { sessionId: sid ?? sessionId ?? null },
+      })
+    );
+  }, [sessionId]);
+
   const sendMessage = useCallback(async (message: string) => {
     if (!message.trim() || isLoading) return;
 
@@ -176,6 +197,9 @@ export function useLea(
         },
         onDone: (newSessionId, meta) => {
           if (newSessionId && !sessionId) setSessionId(newSessionId);
+          if (actionsIndicateTransactionCreated(meta?.actions)) {
+            notifyTransactionCreated(newSessionId);
+          }
           if (meta && (meta.actions?.length || meta.model != null || meta.provider != null || meta.usage != null)) {
             setMessages((prev) => {
               const next = [...prev];
@@ -250,6 +274,9 @@ export function useLea(
           usage: response.data.usage,
         };
         setMessages((prev) => [...prev, assistantMessage]);
+        if (actionsIndicateTransactionCreated(assistantMessage.actions)) {
+          notifyTransactionCreated(response.data.session_id);
+        }
       } catch (err) {
         if (err instanceof Error && (err.name === 'CanceledError' || err.name === 'AbortError')) return;
 
@@ -271,7 +298,7 @@ export function useLea(
         abortControllerRef.current = null;
       }
     }
-  }, [isLoading, sessionId, api, transactionId]);
+  }, [isLoading, sessionId, api, transactionId, actionsIndicateTransactionCreated, notifyTransactionCreated]);
 
   const sendVoiceMessage = useCallback(
     async (audioBlob: Blob) => {
@@ -316,6 +343,9 @@ export function useLea(
             assistantMsg,
           ];
         });
+        if (actionsIndicateTransactionCreated((data as LeaVoiceResponse & { actions?: string[] }).actions)) {
+          notifyTransactionCreated(data.session_id);
+        }
 
         if (data.assistant_audio_url) {
           playLeaAudioWhenReady(new Audio(data.assistant_audio_url));
@@ -351,7 +381,7 @@ export function useLea(
         setIsLoading(false);
       }
     },
-    [isLoading, sessionId, api]
+    [isLoading, sessionId, api, actionsIndicateTransactionCreated, notifyTransactionCreated]
   );
 
   const clearChat = useCallback(() => {

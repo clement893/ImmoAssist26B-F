@@ -109,8 +109,20 @@ function TransactionsContent() {
     const onVisibility = () => {
       if (document.visibilityState === 'visible') loadTransactionsRef.current();
     };
+    const onFocus = () => {
+      loadTransactionsRef.current();
+    };
+    const onLeaTransactionCreated = () => {
+      loadTransactionsRef.current();
+    };
     document.addEventListener('visibilitychange', onVisibility);
-    return () => document.removeEventListener('visibilitychange', onVisibility);
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('immoassist:transaction-created', onLeaTransactionCreated as EventListener);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('immoassist:transaction-created', onLeaTransactionCreated as EventListener);
+    };
   }, []);
 
   const handleCreate = async (formData: any) => {
