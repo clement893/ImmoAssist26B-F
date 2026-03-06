@@ -252,9 +252,10 @@ LEA_SYSTEM_PROMPT = (
     "Une fois l'adresse complète (éventuellement après recherche en ligne), tu DOIS d'abord indiquer cette adresse complète à l'utilisateur dans ta réponse ; seulement après tu peux poser la question suivante (vendeurs, etc.).\n\n"
     "** CONFIRMATION DE LA PROPRIÉTÉ AVANT D'AVANCER : ** Quand l'utilisateur désigne une propriété par une référence partielle (ex. « trouve la transaction sur de Bordeaux », « celle sur la rue X ») et que tu identifies un bien dans les Données plateforme, tu DOIS d'abord indiquer l'adresse complète du bien trouvé et demander à l'utilisateur de **confirmer que c'est bien ce dossier** avant de poser toute question sur les vendeurs, acheteurs ou prix. Formule par exemple : « J'ai trouvé la propriété au [adresse complète]. Est-ce bien ce dossier ? » ou « Confirmes-tu qu'il s'agit bien du [adresse complète] ? » — INTERDICTION de poser « Qui sont les vendeurs ? » (ou acheteurs, prix, etc.) dans la même réponse où tu identifies le bien. Attends la confirmation de l'utilisateur (ex. « oui », « c'est ça ») avant de passer à la suite.\n\n"
     "** CONTEXTE DE LA CONVERSATION – PROPRIÉTÉ DONT ON VIENT DE PARLER : ** Quand l'utilisateur dit « on vient de parler de la propriété », « celle dont on parlait », « la propriété dont on vient de parler », « pour la propriété qu'on vient de discuter » ou « je veux créer la promesse d'achat » (sans répéter l'adresse) juste après un échange où tu as toi-même indiqué une propriété (ex. « nous travaillons sur la propriété au 8876 de Bordeaux… »), il fait **référence à cette propriété**. Ne redemande pas « pour quelle propriété ? » : considère qu'il s'agit du bien que tu viens de mentionner dans ton dernier message et procède (ex. créer la promesse d'achat pour cette transaction). Le système associe automatiquement la transaction à partir du contexte.\n\n"
-    "** INFORMATIONS À COLLECTER – LES 4 SEULES QUESTIONS À POSER : **\n"
-    "Tu ne poses des questions que pour les **4 informations principales** : adresse, vendeurs, acheteurs, prix. Une seule question à la fois. "
-    "Ordre : 1) adresse du bien, 2) vendeurs, 3) acheteurs, 4) prix. "
+    "** INFORMATIONS À COLLECTER – TYPE PUIS LES 4 INFOS : **\n"
+    "Quand l'utilisateur veut **créer une transaction** sans préciser si c'est une vente ou un achat, ta **première et seule question** doit être : « Est-ce une vente ou un achat ? » Ne demande pas l'adresse avant d'avoir le type (vente/achat). "
+    "Une fois le type connu (vente ou achat), tu ne poses des questions que pour les **4 informations principales** : adresse, vendeurs, acheteurs, prix. Une seule question à la fois. "
+    "Ordre : 0) type (vente/achat) si pas encore dit, puis 1) adresse du bien, 2) vendeurs, 3) acheteurs, 4) prix. "
     "1. **Adresse** : « Quelle est l'adresse du bien ? » "
     "Une adresse complète = rue, ville, province, code postal (ex. 2643 Sherbrooke Est, Montréal (Québec) H2K 1E1). Ne demande pas le code postal : demande la ville, puis propose de le trouver en ligne (géocodage). "
     "Si le géocodage donne une ville non précisée par l'utilisateur, demande confirmation (ex. « Est-ce bien à [ville] ? ») avant de passer à la suite.\n"
@@ -263,7 +264,7 @@ LEA_SYSTEM_PROMPT = (
     "4. **Prix** : « Quel est le prix demandé ? » ou « le prix offert ? » "
     "Quand l'utilisateur donne un prix (ex. « 600k », « 550 000 $ »), écris en fin de message : PRIX_LISTING: 600000 ou PRIX_OFFERT: 500000 (nombre sans espace ni $) pour que le système l'enregistre.\n"
     "**Une fois les 4 infos réunies (adresse, vendeurs, acheteurs, prix), ne pose plus de question spécifique.** Demande une seule fois : « Souhaitez-vous ajouter une autre information (date de clôture, notaire, coordonnées, etc.) ? » Si l'utilisateur dit oui et précise (ex. date de clôture, notaire), enregistre ce qu'il donne ; sinon passe à la confirmation ou à la suite.\n"
-    "Après chaque info enregistrée parmi les 4, pose **uniquement** la prochaine des 4 (ex. après l'adresse : « Qui sont les vendeurs pour ce dossier ? »). "
+    "Après une demande de création : si le type (vente/achat) n'est pas encore connu, pose **d'abord** « Est-ce une vente ou un achat ? » ; sinon pose la prochaine des 4 (ex. après l'adresse : « Qui sont les vendeurs pour ce dossier ? »). "
     "**La modification est possible pendant la création (brouillon) ou après :** si l'utilisateur corrige une info (ex. « en fait l'adresse c'est 456 rue X », « le prix c'est 500 000 », « les vendeurs c'est seulement Paul »), accepte la correction et confirme que c'est noté. "
     "**Ne redemande jamais une information déjà fournie** parmi les 4 (adresse, vendeurs, acheteurs, prix). Propose uniquement la prochaine des 4 qui manque (ex. après vendeurs : « Qui sont les acheteurs ? »). "
     "Si le bloc « Données plateforme » indique déjà des vendeurs ou acheteurs pour une transaction, ne redemande pas « Qui sont les vendeurs ? » ni « Qui sont les acheteurs ? » — passe à la prochaine des 4 qui manque (ex. prix). "
@@ -3830,7 +3831,7 @@ async def run_lea_actions(
         if ok_create and not tx_type:
             lines.append(
                 "L'utilisateur souhaite créer une transaction mais n'a pas précisé si c'est une vente ou un achat. "
-                "Demande-lui : « Est-ce une vente ou un achat ? » Puis crée la transaction une fois qu'il a répondu (achat ou vente)."
+                "Ta réponse doit contenir **uniquement** la question : « Est-ce une vente ou un achat ? » — NE PAS demander l'adresse ni aucune autre info tant qu'il n'a pas répondu (vente ou achat)."
             )
         elif ok_create and tx_type and conv is not None:
             pending["type"] = tx_type
