@@ -158,6 +158,16 @@ if [ -n "$DATABASE_URL" ]; then
         echo "Database operations may fail until migrations are resolved."
         echo "Migrations will be retried on next startup or can be run manually."
     fi
+
+    # Fix contrainte unique real_estate_contacts.user_id (vendeurs/acheteurs) même si migrations bloquées
+    echo "=========================================="
+    echo "Ensuring contacts constraint fix (multiple contacts per user)..."
+    echo "=========================================="
+    if command -v timeout >/dev/null 2>&1; then
+        timeout 30 python scripts/ensure_contacts_constraint_dropped.py 2>&1 || true
+    else
+        python scripts/ensure_contacts_constraint_dropped.py 2>&1 || true
+    fi
 else
     echo "⚠️  Warning: DATABASE_URL not set, skipping migrations..."
     echo "The application will start but database operations may fail."
