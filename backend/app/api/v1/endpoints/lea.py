@@ -3833,6 +3833,20 @@ async def run_lea_actions(
         conv, _ = await get_or_create_lea_conversation(db, user_id, session_id)
         ctx = conv.context or {}
         pending = dict(ctx.get("pending_transaction_creation") or {})
+        # Pipeline stricte de création: type -> adresse (géocodée) -> vendeurs -> acheteurs -> prix.
+        if pending and not pending.get("stage"):
+            if not pending.get("type"):
+                pending["stage"] = "type"
+            elif not pending.get("address") or not pending.get("city") or not pending.get("postal_code"):
+                pending["stage"] = "address"
+            elif not pending.get("sellers"):
+                pending["stage"] = "sellers"
+            elif not pending.get("buyers"):
+                pending["stage"] = "buyers"
+            elif pending.get("price") is None:
+                pending["stage"] = "price"
+            else:
+                pending["stage"] = "ready"
 
     created: Optional[RealEstateTransaction] = None
     created, duplicate_line = await maybe_create_transaction_from_lea(
@@ -3843,6 +3857,7 @@ async def run_lea_actions(
         lines.append(duplicate_line)
         if ok_create and tx_type and conv is not None:
             pending["type"] = tx_type
+            pending["stage"] = "address"
     elif created:
         lines.append(
             f"Tu viens de créer une nouvelle transaction pour l'utilisateur : « {created.name} » (id {created.id}). "
@@ -3856,6 +3871,7 @@ async def run_lea_actions(
             )
         elif ok_create and tx_type and conv is not None:
             pending["type"] = tx_type
+            pending["stage"] = "address"
 
     # Si on vient de créer une transaction dans ce tour, cibler celle-ci pour toutes les mises à jour.
     # Si l'utilisateur est en train de constituer un brouillon (pending) sans transaction créée, ne pas
@@ -3929,7 +3945,13 @@ async def run_lea_actions(
             )
     # Enregistrer l'adresse dans le brouillon de création (pending) si on collecte pour un nouveau dossier
     # (pas de transaction existante, ou on est en mode « nouveau dossier » depuis une session liée à une autre tx)
-    if not addr_result and pending.get("type") and session_id and (not has_transaction or building_new_only):
+    if (
+        not addr_result
+        and pending.get("type")
+        and session_id
+        and (not has_transaction or building_new_only)
+        and pending.get("stage") in (None, "address")
+    ):
         addr_from_msg = _extract_address_from_message(message)
         if addr_from_msg:
             pending["address"] = addr_from_msg
@@ -3947,34 +3969,66 @@ async def run_lea_actions(
                     addr_from_msg, city, state, postcode
                 )
                 if city and postcode:
+                    pending["stage"] = "sellers"
                     lines.append(
                         "Recherche en ligne (géocodage) effectuée pour le dossier en cours de création. "
                         f"Adresse complète au format officiel à indiquer à l'utilisateur : « {full_formatted} ». "
-                        "Tu DOIS écrire cette adresse complète dans ta réponse (rue, ville (province) code postal), puis confirmer que c'est enregistré, puis poser la question suivante (ex. Qui sont les vendeurs ?). "
+                        "Tu DOIS écrire cette adresse complète dans ta réponse (rue, ville (province) code postal), puis confirmer que c'est enregistré, puis poser la question suivante : « Qui sont les vendeurs ? ». "
                         "Ne dis pas seulement « adresse notée » sans afficher l'adresse complète."
                     )
                 else:
+                    pending["stage"] = "address"
                     lines.append(
                         f"Géocodage partiel : « {full_formatted} ». "
-                        "Indique cette adresse à l'utilisateur et confirme que c'est noté."
+                        "Indique cette adresse à l'utilisateur et demande la ville pour compléter."
                     )
-            missing = []
-            if not pending.get("price"):
-                missing.append("le prix")
-            if not pending.get("sellers"):
-                missing.append("les vendeurs")
-            if not pending.get("buyers"):
-                missing.append("les acheteurs")
-            if missing:
-                if not validation:
-                    lines.append(
-                        f"Adresse notée pour le dossier en cours de création : « {addr_from_msg} ». "
-                        f"Il manque encore : {', '.join(missing)}. Demande-les à l'utilisateur."
-                    )
-                else:
-                    lines.append(
-                        f"Il manque encore pour ce dossier : {', '.join(missing)}. Demande la prochaine info (ex. Qui sont les vendeurs ?)."
-                    )
+            if not validation:
+                pending["stage"] = "address"
+                lines.append(
+                    f"Adresse notée pour le dossier en cours de création : « {addr_from_msg} ». "
+                    "Ne passe pas encore aux vendeurs/acheteurs/prix. Demande uniquement la ville (pas le code postal), puis relance la recherche en ligne."
+                )
+    # Pendant la création d'un nouveau dossier, si l'utilisateur répond par la ville seule, compléter l'adresse et géocoder.
+    if (
+        building_new_only
+        and pending.get("type")
+        and pending.get("address")
+        and pending.get("stage") == "address"
+        and not addr_result
+    ):
+        t_city = (message or "").strip()
+        city_candidate = None
+        m_city = re.search(r"\b(?:à|a)\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\-\s]{1,40})\s*$", t_city, re.I)
+        if m_city:
+            city_candidate = m_city.group(1).strip(" .,!?:;")
+        elif (
+            len(t_city) <= 40
+            and not re.search(r"\d", t_city)
+            and re.match(r"^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\-\s]+$", t_city)
+        ):
+            city_candidate = t_city.strip(" .,!?:;")
+        if city_candidate:
+            addr_with_city = f"{pending['address']}, {city_candidate}"
+            validation = await _validate_address_via_geocode(addr_with_city)
+            if validation and validation.get("city") and validation.get("postcode"):
+                pending["city"] = validation["city"]
+                pending["postal_code"] = _format_canadian_postal_code(validation["postcode"])
+                pending["stage"] = "sellers"
+                full_formatted = _format_full_address_ca(
+                    pending["address"],
+                    pending["city"],
+                    validation.get("state") or "",
+                    pending["postal_code"],
+                )
+                lines.append(
+                    f"Adresse complétée et vérifiée pour le dossier en cours de création : « {full_formatted} ». "
+                    "Confirme que c'est enregistré puis demande: « Qui sont les vendeurs ? »."
+                )
+            else:
+                lines.append(
+                    f"Ville notée (« {city_candidate} »), mais le code postal n'a pas été confirmé automatiquement. "
+                    "Reste sur l'adresse et propose de rechercher le code postal en ligne."
+                )
     # Correction par l'utilisateur du code postal ou de la ville (sans refournir toute l'adresse) — appliquer en base
     if not addr_result and not building_new_only:
         correction_result = await maybe_correct_transaction_postal_or_city_from_lea(
@@ -4139,7 +4193,13 @@ async def run_lea_actions(
     )
     if contact_line:
         lines.append(contact_line)
-    if (not has_transaction or building_new_only) and pending.get("type") and pending.get("address") and session_id:
+    if (
+        (not has_transaction or building_new_only)
+        and pending.get("type")
+        and pending.get("address")
+        and session_id
+        and pending.get("stage") in ("sellers", "buyers")
+    ):
         sellers_list, buyers_list = _extract_sellers_and_buyers_from_creation_message(message, last_assistant_message)
         if sellers_list or buyers_list:
             pending.setdefault("sellers", [])
@@ -4155,6 +4215,10 @@ async def run_lea_actions(
             else:
                 for f, l in buyers_list:
                     pending["buyers"].append({"first_name": f, "last_name": l})
+            if pending.get("stage") == "sellers" and pending["sellers"]:
+                pending["stage"] = "buyers"
+            if pending.get("stage") == "buyers" and pending["buyers"]:
+                pending["stage"] = "price"
             if not (pending["sellers"] and pending["buyers"]):
                 missing = []
                 if not pending["sellers"]:
@@ -4181,12 +4245,20 @@ async def run_lea_actions(
             f"Le {label} a été enregistré pour la transaction {ref} : {int(amount):,} $. "
             "Confirme à l'utilisateur que c'est enregistré."
         )
-    if not price_result and (not has_transaction or building_new_only) and pending.get("type") and pending.get("address") and session_id:
+    if (
+        not price_result
+        and (not has_transaction or building_new_only)
+        and pending.get("type")
+        and pending.get("address")
+        and session_id
+        and pending.get("stage") == "price"
+    ):
         price_tup = _extract_price_from_message(message)
         if price_tup:
             amount, kind = price_tup
             pending["price"] = float(amount)
             pending["price_kind"] = kind
+            pending["stage"] = "ready"
             missing = []
             if not pending.get("sellers"):
                 missing.append("les vendeurs")
