@@ -699,7 +699,7 @@ export default function TransactionDetailPage() {
                       </div>
                     ))}
                   </div>
-                ) : (transaction.sellers?.length > 0 || transaction.buyers?.length > 0) ? (
+                ) : ((Array.isArray(transaction.sellers) && transaction.sellers.length > 0) || (Array.isArray(transaction.buyers) && transaction.buyers.length > 0)) ? (
                   <div className="space-y-4">
                     <p className="text-sm text-gray-500">Vendeurs et acheteurs enregistrés dans le dossier (onglet détail).</p>
                     {transaction.sellers?.filter((s: { name?: string }) => s?.name).length > 0 && (
