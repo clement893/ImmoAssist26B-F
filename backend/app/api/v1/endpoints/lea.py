@@ -4201,6 +4201,30 @@ async def run_lea_actions(
         and pending.get("stage") in ("sellers", "buyers")
     ):
         sellers_list, buyers_list = _extract_sellers_and_buyers_from_creation_message(message, last_assistant_message)
+        # Si on est dans une étape explicite (vendeurs/acheteurs), forcer l'interprétation dans ce rôle
+        # quand l'extraction est ambiguë (ex: message court "Melina Miller" après "Qui sont les acheteurs ?").
+        stage = pending.get("stage")
+        if stage == "buyers" and not buyers_list and sellers_list:
+            buyers_list, sellers_list = sellers_list, []
+        elif stage == "sellers" and not sellers_list and buyers_list:
+            sellers_list, buyers_list = buyers_list, []
+        # Fallback nom simple selon l'étape (évite de rester bloqué si le parseur role-rate le contexte)
+        if not sellers_list and not buyers_list:
+            t_name = (message or "").strip()
+            if (
+                len(t_name) <= 80
+                and not re.search(r"\d", t_name)
+                and not re.search(r"\b(pas|aucun|rien|je ne sais)\b", t_name, re.I)
+                and re.match(r"^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s\-']+$", t_name)
+            ):
+                words = [w for w in t_name.split() if w.strip()]
+                if words:
+                    first_name = words[0]
+                    last_name = " ".join(words[1:]) if len(words) > 1 else words[0]
+                    if stage == "buyers":
+                        buyers_list = [(first_name, last_name)]
+                    elif stage == "sellers":
+                        sellers_list = [(first_name, last_name)]
         if sellers_list or buyers_list:
             pending.setdefault("sellers", [])
             pending.setdefault("buyers", [])
