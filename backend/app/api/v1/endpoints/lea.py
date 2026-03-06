@@ -4912,11 +4912,12 @@ async def lea_chat(
             detail=AGENT_ERR_MSG,
         )
     try:
-        action_lines, created_tx = await run_lea_actions(db, current_user.id, body.message, body.last_assistant_message)
-        if body.session_id and action_lines:
-            tx_to_link = created_tx if created_tx else await get_user_latest_transaction(db, current_user.id)
-            if tx_to_link:
-                await link_lea_session_to_transaction(db, current_user.id, body.session_id, tx_to_link.id)
+        action_lines, created_tx = await run_lea_actions(
+            db, current_user.id, body.message, body.last_assistant_message, session_id=body.session_id
+        )
+        # En mode agent externe, ne lier la session qu'à la transaction créée dans ce tour.
+        if body.session_id and action_lines and created_tx:
+            await link_lea_session_to_transaction(db, current_user.id, body.session_id, created_tx.id)
         # Si on a créé une transaction, renvoyer une confirmation directe (pas besoin d'appeler l'agent)
         if action_lines and created_tx:
             ref = created_tx.dossier_number or f"#{created_tx.id}"
