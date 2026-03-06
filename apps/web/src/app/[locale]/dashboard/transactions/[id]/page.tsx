@@ -367,7 +367,7 @@ export default function TransactionDetailPage() {
                 <Users className="w-4 h-4 text-gray-400" />
                 <strong className="text-gray-700">Vendeurs :</strong>
                 {(transaction.sellers?.length && transaction.sellers.some((s: { name?: string }) => s?.name)) ? (
-                  transaction.sellers.map((s: { name?: string }, i: number) => s?.name).filter(Boolean).join(', ')
+                  transaction.sellers.map((s: { name?: string }) => s?.name).filter(Boolean).join(', ')
                 ) : (
                   <span className="text-gray-400">—</span>
                 )}
@@ -376,7 +376,7 @@ export default function TransactionDetailPage() {
                 <Users className="w-4 h-4 text-gray-400" />
                 <strong className="text-gray-700">Acheteurs :</strong>
                 {(transaction.buyers?.length && transaction.buyers.some((b: { name?: string }) => b?.name)) ? (
-                  transaction.buyers.map((b: { name?: string }, i: number) => b?.name).filter(Boolean).join(', ')
+                  transaction.buyers.map((b: { name?: string }) => b?.name).filter(Boolean).join(', ')
                 ) : (
                   <span className="text-gray-400">—</span>
                 )}
