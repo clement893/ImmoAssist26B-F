@@ -3734,6 +3734,99 @@ def _build_oaciq_prefill_from_transaction(tx: RealEstateTransaction) -> dict:
     return {k: v for k, v in prefill.items() if v is not None}
 
 
+def _flatten_oaciq_field_defs(form_fields: object) -> list[dict]:
+    """Aplatit la structure fields d'un formulaire OACIQ en liste de définitions de champs."""
+    if not isinstance(form_fields, dict):
+        return []
+    sections = form_fields.get("sections")
+    if not isinstance(sections, list):
+        return []
+    out: list[dict] = []
+    for section in sections:
+        if not isinstance(section, dict):
+            continue
+        fields = section.get("fields")
+        if not isinstance(fields, list):
+            continue
+        for f in fields:
+            if isinstance(f, dict):
+                out.append(f)
+    return out
+
+
+def _value_is_filled(v: object) -> bool:
+    if v is None:
+        return False
+    if isinstance(v, str):
+        return bool(v.strip())
+    if isinstance(v, list):
+        return len(v) > 0
+    return True
+
+
+def _build_pa_field_fallback_value(field_name: str, field_type: str, tx: RealEstateTransaction) -> object | None:
+    """
+    Fallback pour remplir un maximum de champs PA.
+    On privilégie les données transaction; sinon placeholder explicite pour les champs texte.
+    """
+    n = (field_name or "").strip().lower()
+    t = (field_type or "").strip().lower()
+
+    def _iso(val: object) -> str | None:
+        if val is None:
+            return None
+        return val.isoformat() if hasattr(val, "isoformat") else str(val)
+
+    # Valeurs issues de la transaction
+    if n in {"acompte", "deposit_amount"} and getattr(tx, "deposit_amount", None) is not None:
+        return float(tx.deposit_amount)
+    if n in {"montant_hypotheque", "mortgage_amount"} and getattr(tx, "mortgage_amount", None) is not None:
+        return float(tx.mortgage_amount)
+    if n in {"date_acompte", "date_signature_acheteur"} and getattr(tx, "promise_to_purchase_date", None):
+        return _iso(tx.promise_to_purchase_date)
+    if n in {"date_signature_vendeur"} and getattr(tx, "promise_acceptance_date", None):
+        return _iso(tx.promise_acceptance_date)
+    if n in {"date_occupation", "possession_date"} and getattr(tx, "possession_date", None):
+        return _iso(tx.possession_date)
+    if n in {"date_limite_inspection", "inspection_deadline"} and getattr(tx, "inspection_deadline", None):
+        return _iso(tx.inspection_deadline)
+    if n in {"delai_financement"} and getattr(tx, "financing_deadline", None):
+        try:
+            return max(0, (tx.financing_deadline - date.today()).days)
+        except Exception:
+            return None
+    if n in {"condition_inspection"} and getattr(tx, "inspection_deadline", None):
+        try:
+            return max(0, (tx.inspection_deadline - date.today()).days)
+        except Exception:
+            return None
+    if n in {"inclusions"} and isinstance(getattr(tx, "inclusions", None), list):
+        vals = [str(v).strip() for v in (tx.inclusions or []) if str(v).strip()]
+        return ", ".join(vals) if vals else None
+    if n in {"exclusions"} and isinstance(getattr(tx, "exclusions", None), list):
+        vals = [str(v).strip() for v in (tx.exclusions or []) if str(v).strip()]
+        return ", ".join(vals) if vals else None
+    if n in {"description_immeuble"}:
+        parts = []
+        if getattr(tx, "property_type", None):
+            parts.append(str(tx.property_type))
+        if getattr(tx, "bedrooms", None) is not None:
+            parts.append(f"{tx.bedrooms} chambres")
+        if getattr(tx, "bathrooms", None) is not None:
+            parts.append(f"{tx.bathrooms} salles de bain")
+        return " - ".join(parts) if parts else None
+    if n in {"courtier_nom"} and getattr(tx, "buyer_broker_name", None):
+        return str(tx.buyer_broker_name)
+    if n in {"courtier_permis"} and getattr(tx, "buyer_broker_oaciq", None):
+        return str(tx.buyer_broker_oaciq)
+
+    # Champs texte: placeholder explicite pour permettre un formulaire "entièrement rempli"
+    if t in {"text", "textarea"}:
+        return "A completer"
+    # Champs numériques/date restants: ne pas inventer de valeur.
+    return None
+
+
 async def maybe_prefill_oaciq_form_from_lea(
     db: AsyncSession, user_id: int, message: str, last_assistant_message: Optional[str] = None
 ) -> Optional[str]:
@@ -3763,7 +3856,7 @@ async def maybe_prefill_oaciq_form_from_lea(
         return None
     try:
         q = (
-            select(FormSubmission, Form.code, Form.name)
+            select(FormSubmission, Form.code, Form.name, Form.fields)
             .join(Form, FormSubmission.form_id == Form.id)
             .where(
                 FormSubmission.transaction_id == transaction.id,
@@ -3780,12 +3873,27 @@ async def maybe_prefill_oaciq_form_from_lea(
                 "L'utilisateur demande de compléter le formulaire mais il n'y a pas de formulaire en brouillon pour cette transaction. "
                 "Indique-lui d'aller dans Transactions → cette transaction → onglet Formulaires OACIQ pour créer ou ouvrir un formulaire, puis de revenir te demander de le préremplir."
             )
-        submission, form_code, form_name = row[0], row[1], row[2]
+        submission, form_code, form_name, form_fields = row[0], row[1], row[2], row[3]
         prefill = _build_oaciq_prefill_from_transaction(transaction)
         current = dict(submission.data) if isinstance(submission.data, dict) else {}
         for k, v in prefill.items():
             if v is not None and (k not in current or current[k] in (None, "", [])):
                 current[k] = v
+        # PA: essayer de remplir l'ensemble des champs connus du formulaire.
+        if (form_code or "").strip().upper() == "PA":
+            for f in _flatten_oaciq_field_defs(form_fields):
+                key = str(f.get("name") or f.get("id") or "").strip()
+                if not key:
+                    continue
+                if _value_is_filled(current.get(key)):
+                    continue
+                fallback = _build_pa_field_fallback_value(
+                    key,
+                    str(f.get("type") or ""),
+                    transaction,
+                )
+                if fallback is not None:
+                    current[key] = fallback
         submission.data = current
         await db.flush()
         version = FormSubmissionVersion(submission_id=submission.id, data=current)
