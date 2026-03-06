@@ -838,15 +838,83 @@ def _wants_to_create_transaction(message: str) -> tuple[bool, str]:
     return False, ""
 
 
+def _parse_names_from_raw(raw: str) -> List[tuple[str, str]]:
+    """Parse une chaîne de noms (ex. 'William Ford et Kate Volkswagen') en liste de (prénom, nom)."""
+    if not raw or not raw.strip():
+        return []
+    raw = re.sub(r"\s+est\s+", " et ", raw.strip(), flags=re.I)
+    raw = re.sub(r"\s+(?:vocal|vacal|cale|local)\s+terminé.*$", "", raw, flags=re.I).strip()
+    parts = re.split(r"\s+et\s+|\s*,\s*", raw)
+    names: List[tuple[str, str]] = []
+    for part in parts:
+        part = part.strip()
+        if not part or len(part) < 2:
+            continue
+        words = part.split()
+        if len(words) >= 2:
+            first_name, last_name = words[0], " ".join(words[1:])
+        else:
+            first_name = last_name = words[0]
+        if len(first_name) >= 1 and len(last_name) >= 1:
+            names.append((first_name.strip(), last_name.strip()))
+    return names
+
+
+def _extract_sellers_and_buyers_from_creation_message(
+    message: str, last_assistant_message: Optional[str] = None
+) -> Tuple[List[tuple[str, str]], List[tuple[str, str]]]:
+    """
+    Extrait vendeurs et acheteurs d'un message de création (ex. "vendeur William Ford, acheteur Kate Volkswagen").
+    Retourne (sellers, buyers) où chaque liste est [(first_name, last_name), ...].
+    """
+    sellers: List[tuple[str, str]] = []
+    buyers: List[tuple[str, str]] = []
+    if not message or len(message.strip()) < 5:
+        return sellers, buyers
+    t = message.strip()
+
+    # "vendeur(s) X" / "les vendeurs sont X" — jusqu'à "acheteur" ou fin
+    m_v = re.search(
+        r"(?:les\s+)?vendeurs?\s+(?:sont\s+)?:?\s*([^.]+?)(?=\s*[,.]?\s*acheteur|\s*\.|$)",
+        t,
+        re.I | re.DOTALL,
+    )
+    if m_v and m_v.group(1).strip():
+        sellers = _parse_names_from_raw(m_v.group(1).strip())
+
+    # "acheteur(s) X" / "les acheteurs sont X"
+    m_a = re.search(
+        r"(?:les\s+)?acheteurs?\s+(?:sont\s+)?:?\s*([^.]+?)(?=\s*\.|$)",
+        t,
+        re.I | re.DOTALL,
+    )
+    if m_a and m_a.group(1).strip():
+        buyers = _parse_names_from_raw(m_a.group(1).strip())
+
+    # Si un seul rôle dans le message, utiliser _extract_seller_buyer_names_list (contexte assistant)
+    if not sellers and not buyers and last_assistant_message:
+        names_list = _extract_seller_buyer_names_list(message, last_assistant_message)
+        if names_list:
+            role, names = names_list
+            if role == "Vendeur":
+                sellers = names
+            else:
+                buyers = names
+
+    return sellers, buyers
+
+
 async def maybe_create_transaction_from_lea(
-    db: AsyncSession, user_id: int, message: str
+    db: AsyncSession,
+    user_id: int,
+    message: str,
+    last_assistant_message: Optional[str] = None,
 ) -> Tuple[Optional[RealEstateTransaction], Optional[str]]:
     """
-    Si le message indique une demande de création de transaction avec type explicite (achat/vente),
-    crée la transaction et retourne (transaction, None). Si la demande est sans type, retourne (None, None)
-    pour que Léa demande « Est-ce une vente ou un achat ? ».
-    Si l'utilisateur a déjà un dossier vide (doublon), ne pas créer et retourner (None, message_duplicate)
-    pour que Léa explique pourquoi la création est refusée.
+    Crée une transaction uniquement si le message contient toutes les infos requises :
+    type (achat/vente), adresse, prix, au moins un vendeur et un acheteur.
+    Sinon retourne (None, instruction) pour que Léa demande les éléments manquants.
+    Si l'utilisateur a déjà un dossier vide (doublon), ne pas créer et retourner (None, message_duplicate).
     """
     ok, tx_type = _wants_to_create_transaction(message)
     if not ok or not tx_type:
@@ -861,27 +929,85 @@ async def maybe_create_transaction_from_lea(
             "ou qu'il peut préciser l'adresse d'un autre bien s'il souhaite un dossier pour une propriété différente."
         )
         return (None, duplicate_msg)
+
+    # Règle : ne créer que si adresse + prix + au moins un vendeur + au moins un acheteur
+    address = _extract_address_from_message(message)
+    price_tup = _extract_price_from_message(message)
+    sellers, buyers = _extract_sellers_and_buyers_from_creation_message(message, last_assistant_message)
+
+    missing = []
+    if not address:
+        missing.append("l'adresse du bien")
+    if not price_tup:
+        missing.append("le prix")
+    if not sellers:
+        missing.append("au moins un vendeur")
+    if not buyers:
+        missing.append("au moins un acheteur")
+
+    if missing:
+        missing_str = ", ".join(missing)
+        instruction = (
+            f"L'utilisateur souhaite créer une transaction ({tx_type}) mais il manque : {missing_str}. "
+            "Ne crée pas encore le dossier. Demande-lui de fournir ces informations ; une fois que tu as tout (adresse, prix, vendeurs et acheteurs), tu pourras créer la transaction."
+        )
+        return (None, instruction)
+
     try:
         name = f"Transaction {tx_type.capitalize()}"
-        # DB may still have NOT NULL on property_* from initial migration
+        amount, price_kind = price_tup
+        sellers_json = [{"name": f"{f} {l}".strip(), "phone": None, "email": None} for f, l in sellers]
+        buyers_json = [{"name": f"{f} {l}".strip(), "phone": None, "email": None} for f, l in buyers]
+
         transaction = RealEstateTransaction(
             user_id=user_id,
             name=name,
             dossier_number=None,
             status="En cours",
-            sellers=[],
-            buyers=[],
+            sellers=sellers_json,
+            buyers=buyers_json,
             property_province="QC",
-            property_address="À compléter",
-            property_city="À compléter",
-            property_postal_code="À compléter",
+            property_address=address,
+            property_city=None,
+            property_postal_code=None,
             transaction_kind=tx_type,
             pipeline_stage="creation_dossier",
+            listing_price=amount if price_kind == "listing" else None,
+            offered_price=amount if price_kind == "offered" else None,
         )
         db.add(transaction)
+        await db.flush()
+        # Créer les contacts et TransactionContact pour chaque vendeur/acheteur
+        for first_name, last_name in sellers:
+            contact = RealEstateContact(
+                first_name=first_name,
+                last_name=last_name,
+                phone=None,
+                email=None,
+                type=ContactType.CLIENT,
+                user_id=user_id,
+            )
+            db.add(contact)
+            await db.flush()
+            db.add(TransactionContact(transaction_id=transaction.id, contact_id=contact.id, role="Vendeur"))
+        for first_name, last_name in buyers:
+            contact = RealEstateContact(
+                first_name=first_name,
+                last_name=last_name,
+                phone=None,
+                email=None,
+                type=ContactType.CLIENT,
+                user_id=user_id,
+            )
+            db.add(contact)
+            await db.flush()
+            db.add(TransactionContact(transaction_id=transaction.id, contact_id=contact.id, role="Acheteur"))
         await db.commit()
         await db.refresh(transaction)
-        logger.info(f"Lea created transaction id={transaction.id} type={tx_type} for user_id={user_id}")
+        logger.info(
+            f"Lea created transaction id={transaction.id} type={tx_type} for user_id={user_id} "
+            f"(address={address}, sellers={len(sellers)}, buyers={len(buyers)})"
+        )
         return (transaction, None)
     except Exception as e:
         logger.warning(f"Lea create transaction failed: {e}", exc_info=True)
@@ -1636,8 +1762,13 @@ def _format_full_address_ca(street: str, city: str, province: str, postcode: str
     return ", ".join(parts) if parts else ""
 
 
-async def maybe_update_transaction_address_from_lea(db: AsyncSession, user_id: int, message: str) -> Optional[Tuple[str, RealEstateTransaction, Optional[dict]]]:
-    """Si le message demande d'ajouter/mettre à jour l'adresse, met à jour la transaction (par ref ou la plus récente). Si aucune transaction n'existe, en crée une puis y met l'adresse. Retourne (adresse, transaction, infos_géocodage) si mise à jour ; infos_géocodage peut être None."""
+async def maybe_update_transaction_address_from_lea(
+    db: AsyncSession,
+    user_id: int,
+    message: str,
+    transaction_preferred: Optional[RealEstateTransaction] = None,
+) -> Optional[Tuple[str, RealEstateTransaction, Optional[dict]]]:
+    """Si le message demande d'ajouter/mettre à jour l'adresse, met à jour la transaction (session liée, ref ou la plus récente). Retourne (adresse, transaction, infos_géocodage) si mise à jour."""
     if not _wants_to_update_address(message):
         return None
     addr = _extract_address_from_message(message)
@@ -1646,6 +1777,8 @@ async def maybe_update_transaction_address_from_lea(db: AsyncSession, user_id: i
     ref = _extract_transaction_ref_from_message(message)
     if ref:
         transaction = await get_user_transaction_by_ref(db, user_id, ref)
+    elif transaction_preferred:
+        transaction = transaction_preferred
     else:
         transaction = await get_user_latest_transaction(db, user_id)
     if not transaction:
@@ -1695,16 +1828,19 @@ async def maybe_update_transaction_address_from_lea(db: AsyncSession, user_id: i
 
 
 async def _update_transaction_address_from_context(
-    db: AsyncSession, user_id: int, addr: str
+    db: AsyncSession,
+    user_id: int,
+    addr: str,
+    transaction_preferred: Optional[RealEstateTransaction] = None,
 ) -> Optional[Tuple[str, RealEstateTransaction, Optional[dict]]]:
     """
-    Enregistre l'adresse sur la dernière transaction quand l'utilisateur répond par une adresse
+    Enregistre l'adresse sur la transaction (session liée ou dernière) quand l'utilisateur répond par une adresse
     à la question de Léa (« Quelle est l'adresse du bien ? »). Retourne (adresse, transaction, validation).
     """
     if not addr or len(addr.strip()) < 5:
         return None
     addr = addr.strip()
-    transaction = await get_user_latest_transaction(db, user_id)
+    transaction = transaction_preferred if transaction_preferred else await get_user_latest_transaction(db, user_id)
     if not transaction:
         try:
             transaction = RealEstateTransaction(
@@ -2713,8 +2849,10 @@ async def maybe_add_seller_buyer_contact_from_lea(
                 added.append(f"{first_name} {last_name}")
             if role == "Vendeur":
                 transaction.sellers = sellers
+                flag_modified(transaction, "sellers")
             else:
                 transaction.buyers = buyers
+                flag_modified(transaction, "buyers")
             await db.commit()
             await db.refresh(transaction)
             ref_label = transaction.dossier_number or f"#{transaction.id}"
@@ -2999,10 +3137,13 @@ def _wants_to_update_price(message: str) -> bool:
 
 
 async def maybe_update_transaction_price_from_lea(
-    db: AsyncSession, user_id: int, message: str
+    db: AsyncSession,
+    user_id: int,
+    message: str,
+    transaction_preferred: Optional[RealEstateTransaction] = None,
 ) -> Optional[Tuple[Decimal, RealEstateTransaction, str]]:
     """
-    Si le message contient un prix (demandé ou offert), met à jour la dernière transaction.
+    Si le message contient un prix (demandé ou offert), met à jour la transaction (session liée ou dernière).
     Retourne (montant, transaction, "listing"|"offered") ou None.
     """
     if not _wants_to_update_price(message):
@@ -3011,7 +3152,7 @@ async def maybe_update_transaction_price_from_lea(
     if not extracted:
         return None
     amount, kind = extracted
-    transaction = await get_user_latest_transaction(db, user_id)
+    transaction = transaction_preferred if transaction_preferred else await get_user_latest_transaction(db, user_id)
     if not transaction:
         return None
     try:
@@ -3124,16 +3265,20 @@ def _parse_french_date_from_message(message: str, last_assistant_message: Option
 
 
 async def maybe_set_expected_closing_date_from_lea(
-    db: AsyncSession, user_id: int, message: str, last_assistant_message: Optional[str] = None
+    db: AsyncSession,
+    user_id: int,
+    message: str,
+    last_assistant_message: Optional[str] = None,
+    transaction_preferred: Optional[RealEstateTransaction] = None,
 ) -> Optional[Tuple[date, RealEstateTransaction]]:
     """
-    Si le message contient une date de clôture/écriture prévue, met à jour la dernière transaction.
+    Si le message contient une date de clôture/écriture prévue, met à jour la transaction (session liée ou dernière).
     Retourne (date, transaction) ou None.
     """
     parsed = _parse_french_date_from_message(message, last_assistant_message)
     if not parsed:
         return None
-    transaction = await get_user_latest_transaction(db, user_id)
+    transaction = transaction_preferred if transaction_preferred else await get_user_latest_transaction(db, user_id)
     if not transaction:
         return None
     try:
@@ -3667,7 +3812,9 @@ async def run_lea_actions(
     if session_id:
         transaction_preferred = await get_transaction_for_session(db, user_id, session_id)
     created: Optional[RealEstateTransaction] = None
-    created, duplicate_line = await maybe_create_transaction_from_lea(db, user_id, message)
+    created, duplicate_line = await maybe_create_transaction_from_lea(
+        db, user_id, message, last_assistant_message=last_assistant_message
+    )
     if duplicate_line:
         lines.append(duplicate_line)
     elif created:
@@ -3682,11 +3829,15 @@ async def run_lea_actions(
                 "L'utilisateur souhaite créer une transaction mais n'a pas précisé si c'est une vente ou un achat. "
                 "Demande-lui : « Est-ce une vente ou un achat ? » Puis crée la transaction une fois qu'il a répondu (achat ou vente)."
             )
-    addr_result = await maybe_update_transaction_address_from_lea(db, user_id, message)
+    addr_result = await maybe_update_transaction_address_from_lea(
+        db, user_id, message, transaction_preferred=transaction_preferred
+    )
     if not addr_result and last_assistant_message and _last_message_asked_for_address(last_assistant_message):
         addr_from_msg = _extract_address_from_message(message)
         if addr_from_msg:
-            addr_result = await _update_transaction_address_from_context(db, user_id, addr_from_msg)
+            addr_result = await _update_transaction_address_from_context(
+                db, user_id, addr_from_msg, transaction_preferred=transaction_preferred
+            )
     if addr_result:
         addr, tx, validation = addr_result[0], addr_result[1], addr_result[2] if len(addr_result) >= 3 else None
         ref = tx.dossier_number or f"#{tx.id}"
@@ -3888,7 +4039,9 @@ async def run_lea_actions(
     if contact_line:
         lines.append(contact_line)
     # Prix depuis le message utilisateur (ex. « le prix c'est 600 000 », « 500k ») — aussi enregistré via réponse LLM (PRIX_LISTING/PRIX_OFFERT)
-    price_result = await maybe_update_transaction_price_from_lea(db, user_id, message)
+    price_result = await maybe_update_transaction_price_from_lea(
+        db, user_id, message, transaction_preferred=transaction_preferred
+    )
     if price_result:
         amount, tx, kind = price_result
         ref = tx.dossier_number or f"#{tx.id}"
@@ -3914,7 +4067,7 @@ async def run_lea_actions(
             "Ne pas redemander les acheteurs ; passer à la suite."
         )
     closing_date_result = await maybe_set_expected_closing_date_from_lea(
-        db, user_id, message, last_assistant_message
+        db, user_id, message, last_assistant_message, transaction_preferred=transaction_preferred
     )
     if closing_date_result:
         closing_date_val, tx = closing_date_result
