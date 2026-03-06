@@ -702,11 +702,11 @@ export default function TransactionDetailPage() {
                 ) : ((Array.isArray(transaction.sellers) && transaction.sellers.length > 0) || (Array.isArray(transaction.buyers) && transaction.buyers.length > 0)) ? (
                   <div className="space-y-4">
                     <p className="text-sm text-gray-500">Vendeurs et acheteurs enregistrés dans le dossier (onglet détail).</p>
-                    {transaction.sellers?.filter((s: { name?: string }) => s?.name).length > 0 && (
+                    {(transaction.sellers ?? []).filter((s: { name?: string }) => s?.name).length > 0 && (
                       <div>
                         <h4 className="text-sm font-medium text-gray-700 mb-2">Vendeurs</h4>
                         <ul className="space-y-2">
-                          {transaction.sellers.filter((s: { name?: string }) => s?.name).map((s: { name?: string; phone?: string; email?: string }, i: number) => (
+                          {(transaction.sellers ?? []).filter((s: { name?: string }) => s?.name).map((s: { name?: string; phone?: string; email?: string }, i: number) => (
                             <li key={i} className="p-3 bg-gray-50 rounded-xl text-sm">
                               {s.name}
                               {(s.phone || s.email) && <span className="text-gray-500 ml-2">· {[s.phone, s.email].filter(Boolean).join(' · ')}</span>}
@@ -715,11 +715,11 @@ export default function TransactionDetailPage() {
                         </ul>
                       </div>
                     )}
-                    {transaction.buyers?.filter((b: { name?: string }) => b?.name).length > 0 && (
+                    {(transaction.buyers ?? []).filter((b: { name?: string }) => b?.name).length > 0 && (
                       <div>
                         <h4 className="text-sm font-medium text-gray-700 mb-2">Acheteurs</h4>
                         <ul className="space-y-2">
-                          {transaction.buyers.filter((b: { name?: string }) => b?.name).map((b: { name?: string; phone?: string; email?: string }, i: number) => (
+                          {(transaction.buyers ?? []).filter((b: { name?: string }) => b?.name).map((b: { name?: string; phone?: string; email?: string }, i: number) => (
                             <li key={i} className="p-3 bg-gray-50 rounded-xl text-sm">
                               {b.name}
                               {(b.phone || b.email) && <span className="text-gray-500 ml-2">· {[b.phone, b.email].filter(Boolean).join(' · ')}</span>}
