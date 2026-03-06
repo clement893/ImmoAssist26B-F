@@ -224,6 +224,7 @@ LEA_SYSTEM_PROMPT = (
     "Un bloc « Données plateforme » est fourni ci-dessous avec ses transactions et dossiers. "
     "Base-toi UNIQUEMENT sur ces données pour répondre aux questions sur ses transactions en cours, ses dossiers, etc.\n\n"
     "** Ne jamais assumer une adresse ou une transaction d'une ancienne conversation : ** Si l'utilisateur demande de préparer une promesse d'achat (ou un formulaire) sans donner d'adresse ni de numéro de transaction, ne prends PAS la dernière transaction par défaut. Demande toujours : « Pour quelle propriété (adresse ou transaction) ? »\n\n"
+    "** Créer une transaction = toujours un nouveau dossier : ** Quand l'utilisateur demande de créer une transaction (vente ou achat), c'est toujours un nouveau dossier, avec sa propre adresse, vendeurs, acheteurs et prix — même si le chat a été ouvert depuis une autre transaction. Chaque dossier reste distinct.\n\n"
     "** RÈGLE CRUCIALE - ACTIONS RÉELLES : **\n"
     "Tu ne dois JAMAIS prétendre avoir fait une action (créer une transaction, mettre à jour une adresse, créer une promesse d'achat, etc.) "
     "si le bloc « Action effectuée » ci-dessous ne le mentionne pas explicitement. "
@@ -252,8 +253,9 @@ LEA_SYSTEM_PROMPT = (
     "** CONFIRMATION DE LA PROPRIÉTÉ AVANT D'AVANCER : ** Quand l'utilisateur désigne une propriété par une référence partielle (ex. « trouve la transaction sur de Bordeaux », « celle sur la rue X ») et que tu identifies un bien dans les Données plateforme, tu DOIS d'abord indiquer l'adresse complète du bien trouvé et demander à l'utilisateur de **confirmer que c'est bien ce dossier** avant de poser toute question sur les vendeurs, acheteurs ou prix. Formule par exemple : « J'ai trouvé la propriété au [adresse complète]. Est-ce bien ce dossier ? » ou « Confirmes-tu qu'il s'agit bien du [adresse complète] ? » — INTERDICTION de poser « Qui sont les vendeurs ? » (ou acheteurs, prix, etc.) dans la même réponse où tu identifies le bien. Attends la confirmation de l'utilisateur (ex. « oui », « c'est ça ») avant de passer à la suite.\n\n"
     "** CONTEXTE DE LA CONVERSATION – PROPRIÉTÉ DONT ON VIENT DE PARLER : ** Quand l'utilisateur dit « on vient de parler de la propriété », « celle dont on parlait », « la propriété dont on vient de parler », « pour la propriété qu'on vient de discuter » ou « je veux créer la promesse d'achat » (sans répéter l'adresse) juste après un échange où tu as toi-même indiqué une propriété (ex. « nous travaillons sur la propriété au 8876 de Bordeaux… »), il fait **référence à cette propriété**. Ne redemande pas « pour quelle propriété ? » : considère qu'il s'agit du bien que tu viens de mentionner dans ton dernier message et procède (ex. créer la promesse d'achat pour cette transaction). Le système associe automatiquement la transaction à partir du contexte.\n\n"
     "** INFORMATIONS CLÉS À COLLECTER – POSE LES BONNES QUESTIONS : **\n"
-    "Quand l'utilisateur crée une transaction ou travaille sur un dossier, aide-le à le compléter en posant des questions pertinentes, une à la fois ou par thème. "
-    "Ordre logique des informations clés :\n"
+    "Quand l'utilisateur crée une transaction ou travaille sur un dossier, aide-le à le compléter en posant des questions pertinentes, **une seule à la fois**. "
+    "Ne fais jamais une longue liste numérotée du type « Pour créer une transaction, j'ai besoin : 1. Adresse… 2. Vendeurs… 3. Acheteurs… 4. Prix… » — pose une seule question courte (ex. « Quelle est l'adresse du bien ? »), puis la suivante après sa réponse. "
+    "Ordre logique : adresse du bien → prix → vendeurs → acheteurs (date de clôture facultative). "
     "1. **Adresse du bien** : « Quelle est l'adresse du bien ? » (ex. 123 rue Principale, Montréal). Tu peux enregistrer l'adresse si l'utilisateur la donne dans sa réponse. "
     "**Une adresse complète doit toujours inclure : rue ou civique, ville, province et code postal**, au format : « [numéro et rue], [ville] ([province]) [code postal] » (ex. 2643 Sherbrooke Est, Montréal (Québec) H2K 1E1). **Ne demande jamais le code postal à l'utilisateur** : demande uniquement la **ville** ; une fois la ville donnée, propose de trouver le code postal en ligne (géocodage). "
     "**Quand le géocodage fournit une ville que l'utilisateur n'a pas donnée**, tu DOIS demander confirmation de la ville avant de valider l'adresse (ex. « Est-ce bien à [ville] ? » ou « La ville est-elle bien [ville] ? ») ; seulement après sa confirmation tu peux passer aux vendeurs ou à la suite.\n"
@@ -266,6 +268,7 @@ LEA_SYSTEM_PROMPT = (
     "Le nombre doit être sans espaces, sans symbole $ (ex. 600000 pour « 600k » ou « 600 000 $ »). Le système enregistrera ce prix dans la transaction ; place cette ligne en fin de message.\n"
     "5. **Notaire, courtiers** : si pertinent, « As-tu les coordonnées du notaire ? du courtier vendeur/acheteur ? »\n"
     "Après avoir créé une transaction ou enregistré une info, propose **la prochaine question logique** (ex. après l'adresse : « Qui sont les vendeurs pour ce dossier ? »). "
+    "**La modification est possible pendant la création (brouillon) ou après :** si l'utilisateur corrige une info (ex. « en fait l'adresse c'est 456 rue X », « le prix c'est 500 000 », « les vendeurs c'est seulement Paul »), accepte la correction et confirme que c'est noté. "
     "**Ne redemande jamais une information déjà fournie** (ex. le prix, l'adresse, les coordonnées d'un vendeur/acheteur déjà donnés). Utilise le bloc « Données plateforme » et l'historique pour proposer la prochaine étape (ex. coordonnées acheteur si le vendeur est fait, ou date de clôture). "
     "Si le bloc « Données plateforme » indique déjà des vendeurs ou acheteurs pour une transaction (ex. « vendeurs: X, Y » ou « acheteurs: A, B »), ne redemande jamais « Qui sont les vendeurs ? » ni « Qui sont les acheteurs ? » pour cette transaction — passe à l'étape suivante (ex. prix). "
     "Si dans l'échange précédent tu as toi-même répondu en listant les vendeurs (ex. « Les vendeurs sont X et Y »), ne redemande jamais « Qui sont les vendeurs ? » : considère que c'est enregistré et passe à la suite (acheteurs ou prix). "
@@ -353,7 +356,7 @@ class LeaSettingsUpdate(BaseModel):
 # Actions que Léa peut effectuer (affichées dans Paramètres Léa)
 LEA_CAPABILITIES = [
     {"id": "create_transaction", "label": "Créer une transaction", "description": "Léa peut créer un dossier (transaction d'achat ou de vente) depuis la conversation."},
-    {"id": "update_transaction", "label": "Modifier une transaction", "description": "Léa peut mettre à jour une transaction : adresse, vendeurs, acheteurs, prix, promesse d'achat, date de clôture, etc. L'utilisateur peut dire par ex. « enregistre les vendeurs Lily et Lilou » ou « les acheteurs sont Paul et Marie ». Léa peut changer le nom d'un acheteur ou vendeur (ex. « changer le nom de l'acheteur Paul en Pierre », « l'acheteur c'est Pierre Martin »). Léa peut aussi supprimer un vendeur ou un acheteur (ex. « supprimer Hind », « retirer le vendeur Pierre »)."},
+    {"id": "update_transaction", "label": "Modifier une transaction", "description": "Léa peut mettre à jour une transaction : pendant la création (brouillon) ou après. Adresse, vendeurs, acheteurs, prix, promesse d'achat, date de clôture, etc. Ex. « enregistre les vendeurs Lily et Lilou », « les acheteurs sont Paul et Marie », « en fait le prix c'est 500 000 », « les vendeurs c'est seulement Paul ». Léa peut changer le nom d'un acheteur ou vendeur, ou supprimer un vendeur/acheteur (ex. « retirer le vendeur Pierre »)."},
     {"id": "create_contact", "label": "Créer un contact", "description": "À venir : Léa pourra créer un contact dans le Réseau (API contacts)."},
     {"id": "update_contact", "label": "Modifier un contact", "description": "À venir : Léa pourra modifier un contact existant dans le Réseau."},
     {"id": "access_oaciq_forms", "label": "Accéder aux formulaires OACIQ", "description": "Léa peut lister les formulaires OACIQ disponibles et l'état des formulaires (brouillon/complété/signé) pour vos transactions."},
@@ -949,8 +952,10 @@ async def maybe_create_transaction_from_lea(
         missing_str = ", ".join(missing)
         instruction = (
             f"L'utilisateur souhaite créer une transaction ({tx_type}) mais il manque : {missing_str}. "
-            "Ne crée pas encore le dossier. Les informations obligatoires pour créer sont : adresse, prix, vendeurs et acheteurs (la date de clôture est facultative). "
-            "Demande-lui de fournir les éléments manquants ; une fois que tu as tout (adresse, prix, vendeurs et acheteurs), tu pourras créer la transaction."
+            "Ne crée pas encore le dossier. "
+            "Demande-lui une seule chose à la fois, dans cet ordre : 1) adresse du bien, 2) prix, 3) vendeurs, 4) acheteurs. "
+            "Ne liste jamais les 4 points dans un seul message (pas de « J'ai besoin des informations suivantes : 1. Adresse… 2. Vendeurs… »). "
+            "Pose une seule question courte, par ex. « Quelle est l'adresse du bien ? » ou « Qui sont les vendeurs ? » selon ce qui manque."
         )
         return (None, instruction)
 
@@ -1327,6 +1332,22 @@ def _last_message_asked_for_address(last_assistant_message: Optional[str] = None
         "adresse" in t
         and ("quelle" in t or "du bien" in t or "propriété" in t or "l'adresse" in t or "me dire" in t)
     )
+
+
+def _last_message_asked_for_sellers(last_assistant_message: Optional[str] = None) -> bool:
+    """True si le dernier message de Léa demandait les vendeurs (ex. « Qui sont les vendeurs ? »)."""
+    if not last_assistant_message or len(last_assistant_message.strip()) < 5:
+        return False
+    t = last_assistant_message.strip().lower()
+    return "vendeur" in t and ("qui" in t or "quels" in t or "noms" in t or "nom" in t or "?" in t)
+
+
+def _last_message_asked_for_buyers(last_assistant_message: Optional[str] = None) -> bool:
+    """True si le dernier message de Léa demandait les acheteurs (ex. « Qui sont les acheteurs ? »)."""
+    if not last_assistant_message or len(last_assistant_message.strip()) < 5:
+        return False
+    t = last_assistant_message.strip().lower()
+    return "acheteur" in t and ("qui" in t or "quels" in t or "noms" in t or "nom" in t or "?" in t)
 
 
 def _wants_to_update_address(message: str) -> bool:
@@ -3815,15 +3836,28 @@ async def run_lea_actions(
         elif ok_create and tx_type and conv is not None:
             pending["type"] = tx_type
 
-    addr_result = await maybe_update_transaction_address_from_lea(
-        db, user_id, message, transaction_preferred=transaction_preferred
+    # Si on vient de créer une transaction dans ce tour, cibler celle-ci pour toutes les mises à jour.
+    # Si l'utilisateur est en train de constituer un brouillon (pending) sans transaction créée, ne pas
+    # appliquer les mises à jour à une transaction existante (chaque nouveau dossier a ses propres données).
+    building_new_only = bool(
+        pending.get("type") and created is None and session_id
     )
-    if not addr_result and last_assistant_message and _last_message_asked_for_address(last_assistant_message):
-        addr_from_msg = _extract_address_from_message(message)
-        if addr_from_msg:
-            addr_result = await _update_transaction_address_from_context(
-                db, user_id, addr_from_msg, transaction_preferred=transaction_preferred
-            )
+    if created is not None:
+        transaction_preferred = created
+    elif building_new_only:
+        transaction_preferred = None
+
+    addr_result = None
+    if not building_new_only:
+        addr_result = await maybe_update_transaction_address_from_lea(
+            db, user_id, message, transaction_preferred=transaction_preferred
+        )
+        if not addr_result and last_assistant_message and _last_message_asked_for_address(last_assistant_message):
+            addr_from_msg = _extract_address_from_message(message)
+            if addr_from_msg:
+                addr_result = await _update_transaction_address_from_context(
+                    db, user_id, addr_from_msg, transaction_preferred=transaction_preferred
+                )
     if addr_result:
         addr, tx, validation = addr_result[0], addr_result[1], addr_result[2] if len(addr_result) >= 3 else None
         ref = tx.dossier_number or f"#{tx.id}"
@@ -3872,8 +3906,9 @@ async def run_lea_actions(
                 "Tu DOIS rester sur l'adresse : demande uniquement la **ville** à l'utilisateur (ne demande pas le code postal). Une fois la ville donnée, propose de trouver le code postal en ligne (géocodage). "
                 "Ne pose PAS « Qui sont les vendeurs ? » ni aucune autre question tant que l'adresse n'a pas ville + code postal."
             )
-    # Pas de transaction : enregistrer l'adresse dans le brouillon de création (pending) si on collecte pour un nouveau dossier
-    if not addr_result and not has_transaction and pending.get("type") and session_id:
+    # Enregistrer l'adresse dans le brouillon de création (pending) si on collecte pour un nouveau dossier
+    # (pas de transaction existante, ou on est en mode « nouveau dossier » depuis une session liée à une autre tx)
+    if not addr_result and pending.get("type") and session_id and (not has_transaction or building_new_only):
         addr_from_msg = _extract_address_from_message(message)
         if addr_from_msg:
             pending["address"] = addr_from_msg
@@ -3896,7 +3931,7 @@ async def run_lea_actions(
                     f"Il manque encore : {', '.join(missing)}. Demande-les à l'utilisateur."
                 )
     # Correction par l'utilisateur du code postal ou de la ville (sans refournir toute l'adresse) — appliquer en base
-    if not addr_result:
+    if not addr_result and not building_new_only:
         correction_result = await maybe_correct_transaction_postal_or_city_from_lea(
             db, user_id, message, last_assistant_message
         )
@@ -3915,7 +3950,7 @@ async def run_lea_actions(
                 )
     # Utilisateur a répondu par la ville seule (ex. « Montréal ») : compléter l'adresse partielle et géocoder dans le même tour
     city_geocode_result = None
-    if not addr_result:
+    if not addr_result and not building_new_only:
         city_geocode_result = await maybe_complete_address_with_city_then_geocode(db, user_id, message)
         if city_geocode_result:
             addr, tx, validation = city_geocode_result
@@ -3945,7 +3980,7 @@ async def run_lea_actions(
                     )
     # Utilisateur a répondu « ok » / « oui » après la proposition de chercher le code postal en ligne : géocoder et renvoyer le résultat
     confirmation_geocode_result = None
-    if not addr_result and not city_geocode_result and _is_confirmation_to_search_postal_code(message, last_assistant_message):
+    if not addr_result and not city_geocode_result and not building_new_only and _is_confirmation_to_search_postal_code(message, last_assistant_message):
         confirmation_geocode_result = await maybe_geocode_on_user_confirmation(db, user_id, message, last_assistant_message)
         if confirmation_geocode_result:
             _addr, _tx, validation = confirmation_geocode_result
@@ -3972,7 +4007,7 @@ async def run_lea_actions(
                         f"Résultat (à donner maintenant) : « {full_formatted} ». Écris cette adresse dans ta réponse, confirme que c'est enregistré, puis pose la question suivante (ex. Qui sont les vendeurs ?)."
                     )
     # Géocodage de l'adresse déjà enregistrée sur la dernière transaction (sans nouvelle adresse dans le message)
-    if not addr_result and not city_geocode_result and not confirmation_geocode_result and _wants_to_geocode_existing_address(message):
+    if not addr_result and not city_geocode_result and not confirmation_geocode_result and not building_new_only and _wants_to_geocode_existing_address(message):
         geocode_result = await maybe_geocode_existing_transaction_address(db, user_id, message, last_assistant_message)
         if geocode_result:
             _addr, _tx, validation = geocode_result
@@ -4011,17 +4046,17 @@ async def run_lea_actions(
                                 f"L'utilisateur n'a pas indiqué la ville. Tu DOIS lui demander de confirmer la ville avant de valider l'adresse (ex. « Est-ce bien à {city} ? » ou « La ville est-elle bien {city} ? »). "
                                 "Indique l'adresse trouvée avec la ville du géocodage, puis demande explicitement confirmation de la ville ; seulement après sa confirmation tu pourras passer aux vendeurs."
                             )
-    promise_tx = await maybe_set_promise_from_lea(db, user_id, message, last_assistant_message)
+    promise_tx = await maybe_set_promise_from_lea(db, user_id, message, last_assistant_message) if not building_new_only else None
     if promise_tx:
         ref = promise_tx.dossier_number or f"#{promise_tx.id}"
         lines.append(
             f"La date de promesse d'achat a été enregistrée sur la transaction {ref}. "
             "Confirme à l'utilisateur que la promesse d'achat est enregistrée et qu'il peut compléter le formulaire dans la section Transactions."
         )
-    oaciq_line = await maybe_create_oaciq_form_submission_from_lea(db, user_id, message, last_assistant_message)
+    oaciq_line = await maybe_create_oaciq_form_submission_from_lea(db, user_id, message, last_assistant_message) if not building_new_only else None
     if oaciq_line:
         lines.append(oaciq_line)
-    prefill_line = await maybe_prefill_oaciq_form_from_lea(db, user_id, message, last_assistant_message)
+    prefill_line = await maybe_prefill_oaciq_form_from_lea(db, user_id, message, last_assistant_message) if not building_new_only else None
     if prefill_line:
         lines.append(prefill_line)
     # Si l'utilisateur demande une promesse d'achat / formulaire sans préciser la transaction ni l'adresse, ne pas assumer la dernière
@@ -4032,30 +4067,49 @@ async def run_lea_actions(
             "L'utilisateur n'a pas précisé pour quelle propriété ni quelle transaction. "
             "Ne prends PAS la dernière transaction par défaut. Demande-lui : « Pour quelle propriété (adresse ou numéro de transaction) souhaitez-vous préparer ce formulaire ? »"
         )
-    rename_line = await maybe_update_seller_buyer_name_from_lea(
-        db, user_id, message, last_assistant_message, transaction_preferred
+    rename_line = (
+        await maybe_update_seller_buyer_name_from_lea(
+            db, user_id, message, last_assistant_message, transaction_preferred
+        )
+        if not building_new_only
+        else None
     )
     if rename_line:
         lines.append(rename_line)
-    remove_line = await maybe_remove_seller_buyer_from_lea(
-        db, user_id, message, last_assistant_message, transaction_preferred
+    remove_line = (
+        await maybe_remove_seller_buyer_from_lea(
+            db, user_id, message, last_assistant_message, transaction_preferred
+        )
+        if not building_new_only
+        else None
     )
     if remove_line:
         lines.append(remove_line)
-    contact_line = await maybe_add_seller_buyer_contact_from_lea(
-        db, user_id, message, last_assistant_message, transaction_preferred
+    contact_line = (
+        await maybe_add_seller_buyer_contact_from_lea(
+            db, user_id, message, last_assistant_message, transaction_preferred
+        )
+        if not building_new_only
+        else None
     )
     if contact_line:
         lines.append(contact_line)
-    if not has_transaction and pending.get("type") and pending.get("address") and pending.get("price") and session_id:
+    if (not has_transaction or building_new_only) and pending.get("type") and pending.get("address") and pending.get("price") and session_id:
         sellers_list, buyers_list = _extract_sellers_and_buyers_from_creation_message(message, last_assistant_message)
         if sellers_list or buyers_list:
             pending.setdefault("sellers", [])
             pending.setdefault("buyers", [])
-            for f, l in sellers_list:
-                pending["sellers"].append({"first_name": f, "last_name": l})
-            for f, l in buyers_list:
-                pending["buyers"].append({"first_name": f, "last_name": l})
+            # Si Léa venait de demander les vendeurs (ou acheteurs), traiter la réponse comme liste complète → remplacer (modif pendant création)
+            if sellers_list and _last_message_asked_for_sellers(last_assistant_message):
+                pending["sellers"] = [{"first_name": f, "last_name": l} for f, l in sellers_list]
+            else:
+                for f, l in sellers_list:
+                    pending["sellers"].append({"first_name": f, "last_name": l})
+            if buyers_list and _last_message_asked_for_buyers(last_assistant_message):
+                pending["buyers"] = [{"first_name": f, "last_name": l} for f, l in buyers_list]
+            else:
+                for f, l in buyers_list:
+                    pending["buyers"].append({"first_name": f, "last_name": l})
             if not (pending["sellers"] and pending["buyers"]):
                 missing = []
                 if not pending["sellers"]:
@@ -4067,8 +4121,12 @@ async def run_lea_actions(
                         f"Noms notés pour le dossier en cours de création. Il manque encore : {', '.join(missing)}. Demande-les à l'utilisateur."
                     )
     # Prix depuis le message utilisateur (ex. « le prix c'est 600 000 », « 500k ») — aussi enregistré via réponse LLM (PRIX_LISTING/PRIX_OFFERT)
-    price_result = await maybe_update_transaction_price_from_lea(
-        db, user_id, message, transaction_preferred=transaction_preferred
+    price_result = (
+        await maybe_update_transaction_price_from_lea(
+            db, user_id, message, transaction_preferred=transaction_preferred
+        )
+        if not building_new_only
+        else None
     )
     if price_result:
         amount, tx, kind = price_result
@@ -4078,7 +4136,7 @@ async def run_lea_actions(
             f"Le {label} a été enregistré pour la transaction {ref} : {int(amount):,} $. "
             "Confirme à l'utilisateur que c'est enregistré."
         )
-    if not price_result and not has_transaction and pending.get("type") and pending.get("address") and session_id:
+    if not price_result and (not has_transaction or building_new_only) and pending.get("type") and pending.get("address") and session_id:
         price_tup = _extract_price_from_message(message)
         if price_tup:
             amount, kind = price_tup
@@ -4110,8 +4168,12 @@ async def run_lea_actions(
             "L'utilisateur a indiqué qu'il n'y a pas encore d'acheteurs (mise en vente). "
             "Ne pas redemander les acheteurs ; passer à la suite."
         )
-    closing_date_result = await maybe_set_expected_closing_date_from_lea(
-        db, user_id, message, last_assistant_message, transaction_preferred=transaction_preferred
+    closing_date_result = (
+        await maybe_set_expected_closing_date_from_lea(
+            db, user_id, message, last_assistant_message, transaction_preferred=transaction_preferred
+        )
+        if not building_new_only
+        else None
     )
     if closing_date_result:
         closing_date_val, tx = closing_date_result
