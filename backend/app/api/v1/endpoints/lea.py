@@ -2248,6 +2248,23 @@ def _extract_seller_buyer_names_list(
     role: Optional[str] = None
     raw: Optional[str] = None
     last_lower = (last_assistant_message or "").strip().lower()
+    # Éviter de prendre des phrases de quantité comme des noms
+    # (ex. "il y a un seul vendeur", "un seul acheteur", "pas d'autres vendeurs").
+    nt = "".join(c for c in unicodedata.normalize("NFD", t.lower()) if unicodedata.category(c) != "Mn")
+    if re.search(
+        r"\b(?:il y a|ya|y a)?\s*(?:juste|seulement)?\s*(?:un|une|1)\s+seul(?:e)?\s+(?:vendeur|acheteur)s?\b",
+        nt,
+        re.I,
+    ) or re.search(
+        r"\b(?:pas|aucun)\s+d[' ]?autres?\s+(?:vendeur|acheteur)s?\b",
+        nt,
+        re.I,
+    ) or re.search(
+        r"\b(?:un|une|1)\s+(?:vendeur|acheteur)\s+(?:seulement|uniquement)\b",
+        nt,
+        re.I,
+    ):
+        return None
 
     # "ce sont X" / "c'est X" (réponse courte après "Qui sont les vendeurs ?")
     if last_assistant_message and len(t) <= 80:
@@ -2383,6 +2400,16 @@ def _extract_seller_buyer_names_list(
     for part in parts:
         part = part.strip()
         if not part or len(part) < 2:
+            continue
+        # Garde-fou : ne jamais interpréter un énoncé de rôle comme un nom.
+        part_nt = "".join(
+            c for c in unicodedata.normalize("NFD", part.lower()) if unicodedata.category(c) != "Mn"
+        )
+        if re.search(
+            r"\b(?:vendeur|acheteur)s?\b", part_nt, re.I
+        ) and re.search(
+            r"\b(?:seul|seule|seulement|uniquement|juste|aucun|pas)\b", part_nt, re.I
+        ):
             continue
         # "Abatti à Titi" (vocal) = prénom Abatti, nom Titi
         if " à " in part:
