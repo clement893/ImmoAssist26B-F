@@ -56,23 +56,21 @@ COPY --from=deps /app/packages/config/package.json ./packages/config/package.jso
 # Use --frozen-lockfile for faster installs (lockfile is already validated in deps stage)
 RUN pnpm install --prefer-offline --frozen-lockfile || pnpm install --prefer-offline --no-frozen-lockfile
 
-# Copy and build types package first (required for web app build)
-# Copy tsconfig.base.json first (required by packages/types/tsconfig.json)
+# Copy source code first, then build types once (do not overwrite after build)
+# Copy tsconfig.base.json (required by packages/types/tsconfig.json)
 COPY tsconfig.base.json ./tsconfig.base.json
-COPY packages/types ./packages/types
-RUN cd packages/types && pnpm build && ls -la dist/
-
-# Verify types package was built correctly
-RUN test -f packages/types/dist/theme.d.ts || (echo "ERROR: theme.d.ts not found after build" && exit 1)
-
-# Copy source code (copy last to maximize cache hits)
-# Copy only what's needed for build (apps/web and shared packages)
-COPY apps/web ./apps/web
+# Copy all packages and apps/web so we never overwrite packages/types after building
 COPY packages ./packages
+COPY apps/web ./apps/web
 # Copy the API manifest script (needed for api:manifest build step)
-# Copy directly to apps/web/scripts so it's accessible during build
 RUN mkdir -p apps/web/scripts
 COPY scripts/generate-frontend-api-manifest.js apps/web/scripts/generate-frontend-api-manifest.js
+
+# Build types package (required for web app build). Must run after COPY packages so we don't overwrite dist/ later.
+RUN cd packages/types && pnpm build && ls -la dist/
+
+# Verify types package was built correctly (validate-build.js depends on this)
+RUN test -f packages/types/dist/theme.d.ts || (echo "ERROR: theme.d.ts not found after build" && exit 1)
 
 # No need to reinstall here - workspace links are already correct from previous install
 # The types package build doesn't require a reinstall since it's already linked
@@ -111,17 +109,16 @@ ARG SKIP_TYPE_CHECK=1
 ENV SKIP_TYPE_CHECK=${SKIP_TYPE_CHECK}
 RUN cd apps/web && node scripts/validate-build.js
 
-# Build Next.js application
-# Uses Webpack by default in production (more stable with next-auth catch-all routes)
-# Turbopack has issues with vendored Next.js modules in catch-all routes
-# Next.js will read variables from .env.local (created above) or ENV
-# Disable Next.js telemetry for faster builds (no network calls during build)
-# Type checking: run by Next.js during build (validate-build type-check skipped by default to save ~25-80s)
+# Build Next.js application (Railway: failures will show which step failed)
+# Uses Webpack in production (more stable with next-auth catch-all routes on Railway)
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NEXT_PRIVATE_STANDALONE=true
-# Increase Node memory for faster webpack compilation (reduces OOM risk on large apps)
+# Increase Node memory for webpack (reduces OOM on Railway)
 ENV NODE_OPTIONS="--max-old-space-size=4096"
-RUN cd apps/web && USE_WEBPACK=true pnpm build
+# Prebuild (ensure-css, api:manifest) - fail fast with clear step name
+RUN cd apps/web && pnpm run prebuild
+# Next.js build with Webpack (USE_WEBPACK=true so build-with-fallback.js uses webpack)
+RUN cd apps/web && USE_WEBPACK=true pnpm exec next build --webpack
 
 # Production image
 FROM base AS runner

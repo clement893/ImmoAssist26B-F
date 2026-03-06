@@ -4526,6 +4526,9 @@ async def _stream_lea_sse(
         action_lines, created_tx = await run_lea_actions(
             db, user_id, message, last_assistant_message, session_id=sid
         )
+        # Ne lier la session qu'à une transaction créée dans ce tour ou à celle passée par le client.
+        # Ne jamais lier à get_user_latest_transaction() : cela ferait écraser une transaction existante
+        # quand l'utilisateur démarre une nouvelle conversation pour en créer une autre.
         if sid and action_lines:
             tx_to_link = created_tx
             if not tx_to_link and transaction_id:
@@ -4538,8 +4541,6 @@ async def _stream_lea_sse(
                     )
                 )
                 tx_to_link = r.scalar_one_or_none()
-            if not tx_to_link:
-                tx_to_link = await get_user_latest_transaction(db, user_id)
             if tx_to_link:
                 await link_lea_session_to_transaction(db, user_id, sid, tx_to_link.id)
         # Charger contexte + conversation (même session) en parallèle avec la base de connaissance (cache/session dédiée)
@@ -4673,17 +4674,20 @@ async def lea_chat(
             action_lines, created_tx = await run_lea_actions(
                 db, current_user.id, body.message, body.last_assistant_message, session_id=sid
             )
+            # Ne lier la session qu'à une transaction créée dans ce tour ou à celle passée par le client.
+            # Ne jamais lier à get_user_latest_transaction() pour éviter d'écraser une transaction existante.
             if sid and action_lines:
-                tx_to_link = created_tx or (
-                    (await db.execute(
+                tx_to_link = created_tx
+                if not tx_to_link and body.transaction_id:
+                    r = await db.execute(
                         select(RealEstateTransaction).where(
                             and_(
                                 RealEstateTransaction.id == body.transaction_id,
                                 RealEstateTransaction.user_id == current_user.id,
                             )
                         )
-                    )).scalar_one_or_none() if body.transaction_id else None
-                ) or await get_user_latest_transaction(db, current_user.id)
+                    )
+                    tx_to_link = r.scalar_one_or_none()
                 if tx_to_link:
                     await link_lea_session_to_transaction(db, current_user.id, sid, tx_to_link.id)
             user_context = await get_lea_user_context(db, current_user.id)
@@ -4891,11 +4895,11 @@ async def lea_chat_voice(
                     detail="Impossible de transcrire l'audio. Parlez plus distinctement ou vérifiez le format.",
                 )
 
-            action_lines, _ = await run_lea_actions(db, current_user.id, transcription)
-            if sid and action_lines:
-                tx_to_link = await get_user_latest_transaction(db, current_user.id)
-                if tx_to_link:
-                    await link_lea_session_to_transaction(db, current_user.id, sid, tx_to_link.id)
+            action_lines, created_tx = await run_lea_actions(
+                db, current_user.id, transcription, session_id=sid
+            )
+            if sid and created_tx:
+                await link_lea_session_to_transaction(db, current_user.id, sid, created_tx.id)
             user_context = await get_lea_user_context(db, current_user.id)
             if action_lines:
                 user_context += "\n\n--- Action effectuée ---\n" + "\n".join(action_lines)
