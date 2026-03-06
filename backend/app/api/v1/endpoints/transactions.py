@@ -91,7 +91,8 @@ async def list_transactions(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Get list of real estate transactions for the current user
+    Get list of real estate transactions for the current user.
+    Returns all matching transactions (up to limit); no single-transaction restriction.
     """
     try:
         query = select(RealEstateTransaction).where(

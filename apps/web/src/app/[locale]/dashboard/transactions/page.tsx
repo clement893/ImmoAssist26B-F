@@ -4,7 +4,7 @@
 export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
@@ -85,8 +85,10 @@ function TransactionsContent() {
       const response = await transactionsAPI.list({
         search: searchQuery || undefined,
         status: statusFilter || undefined,
+        limit: 500,
       });
-      setTransactions(response.data.transactions || []);
+      const list = response?.data?.transactions;
+      setTransactions(Array.isArray(list) ? list : []);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur lors du chargement des transactions';
       setError(errorMessage);
@@ -95,9 +97,21 @@ function TransactionsContent() {
     }
   };
 
+  const loadTransactionsRef = useRef(loadTransactions);
+  loadTransactionsRef.current = loadTransactions;
+
   useEffect(() => {
     loadTransactions();
   }, [searchQuery, statusFilter]);
+
+  // Recharger la liste quand la page redevient visible (ex. retour après création via Léa)
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') loadTransactionsRef.current();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, []);
 
   const handleCreate = async (formData: any) => {
     setLoading(true);
