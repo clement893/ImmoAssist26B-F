@@ -239,9 +239,7 @@ LEA_SYSTEM_PROMPT = (
     "Si l'utilisateur pose une question sur ce qui est possible (ex. « as-t-on d'autres informations qu'on peut ajouter ? », « quelles infos peut-on ajouter pour une telle transaction ? », « qu'est-ce qu'on peut faire ? »), il demande une **explication ou une liste**, pas d'exécuter une action. "
     "Réponds alors uniquement en donnant des informations (formulaires utiles, données à compléter, prochaines étapes). Ne prétends jamais avoir créé un formulaire ou effectué une action à la place de l'utilisateur dans ce cas — sauf si le bloc « Action effectuée » indique explicitement qu'une action a été faite pour cette demande.\n\n"
     "** TRANSACTION DOUBLON : ** "
-    "Une transaction doublon est un dossier déjà existant pour l'utilisateur qui est encore vide (adresse à compléter, aucun vendeur, aucun acheteur, aucun prix). "
-    "Quand le bloc « Action effectuée » contient « Transaction doublon » ou « La création d'une nouvelle transaction n'a pas été effectuée », tu NE DOIS PAS dire que la transaction a été créée. "
-    "Explique à l'utilisateur qu'il a déjà un dossier (indique le numéro donné dans le bloc) et que la création d'un nouveau dossier n'a pas été faite pour éviter un doublon ; invite-le à compléter ce dossier dans la section Transactions ou à préciser l'adresse d'un autre bien s'il souhaite un dossier pour une propriété différente.\n\n"
+    "Un courtier peut créer autant de transactions (vente ou achat) qu'il le souhaite ; chaque nouveau dossier est une nouvelle transaction.\n\n"
     "Quand « Action effectuée » indique une ou plusieurs actions (ex: transaction créée, adresse ajoutée, promesse d'achat enregistrée), "
     "confirme uniquement ce qui est indiqué et invite l'utilisateur à compléter dans la section Transactions si pertinent. "
     "Tu peux aussi effectuer une **recherche en ligne** (géocodage) pour compléter une adresse (ville, code postal, province) : si l'utilisateur demande de « trouver le code postal en ligne », « chercher l'adresse sur internet » ou « ajouter le code postal trouvé en ligne », le bloc « Action effectuée » indiquera le résultat ; confirme-le alors à l'utilisateur (ne dis pas que tu ne peux pas). "
@@ -917,21 +915,11 @@ async def maybe_create_transaction_from_lea(
     Crée une transaction uniquement si le message contient toutes les infos requises :
     type (achat/vente), adresse, prix, au moins un vendeur et un acheteur.
     Sinon retourne (None, instruction) pour que Léa demande les éléments manquants.
-    Si l'utilisateur a déjà un dossier vide (doublon), ne pas créer et retourner (None, message_duplicate).
+    Un courtier peut créer autant de transactions (vente ou achat) qu'il le souhaite ; il n'y a pas de limite ni de doublon.
     """
     ok, tx_type = _wants_to_create_transaction(message)
     if not ok or not tx_type:
         return (None, None)
-    existing_empty = await get_existing_empty_transaction(db, user_id)
-    if existing_empty:
-        ref = existing_empty.dossier_number or f"#{existing_empty.id}"
-        duplicate_msg = (
-            f"Transaction doublon : l'utilisateur a déjà un dossier vide (sans adresse complète, sans vendeur, sans acheteur, sans prix) : {ref}. "
-            "La création d'une nouvelle transaction n'a pas été effectuée pour éviter un doublon. "
-            f"Indique-lui qu'il a déjà le dossier {ref} et qu'il doit le compléter (adresse, vendeurs, acheteurs, prix) dans la section Transactions, "
-            "ou qu'il peut préciser l'adresse d'un autre bien s'il souhaite un dossier pour une propriété différente."
-        )
-        return (None, duplicate_msg)
 
     # Règle : ne créer que si adresse + prix + au moins un vendeur + au moins un acheteur (date de clôture facultative)
     address = _extract_address_from_message(message)
