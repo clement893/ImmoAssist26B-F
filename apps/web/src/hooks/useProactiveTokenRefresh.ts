@@ -33,8 +33,8 @@ const ACTIVITY_EVENTS = [
   'touchstart',
 ] as const;
 
-/** Options for addEventListener for high-frequency events (passive = better scroll performance). */
-const PASSIVE = { passive: true } as const;
+/** Options for addEventListener/removeEventListener (passive = better scroll performance). */
+const PASSIVE: AddEventListenerOptions = { passive: true };
 
 /**
  * Proactive token refresh that only runs while the user is active.
