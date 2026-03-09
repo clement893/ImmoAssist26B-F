@@ -294,7 +294,8 @@ LEA_SYSTEM_PROMPT = (
 "Tu es reliée à tous les formulaires OACIQ du système. La liste « Formulaires OACIQ disponibles » (dans Données plateforme) contient tous les codes (PA, CP, CCVE, DV, MO, etc.). "
 "Tu peux créer pour l'utilisateur n'importe quel formulaire de cette liste pour une de ses transactions : dès qu'il demande (ex. « crée une contre-proposition », « crée un CP », « je veux un formulaire CCVE pour la transaction rue X »), demande pour quelle transaction si besoin (adresse ou numéro de dossier), puis confirme ; le système créera le brouillon. "
 "** Tu peux aussi aider à compléter les formulaires : ** quand l'utilisateur dit « toi complète le », « remplis le formulaire », « complète le » (après avoir parlé d'un formulaire en brouillon), le système préremplit le formulaire avec les données de la transaction (adresse, vendeurs, acheteurs, prix, date de clôture). Confirme que c'est fait et indique d'aller dans Transactions → cette transaction → onglet Formulaires OACIQ pour vérifier. Ne dis pas que tu ne peux pas — l'action est effectuée par le système. "
-"** Tu dois aider l'utilisateur à remplir les champs du formulaire (ex. PA) : ** rappelle quelles sections ou champs restent à remplir, indique où ils se trouvent (ex. section 4 Prix et acompte, section 7 Date de signature de l'acte), explique le sens des champs si besoin (sans inventer de valeurs). Guide-le dans le remplissage du formulaire en conversation."
+"** Tu dois aider l'utilisateur à remplir les champs du formulaire (ex. PA) : ** rappelle quelles sections ou champs restent à remplir, indique où ils se trouvent (ex. section 4 Prix et acompte, section 7 Date de signature de l'acte), explique le sens des champs si besoin (sans inventer de valeurs). Guide-le dans le remplissage du formulaire en conversation. "
+"** Remplissage champ par champ (PA) : ** Quand « Action effectuée » indique « Tu aides l'utilisateur à remplir le formulaire PA champ par champ » et donne UN champ à demander (ex. « quelle est la valeur pour le champ « X » »), ta réponse doit contenir UNE SEULE question : demande ce champ à l'utilisateur. Quand « Action effectuée » dit « Valeur enregistrée pour le champ … Demande à l'utilisateur la valeur pour le champ suivant » : confirme brièvement que c'est enregistré puis pose UNE SEULE question pour le champ suivant. Les valeurs sont enregistrées dans le brouillon du formulaire et s'afficheront dans l'interface (Transactions → transaction → Formulaires OACIQ). "
 "Tu peux indiquer quels formulaires OACIQ sont en brouillon, complétés ou signés pour une transaction. "
 "Quand l'utilisateur demande « quels documents me manquent » ou « quelle est la prochaine étape », base-toi sur le bloc Données plateforme (formulaires OACIQ par transaction) et indique ce qui est en brouillon, complété, signé, et ce qu'il reste à faire ou à créer (ex. compléter le PA, créer un DIA pour une vente). "
 "Quand une action a créé un formulaire, indique clairement le nom du formulaire, la transaction concernée et la prochaine étape : Transactions → ouvrir cette transaction → onglet Formulaire (Formulaires OACIQ) → compléter le formulaire indiqué."
@@ -3700,6 +3701,190 @@ def _wants_lea_to_complete_form(message: str) -> bool:
     return any(p in t for p in complete_phrases)
 
 
+def _wants_help_filling_oaciq(message: str) -> bool:
+    """True si l'utilisateur demande à Léa de l'aider à remplir le formulaire champ par champ (ex. « aide-moi à le remplir »)."""
+    if not message or len(message.strip()) < 5:
+        return False
+    t = (message or "").strip().lower()
+    help_phrases = (
+        "aide moi a le remplir", "aide-moi à le remplir", "aide moi à le remplir",
+        "aide-moi a le remplir", "aide moi pour le remplir", "aide-moi pour le remplir",
+        "aide-moi à remplir", "aide moi a remplir", "guide-moi pour remplir", "guide moi pour remplir",
+        "aide-moi à le remplir", "m'aide à le remplir", "m aide a le remplir",
+        "remplir avec moi", "remplis avec moi", "on le remplit ensemble",
+    )
+    return any(p in t for p in help_phrases)
+
+
+def _get_next_empty_pa_field(form_fields: object, current_data: dict) -> Tuple[Optional[str], Optional[str]]:
+    """Retourne (field_id, label) du prochain champ vide (requis d'abord, puis optionnels), ou (None, None)."""
+    flat = _flatten_oaciq_field_defs(form_fields)
+    current = current_data or {}
+    # Requis d'abord
+    for f in flat:
+        key = str(f.get("name") or f.get("id") or "").strip()
+        if not key:
+            continue
+        if not f.get("required"):
+            continue
+        if not _value_is_filled(current.get(key)):
+            return (key, str(f.get("label") or f.get("id") or key))
+    # Puis optionnels
+    for f in flat:
+        key = str(f.get("name") or f.get("id") or "").strip()
+        if not key:
+            continue
+        if f.get("required"):
+            continue
+        if not _value_is_filled(current.get(key)):
+            return (key, str(f.get("label") or f.get("id") or key))
+    return (None, None)
+
+
+def _normalize_pa_value(field_type: str, raw: str) -> Any:
+    """Normalise la réponse utilisateur pour un champ PA (number, date, text, etc.)."""
+    if raw is None:
+        return None
+    s = (raw or "").strip()
+    if not s:
+        return None
+    t = (field_type or "").strip().lower()
+    if t in ("number", "currency"):
+        s = re.sub(r"[^\d.,\-]", "", s.replace(",", "."))
+        try:
+            return float(s) if "." in s else int(s)
+        except ValueError:
+            return s
+    if t == "date":
+        # Formats courants: YYYY-MM-DD, DD/MM/YYYY, DD-MM-YYYY
+        for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y"):
+            try:
+                return datetime.strptime(s[:10], fmt).date().isoformat()
+            except ValueError:
+                continue
+        return s
+    return s
+
+
+async def get_draft_pa_submission_for_transaction(
+    db: AsyncSession, user_id: int, transaction: RealEstateTransaction
+) -> Optional[Tuple[Any, str, str, object]]:
+    """Retourne (FormSubmission, form_code, form_name, form_fields) pour le brouillon PA de la transaction, ou None."""
+    try:
+        q = (
+            select(FormSubmission, Form.code, Form.name, Form.fields)
+            .join(Form, FormSubmission.form_id == Form.id)
+            .where(
+                FormSubmission.transaction_id == transaction.id,
+                FormSubmission.user_id == user_id,
+                FormSubmission.status == "draft",
+                Form.code == "PA",
+            )
+            .order_by(FormSubmission.submitted_at.desc())
+        )
+        res = await db.execute(q)
+        row = res.first()
+        if not row:
+            return None
+        return (row[0], row[1], row[2], row[3])
+    except Exception as e:
+        logger.warning(f"get_draft_pa_submission_for_transaction failed: {e}", exc_info=True)
+        return None
+
+
+async def maybe_oaciq_fill_help_or_save(
+    db: AsyncSession,
+    user_id: int,
+    session_id: Optional[str],
+    message: str,
+    transaction_preferred: Optional[RealEstateTransaction],
+    conv: Optional[LeaConversation],
+) -> Tuple[List[str], Optional[dict]]:
+    """
+    Soit enregistre la réponse de l'utilisateur dans le champ PA en cours (si oaciq_fill actif),
+    soit entre en mode « aide au remplissage » et retourne le premier champ à demander.
+    Retourne (lignes pour Action effectuée, mise à jour de conv.context['oaciq_fill'] ou None).
+    """
+    if not conv or not session_id:
+        return ([], None)
+    ctx = conv.context or {}
+    oaciq_fill = ctx.get("oaciq_fill")
+    if isinstance(oaciq_fill, dict) and oaciq_fill.get("last_asked_field"):
+        # Enregistrer la valeur pour last_asked_field
+        sub_id = oaciq_fill.get("submission_id")
+        if not sub_id:
+            return ([], {"submission_id": None, "last_asked_field": None})
+        r = await db.execute(
+            select(FormSubmission, Form.fields)
+            .join(Form, FormSubmission.form_id == Form.id)
+            .where(
+                FormSubmission.id == int(sub_id),
+                FormSubmission.user_id == user_id,
+                FormSubmission.status == "draft",
+            )
+        )
+        row = r.first()
+        if not row:
+            return (["La soumission PA en brouillon n'existe plus. Tu peux proposer à l'utilisateur de créer un nouveau formulaire PA."], {"submission_id": None, "last_asked_field": None})
+        submission, form_fields = row[0], row[1]
+        last_asked = oaciq_fill.get("last_asked_field")
+        flat = _flatten_oaciq_field_defs(form_fields)
+        field_def = next((f for f in flat if (f.get("name") or f.get("id")) == last_asked), None)
+        field_type = str(field_def.get("type") or "text") if field_def else "text"
+        label = str(field_def.get("label") or last_asked) if field_def else last_asked
+        value = _normalize_pa_value(field_type, message)
+        if value is not None:
+            current = dict(submission.data) if isinstance(submission.data, dict) else {}
+            current[last_asked] = value
+            submission.data = current
+            flag_modified(submission, "data")
+            await db.flush()
+            version = FormSubmissionVersion(submission_id=submission.id, data=current)
+            db.add(version)
+            await db.commit()
+            await db.refresh(submission)
+            logger.info(f"Lea saved PA field {last_asked}={value} for submission id={submission.id}")
+        next_id, next_label = _get_next_empty_pa_field(form_fields, submission.data or {})
+        if next_id:
+            line = (
+                f"Valeur enregistrée pour le champ « {label} ». "
+                f"Demande à l'utilisateur la valeur pour le champ suivant : « {next_label} » ({next_id}). Une seule question."
+            )
+            return ([line], {"submission_id": sub_id, "last_asked_field": next_id})
+        line = (
+            "Tous les champs requis du formulaire PA sont remplis. "
+            "Confirme à l'utilisateur et indique-lui d'aller dans Transactions → cette transaction → onglet Formulaires OACIQ pour vérifier le formulaire et le compléter ou signer."
+        )
+        return ([line], {"submission_id": None, "last_asked_field": None})
+
+    if not _wants_help_filling_oaciq(message) or not transaction_preferred:
+        return ([], None)
+    draft = await get_draft_pa_submission_for_transaction(db, user_id, transaction_preferred)
+    if not draft:
+        return (
+            [
+                "L'utilisateur demande de l'aide pour remplir le formulaire mais il n'y a pas de formulaire PA en brouillon pour cette transaction. "
+                "Indique-lui d'aller dans Transactions → cette transaction → onglet Formulaires OACIQ pour créer ou ouvrir le formulaire PA, puis de revenir te demander de l'aide pour le remplir."
+            ],
+            None,
+        )
+    submission, form_code, form_name, form_fields = draft[0], draft[1], draft[2], draft[3]
+    current = dict(submission.data) if isinstance(submission.data, dict) else {}
+    next_id, next_label = _get_next_empty_pa_field(form_fields, current)
+    if not next_id:
+        return (
+            [
+                "Le formulaire PA est déjà entièrement rempli. Indique à l'utilisateur d'aller dans Transactions → cette transaction → onglet Formulaires OACIQ pour vérifier et signer."
+            ],
+            None,
+        )
+    line = (
+        f"Tu aides l'utilisateur à remplir le formulaire PA champ par champ. "
+        f"Demande-lui UNE SEULE question : quelle est la valeur pour le champ « {next_label} » (identifiant technique : {next_id}) ? Ne liste pas d'autres champs."
+    )
+    return ([line], {"submission_id": submission.id, "last_asked_field": next_id})
+
+
 def _build_oaciq_prefill_from_transaction(tx: RealEstateTransaction) -> dict:
     """Construit un dictionnaire de préremplissage à partir des données de la transaction."""
     full_addr = _format_full_address_ca(
@@ -3962,6 +4147,7 @@ async def run_lea_actions(
         transaction_preferred is not None or (await get_user_latest_transaction(db, user_id)) is not None
     )
     conv = None
+    need_conv_commit = False
     pending: dict = {}
     if session_id:
         conv, _ = await get_or_create_lea_conversation(db, user_id, session_id)
@@ -4297,6 +4483,17 @@ async def run_lea_actions(
     prefill_line = await maybe_prefill_oaciq_form_from_lea(db, user_id, message, last_assistant_message) if not building_new_only else None
     if prefill_line:
         lines.append(prefill_line)
+    # Aide au remplissage champ par champ (PA) : enregistrer la valeur ou demander le prochain champ
+    fill_lines, oaciq_fill_ctx = await maybe_oaciq_fill_help_or_save(
+        db, user_id, session_id, message, transaction_preferred, conv
+    ) if not building_new_only else ([], None)
+    if fill_lines:
+        lines.extend(fill_lines)
+    if oaciq_fill_ctx is not None and conv is not None:
+        conv.context = conv.context or {}
+        conv.context["oaciq_fill"] = oaciq_fill_ctx
+        flag_modified(conv, "context")
+        need_conv_commit = True
     # Si l'utilisateur demande une promesse d'achat / formulaire sans préciser la transaction ni l'adresse, ne pas assumer la dernière
     if not promise_tx and not oaciq_line and (
         _wants_to_set_promise(message) or _wants_to_create_oaciq_form_for_transaction(message)
@@ -4552,14 +4749,15 @@ async def run_lea_actions(
             logger.warning(f"Lea create from pending failed: {e}", exc_info=True)
             await db.rollback()
 
-    if conv is not None and pending and session_id:
+    if conv is not None and session_id and (pending or need_conv_commit):
         conv.context = conv.context or {}
-        conv.context["pending_transaction_creation"] = pending
+        if pending:
+            conv.context["pending_transaction_creation"] = pending
         flag_modified(conv, "context")
         try:
             await db.commit()
         except Exception as e:
-            logger.warning(f"Lea save pending context failed: {e}", exc_info=True)
+            logger.warning(f"Lea save context failed: {e}", exc_info=True)
             await db.rollback()
 
     if not lines:
