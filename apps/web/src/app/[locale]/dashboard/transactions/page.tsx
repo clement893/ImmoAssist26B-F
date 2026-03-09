@@ -51,6 +51,10 @@ interface Transaction {
   final_sale_price?: number;
   promise_to_purchase_date?: string;
   promise_acceptance_date?: string;
+  inspection_deadline?: string;
+  inspection_condition_lifted_date?: string;
+  financing_deadline?: string;
+  financing_condition_lifted_date?: string;
   expected_closing_date?: string;
   actual_closing_date?: string;
   possession_date?: string;
@@ -508,6 +512,31 @@ function TransactionsContent() {
                       </div>
                     )}
                   </div>
+
+                  {/* Bloc Promesse d'achat : afficher quand la transaction est en phase PA */}
+                  {(transaction.pipeline_stage === 'promesse_achat' || transaction.promise_to_purchase_date) && (
+                    <div className="mt-4 pt-4 border-t border-amber-200 bg-amber-50/70 dark:bg-amber-950/30 rounded-xl p-4 space-y-2">
+                      <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">Promesse d'achat</p>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+                        <span className="text-muted-foreground">Prix offert</span>
+                        <span className="font-medium">{(transaction.offered_price ?? transaction.listing_price) != null ? formatCurrency(transaction.offered_price ?? transaction.listing_price) : '–'}</span>
+                        <span className="text-muted-foreground">Date promesse</span>
+                        <span className="font-medium">{transaction.promise_to_purchase_date ? formatDate(transaction.promise_to_purchase_date) : '–'}</span>
+                        <span className="text-muted-foreground">Date acceptation</span>
+                        <span className="font-medium">{transaction.promise_acceptance_date ? formatDate(transaction.promise_acceptance_date) : '–'}</span>
+                        <span className="text-muted-foreground">Date clôture prévue</span>
+                        <span className="font-medium">{transaction.expected_closing_date ? formatDate(transaction.expected_closing_date) : '–'}</span>
+                        <span className="text-muted-foreground">Limite inspection</span>
+                        <span className="font-medium">{transaction.inspection_deadline ? formatDate(transaction.inspection_deadline) : '–'}</span>
+                        <span className="text-muted-foreground">Condition inspection</span>
+                        <span className="font-medium">{transaction.inspection_condition_lifted_date ? `Levée le ${formatDate(transaction.inspection_condition_lifted_date)}` : 'En attente'}</span>
+                        <span className="text-muted-foreground">Limite financement</span>
+                        <span className="font-medium">{transaction.financing_deadline ? formatDate(transaction.financing_deadline) : '–'}</span>
+                        <span className="text-muted-foreground">Condition financement</span>
+                        <span className="font-medium">{transaction.financing_condition_lifted_date ? `Levée le ${formatDate(transaction.financing_condition_lifted_date)}` : 'En attente'}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Actions */}
