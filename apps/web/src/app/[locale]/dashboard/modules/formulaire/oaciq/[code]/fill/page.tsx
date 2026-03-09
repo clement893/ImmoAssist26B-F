@@ -6,7 +6,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useRouter } from '@/i18n/routing';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui';
@@ -20,9 +20,11 @@ import { handleApiError } from '@/lib/errors';
 
 export default function FormFillPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const queryClient = useQueryClient();
   const formCode = params.code as string;
+  const submissionIdFromUrl = searchParams.get('submissionId');
 
   const [submissionId, setSubmissionId] = useState<number | null>(null);
   const [formData, setFormData] = useState<Record<string, any>>({});
@@ -31,6 +33,18 @@ export default function FormFillPage() {
   const { data: form, isLoading: formLoading } = useQuery({
     queryKey: ['oaciq-form', formCode],
     queryFn: () => oaciqFormsAPI.getByCode(formCode),
+  });
+
+  const idToLoad = submissionIdFromUrl ? parseInt(submissionIdFromUrl, 10) : null;
+  const {
+    data: existingSubmission,
+    isLoading: submissionLoading,
+    isFetched: submissionFetched,
+    isError: submissionError,
+  } = useQuery({
+    queryKey: ['oaciq-submission', idToLoad],
+    queryFn: () => oaciqFormsAPI.getSubmission(idToLoad!),
+    enabled: !!idToLoad && !Number.isNaN(idToLoad),
   });
 
   const createSubmissionMutation = useMutation({
@@ -64,12 +78,29 @@ export default function FormFillPage() {
     },
   });
 
-  // Créer une nouvelle soumission au chargement
+  // Charger la soumission existante quand submissionId est dans l'URL
   useEffect(() => {
-    if (form && !submissionId && !createSubmissionMutation.isPending) {
+    if (existingSubmission) {
+      setSubmissionId(existingSubmission.id);
+      setFormData(
+        typeof existingSubmission.data === 'object' && existingSubmission.data !== null
+          ? { ...existingSubmission.data }
+          : {}
+      );
+    }
+  }, [existingSubmission]);
+
+  // Créer une nouvelle soumission seulement s'il n'y a pas de submissionId dans l'URL
+  useEffect(() => {
+    if (
+      form &&
+      !idToLoad &&
+      !submissionId &&
+      !createSubmissionMutation.isPending
+    ) {
       createSubmissionMutation.mutate({ form_code: form.code });
     }
-  }, [form, submissionId]);
+  }, [form, idToLoad, submissionId]);
 
   // Sauvegarde automatique toutes les 30 secondes
   useEffect(() => {
@@ -118,11 +149,30 @@ export default function FormFillPage() {
     }
   };
 
-  if (formLoading || !form) {
+  const isLoadingSubmission = !!idToLoad && submissionLoading;
+  const submissionNotFound =
+    !!idToLoad && submissionFetched && (submissionError || !existingSubmission);
+
+  if (formLoading || !form || isLoadingSubmission) {
     return (
       <div className="container py-8">
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-muted-foreground">Chargement...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (submissionNotFound) {
+    return (
+      <div className="container py-8">
+        <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+          <p className="text-muted-foreground">
+            Soumission introuvable.
+          </p>
+          <Button variant="outline" size="sm" onClick={() => router.back()}>
+            Retour
+          </Button>
         </div>
       </div>
     );
