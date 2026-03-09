@@ -212,7 +212,7 @@ def upgrade() -> None:
                     'Promesse d''achat – Immeuble principalement résidentiel',
                     'Formulaire OACIQ pour soumettre une offre d''achat sur un immeuble résidentiel.',
                     'obligatoire',
-                    'https://www.oaciq.com/formulaires/PA.pdf',
+                    'https://www.oaciq.com/media/m5seimcc/promesse-achat-immeuble-pag.pdf',
                     CAST(:fields AS jsonb),
                     CAST(:extraction AS jsonb),
                     'Soumettre',

@@ -37,6 +37,7 @@ from app.services.s3_service import S3Service
 from app.core.config import get_settings
 from app.core.logging import logger
 from app.core.rate_limit import rate_limit_decorator
+from app.utils.pa_sync import sync_pa_data_to_transaction
 
 from sqlalchemy import select, and_, or_, insert
 from sqlalchemy.exc import ProgrammingError, OperationalError
@@ -3847,6 +3848,13 @@ async def maybe_oaciq_fill_help_or_save(
             await db.flush()
             version = FormSubmissionVersion(submission_id=submission.id, data=current)
             db.add(version)
+            if submission.transaction_id:
+                tx_r = await db.execute(
+                    select(RealEstateTransaction).where(RealEstateTransaction.id == submission.transaction_id)
+                )
+                tx = tx_r.scalar_one_or_none()
+                if tx:
+                    sync_pa_data_to_transaction(tx, current)
             await db.commit()
             await db.refresh(submission)
             logger.info(f"Lea saved PA field {last_asked}={value} for submission id={submission.id}")
@@ -4112,6 +4120,7 @@ async def maybe_prefill_oaciq_form_from_lea(
                 if fallback is not None:
                     current[key] = fallback
         submission.data = current
+        sync_pa_data_to_transaction(transaction, current)
         await db.flush()
         version = FormSubmissionVersion(submission_id=submission.id, data=current)
         db.add(version)

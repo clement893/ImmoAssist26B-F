@@ -2,9 +2,30 @@
 
 Document d'instruction pour guider l'utilisateur dans le remplissage du formulaire PA, sans mélanger avec l'étape transaction. Référence détaillée des champs : `LEA_KNOWLEDGE_PA.md`.
 
+**Référence officielle OACIQ (PDF) :** [Promesse d'achat – Immeuble principalement résidentiel](https://www.oaciq.com/media/m5seimcc/promesse-achat-immeuble-pag.pdf)
+
 ---
 
-## 1. Définition de la Promesse d'achat
+## 1. Bloc « Promesse d'achat (PA) » sur la fiche transaction – tout doit être rempli
+
+Sur la fiche transaction, le bloc **Promesse d'achat (PA)** affiche les champs suivants. **Ils doivent tous être renseignés** (via le formulaire PA ou la fiche transaction) :
+
+| Champ | Description |
+|-------|-------------|
+| **Prix offert** | Montant de l'offre ($) |
+| **Date promesse** | Date de la promesse d'achat (signature acheteur) |
+| **Date acceptation** | Date d'acceptation par le vendeur |
+| **Date clôture prévue** | Date prévue pour la signature de l'acte / clôture |
+| **Limite inspection** | Date limite pour l'inspection |
+| **Condition inspection** | En attente → Levée le [date] une fois l'inspection faite |
+| **Limite financement** | Date limite pour l'approbation du financement |
+| **Condition financement** | En attente → Levée le [date] une fois le financement approuvé |
+
+Les valeurs remplies dans le **formulaire OACIQ PA** (brouillon ou complété) sont synchronisées vers la transaction pour afficher ce bloc à jour.
+
+---
+
+## 2. Définition de la Promesse d'achat
 
 La **Promesse d'achat (PA)** est un document officiel OACIQ par lequel l'**acheteur** s'engage à acheter un bien aux **prix et conditions** indiqués. Une fois **acceptée** par le vendeur, elle lie les deux parties. C'est un engagement contractuel, pas un simple souhait.
 
@@ -12,7 +33,7 @@ La **Promesse d'achat (PA)** est un document officiel OACIQ par lequel l'**achet
 
 ---
 
-## 2. Champs du formulaire PA à remplir (16 sections)
+## 3. Champs du formulaire PA à remplir (16 sections)
 
 | Section | Champs | Requis |
 |---------|--------|--------|
@@ -61,7 +82,7 @@ Les données **adresse, vendeurs, acheteurs, prix offert, date de clôture** peu
 
 ---
 
-## 4. Signatures et actes réservés à l'utilisateur
+## 5. Signatures et actes réservés à l'utilisateur
 
 **Les signatures et actes équivalents sont faits uniquement par l'utilisateur.** Léa ne signe pas, ne paraphe pas et ne remplit pas les champs de signature à la place de l'utilisateur.
 
@@ -70,7 +91,7 @@ Les données **adresse, vendeurs, acheteurs, prix offert, date de clôture** peu
 
 ---
 
-## 5. Autres actes réservés à l'utilisateur (Léa ne les fait pas)
+## 6. Autres actes réservés à l'utilisateur (Léa ne les fait pas)
 
 - **Signatures et paraphes** : voir section 4 ci-dessus.
 - **Réponse du vendeur** (Accepter / Refuser / Contre-proposition) : décision formelle ; seul l'utilisateur (côté vendeur) la prend.
@@ -81,6 +102,6 @@ Les données **adresse, vendeurs, acheteurs, prix offert, date de clôture** peu
 
 ---
 
-## 6. Référence
+## 7. Référence
 
 - Détail des champs et mapping transaction → formulaire : **LEA_KNOWLEDGE_PA.md**.

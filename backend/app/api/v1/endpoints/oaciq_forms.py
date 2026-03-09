@@ -15,6 +15,7 @@ from sqlalchemy.exc import SQLAlchemyError, OperationalError, ProgrammingError
 from app.models.form import Form, FormSubmission, FormSubmissionVersion
 from app.models.real_estate_transaction import RealEstateTransaction
 from app.models.user import User
+from app.utils.pa_sync import sync_pa_data_to_transaction
 from app.dependencies import get_current_user, get_db
 from app.core.api_key import optional_api_key, get_user_from_api_key
 from app.api.v1.endpoints.auth import get_current_user as get_current_user_jwt
@@ -716,6 +717,22 @@ async def update_oaciq_submission(
     if 'data' in submission_data:
         submission.data = submission_data['data']
     
+    # Récupérer le formulaire pour le code et pour la synchro PA → transaction
+    form_result = await db.execute(
+        select(Form).where(Form.id == submission.form_id)
+    )
+    form = form_result.scalar_one_or_none()
+    if form and (form.code or "").strip().upper() == "PA" and submission.transaction_id and isinstance(submission.data, dict):
+        tx_result = await db.execute(
+            select(RealEstateTransaction).where(
+                RealEstateTransaction.id == submission.transaction_id,
+                RealEstateTransaction.user_id == current_user.id,
+            )
+        )
+        tx = tx_result.scalar_one_or_none()
+        if tx:
+            sync_pa_data_to_transaction(tx, submission.data)
+    
     await db.commit()
     await db.refresh(submission)
     
@@ -729,14 +746,8 @@ async def update_oaciq_submission(
         db.add(version)
         await db.commit()
     
-    # Récupérer le code du formulaire
-    form_result = await db.execute(
-        select(Form).where(Form.id == submission.form_id)
-    )
-    form = form_result.scalar_one()
-    
     response = OACIQFormSubmissionResponse.model_validate(submission)
-    response.form_code = form.code
+    response.form_code = form.code if form else None
     return response
 
 
