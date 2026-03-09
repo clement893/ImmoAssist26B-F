@@ -3637,6 +3637,12 @@ async def _create_oaciq_form_submission_for_transaction(
         await db.refresh(submission)
         version = FormSubmissionVersion(submission_id=submission.id, data={})
         db.add(version)
+        # Faire apparaître la transaction dans la colonne « Promesse d'achat » du pipeline
+        if form_code == "PA":
+            transaction.pipeline_stage = "promesse_achat"
+            if not transaction.promise_to_purchase_date:
+                transaction.promise_to_purchase_date = date.today()
+            await db.flush()
         await db.commit()
         await db.refresh(submission)
         ref_label = transaction.dossier_number or f"#{transaction.id}"

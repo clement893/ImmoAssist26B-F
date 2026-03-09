@@ -3,6 +3,7 @@ OACIQ Forms API Endpoints
 Formulaires OACIQ spécifiques
 """
 
+from datetime import date
 from typing import List, Optional
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
@@ -832,6 +833,11 @@ async def create_transaction_form_submission(
     )
     
     db.add(submission)
+    # Faire apparaître la transaction dans la colonne « Promesse d'achat » du pipeline
+    if form_code == "PA" and transaction:
+        transaction.pipeline_stage = "promesse_achat"
+        if not transaction.promise_to_purchase_date:
+            transaction.promise_to_purchase_date = date.today()
     await db.commit()
     await db.refresh(submission)
     
