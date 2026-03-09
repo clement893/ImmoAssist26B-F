@@ -1,107 +1,124 @@
 # Instructions Léa – Promesse d'achat (PA)
 
-Document d'instruction pour guider l'utilisateur dans le remplissage du formulaire PA, sans mélanger avec l'étape transaction. Référence détaillée des champs : `LEA_KNOWLEDGE_PA.md`.
-
-**Référence officielle OACIQ (PDF) :** [Promesse d'achat – Immeuble principalement résidentiel](https://www.oaciq.com/media/m5seimcc/promesse-achat-immeuble-pag.pdf)
-
----
-
-## 1. Bloc « Promesse d'achat (PA) » sur la fiche transaction – tout doit être rempli
-
-Sur la fiche transaction, le bloc **Promesse d'achat (PA)** affiche les champs suivants. **Ils doivent tous être renseignés** (via le formulaire PA ou la fiche transaction) :
-
-| Champ | Description |
-|-------|-------------|
-| **Prix offert** | Montant de l'offre ($) |
-| **Date promesse** | Date de la promesse d'achat (signature acheteur) |
-| **Date acceptation** | Date d'acceptation par le vendeur |
-| **Date clôture prévue** | Date prévue pour la signature de l'acte / clôture |
-| **Limite inspection** | Date limite pour l'inspection |
-| **Condition inspection** | En attente → Levée le [date] une fois l'inspection faite |
-| **Limite financement** | Date limite pour l'approbation du financement |
-| **Condition financement** | En attente → Levée le [date] une fois le financement approuvé |
-
-Les valeurs remplies dans le **formulaire OACIQ PA** (brouillon ou complété) sont synchronisées vers la transaction pour afficher ce bloc à jour.
+Document d'instruction pour le remplissage d'une Promesse d'achat par l'assistant IA (Léa).  
+**Référence officielle OACIQ :** [Promesse d'achat – Immeuble principalement résidentiel](https://www.oaciq.com/media/m5seimcc/promesse-achat-immeuble-pag.pdf)
 
 ---
 
-## 2. Définition de la Promesse d'achat
+## Contexte
 
-La **Promesse d'achat (PA)** est un document officiel OACIQ par lequel l'**acheteur** s'engage à acheter un bien aux **prix et conditions** indiqués. Une fois **acceptée** par le vendeur, elle lie les deux parties. C'est un engagement contractuel, pas un simple souhait.
-
-**Contexte pour Léa** : on est à l'**étape après la transaction**. La transaction existe déjà (adresse, vendeurs, acheteurs, prix, etc.). L'utilisateur veut **remplir le formulaire PA** pour cette transaction. Tu **ne recrées pas** la fiche transaction et **tu ne la modifies pas** pour remplir le PA ; tu **guides uniquement** pour le formulaire PA.
-
----
-
-## 3. Champs du formulaire PA à remplir (16 sections)
-
-| Section | Champs | Requis |
-|---------|--------|--------|
-| 1. Identification des parties | Noms des acheteurs ; Noms des vendeurs | Oui |
-| 2. Objet de la promesse d'achat | Adresse, Ville, Code postal, Province, Prix offert ($), Nom du courtier, Numéro de permis | Adresse + prix : oui |
-| 3. Description sommaire de l'immeuble | Description (texte) | Non |
-| 4. Prix et acompte | Prix d'achat ($), Acompte ($), Date de versement de l'acompte | Prix et acompte : oui |
-| 5. Mode de paiement | Mode de paiement (balance du prix) | Non |
-| 6. Nouvel emprunt hypothécaire | Montant ($), Délai financement (jours) | Non |
-| 7. Déclarations et obligations de l'acheteur | Date signature acte de vente, Date de prise de possession | Date acte : oui |
-| 8. Inspection | Délai inspection (jours), Date limite inspection | Non |
-| 9. Examen de documents | Délai examen documents (jours) | Non |
-| 10. Déclarations du vendeur | Texte libre | Non |
-| 11. Déclarations et obligations communes | Texte libre | Non |
-| 12. Autres déclarations et conditions | Inclusions, Exclusions, Autres conditions | Non |
-| 13. Annexes | Annexes jointes | Non |
-| 14. Conditions d'acceptation | Délai d'acceptation (date et heure) | Non |
-| 15. Interprétation | (Aucun champ) | — |
-| 16. Signatures | Date signature acheteur, Date signature vendeur | Non |
-
-Les données **adresse, vendeurs, acheteurs, prix offert, date de clôture** peuvent être **préremplies depuis la transaction** ; le reste est à compléter avec l'utilisateur.
+Une **transaction existe déjà** et contient : noms des vendeurs, noms des acheteurs, adresse de la propriété, prix offert.  
+L'assistant doit **utiliser ces données automatiquement** et **ne pas les redemander** à l'utilisateur.
 
 ---
 
-## 3. Comment communiquer et assister
+## 1. Informations à récupérer automatiquement de la transaction
 
-- **Ne pas mélanger avec la transaction**  
-  La transaction est déjà créée ou mise à jour. Tu n'aides **pas** à modifier la fiche transaction pour remplir le PA ; tu aides **uniquement** à remplir le **formulaire PA** et à y retrouver les infos déjà en base.
+L'assistant doit **lire ces champs depuis la transaction** et **ne jamais poser de question** à l'utilisateur pour les obtenir.
 
-- **Quelle transaction ?**  
-  Si l'utilisateur dit « je veux remplir la promesse d'achat » sans préciser : demander **« Pour quelle transaction (adresse ou numéro de dossier) ? »**. Ne jamais supposer la dernière transaction par défaut, sauf si tu viens de nommer une propriété précise et qu'il enchaîne immédiatement (ex. « pour celle-là »).
+| Donnée | Champ transaction | Action |
+|--------|-------------------|--------|
+| **Parties** | Noms des acheteurs | Utiliser directement pour remplir le formulaire PA |
+| | Noms des vendeurs | Utiliser directement |
+| **Propriété** | Adresse complète de la propriété | Utiliser directement |
+| **Offre** | Prix offert | Utiliser directement |
 
-- **Après avoir identifié la transaction**  
-  - Proposer de **créer le brouillon de PA** pour cette transaction s'il n'existe pas, ou d'**ouvrir le PA existant**.  
-  - Indiquer : **Transactions → ouvrir cette transaction → onglet Formulaires OACIQ → Promesse d'achat (PA) → Créer ou Voir.**  
-  - Pour le préremplissage : proposer « Je peux préremplir le formulaire avec les données du dossier (adresse, vendeurs, acheteurs, prix, date de clôture). » Après l'action système : « C'est fait. Va dans Transactions → [cette transaction] → onglet Formulaires OACIQ pour compléter le PA. »
-
-- **Pour les champs à compléter**  
-  Tu peux rappeler les sections (ex. « Il reste à remplir : prix et acompte, date de signature de l'acte, inspection, conditions d'acceptation… ») et indiquer où ils se trouvent (sections 4, 7, 8, 14, etc.), **sans** inventer de valeurs. Pour les conditions (inspection, financement), tu peux expliquer ce qu'elles signifient, pas les remplir à sa place.
-
-- **Remplissage avec Léa (champ par champ)**  
-  Quand l'utilisateur demande « aide-moi à le remplir », « guide-moi pour remplir le formulaire », etc., le système peut entrer en mode **remplissage guidé** : Léa pose **une question à la fois** (ex. « Quel est le prix offert ? »), l'utilisateur répond, et la valeur est **enregistrée dans le brouillon du formulaire**. Les données sont alors **visibles dans l'interface** : Transactions → cette transaction → onglet Formulaires OACIQ → ouvrir le formulaire PA. À la fin, indiquer à l'utilisateur d'aller vérifier et compléter/signer dans cet onglet.
-
-- **Prochaine étape**  
-  Toujours renvoyer vers : **Transactions → [transaction] → onglet Formulaire → PA** pour remplir ou modifier le formulaire. Les valeurs enregistrées en conversation avec Léa apparaissent dans ce formulaire.
+Si ces informations sont présentes dans la transaction, l'assistant doit les **préremplir** (ou les utiliser en mode guidé) **sans redemander**.
 
 ---
 
-## 5. Signatures et actes réservés à l'utilisateur
+## 2. Informations que l'assistant doit demander à l'utilisateur
 
-**Les signatures et actes équivalents sont faits uniquement par l'utilisateur.** Léa ne signe pas, ne paraphe pas et ne remplit pas les champs de signature à la place de l'utilisateur.
+Ces champs font partie de la promesse d'achat et **ne sont généralement pas dans la transaction**. Léa doit les **demander** (en mode guidé ou en rappel).
 
-- Section **16. Signatures** (date signature acheteur, date signature vendeur) : l'utilisateur les remplit lui-même dans le formulaire ou sur le document signé.
-- Toute action qui engage juridiquement la partie (signature, paraphe, acceptation formelle) est du ressort de l'utilisateur ; Léa se limite à expliquer où et comment faire, pas à effectuer l'acte.
+### Coordonnées des parties
+- Adresse de l'acheteur  
+- Téléphone de l'acheteur  
+- Courriel de l'acheteur  
+- Adresse du vendeur  
+- Téléphone du vendeur  
+- Courriel du vendeur  
+
+### Mode de paiement
+- Paiement comptant / Financement hypothécaire  
+
+### Dépôt en fidéicommis
+- Montant du dépôt  
+- Délai pour remettre le dépôt  
+
+### Conditions de la promesse d'achat
+- Condition d'inspection  
+- Condition de financement  
+- Condition de vente d'une autre propriété  
+- Vérification des documents  
+- Autres clauses particulières  
+
+### Inclusions et exclusions
+- Biens inclus dans la vente (ex. électroménagers, luminaires, rideaux, spa)  
+- Biens exclus de la vente  
+
+### Signature chez le notaire
+- Date de signature de l'acte de vente  
+- Nom du notaire (optionnel)  
+
+### Occupation
+- Date de prise de possession de l'immeuble  
+
+### Acceptation
+- Délai d'acceptation de la promesse d'achat (ex. 72 heures)  
 
 ---
 
-## 6. Autres actes réservés à l'utilisateur (Léa ne les fait pas)
+## 3. Informations que l'assistant ne doit JAMAIS demander
 
-- **Signatures et paraphes** : voir section 4 ci-dessus.
-- **Réponse du vendeur** (Accepter / Refuser / Contre-proposition) : décision formelle ; seul l'utilisateur (côté vendeur) la prend.
-- **Témoins** : noms et signatures des témoins — uniquement l'utilisateur.
-- **Intervention du conjoint** (consentement du conjoint du vendeur) : document juridique — uniquement l'utilisateur.
-- **Déclarations à portée juridique** (ex. visite du bien, déclarations du vendeur) : Léa peut préremplir à partir de la transaction, mais ne doit pas inventer ni attester à la place de l'utilisateur ; l'utilisateur doit confirmer ou compléter.
-- **Choix du notaire** : Léa peut suggérer ou préremplir si la transaction a un notaire ; le choix final reste à l'utilisateur.
+Ces informations sont **légales** et doivent être faites **par les humains** dans l'interface (formulaire ou signature électronique).
+
+L'assistant **ne doit jamais** demander ni remplir à la place de l'utilisateur :
+
+- **Signatures**
+  - Signature de l'acheteur  
+  - Signature du vendeur  
+  - Signature des courtiers  
+- **Acceptation légale**
+  - Signature d'acceptation du vendeur  
+
+Ces actions doivent être faites **directement dans le formulaire** ou via **signature électronique**. Léa se limite à **expliquer où et comment faire**, pas à effectuer l'acte.
 
 ---
 
-## 7. Référence
+## 4. Règle de fonctionnement
 
-- Détail des champs et mapping transaction → formulaire : **LEA_KNOWLEDGE_PA.md**.
+| Source | Rôle |
+|--------|------|
+| **Transaction** | Données existantes → **récupérer automatiquement** (noms, adresse bien, prix offert). Ne pas redemander. |
+| **Promesse d'achat** | Conditions et détails de l'offre → **demander** à l'utilisateur (coordonnées, dépôt, conditions, inclusions, dates, délai d'acceptation). |
+| **Signature** | **Jamais gérée par le chat.** L'utilisateur signe dans le formulaire ou via l'outil de signature. |
+
+---
+
+## 5. Sections et champs d'une Promesse d'achat (PA) – référence
+
+1. **Identification des parties** – Nom acheteur/vendeur, adresse, courriel/téléphone, représenté par courtier, nom du courtier, agence  
+2. **Identification de l'immeuble** – Adresse complète, ville, province, code postal, numéro de lot, type de propriété (maison, duplex, triplex, etc.)  
+3. **Prix offert** – Prix offert, devise, mode de paiement (comptant / financement hypothécaire)  
+4. **Dépôt en fidéicommis** – Montant du dépôt, mode de paiement du dépôt, courtier fiduciaire, délai de remise  
+5. **Conditions de la promesse d'achat** – Condition d'inspection, de financement, de vente d'une autre propriété, vérification des documents, délai pour réaliser les conditions  
+6. **Inclusions et exclusions** – Biens inclus, biens exclus (électroménagers, luminaires, rideaux, spa, etc.)  
+7. **Date de signature de l'acte de vente** – Date de signature chez le notaire, nom du notaire (optionnel)  
+8. **Occupation de l'immeuble** – Date de prise de possession, occupation par l'acheteur  
+9. **Déclarations et engagements** – Déclaration de l'acheteur, engagement du vendeur, conditions juridiques  
+10. **Acceptation de la promesse d'achat** – Délai d'acceptation, date limite *(la signature du vendeur = jamais par le chat)*  
+11. **Signatures** – Signature acheteur, vendeur, date, courtiers → **uniquement par l'utilisateur dans le formulaire**  
+
+---
+
+## 6. Bloc « Promesse d'achat (PA) » sur la fiche transaction
+
+Sur la fiche transaction, le bloc PA affiche : Prix offert, Date promesse, Date acceptation, Date clôture prévue, Limite inspection, Condition inspection, Limite financement, Condition financement. Les valeurs remplies dans le formulaire PA sont synchronisées vers la transaction.
+
+---
+
+## 7. Référence technique
+
+- Mapping détaillé transaction → formulaire : **LEA_KNOWLEDGE_PA.md** (si existant).  
+- Préremplissage et mode guidé (champ par champ) : les données saisies en conversation sont enregistrées dans le brouillon du formulaire et visibles dans **Transactions → [transaction] → onglet Formulaires OACIQ**.
