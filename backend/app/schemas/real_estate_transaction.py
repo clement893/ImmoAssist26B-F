@@ -279,13 +279,18 @@ class RealEstateTransactionResponse(BaseModel):
     offered_price: Optional[Decimal] = None
     final_sale_price: Optional[Decimal] = None
     
-    # Dates importantes
+    # Dates importantes (dont Promesse d'achat)
     promise_to_purchase_date: Optional[date] = None
     promise_acceptance_date: Optional[date] = None
+    inspection_deadline: Optional[date] = None
+    inspection_condition_lifted_date: Optional[date] = None
+    financing_deadline: Optional[date] = None
+    financing_condition_lifted_date: Optional[date] = None
+    sale_act_signing_date: Optional[date] = None
     expected_closing_date: Optional[date] = None
     actual_closing_date: Optional[date] = None
     possession_date: Optional[date] = None
-    
+
     # Notes
     notes: Optional[str] = None
     
