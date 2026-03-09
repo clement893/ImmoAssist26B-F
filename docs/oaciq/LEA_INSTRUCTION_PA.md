@@ -67,6 +67,17 @@ Les données **adresse, vendeurs, acheteurs, prix offert, date de clôture** peu
 
 ---
 
-## 5. Référence
+## 5. Autres actes réservés à l'utilisateur (Léa ne les fait pas)
+
+- **Signatures et paraphes** : voir section 4 ci-dessus.
+- **Réponse du vendeur** (Accepter / Refuser / Contre-proposition) : décision formelle ; seul l'utilisateur (côté vendeur) la prend.
+- **Témoins** : noms et signatures des témoins — uniquement l'utilisateur.
+- **Intervention du conjoint** (consentement du conjoint du vendeur) : document juridique — uniquement l'utilisateur.
+- **Déclarations à portée juridique** (ex. visite du bien, déclarations du vendeur) : Léa peut préremplir à partir de la transaction, mais ne doit pas inventer ni attester à la place de l'utilisateur ; l'utilisateur doit confirmer ou compléter.
+- **Choix du notaire** : Léa peut suggérer ou préremplir si la transaction a un notaire ; le choix final reste à l'utilisateur.
+
+---
+
+## 6. Référence
 
 - Détail des champs et mapping transaction → formulaire : **LEA_KNOWLEDGE_PA.md**.
