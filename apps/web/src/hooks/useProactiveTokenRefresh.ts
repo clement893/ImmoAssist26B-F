@@ -1,43 +1,79 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { apiClient } from '@/lib/api';
 import { TokenStorage } from '@/lib/auth/tokenStorage';
 import { logger } from '@/lib/logger';
 
 /**
- * Interval (ms) for proactive refresh when tab is visible.
- * Refresh before token expires (e.g. access token ~120 min) so user stays logged in while active.
+ * How often to run the refresh check when the tab is visible (ms).
+ * We only actually refresh when the user has been active within ACTIVE_WITHIN_MS.
+ * Kept well below typical backend access token expiry (e.g. 120 min) so active users stay logged in.
  */
-const REFRESH_INTERVAL_MS = 45 * 60 * 1000; // 45 minutes
+const REFRESH_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
 
 /**
- * Proactive token refresh: when the user is "present" (tab visible), refresh the access token
- * periodically so the session does not expire while they are active.
- * Only runs in browser, when both access and refresh tokens exist.
+ * Consider user "active" if there was any activity in the last 40 minutes.
+ * We only proactively refresh while active so we don't disconnect during use.
+ */
+const ACTIVE_WITHIN_MS = 40 * 60 * 1000; // 40 minutes
+
+/**
+ * If the user was idle longer than this and then interacts again, we refresh once
+ * immediately so the next API call has a valid token (avoids 401 on first action after idle).
+ */
+const IDLE_THRESHOLD_MS = 20 * 60 * 1000; // 20 minutes
+
+/** DOM events that count as user activity (used to avoid disconnecting while actively using the site). */
+const ACTIVITY_EVENTS = [
+  'mousedown',
+  'mousemove',
+  'keydown',
+  'scroll',
+  'touchstart',
+] as const;
+
+/** Options for addEventListener for high-frequency events (passive = better scroll performance). */
+const PASSIVE = { passive: true } as const;
+
+/**
+ * Proactive token refresh that only runs while the user is active.
+ * - Refreshes the access token periodically (every 45 min) only when there was
+ *   activity in the last 40 minutes, so you are not disconnected while using the site.
+ * - When you return after being idle (e.g. >20 min), the first interaction triggers
+ *   an immediate refresh so the next API call succeeds.
+ * - When the tab becomes visible again, we refresh once.
+ * Activity is determined by: mouse (move/click), keyboard, scroll, touch.
  */
 export function useProactiveTokenRefresh() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastActivityAtRef = useRef<number>(Date.now());
+
+  const refreshIfVisible = useCallback(async () => {
+    if (document.visibilityState !== 'visible') return;
+    const refreshToken = TokenStorage.getRefreshToken();
+    if (!refreshToken) return;
+    try {
+      const res = await apiClient.post<{ access_token: string }>('/v1/auth/refresh', {
+        refresh_token: refreshToken,
+      });
+      const access_token = res.data?.access_token;
+      if (access_token) {
+        await TokenStorage.setToken(access_token, refreshToken);
+        logger.debug('Proactive token refresh succeeded');
+      }
+    } catch (err) {
+      logger.debug('Proactive token refresh failed (will retry on next interval or on 401)', err);
+    }
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const refreshIfVisible = async () => {
-      if (document.visibilityState !== 'visible') return;
-      const refreshToken = TokenStorage.getRefreshToken();
-      if (!refreshToken) return;
-      try {
-        const res = await apiClient.post<{ access_token: string }>('/v1/auth/refresh', {
-          refresh_token: refreshToken,
-        });
-        const access_token = res.data?.access_token;
-        if (access_token) {
-          await TokenStorage.setToken(access_token, refreshToken);
-          logger.debug('Proactive token refresh succeeded');
-        }
-      } catch (err) {
-        // Do not redirect or clear tokens; next 401 will trigger normal flow
-        logger.debug('Proactive token refresh failed (will retry on next interval or on 401)', err);
+    const runRefreshOnlyIfActive = () => {
+      const now = Date.now();
+      if (now - lastActivityAtRef.current <= ACTIVE_WITHIN_MS) {
+        refreshIfVisible();
       }
     };
 
@@ -46,7 +82,7 @@ export function useProactiveTokenRefresh() {
       const token = TokenStorage.getToken();
       const refreshToken = TokenStorage.getRefreshToken();
       if (!token || !refreshToken) return;
-      intervalRef.current = setInterval(refreshIfVisible, REFRESH_INTERVAL_MS);
+      intervalRef.current = setInterval(runRefreshOnlyIfActive, REFRESH_INTERVAL_MS);
     };
 
     const stopInterval = () => {
@@ -56,23 +92,44 @@ export function useProactiveTokenRefresh() {
       }
     };
 
+    const onActivity = () => {
+      const now = Date.now();
+      const previous = lastActivityAtRef.current;
+      lastActivityAtRef.current = now;
+      // Return from idle: refresh once so next API call has a valid token
+      if (previous && now - previous >= IDLE_THRESHOLD_MS) {
+        refreshIfVisible();
+      }
+    };
+
     const onVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
+        lastActivityAtRef.current = Date.now();
         startInterval();
-        refreshIfVisible(); // Refresh once when user comes back to tab
+        refreshIfVisible();
       } else {
         stopInterval();
       }
     };
 
+    // Activity listeners: mouse, keyboard, scroll, touch (passive for scroll/touch for performance)
+    ACTIVITY_EVENTS.forEach((event) => {
+      const opts = event === 'scroll' || event === 'touchstart' || event === 'mousemove' ? PASSIVE : undefined;
+      document.addEventListener(event, onActivity, opts);
+    });
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
     if (document.visibilityState === 'visible') {
       startInterval();
     }
-    document.addEventListener('visibilitychange', onVisibilityChange);
 
     return () => {
+      ACTIVITY_EVENTS.forEach((event) => {
+        const opts = event === 'scroll' || event === 'touchstart' || event === 'mousemove' ? PASSIVE : undefined;
+        document.removeEventListener(event, onActivity, opts);
+      });
       document.removeEventListener('visibilitychange', onVisibilityChange);
       stopInterval();
     };
-  }, []);
+  }, [refreshIfVisible]);
 }
