@@ -26,9 +26,13 @@ export function FormRenderer({ fields, data, onChange }: FormRendererProps) {
     );
   }
 
+  const sections = [...(fields.sections || [])].sort(
+    (a: any, b: any) => (a.order ?? 0) - (b.order ?? 0)
+  );
+
   return (
     <div className="space-y-6">
-      {fields.sections.map((section: any) => (
+      {sections.map((section: any) => (
         <Card key={section.id} className="p-6">
           <h2 className="text-xl font-semibold mb-4">{section.title}</h2>
           {section.description && (

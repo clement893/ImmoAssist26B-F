@@ -242,7 +242,7 @@ LEA_SYSTEM_PROMPT = (
     "Tu ne dois JAMAIS prétendre avoir fait une action (créer une transaction, mettre à jour une adresse, créer une promesse d'achat, etc.) "
     "si le bloc « Action effectuée » ci-dessous ne le mentionne pas explicitement. "
     "** Quand le bloc « Action effectuée » est présent et indique qu'une action a été faite (ex: transaction créée, formulaire OACIQ créé, adresse enregistrée), tu DOIS confirmer à l'utilisateur que c'est fait — INTERDICTION de dire « Je ne peux pas » ou « je ne peux pas encore » dans ce cas. ** "
-    "Si le bloc contient « Tu viens de créer le formulaire OACIQ » ou « Promesse d'achat », confirme que le formulaire a bien été créé et indique la prochaine étape (Transactions → ouvrir la transaction → onglet Formulaires OACIQ). "
+    "Si le bloc contient « Tu viens de créer le formulaire OACIQ » ou « Promesse d'achat », confirme que le formulaire a bien été créé. Si le bloc contient en plus « Demande immédiatement à l'utilisateur la valeur pour le premier champ », tu DOIS dans la MÊME réponse proposer de guider le remplissage et poser UNE SEULE question pour ce premier champ (ne pas seulement indiquer d'aller dans Formulaires OACIQ). Sinon, indique la prochaine étape (Transactions → ouvrir la transaction → onglet Formulaires OACIQ). "
     "Si l'utilisateur demande quelque chose et qu'il n'y a AUCUN bloc « Action effectuée » pour cette demande, "
     "dis-lui que tu ne peux pas encore faire cela automatiquement et invite-le à aller dans la section Transactions pour le faire. "
     "Ne invente jamais une confirmation du type « c'est fait » ou « j'ai créé » sans que « Action effectuée » le confirme. "
@@ -3711,11 +3711,12 @@ def _wants_lea_to_complete_form(message: str) -> bool:
 
 
 def _wants_help_filling_oaciq(message: str) -> bool:
-    """True si l'utilisateur demande à Léa de l'aider à remplir le formulaire champ par champ (ex. « aide-moi à le remplir »)."""
-    if not message or len(message.strip()) < 5:
+    """True si l'utilisateur demande à Léa de l'aider à remplir le formulaire champ par champ (ex. « guide moi », « aide-moi à le remplir »)."""
+    if not message or len(message.strip()) < 4:
         return False
     t = (message or "").strip().lower()
     help_phrases = (
+        "guide moi", "guide-moi", "guidez moi", "guidez-moi",
         "aide moi a le remplir", "aide-moi à le remplir", "aide moi à le remplir",
         "aide-moi a le remplir", "aide moi pour le remplir", "aide-moi pour le remplir",
         "aide-moi à remplir", "aide moi a remplir", "guide-moi pour remplir", "guide moi pour remplir",
@@ -4497,6 +4498,21 @@ async def run_lea_actions(
     oaciq_line = await maybe_create_oaciq_form_submission_from_lea(db, user_id, message, last_assistant_message) if not building_new_only else None
     if oaciq_line:
         lines.append(oaciq_line)
+        # Guidage par défaut : dès la création du PA, proposer la première question (sans attendre « guide moi »)
+        if transaction_preferred and session_id and conv:
+            draft = await get_draft_pa_submission_for_transaction(db, user_id, transaction_preferred)
+            if draft:
+                submission, _fc, _fn, form_fields = draft[0], draft[1], draft[2], draft[3]
+                current = dict(submission.data) if isinstance(submission.data, dict) else {}
+                next_id, next_label = _get_next_empty_pa_field(form_fields, current)
+                if next_id and next_label:
+                    lines.append(
+                        f"Demande immédiatement à l'utilisateur la valeur pour le premier champ : « {next_label} » ({next_id}). Une seule question."
+                    )
+                    conv.context = conv.context or {}
+                    conv.context["oaciq_fill"] = {"submission_id": submission.id, "last_asked_field": next_id}
+                    flag_modified(conv, "context")
+                    need_conv_commit = True
     prefill_line = await maybe_prefill_oaciq_form_from_lea(db, user_id, message, last_assistant_message) if not building_new_only else None
     if prefill_line:
         lines.append(prefill_line)
