@@ -242,7 +242,7 @@ LEA_SYSTEM_PROMPT = (
     "Tu ne dois JAMAIS prétendre avoir fait une action (créer une transaction, mettre à jour une adresse, créer une promesse d'achat, etc.) "
     "si le bloc « Action effectuée » ci-dessous ne le mentionne pas explicitement. "
     "** Quand le bloc « Action effectuée » est présent et indique qu'une action a été faite (ex: transaction créée, formulaire OACIQ créé, adresse enregistrée), tu DOIS confirmer à l'utilisateur que c'est fait — INTERDICTION de dire « Je ne peux pas » ou « je ne peux pas encore » dans ce cas. ** "
-    "Si le bloc contient « Tu viens de créer le formulaire OACIQ » ou « Promesse d'achat », confirme que le formulaire a bien été créé. Si le bloc contient en plus « Demande immédiatement à l'utilisateur la valeur pour le premier champ » avec un nom de champ (ex. « Prix offert ($) »), tu DOIS dans la MÊME réponse : 1) confirmer brièvement que le formulaire est créé, 2) poser UNE SEULE question pour ce champ (ex. « Quel est le prix offert ($) ? »). INTERDICTION de te contenter d'indiquer d'aller dans Formulaires OACIQ sans poser la question : tu guides le remplissage en conversation, donc pose la question ici. Sinon (pas de « Demande immédiatement… premier champ »), indique la prochaine étape (Transactions → ouvrir la transaction → onglet Formulaires OACIQ). "
+    "Si le bloc contient « Tu viens de créer le formulaire OACIQ » ou « Promesse d'achat », confirme que le formulaire a bien été créé. Si le bloc contient en plus « Demande immédiatement à l'utilisateur la valeur pour le premier champ » avec un nom de champ (ex. « Prix offert ($) »), tu DOIS dans la MÊME réponse : 1) confirmer brièvement que le formulaire est créé, 2) poser UNE SEULE question pour ce champ (ex. « Quel est le prix offert ($) ? »). INTERDICTION de dire « allez dans Formulaires OACIQ » ou « vous pouvez la compléter en allant dans Transactions → Formulaires OACIQ » : tu guides le remplissage en conversation, donc pose la question ici. Sinon (pas de « Demande immédiatement… premier champ »), propose de continuer avec toi en disant « aide-moi à remplir la promesse d'achat » pour un guidage champ par champ. NE JAMAIS indiquer d'aller dans Formulaires OACIQ pour compléter une promesse d'achat — c'est toi qui guides le remplissage. "
     "Si l'utilisateur demande quelque chose et qu'il n'y a AUCUN bloc « Action effectuée » pour cette demande, "
     "dis-lui que tu ne peux pas encore faire cela automatiquement et invite-le à aller dans la section Transactions pour le faire. "
     "Ne invente jamais une confirmation du type « c'est fait » ou « j'ai créé » sans que « Action effectuée » le confirme. "
@@ -294,14 +294,14 @@ LEA_SYSTEM_PROMPT = (
 "** FORMULAIRES ET DOCUMENTS OACIQ : **\n"
 "Tu es reliée à tous les formulaires OACIQ du système. La liste « Formulaires OACIQ disponibles » (dans Données plateforme) contient tous les codes (PA, CP, CCVE, DV, MO, etc.). "
 "Tu peux créer pour l'utilisateur n'importe quel formulaire de cette liste pour une de ses transactions : dès qu'il demande (ex. « crée une contre-proposition », « crée un CP », « je veux un formulaire CCVE pour la transaction rue X »), demande pour quelle transaction si besoin (adresse ou numéro de dossier), puis confirme ; le système créera le brouillon. "
-"** Tu peux aussi aider à compléter les formulaires : ** quand l'utilisateur dit « toi complète le », « remplis le formulaire », « complète le » (après avoir parlé d'un formulaire en brouillon), le système préremplit le formulaire avec les données de la transaction (adresse, vendeurs, acheteurs, prix, date de clôture). Confirme que c'est fait et indique d'aller dans Transactions → cette transaction → onglet Formulaires OACIQ pour vérifier. Ne dis pas que tu ne peux pas — l'action est effectuée par le système. "
+"** Tu peux aussi aider à compléter les formulaires : ** quand l'utilisateur dit « toi complète le », « remplis le formulaire », « complète le » (après avoir parlé d'un formulaire en brouillon), le système préremplit le formulaire avec les données de la transaction (adresse, vendeurs, acheteurs, prix, date de clôture). Confirme que c'est fait. Pour le PA (promesse d'achat), propose ensuite de continuer avec toi pour remplir les champs restants dans le chat ; ne dis pas « allez dans Formulaires OACIQ pour compléter ». Pour les autres formulaires, tu peux mentionner qu'il peut vérifier dans Transactions → cette transaction → onglet Formulaires OACIQ. Ne dis pas que tu ne peux pas — l'action est effectuée par le système. "
 "** Tu dois aider l'utilisateur à remplir les champs du formulaire (ex. PA) : ** rappelle quelles sections ou champs restent à remplir, indique où ils se trouvent (ex. section 4 Prix et acompte, section 7 Date de signature de l'acte), explique le sens des champs si besoin (sans inventer de valeurs). Guide-le dans le remplissage du formulaire en conversation. "
 "** Remplissage champ par champ (PA) : ** Quand « Action effectuée » indique « Tu aides l'utilisateur à remplir le formulaire PA champ par champ » ou « Demande immédiatement… la valeur pour le premier champ » ou « Demande… la valeur pour le champ suivant », ta réponse doit contenir UNE SEULE question : demande à l'utilisateur la valeur du champ indiqué (ex. « Quel est le prix offert ($) ? »). Ne dis pas seulement « allez dans Formulaires OACIQ » : pose la question dans le chat pour que l'utilisateur puisse répondre ici. Quand « Action effectuée » dit « Valeur enregistrée pour le champ … Demande… le champ suivant » : confirme brièvement que c'est enregistré puis pose UNE SEULE question pour le champ suivant. Les valeurs sont enregistrées dans le brouillon et s'afficheront dans Transactions → Formulaires OACIQ. "
 "** PA – Données transaction : ** Pour le formulaire Promesse d'achat (PA), utilise TOUJOURS les données déjà présentes dans la transaction (noms des acheteurs, noms des vendeurs, adresse complète de la propriété, prix offert) : préremplis ou utilise-les sans les redemander à l'utilisateur. Demande uniquement les champs qui ne sont pas dans la transaction (coordonnées détaillées, dépôt, conditions, inclusions/exclusions, dates, délai d'acceptation). "
 "** PA – Signatures : ** Ne demande JAMAIS les signatures (acheteur, vendeur, courtiers) ni l'acceptation légale du vendeur dans le chat. Ces actes sont faits par l'utilisateur directement dans le formulaire ou via signature électronique. Tu peux indiquer où signer, pas remplir à sa place. "
 "Tu peux indiquer quels formulaires OACIQ sont en brouillon, complétés ou signés pour une transaction. "
 "Quand l'utilisateur demande « quels documents me manquent » ou « quelle est la prochaine étape », base-toi sur le bloc Données plateforme (formulaires OACIQ par transaction) et indique ce qui est en brouillon, complété, signé, et ce qu'il reste à faire ou à créer (ex. compléter le PA, créer un DIA pour une vente). "
-"Quand une action a créé un formulaire, indique clairement le nom du formulaire, la transaction concernée et la prochaine étape : Transactions → ouvrir cette transaction → onglet Formulaire (Formulaires OACIQ) → compléter le formulaire indiqué."
+"Quand une action a créé un formulaire : pour la promesse d'achat (PA), NE JAMAIS dire « vous pouvez la compléter en allant dans Transactions → Formulaires OACIQ » — tu guides le remplissage dans le chat. Pour les autres formulaires, tu peux indiquer où les trouver (Transactions → cette transaction → onglet Formulaires OACIQ) si l'utilisateur le demande."
 )
 
 router = APIRouter(prefix="/lea", tags=["lea"])
@@ -1357,6 +1357,30 @@ def _last_message_asked_for_property_for_form(last_assistant_message: Optional[s
         ("quelle propriété" in t or "quelle transaction" in t)
         and ("formulaire" in t or "promesse" in t or "préparer" in t or "préparer ce formulaire" in t)
     )
+
+
+def _last_message_asked_to_confirm_pa_creation(last_assistant_message: Optional[str] = None) -> bool:
+    """True si Léa demandait de confirmer la création d'une promesse d'achat pour une propriété (ex. « Pour confirmer, souhaitez-vous créer… »)."""
+    if not last_assistant_message or len(last_assistant_message.strip()) < 20:
+        return False
+    t = last_assistant_message.strip().lower()
+    return (
+        ("promesse" in t and ("achat" in t or "d'achat" in t))
+        and ("confirmer" in t or "souhaitez-vous" in t or "voulez-vous" in t or "créer" in t)
+        and ("transaction" in t or "propriété" in t or "au " in t)
+    )
+
+
+def _is_short_confirmation_message(message: str) -> bool:
+    """True si le message est une confirmation courte (oui, exact, ok, c'est ça, etc.)."""
+    if not message or len(message.strip()) > 25:
+        return False
+    t = message.strip().lower()
+    return t in (
+        "oui", "ouais", "ouaip", "ok", "exact", "exactement", "c'est ça", "cest ca",
+        "oui merci", "ok merci", "d'accord", "daccord", "confirmé", "confirme",
+        "vas-y", "vas y", "go", "yep", "yeah",
+    ) or t.startswith(("oui ", "ok "))
 
 
 def _last_message_asked_for_sellers(last_assistant_message: Optional[str] = None) -> bool:
@@ -3473,8 +3497,8 @@ def _get_lea_guidance_lines(message: str) -> list[str]:
     ):
         lines.append(
             "L'utilisateur souhaite remplir un formulaire OACIQ. "
-            "Indique-lui qu'il peut aller dans Transactions → ouvrir la transaction → onglet Formulaires OACIQ ; "
-            "s'il a déjà un formulaire en brouillon, il peut te dire « toi complète le » ou « remplis le formulaire » et tu le préremplira avec les données du dossier (adresse, vendeurs, acheteurs, prix, date). Ne dis pas que tu ne peux pas."
+            "Pour la promesse d'achat (PA), propose de le remplir avec toi dans le chat (une question à la fois) ; ne dis pas « allez dans Formulaires OACIQ pour compléter ». "
+            "S'il a déjà un formulaire en brouillon, il peut te dire « toi complète le » ou « aide-moi à remplir la promesse d'achat » et tu préremplis puis tu guides champ par champ. Pour les autres formulaires, il peut ouvrir Transactions → la transaction → onglet Formulaires OACIQ. Ne dis pas que tu ne peux pas."
         )
 
     return lines
@@ -3627,13 +3651,18 @@ def _build_oaciq_form_creation_confirmation(action_lines: list) -> str:
         m = re.search(r"formulaire OACIQ « ([^»]+) » \(code (\w+)\) pour la transaction ([^.]+)\.", line)
         if m:
             form_name, code, tx_label = m.group(1).strip(), m.group(2), m.group(3).strip()
+            if (code or "").upper() == "PA":
+                return (
+                    f"C'est fait ! J'ai créé la promesse d'achat pour la transaction {tx_label}. "
+                    "Je vais vous guider pour remplir les champs dans ce chat — répondez à ma prochaine question."
+                )
             return (
                 f"C'est fait ! J'ai créé le formulaire OACIQ « {form_name} » (code {code}) pour la transaction {tx_label}. "
-                "La soumission est en brouillon. Allez dans Transactions → ouvrir cette transaction → onglet Formulaires OACIQ pour compléter le formulaire."
+                "Vous pouvez le compléter dans Transactions → cette transaction → onglet Formulaires OACIQ."
             )
     return (
-        "C'est fait ! J'ai créé le formulaire OACIQ (Promesse d'achat) pour cette transaction. "
-        "Allez dans Transactions → ouvrir cette transaction → onglet Formulaires OACIQ pour le compléter."
+        "C'est fait ! J'ai créé la promesse d'achat pour cette transaction. "
+        "Je vais vous guider pour remplir les champs dans ce chat — répondez à ma prochaine question."
     )
 
 
@@ -3679,10 +3708,13 @@ async def _create_oaciq_form_submission_for_transaction(
         tx_label = f"{addr_short} ({ref_label})" if addr_short else ref_label
         form_name = form.name or f"Formulaire {form_code}"
         logger.info(f"Lea created OACIQ form submission id={submission.id} form_code={form_code} for transaction id={transaction.id}")
+        # Message neutre : le guidage (premier champ) sera ajouté par run_lea_actions si session/conv disponibles.
+        # Si guidage ajouté, le LLM ne doit pas dire « allez dans Formulaires OACIQ » mais poser la question.
         line = (
             f"Tu viens de créer le formulaire OACIQ « {form_name} » (code {form_code}) pour la transaction {tx_label}. "
             "La soumission est en brouillon. Confirme à l'utilisateur que c'est fait. "
-            "Prochaine étape : indique-lui d'aller dans Transactions → ouvrir cette transaction → onglet « Formulaires OACIQ » (onglet avec le nom exact) → cliquer sur Voir pour ouvrir la promesse d'achat."
+            "Tu DOIS remplir le formulaire AVEC L'UTILISATEUR en conversation : pose UNE question à la fois pour les champs indiqués ci-dessous. "
+            "NE PAS indiquer d'aller dans Formulaires OACIQ pour compléter seul — c'est toi qui guides le remplissage ici."
         )
         return (line, transaction)
     except Exception as e:
@@ -3793,6 +3825,10 @@ def _get_next_empty_pa_field(form_fields: object, current_data: dict) -> Tuple[O
         if not _value_is_filled(current.get(key)):
             return (key, str(f.get("label") or f.get("id") or key))
     return (None, None)
+
+
+# Premier champ à demander pour la PA si _get_next_empty_pa_field ne retourne rien (form sans sections ou tout prérempli)
+PA_FIRST_FIELD_FALLBACK: Tuple[str, str] = ("acompte", "Montant de l'acompte ($)")
 
 
 def _is_valid_pa_value_for_field(field_type: str, value: Any) -> bool:
@@ -3926,7 +3962,7 @@ async def maybe_oaciq_fill_help_or_save(
                 return ([line], {"submission_id": sub_id, "last_asked_field": next_id})
             line = (
                 "Tous les champs requis du formulaire PA sont remplis. "
-                "Confirme à l'utilisateur et indique-lui d'aller dans Transactions → cette transaction → onglet Formulaires OACIQ pour vérifier le formulaire et le compléter ou signer."
+                "Confirme à l'utilisateur et indique-lui d'aller dans Transactions → cette transaction → onglet Formulaires OACIQ pour vérifier et signer (les signatures se font dans l'interface). Ne dis pas « pour compléter » — le remplissage s'est fait avec toi dans le chat."
             )
             return ([line], {"submission_id": None, "last_asked_field": None})
         if value is not None and not _is_valid_pa_value_for_field(field_type, value):
@@ -4208,9 +4244,14 @@ async def maybe_prefill_oaciq_form_from_lea(
         tx_label = f"{addr_short} ({ref_label})" if addr_short else ref_label
         name = form_name or f"Formulaire {form_code}"
         logger.info(f"Lea prefilled OACIQ submission id={submission.id} form_code={form_code} for transaction id={transaction.id}")
+        if (form_code or "").upper() == "PA":
+            return (
+                f"Tu viens de préremplir la promesse d'achat pour la transaction {tx_label} avec les données du dossier (adresse, vendeurs, acheteurs, prix, date de clôture). "
+                "Confirme que c'est fait. Propose de continuer avec toi dans le chat pour remplir les champs restants (acompte, coordonnées, conditions, etc.). Ne dis pas « allez dans Formulaires OACIQ pour compléter »."
+            )
         return (
             f"Tu viens de préremplir le formulaire OACIQ « {name} » (code {form_code}) pour la transaction {tx_label} avec les données du dossier : adresse, vendeurs, acheteurs, prix, date de clôture. "
-            "Confirme à l'utilisateur que c'est fait. Indique-lui qu'il peut aller dans Transactions → cette transaction → onglet Formulaires OACIQ pour vérifier et compléter les champs restants si besoin."
+            "Confirme à l'utilisateur que c'est fait. Il peut aller dans Transactions → cette transaction → onglet Formulaires OACIQ pour vérifier."
         )
     except Exception as e:
         logger.warning(f"Lea prefill OACIQ form failed: {e}", exc_info=True)
@@ -4579,6 +4620,18 @@ async def run_lea_actions(
             tx_for_pa = await get_user_transaction_by_ref(db, user_id, ref)
             if tx_for_pa:
                 oaciq_result = await _create_oaciq_form_submission_for_transaction(db, user_id, tx_for_pa, "PA")
+    # Si l'utilisateur confirme par une réponse courte (ex. « oui », « exact ») après « Pour confirmer, souhaitez-vous créer une promesse d'achat pour la transaction au … », créer le PA.
+    if not building_new_only and oaciq_result is None and _is_short_confirmation_message(message) and _last_message_asked_to_confirm_pa_creation(last_assistant_message):
+        hint = (
+            _extract_address_hint_from_message(message)
+            or _extract_address_hint_from_message(last_assistant_message or "")
+            or _extract_address_hint_from_assistant_message(last_assistant_message or "")
+        )
+        tx_for_pa = await get_user_transaction_by_address_hint(db, user_id, hint) if hint else None
+        if not tx_for_pa and last_assistant_message:
+            tx_for_pa = await get_user_latest_transaction(db, user_id)
+        if tx_for_pa:
+            oaciq_result = await _create_oaciq_form_submission_for_transaction(db, user_id, tx_for_pa, "PA")
     oaciq_line = oaciq_result[0] if oaciq_result else None
     oaciq_tx = oaciq_result[1] if oaciq_result and len(oaciq_result) > 1 else None
     deferred_oaciq_fill = None  # à appliquer en fin de tour pour éviter que le message actuel soit pris comme réponse
@@ -4593,12 +4646,13 @@ async def run_lea_actions(
                 submission, _fc, _fn, form_fields = draft[0], draft[1], draft[2], draft[3]
                 current = dict(submission.data) if isinstance(submission.data, dict) else {}
                 next_id, next_label = _get_next_empty_pa_field(form_fields, current)
-                if next_id and next_label:
-                    lines.append(
-                        f"Demande immédiatement à l'utilisateur la valeur pour le premier champ : « {next_label} » ({next_id}). Une seule question."
-                    )
-                    # Ne pas définir oaciq_fill ici : le message actuel (« créer une promesse d'achat ») serait pris comme réponse au champ. On le reporte après maybe_oaciq_fill_help_or_save.
-                    deferred_oaciq_fill = {"submission_id": submission.id, "last_asked_field": next_id}
+                if not next_id or not next_label:
+                    next_id, next_label = PA_FIRST_FIELD_FALLBACK
+                lines.append(
+                    f"Demande immédiatement à l'utilisateur la valeur pour le premier champ : « {next_label} » ({next_id}). Une seule question."
+                )
+                # Ne pas définir oaciq_fill ici : le message actuel (« créer une promesse d'achat ») serait pris comme réponse au champ. On le reporte après maybe_oaciq_fill_help_or_save.
+                deferred_oaciq_fill = {"submission_id": submission.id, "last_asked_field": next_id}
     prefill_line = await maybe_prefill_oaciq_form_from_lea(db, user_id, message, last_assistant_message) if not building_new_only else None
     if prefill_line:
         lines.append(prefill_line)

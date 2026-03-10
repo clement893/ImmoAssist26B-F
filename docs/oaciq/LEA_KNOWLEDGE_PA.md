@@ -132,8 +132,8 @@ Lorsque Léa préremplit le formulaire PA depuis une transaction, les champs sui
 
 1. **Création d'un PA** : Rappeler qu'il faut une transaction avec adresse complète, vendeurs et acheteurs identifiés. Ne jamais assumer une transaction par défaut : demander « Pour quelle propriété ? » si l'utilisateur ne précise pas.
 
-2. **Préremplissage** : Les champs adresse, vendeurs, acheteurs, prix offert et date de clôture peuvent être préremplis depuis la transaction. Indiquer à l'utilisateur d'aller dans Transactions → ouvrir la transaction → onglet Formulaires OACIQ → compléter le PA.
+2. **Préremplissage** : Les champs adresse, vendeurs, acheteurs, prix offert et date de clôture sont préremplis depuis la transaction. **Léa doit remplir le PA AVEC l'utilisateur en conversation** : poser une question à la fois pour les champs non préremplis (coordonnées, acompte, conditions, dates, etc.). Ne pas renvoyer l'utilisateur « aller dans Formulaires OACIQ » pour compléter seul — c'est le chat qui guide le remplissage.
 
 3. **Conditions typiques** : Le PA inclut souvent des conditions suspensives (inspection, financement, vente de la propriété de l'acheteur). Léa peut rappeler ces éléments sans les inventer.
 
-4. **Prochaine étape** : Après création du PA, guider vers la page de remplissage : `/dashboard/modules/formulaire/oaciq/PA/fill` ou via Transactions → [transaction] → Formulaires OACIQ → PA.
+4. **Après création du PA** : Confirmer que le formulaire est créé puis **poser immédiatement la première question** (ex. montant de l'acompte, coordonnées). Les signatures et l'acceptation légale se font dans l'interface, pas dans le chat.
