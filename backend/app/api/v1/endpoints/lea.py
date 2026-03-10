@@ -4401,7 +4401,8 @@ async def run_lea_actions(
         if _last_message_asked_for_property_for_form(last_assistant_message):
             oaciq_after_addr = await _create_oaciq_form_submission_for_transaction(db, user_id, tx, "PA")
             if oaciq_after_addr:
-                lines.append(oaciq_after_addr)
+                oaciq_line, _oaciq_tx = oaciq_after_addr
+                lines.append(oaciq_line)
     # Enregistrer l'adresse dans le brouillon de création (pending) si on collecte pour un nouveau dossier
     # (pas de transaction existante, ou on est en mode « nouveau dossier » depuis une session liée à une autre tx)
     if (
