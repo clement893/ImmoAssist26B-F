@@ -3631,9 +3631,12 @@ async def _create_oaciq_form_submission_for_transaction(
         if not form:
             logger.warning(f"Lea OACIQ form not found: code={form_code}")
             return None
+        initial_data: dict = {}
+        if form_code == "PA" and getattr(form, "fields", None):
+            initial_data = _build_pa_initial_data_from_transaction(transaction, form.fields)
         submission = FormSubmission(
             form_id=form.id,
-            data={},
+            data=initial_data,
             user_id=user_id,
             status="draft",
             transaction_id=transaction.id,
@@ -3643,7 +3646,7 @@ async def _create_oaciq_form_submission_for_transaction(
         db.add(submission)
         await db.flush()
         await db.refresh(submission)
-        version = FormSubmissionVersion(submission_id=submission.id, data={})
+        version = FormSubmissionVersion(submission_id=submission.id, data=dict(initial_data))
         db.add(version)
         # Faire apparaître la transaction dans la colonne « Promesse d'achat » du pipeline (à la place de « Création du dossier »)
         if form_code == "PA":
@@ -3923,7 +3926,13 @@ async def maybe_oaciq_fill_help_or_save(
 
 
 def _build_oaciq_prefill_from_transaction(tx: RealEstateTransaction) -> dict:
-    """Construit un dictionnaire de préremplissage à partir des données de la transaction."""
+    """
+    Préremplissage strict : uniquement les données qu'on a en amont (fiche technique).
+    - Parties : noms des acheteurs, noms des vendeurs
+    - Propriété : adresse, ville, code postal, province
+    - Prix : prix offert, prix d'achat
+    Le reste des champs n'est pas prérempli ; l'assistant les demandera.
+    """
     full_addr = _format_full_address_ca(
         tx.property_address or "",
         tx.property_city or "",
@@ -3941,6 +3950,7 @@ def _build_oaciq_prefill_from_transaction(tx: RealEstateTransaction) -> dict:
         "ville": (tx.property_city or "").strip() or None,
         "code_postal": (getattr(tx, "property_postal_code", None) or "").strip() or None,
     }
+    # Parties : noms seulement (pas les coordonnées)
     if tx.sellers and isinstance(tx.sellers, list):
         names = [e.get("name") for e in tx.sellers if isinstance(e, dict) and e.get("name")]
         if names:
@@ -3951,19 +3961,14 @@ def _build_oaciq_prefill_from_transaction(tx: RealEstateTransaction) -> dict:
         if names:
             prefill["buyers"] = names
             prefill["acheteurs"] = ", ".join(names)
+    # Prix
     if tx.listing_price is not None:
         prefill["listing_price"] = float(tx.listing_price)
         prefill["prix_demandé"] = float(tx.listing_price)
     if tx.offered_price is not None:
         prefill["offered_price"] = float(tx.offered_price)
         prefill["prix_offert"] = float(tx.offered_price)
-    if getattr(tx, "expected_closing_date", None):
-        d = tx.expected_closing_date
-        prefill["expected_closing_date"] = d.isoformat() if hasattr(d, "isoformat") else str(d)
-        prefill["date_cloture"] = prefill["expected_closing_date"]
-        prefill["date_acte_vente"] = prefill["expected_closing_date"]
-        prefill["date_signature_acte"] = prefill["expected_closing_date"]
-    # Alias supplémentaires pour compatibilité PA et formulaires OACIQ
+    # Alias pour le formulaire PA
     if prefill.get("property_address"):
         prefill["adresse_immeuble"] = prefill["property_address"]
         prefill["adresse_bien"] = prefill["property_address"]
@@ -3980,6 +3985,24 @@ def _build_oaciq_prefill_from_transaction(tx: RealEstateTransaction) -> dict:
     if prefill.get("full_address"):
         prefill["adresse_complete_immeuble"] = prefill["full_address"]
     return {k: v for k, v in prefill.items() if v is not None}
+
+
+def _build_pa_initial_data_from_transaction(
+    transaction: RealEstateTransaction, form_fields: object
+) -> dict:
+    """
+    Construit les données initiales du brouillon PA à partir de la transaction uniquement
+    (fiche technique : tous les champs qu'on peut récupérer automatiquement).
+    Seuls les clés qui existent dans le formulaire PA sont incluses.
+    """
+    prefill = _build_oaciq_prefill_from_transaction(transaction)
+    flat = _flatten_oaciq_field_defs(form_fields)
+    form_keys = set()
+    for f in flat:
+        key = str(f.get("name") or f.get("id") or "").strip()
+        if key:
+            form_keys.add(key)
+    return {k: v for k, v in prefill.items() if k in form_keys and v is not None}
 
 
 def _flatten_oaciq_field_defs(form_fields: object) -> list[dict]:
@@ -4122,26 +4145,13 @@ async def maybe_prefill_oaciq_form_from_lea(
                 "Indique-lui d'aller dans Transactions → cette transaction → onglet Formulaires OACIQ pour créer ou ouvrir un formulaire, puis de revenir te demander de le préremplir."
             )
         submission, form_code, form_name, form_fields = row[0], row[1], row[2], row[3]
+        # Préremplissage strict : uniquement parties (noms), propriété (adresse, ville, CP, province), prix (fiche technique).
         prefill = _build_oaciq_prefill_from_transaction(transaction)
         current = dict(submission.data) if isinstance(submission.data, dict) else {}
         for k, v in prefill.items():
             if v is not None and (k not in current or current[k] in (None, "", [])):
                 current[k] = v
-        # PA: essayer de remplir l'ensemble des champs connus du formulaire.
-        if (form_code or "").strip().upper() == "PA":
-            for f in _flatten_oaciq_field_defs(form_fields):
-                key = str(f.get("name") or f.get("id") or "").strip()
-                if not key:
-                    continue
-                if _value_is_filled(current.get(key)):
-                    continue
-                fallback = _build_pa_field_fallback_value(
-                    key,
-                    str(f.get("type") or ""),
-                    transaction,
-                )
-                if fallback is not None:
-                    current[key] = fallback
+        # PA : on n'ajoute pas d'autres champs (pas de fallback) — le reste sera demandé par l'assistant.
         submission.data = current
         sync_pa_data_to_transaction(transaction, current)
         await db.flush()
