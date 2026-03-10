@@ -1105,6 +1105,11 @@ def _extract_transaction_ref_from_message(message: str) -> Optional[str]:
     m = re.search(r"(?:la\s+)?transaction\s+numéro\s+#?\s*(\d+)", t, re.I)
     if m:
         return m.group(1)
+    # Réponse courte du type "72" ou "# 72" (ex. après « Pour quelle propriété ? »)
+    if re.match(r"^\s*#?\s*\d+\s*$", t):
+        m = re.search(r"\d+", t)
+        if m:
+            return m.group(0)
     return None
 
 
@@ -3600,6 +3605,17 @@ def _action_lines_contain_oaciq_form_creation(action_lines: list) -> bool:
     return False
 
 
+def _action_lines_contain_first_field_question(action_lines: list) -> bool:
+    """True si les actions demandent de poser la question du premier champ (guidage PA en conversation)."""
+    if not action_lines:
+        return False
+    for line in action_lines:
+        s = (line or "").strip().lower()
+        if "demande immédiatement" in s and "premier champ" in s:
+            return True
+    return False
+
+
 def _build_oaciq_form_creation_confirmation(action_lines: list) -> str:
     """Construit le message de confirmation utilisateur quand un formulaire OACIQ a été créé."""
     # Extraire le nom du formulaire et la transaction depuis la ligne d'action si possible
@@ -4556,6 +4572,13 @@ async def run_lea_actions(
             "Confirme à l'utilisateur que la promesse d'achat est enregistrée et qu'il peut compléter le formulaire dans la section Transactions."
         )
     oaciq_result = await maybe_create_oaciq_form_submission_from_lea(db, user_id, message, last_assistant_message) if not building_new_only else None
+    # Si Léa venait de demander « pour quelle propriété ? » et que l'utilisateur répond par une ref (ex. « 72 »), créer le PA pour cette transaction.
+    if not building_new_only and oaciq_result is None and _last_message_asked_for_property_for_form(last_assistant_message):
+        ref = _extract_transaction_ref_from_message(message)
+        if ref:
+            tx_for_pa = await get_user_transaction_by_ref(db, user_id, ref)
+            if tx_for_pa:
+                oaciq_result = await _create_oaciq_form_submission_for_transaction(db, user_id, tx_for_pa, "PA")
     oaciq_line = oaciq_result[0] if oaciq_result else None
     oaciq_tx = oaciq_result[1] if oaciq_result and len(oaciq_result) > 1 else None
     deferred_oaciq_fill = None  # à appliquer en fin de tour pour éviter que le message actuel soit pris comme réponse
@@ -5121,14 +5144,16 @@ async def _stream_lea_sse(
         messages_for_llm = build_llm_messages_from_history(conv.messages or [], message)
         confirmation_text = None
         if created_tx and action_lines:
+            # Le backend indique « Ne pose AUCUNE question — le dossier est terminé » : ne pas ajouter de question.
             ref = created_tx.dossier_number or f"#{created_tx.id}"
             confirmation_text = (
                 f"C'est fait ! J'ai créé la transaction {ref} pour vous. "
-                "Vous pouvez la voir et la compléter dans la section Transactions. "
-                "Quelle est l'adresse du bien ?"
+                "Vous pouvez la voir et la compléter dans la section Transactions."
             )
         if not confirmation_text and _action_lines_contain_oaciq_form_creation(action_lines):
-            confirmation_text = _build_oaciq_form_creation_confirmation(action_lines)
+            # Si les actions demandent de poser le premier champ (guidage en conversation), laisser le LLM répondre.
+            if not _action_lines_contain_first_field_question(action_lines):
+                confirmation_text = _build_oaciq_form_creation_confirmation(action_lines)
         if confirmation_text:
             for i in range(0, len(confirmation_text), 1):
                 yield f"data: {json.dumps({'delta': confirmation_text[i]})}\n\n"
@@ -5261,13 +5286,12 @@ async def lea_chat(
             user_context = await get_lea_user_context(db, current_user.id)
             if action_lines:
                 user_context += "\n\n--- Action effectuée ---\n" + "\n".join(action_lines)
-            # Quand une transaction vient d'être créée, renvoyer une confirmation directe (sans appeler l'IA)
+            # Quand une transaction vient d'être créée, renvoyer une confirmation directe (sans appeler l'IA). Ne pas poser de question — le dossier est terminé.
             if created_tx and action_lines:
                 ref = created_tx.dossier_number or f"#{created_tx.id}"
                 confirmation_content = (
                     f"C'est fait ! J'ai créé la transaction {ref} pour vous. "
-                    "Vous pouvez la voir et la compléter dans la section Transactions. "
-                    "Quelle est l'adresse du bien ?"
+                    "Vous pouvez la voir et la compléter dans la section Transactions."
                 )
                 if sid:
                     await persist_lea_messages(
@@ -5284,7 +5308,8 @@ async def lea_chat(
                     actions=action_lines,
                 )
             # Quand un formulaire OACIQ vient d'être créé, renvoyer une confirmation directe (sans appeler l'IA)
-            if _action_lines_contain_oaciq_form_creation(action_lines):
+            # sauf si les actions demandent de poser le premier champ : dans ce cas le LLM doit répondre pour guider en conversation.
+            if _action_lines_contain_oaciq_form_creation(action_lines) and not _action_lines_contain_first_field_question(action_lines):
                 confirmation_content = _build_oaciq_form_creation_confirmation(action_lines)
                 if sid:
                     await persist_lea_messages(
@@ -5374,21 +5399,25 @@ async def lea_chat(
             )
         # Autres actions (adresse, prix, formulaire OACIQ, etc.) : confirmation directe pour éviter que l'agent réponde sans contexte
         if action_lines:
+            confirmation = None
             if _action_lines_contain_oaciq_form_creation(action_lines):
-                confirmation = _build_oaciq_form_creation_confirmation(action_lines)
+                if not _action_lines_contain_first_field_question(action_lines):
+                    confirmation = _build_oaciq_form_creation_confirmation(action_lines)
+                # Si « premier champ » demandé : laisser passer pour que l'agent/LLM réponde et guide en conversation
             else:
                 confirmation = (
                     "C'est fait ! Les informations ont été mises à jour. "
                     "Vous pouvez voir la transaction dans la section Transactions."
                 )
-            return LeaChatResponse(
-                content=confirmation,
-                session_id=body.session_id or "",
-                model=None,
-                provider=None,
-                usage={},
-                actions=action_lines,
-            )
+            if confirmation is not None:
+                return LeaChatResponse(
+                    content=confirmation,
+                    session_id=body.session_id or "",
+                    model=None,
+                    provider=None,
+                    usage={},
+                    actions=action_lines,
+                )
         message_to_agent = body.message
         data = await _call_external_agent_chat(
             message=message_to_agent,
