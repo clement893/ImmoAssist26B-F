@@ -3698,7 +3698,12 @@ async def maybe_create_oaciq_form_submission_from_lea(
             or _extract_address_hint_from_assistant_message(last_assistant_message or "")
         )
         transaction = await get_user_transaction_by_address_hint(db, user_id, hint) if hint else None
-        # Ne pas utiliser la dernière transaction si l'utilisateur n'a pas précisé laquelle (éviter une adresse d'une ancienne conversation)
+        # Fallback : si le dernier message de Léa indique qu'on vient de créer une transaction (ex. « J'ai créé la transaction #70 »),
+        # utiliser la dernière transaction de l'utilisateur pour permettre « maintenant je veux créer une promesse d'achat » sans redemander.
+        if not transaction and last_assistant_message:
+            last_lower = last_assistant_message.strip().lower()
+            if "créé la transaction" in last_lower or "créé le dossier" in last_lower or "created the transaction" in last_lower:
+                transaction = await get_user_latest_transaction(db, user_id)
         if not transaction:
             return None
     if not transaction:
@@ -4273,13 +4278,14 @@ async def run_lea_actions(
         if validation:
             parts = []
             if validation.get("postcode"):
-                parts.append(f"code postal {validation['postcode']}")
+                parts.append(f"code postal {str(validation['postcode'])}")
             if validation.get("city"):
-                parts.append(validation["city"])
+                parts.append(str(validation["city"]))
             if validation.get("state"):
-                parts.append(validation["state"])
+                parts.append(str(validation["state"]))
             if validation.get("country_code"):
-                parts.append(validation["country_code"])
+                v = validation["country_code"]
+                parts.append(str(v) if not isinstance(v, str) else v)
             if parts:
                 geocode_str = " — ".join(parts)
                 city = validation.get("city") or ""
@@ -4435,11 +4441,11 @@ async def run_lea_actions(
             if validation:
                 parts = []
                 if validation.get("postcode"):
-                    parts.append(f"code postal {validation['postcode']}")
+                    parts.append(f"code postal {str(validation['postcode'])}")
                 if validation.get("city"):
-                    parts.append(validation["city"])
+                    parts.append(str(validation["city"]))
                 if validation.get("state"):
-                    parts.append(validation["state"])
+                    parts.append(str(validation["state"]))
                 if parts:
                     geocode_str = " — ".join(parts)
                     city = validation.get("city") or ""
@@ -4464,11 +4470,11 @@ async def run_lea_actions(
             if validation:
                 parts = []
                 if validation.get("postcode"):
-                    parts.append(f"code postal {validation['postcode']}")
+                    parts.append(f"code postal {str(validation['postcode'])}")
                 if validation.get("city"):
-                    parts.append(validation["city"])
+                    parts.append(str(validation["city"]))
                 if validation.get("state"):
-                    parts.append(validation["state"])
+                    parts.append(str(validation["state"]))
                 if parts:
                     geocode_str = " — ".join(parts)
                     city = validation.get("city") or ""
@@ -4491,13 +4497,14 @@ async def run_lea_actions(
             if validation:
                 parts = []
                 if validation.get("postcode"):
-                    parts.append(f"code postal {validation['postcode']}")
+                    parts.append(f"code postal {str(validation['postcode'])}")
                 if validation.get("city"):
-                    parts.append(validation["city"])
+                    parts.append(str(validation["city"]))
                 if validation.get("state"):
-                    parts.append(validation["state"])
+                    parts.append(str(validation["state"]))
                 if validation.get("country_code"):
-                    parts.append(validation["country_code"])
+                    v = validation["country_code"]
+                    parts.append(str(v) if not isinstance(v, str) else v)
                 if parts:
                     geocode_str = " — ".join(parts)
                     city = validation.get("city") or ""
