@@ -33,8 +33,8 @@ const ACTIVITY_EVENTS = [
   'touchstart',
 ] as const;
 
-/** Options for addEventListener/removeEventListener (passive = better scroll performance). */
-const PASSIVE: AddEventListenerOptions = { passive: true };
+/** Options for addEventListener (passive = better scroll performance). */
+const PASSIVE = { passive: true } as AddEventListenerOptions;
 
 /**
  * Proactive token refresh that only runs while the user is active.
@@ -126,7 +126,7 @@ export function useProactiveTokenRefresh() {
     return () => {
       ACTIVITY_EVENTS.forEach((event) => {
         const opts = event === 'scroll' || event === 'touchstart' || event === 'mousemove' ? PASSIVE : undefined;
-        document.removeEventListener(event, onActivity, opts);
+        document.removeEventListener(event, onActivity, opts as boolean | EventListenerOptions | undefined);
       });
       document.removeEventListener('visibilitychange', onVisibilityChange);
       stopInterval();
