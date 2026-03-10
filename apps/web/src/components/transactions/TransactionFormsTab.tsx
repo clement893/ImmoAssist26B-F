@@ -150,6 +150,11 @@ export default function TransactionFormsTab({ transactionId }: TransactionFormsT
 
   return (
     <div className="space-y-6">
+      {submissions && submissions.length > 0 && (
+        <p className="text-sm text-gray-500">
+          Vos formulaires pour cette transaction (ex. Promesse d&apos;achat) sont listés ci-dessous. Cliquez sur <strong>Voir</strong> pour ouvrir et compléter un formulaire.
+        </p>
+      )}
       {/* Header with search and filters */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex-1 relative">
@@ -177,7 +182,8 @@ export default function TransactionFormsTab({ transactionId }: TransactionFormsT
       {/* Existing Submissions */}
       {submissions && submissions.length > 0 && (
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900">Formulaires associés</h3>
+          <h3 className="text-lg font-semibold text-gray-900">Formulaires de cette transaction</h3>
+          <p className="text-sm text-gray-500 -mt-1">Promesse d&apos;achat (PA) et autres formulaires créés pour ce dossier.</p>
           <div className="grid gap-4">
             {submissions.map((submission) => {
               const form = allForms?.find(

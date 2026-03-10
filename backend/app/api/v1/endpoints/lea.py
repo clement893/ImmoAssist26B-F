@@ -89,7 +89,7 @@ LEA_KNOWN_OACIQ_CODES = frozenset({
 
 # Mots-clés / expressions → code formulaire (pour extraire l'intention de l'utilisateur)
 LEA_OACIQ_KEYWORD_TO_CODE: list = [
-    (["promesse", "d'achat", "promesse d'achat"], "PA"),
+    (["promesse", "d'achat", "promesse d'achat", "d'achar", "promesse d'achar"], "PA"),
     (["contre-proposition", "contre proposition"], "CP"),
     (["modifications", "modification"], "MO"),
     (["déclarations du vendeur", "déclaration vendeur", "déclarations vendeur"], "DV"),
@@ -3499,6 +3499,11 @@ def _extract_oaciq_form_code_from_message(message: str) -> Optional[str]:
             after_ok = idx + len(code_lower) >= len(t) or t[idx + len(code_lower)] in " \t\n\r,;.?!«\"')-"
             if not (before_ok and after_ok):
                 continue
+            # Ne pas interpréter "d" comme code OACIQ D dans « promesse d'achat », « d'achat », « d'achar » (typo)
+            if code == "D" and idx + 1 < len(t):
+                rest = t[idx:]
+                if rest.startswith("d'achat") or rest.startswith("d\u2019achat") or rest.startswith("d'achar"):
+                    continue
             # Ne pas interpréter "as" comme code OACIQ AS dans « as-t-on », « as-tu », etc.
             if code == "AS" and idx == 0:
                 rest = t[idx:]
@@ -3565,7 +3570,7 @@ def _wants_to_create_oaciq_form_for_transaction(message: str) -> bool:
     if "formulaire" in t or "form " in t or "form." in t:
         if "oaciq" in t or "oacq" in t or "promesse" in t or "contre-proposition" in t or "modifications" in t or "modification" in t or "déclaration" in t or "contrat" in t or "annexe" in t or "avis" in t:
             return True
-    if "promesse" in t and "achat" in t:
+    if "promesse" in t and ("achat" in t or "achar" in t):
         return True
     if "contre-proposition" in t or "contre proposition" in t:
         return True
@@ -3618,8 +3623,8 @@ def _build_oaciq_form_creation_confirmation(action_lines: list) -> str:
 
 async def _create_oaciq_form_submission_for_transaction(
     db: AsyncSession, user_id: int, transaction: RealEstateTransaction, form_code: str = "PA"
-) -> Optional[str]:
-    """Crée une soumission (brouillon) du formulaire OACIQ pour la transaction donnée. Retourne la ligne d'action ou None."""
+) -> Optional[Tuple[str, RealEstateTransaction]]:
+    """Crée une soumission (brouillon) du formulaire OACIQ pour la transaction donnée. Retourne (ligne d'action, transaction) ou None."""
     try:
         result = await db.execute(select(Form).where(Form.code == form_code).limit(1))
         form = result.scalar_one_or_none()
@@ -3640,11 +3645,13 @@ async def _create_oaciq_form_submission_for_transaction(
         await db.refresh(submission)
         version = FormSubmissionVersion(submission_id=submission.id, data={})
         db.add(version)
-        # Faire apparaître la transaction dans la colonne « Promesse d'achat » du pipeline
+        # Faire apparaître la transaction dans la colonne « Promesse d'achat » du pipeline (à la place de « Création du dossier »)
         if form_code == "PA":
             transaction.pipeline_stage = "promesse_achat"
             if not transaction.promise_to_purchase_date:
                 transaction.promise_to_purchase_date = date.today()
+            flag_modified(transaction, "pipeline_stage")
+            flag_modified(transaction, "promise_to_purchase_date")
             await db.flush()
         await db.commit()
         await db.refresh(submission)
@@ -3653,11 +3660,12 @@ async def _create_oaciq_form_submission_for_transaction(
         tx_label = f"{addr_short} ({ref_label})" if addr_short else ref_label
         form_name = form.name or f"Formulaire {form_code}"
         logger.info(f"Lea created OACIQ form submission id={submission.id} form_code={form_code} for transaction id={transaction.id}")
-        return (
+        line = (
             f"Tu viens de créer le formulaire OACIQ « {form_name} » (code {form_code}) pour la transaction {tx_label}. "
             "La soumission est en brouillon. Confirme à l'utilisateur que c'est fait. "
-            "Prochaine étape : indique-lui d'aller dans Transactions → ouvrir cette transaction → onglet Formulaire (Formulaires OACIQ) → compléter le formulaire."
+            "Prochaine étape : indique-lui d'aller dans Transactions → ouvrir cette transaction → onglet « Formulaires OACIQ » (onglet avec le nom exact) → cliquer sur Voir pour ouvrir la promesse d'achat."
         )
+        return (line, transaction)
     except Exception as e:
         logger.warning(f"Lea create OACIQ form submission for transaction failed: {e}", exc_info=True)
         await db.rollback()
@@ -3666,7 +3674,7 @@ async def _create_oaciq_form_submission_for_transaction(
 
 async def maybe_create_oaciq_form_submission_from_lea(
     db: AsyncSession, user_id: int, message: str, last_assistant_message: Optional[str] = None
-) -> Optional[str]:
+) -> Optional[Tuple[str, RealEstateTransaction]]:
     """
     Si l'utilisateur demande de créer une promesse d'achat / un formulaire OACIQ pour une transaction,
     crée la soumission (brouillon) liée à la transaction et retourne une ligne pour « Action effectuée ».
@@ -3692,7 +3700,7 @@ async def maybe_create_oaciq_form_submission_from_lea(
             return None
     if not transaction:
         return None
-    return await _create_oaciq_form_submission_for_transaction(db, user_id, transaction, form_code)
+    return await _create_oaciq_form_submission_for_transaction(db, user_id, transaction, form_code)  # (line, transaction) or None
 
 
 def _wants_lea_to_complete_form(message: str) -> bool:
@@ -3726,23 +3734,35 @@ def _wants_help_filling_oaciq(message: str) -> bool:
     return any(p in t for p in help_phrases)
 
 
+def _is_pa_signature_field(field_id: str, field_label: str) -> bool:
+    """True si le champ est une signature / acceptation (fiche technique : ne jamais demander dans le chat)."""
+    if not field_id and not field_label:
+        return False
+    s = f"{(field_id or '').lower()} {(field_label or '').lower()}"
+    return "signature" in s and ("acheteur" in s or "vendeur" in s or "courtier" in s or "acceptation" in s)
+
+
 def _get_next_empty_pa_field(form_fields: object, current_data: dict) -> Tuple[Optional[str], Optional[str]]:
-    """Retourne (field_id, label) du prochain champ vide (requis d'abord, puis optionnels), ou (None, None)."""
+    """Retourne (field_id, label) du prochain champ vide (requis d'abord, puis optionnels), ou (None, None). Exclut les champs signature (fiche technique PA)."""
     flat = _flatten_oaciq_field_defs(form_fields)
     current = current_data or {}
-    # Requis d'abord
+    # Requis d'abord (sauf signatures)
     for f in flat:
         key = str(f.get("name") or f.get("id") or "").strip()
         if not key:
+            continue
+        if _is_pa_signature_field(key, str(f.get("label") or "")):
             continue
         if not f.get("required"):
             continue
         if not _value_is_filled(current.get(key)):
             return (key, str(f.get("label") or f.get("id") or key))
-    # Puis optionnels
+    # Puis optionnels (sauf signatures)
     for f in flat:
         key = str(f.get("name") or f.get("id") or "").strip()
         if not key:
+            continue
+        if _is_pa_signature_field(key, str(f.get("label") or "")):
             continue
         if f.get("required"):
             continue
@@ -4495,12 +4515,16 @@ async def run_lea_actions(
             f"La date de promesse d'achat a été enregistrée sur la transaction {ref}. "
             "Confirme à l'utilisateur que la promesse d'achat est enregistrée et qu'il peut compléter le formulaire dans la section Transactions."
         )
-    oaciq_line = await maybe_create_oaciq_form_submission_from_lea(db, user_id, message, last_assistant_message) if not building_new_only else None
+    oaciq_result = await maybe_create_oaciq_form_submission_from_lea(db, user_id, message, last_assistant_message) if not building_new_only else None
+    oaciq_line = oaciq_result[0] if oaciq_result else None
+    oaciq_tx = oaciq_result[1] if oaciq_result and len(oaciq_result) > 1 else None
     if oaciq_line:
         lines.append(oaciq_line)
-        # Guidage par défaut : dès la création du PA, proposer la première question (sans attendre « guide moi »)
-        if transaction_preferred and session_id and conv:
-            draft = await get_draft_pa_submission_for_transaction(db, user_id, transaction_preferred)
+        # Guidage par défaut : dès la création du PA (pas un autre formulaire), proposer la première question
+        created_pa = "code pa)" in oaciq_line.lower() or "(code pa) " in oaciq_line.lower()
+        tx_for_pa = oaciq_tx or transaction_preferred
+        if created_pa and tx_for_pa and session_id and conv:
+            draft = await get_draft_pa_submission_for_transaction(db, user_id, tx_for_pa)
             if draft:
                 submission, _fc, _fn, form_fields = draft[0], draft[1], draft[2], draft[3]
                 current = dict(submission.data) if isinstance(submission.data, dict) else {}

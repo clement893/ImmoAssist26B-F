@@ -329,7 +329,7 @@ export default function TransactionDetailPage() {
     { id: 'documents', label: 'Documents', icon: FileText },
     { id: 'activity', label: 'Activity', icon: MessageSquare },
     { id: 'photos', label: 'Photos', icon: ImageIcon },
-    { id: 'forms', label: 'Formulaire', icon: FileCheck },
+    { id: 'forms', label: 'Formulaires OACIQ', icon: FileCheck },
     { id: 'contacts', label: 'Contacts', icon: Users },
     { id: 'map', label: 'Carte', icon: MapPin },
     { id: 'lea', label: 'Léa', icon: Bot },
