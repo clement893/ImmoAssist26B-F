@@ -3799,28 +3799,36 @@ def _is_pa_signature_field(field_id: str, field_label: str) -> bool:
 
 
 def _get_next_empty_pa_field(form_fields: object, current_data: dict) -> Tuple[Optional[str], Optional[str]]:
-    """Retourne (field_id, label) du prochain champ vide (requis d'abord, puis optionnels), ou (None, None). Exclut les champs signature (fiche technique PA)."""
+    """Retourne (field_id, label) du prochain champ vide (requis d'abord, puis optionnels), ou (None, None).
+    Utilise PA_FIELDS_ORDER pour que Léa collecte coordonnées (adresse/tél/courriel acheteur et vendeur)
+    et tous les champs métier avant de considérer le formulaire complet (fiche technique). Exclut signatures."""
     flat = _flatten_oaciq_field_defs(form_fields)
     current = current_data or {}
-    # Requis d'abord (sauf signatures)
+    by_key = {}
     for f in flat:
         key = str(f.get("name") or f.get("id") or "").strip()
-        if not key:
+        if not key or _is_pa_signature_field(key, str(f.get("label") or "")):
             continue
-        if _is_pa_signature_field(key, str(f.get("label") or "")):
-            continue
-        if not f.get("required"):
+        by_key[key] = f
+    # Ordre : PA_FIELDS_ORDER puis tout champ du formulaire non listé
+    ordered_keys: List[str] = []
+    for fid in PA_FIELDS_ORDER:
+        if fid in by_key:
+            ordered_keys.append(fid)
+    for key in by_key:
+        if key not in ordered_keys:
+            ordered_keys.append(key)
+    # Requis d'abord (dans cet ordre)
+    for key in ordered_keys:
+        f = by_key.get(key)
+        if not f or not f.get("required"):
             continue
         if not _value_is_filled(current.get(key)):
             return (key, str(f.get("label") or f.get("id") or key))
-    # Puis optionnels (sauf signatures)
-    for f in flat:
-        key = str(f.get("name") or f.get("id") or "").strip()
-        if not key:
-            continue
-        if _is_pa_signature_field(key, str(f.get("label") or "")):
-            continue
-        if f.get("required"):
+    # Puis optionnels (dans cet ordre)
+    for key in ordered_keys:
+        f = by_key.get(key)
+        if not f or f.get("required"):
             continue
         if not _value_is_filled(current.get(key)):
             return (key, str(f.get("label") or f.get("id") or key))
@@ -3829,6 +3837,32 @@ def _get_next_empty_pa_field(form_fields: object, current_data: dict) -> Tuple[O
 
 # Premier champ à demander pour la PA si _get_next_empty_pa_field ne retourne rien (form sans sections ou tout prérempli)
 PA_FIRST_FIELD_FALLBACK: Tuple[str, str] = ("acompte", "Montant de l'acompte ($)")
+
+# Ordre de collecte PA (fiche technique) : coordonnées et champs métier avant les autres optionnels
+# pour que Léa collecte TOUTES les infos (adresse/tél/courriel acheteur et vendeur, dépôt, conditions, etc.)
+PA_FIELDS_ORDER: List[str] = [
+    # Déjà souvent préremplis par la transaction (requis)
+    "acheteurs", "vendeurs",
+    "property_address", "property_city", "property_postal_code", "property_province",
+    "prix_offert", "prix_achat", "acompte", "date_acte_vente",
+    # Coordonnées des parties (fiche technique §2)
+    "acheteur_adresse", "acheteur_telephone", "acheteur_courriel",
+    "vendeur_adresse", "vendeur_telephone", "vendeur_courriel",
+    # Dépôt et paiement
+    "date_acompte", "delai_remise_depot", "mode_paiement",
+    "montant_hypotheque", "delai_financement",
+    # Dates et occupation
+    "date_occupation",
+    # Conditions et documents
+    "condition_inspection", "date_limite_inspection", "condition_documents",
+    "declarations_vendeur", "declarations_communes",
+    # Inclusions / exclusions / autres
+    "inclusions", "exclusions", "autres_conditions", "annexes",
+    # Acceptation et notaire
+    "delai_acceptation", "nom_notaire",
+    # Courtier et description
+    "courtier_nom", "courtier_permis", "description_immeuble",
+]
 
 
 def _is_valid_pa_value_for_field(field_type: str, value: Any) -> bool:
@@ -4674,8 +4708,11 @@ async def run_lea_actions(
         conv.context["oaciq_fill"] = deferred_oaciq_fill
         flag_modified(conv, "context")
         need_conv_commit = True
-    # Si l'utilisateur demande une promesse d'achat / formulaire sans préciser la transaction ni l'adresse, ne pas assumer la dernière
-    if not promise_tx and not oaciq_line and (
+    # Si l'utilisateur demande une promesse d'achat / formulaire sans préciser la transaction ni l'adresse, ne pas assumer la dernière.
+    # Ne pas ajouter cette ligne quand il est en train de remplir un PA (ex. « ajoute ces conditions à la promesse d'achat »).
+    oaciq_fill_ctx = (conv.context or {}).get("oaciq_fill") if conv else None
+    in_pa_fill = isinstance(oaciq_fill_ctx, dict) and oaciq_fill_ctx.get("submission_id")
+    if not promise_tx and not oaciq_line and not in_pa_fill and (
         _wants_to_set_promise(message) or _wants_to_create_oaciq_form_for_transaction(message)
     ):
         lines.append(
