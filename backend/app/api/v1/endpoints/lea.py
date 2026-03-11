@@ -296,7 +296,7 @@ LEA_SYSTEM_PROMPT = (
 "Tu peux créer pour l'utilisateur n'importe quel formulaire de cette liste pour une de ses transactions : dès qu'il demande (ex. « crée une contre-proposition », « crée un CP », « je veux un formulaire CCVE pour la transaction rue X »), demande pour quelle transaction si besoin (adresse ou numéro de dossier), puis confirme ; le système créera le brouillon. "
 "** Tu peux aussi aider à compléter les formulaires : ** quand l'utilisateur dit « toi complète le », « remplis le formulaire », « complète le » (après avoir parlé d'un formulaire en brouillon), le système préremplit le formulaire avec les données de la transaction (adresse, vendeurs, acheteurs, prix, date de clôture). Confirme que c'est fait. Pour le PA (promesse d'achat), propose ensuite de continuer avec toi pour remplir les champs restants dans le chat ; ne dis pas « allez dans Formulaires OACIQ pour compléter ». Pour les autres formulaires, tu peux mentionner qu'il peut vérifier dans Transactions → cette transaction → onglet Formulaires OACIQ. Ne dis pas que tu ne peux pas — l'action est effectuée par le système. "
 "** Tu dois aider l'utilisateur à remplir les champs du formulaire (ex. PA) : ** rappelle quelles sections ou champs restent à remplir, indique où ils se trouvent (ex. section 4 Prix et acompte, section 7 Date de signature de l'acte), explique le sens des champs si besoin (sans inventer de valeurs). Guide-le dans le remplissage du formulaire en conversation. "
-"** Remplissage PA (champ ou section) : ** Quand « Action effectuée » indique « Tu aides l'utilisateur à remplir le formulaire PA par section » ou « Pour la section … il me manque : … Tu peux tout envoyer en un seul message », demande à l'utilisateur les infos de cette section (liste des champs manquants) et précise qu'il peut tout envoyer en un seul message. Quand « Action effectuée » indique « champ par champ » ou « la valeur pour le premier champ » ou « le champ suivant », pose UNE SEULE question pour le champ indiqué. Quand « Action effectuée » dit « Valeur(s) enregistrée(s). Pour la section … » : confirme brièvement puis demande la section suivante (champs listés) en précisant qu'il peut tout envoyer en un message. Ne dis pas « allez dans Formulaires OACIQ » : pose la question dans le chat. Les valeurs sont enregistrées dans le brouillon et s'afficheront dans Transactions → Formulaires OACIQ. "
+"** Remplissage PA (champ ou section) : ** Quand « Action effectuée » indique « Tu aides l'utilisateur à remplir le formulaire PA par section » ou « Pour la section … il me manque : … Tu peux tout envoyer en un seul message », demande à l'utilisateur les infos de cette section (liste des champs manquants) et précise qu'il peut tout envoyer en un seul message. Quand « Action effectuée » indique « champ par champ » ou « la valeur pour le premier champ » ou « le champ suivant », pose UNE SEULE question pour le champ indiqué. Quand « Action effectuée » dit « Valeur(s) enregistrée(s). Pour la section … » : confirme brièvement puis demande la section suivante (champs listés) en précisant qu'il peut tout envoyer en un message. Ne considère pas le formulaire PA terminé tant que « Action effectuée » indique qu'il manque des champs ou une section : continue à demander les infos manquantes jusqu'à ce que le bloc dise que tous les champs requis sont remplis. Ne dis pas « allez dans Formulaires OACIQ » : pose la question dans le chat. Les valeurs sont enregistrées dans le brouillon et s'afficheront dans Transactions → Formulaires OACIQ. "
 "** PA – Données transaction : ** Pour le formulaire Promesse d'achat (PA), utilise TOUJOURS les données déjà présentes dans la transaction (noms des acheteurs, noms des vendeurs, adresse complète de la propriété, prix offert) : préremplis ou utilise-les sans les redemander à l'utilisateur. Demande uniquement les champs qui ne sont pas dans la transaction (coordonnées détaillées, dépôt, conditions, inclusions/exclusions, dates, délai d'acceptation). "
 "** PA – Signatures : ** Ne demande JAMAIS les signatures (acheteur, vendeur, courtiers) ni l'acceptation légale du vendeur dans le chat. Ces actes sont faits par l'utilisateur directement dans le formulaire ou via signature électronique. Tu peux indiquer où signer, pas remplir à sa place. "
 "Tu peux indiquer quels formulaires OACIQ sont en brouillon, complétés ou signés pour une transaction. "
@@ -4645,8 +4645,16 @@ async def run_lea_actions(
     elif building_new_only:
         transaction_preferred = None
 
+    # En mode remplissage PA (oaciq_fill avec submission_id), ne pas appliquer les mises à jour transaction
+    # (adresse, prix, date de clôture) pour éviter d'interpréter le message PA comme des modifs de la fiche.
+    in_pa_fill = bool(
+        conv
+        and isinstance((conv.context or {}).get("oaciq_fill"), dict)
+        and (conv.context or {}).get("oaciq_fill", {}).get("submission_id")
+    )
+
     addr_result = None
-    if not building_new_only:
+    if not building_new_only and not in_pa_fill:
         addr_result = await maybe_update_transaction_address_from_lea(
             db, user_id, message, transaction_preferred=transaction_preferred
         )
@@ -4714,14 +4722,13 @@ async def run_lea_actions(
     # Enregistrer l'adresse dans le brouillon de création (pending) si on collecte pour un nouveau dossier
     # (pas de transaction existante, ou on est en mode « nouveau dossier » depuis une session liée à une autre tx)
     # Ne pas traiter le message comme adresse pour un nouveau dossier si l'utilisateur est en train de remplir un PA.
-    in_pa_fill_early = isinstance(ctx.get("oaciq_fill"), dict) and ctx.get("oaciq_fill", {}).get("submission_id")
     if (
         not addr_result
         and pending.get("type")
         and session_id
         and (not has_transaction or building_new_only)
         and pending.get("stage") in (None, "address")
-        and not in_pa_fill_early
+        and not in_pa_fill
     ):
         addr_from_msg = _extract_address_from_message(message)
         if addr_from_msg:
@@ -5097,11 +5104,12 @@ async def run_lea_actions(
                         f"Noms notés pour le dossier en cours de création. Il manque encore : {', '.join(missing)}. Demande-les à l'utilisateur."
                     )
     # Prix depuis le message utilisateur (ex. « le prix c'est 600 000 », « 500k ») — aussi enregistré via réponse LLM (PRIX_LISTING/PRIX_OFFERT)
+    # Ne pas mettre à jour la transaction en mode remplissage PA (le message peut contenir des montants pour le formulaire).
     price_result = (
         await maybe_update_transaction_price_from_lea(
             db, user_id, message, transaction_preferred=transaction_preferred
         )
-        if not building_new_only
+        if not building_new_only and not in_pa_fill
         else None
     )
     if price_result:
@@ -5156,7 +5164,7 @@ async def run_lea_actions(
         await maybe_set_expected_closing_date_from_lea(
             db, user_id, message, last_assistant_message, transaction_preferred=transaction_preferred
         )
-        if not building_new_only
+        if not building_new_only and not in_pa_fill
         else None
     )
     if closing_date_result:
