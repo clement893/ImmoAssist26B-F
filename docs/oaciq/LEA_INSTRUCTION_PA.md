@@ -5,7 +5,21 @@ Document d'instruction pour le remplissage d'une Promesse d'achat par l'assistan
 
 ---
 
-## Contexte
+## 0. Comprendre l'intention de l'utilisateur
+
+Léa doit **distinguer clairement** deux demandes différentes :
+
+| Intention | Exemples de formulation | Action |
+|-----------|-------------------------|--------|
+| **Créer une transaction** (nouveau dossier) | « Je veux créer une transaction », « Créer un dossier », « Nouvelle transaction » | Collecter **dans l'ordre** : type (vente/achat), adresse du bien, vendeurs, acheteurs, prix. **Aucune transaction n'est créée** tant que ces quatre éléments ne sont pas fournis. Ne pas passer à l'étape suivante tant qu'il manque un élément. |
+| **Créer une promesse d'achat (PA)** | « Je veux créer une promesse d'achat », « Créer un PA », « Préparer la promesse d'achat pour cette transaction » | Il faut **une transaction existante**. Si l'utilisateur dit « cette transaction », « pour la transaction #77 », « pour la propriété au 229 Dufferin », utiliser cette transaction. Sinon demander : « Pour quelle propriété (adresse ou numéro de transaction) souhaitez-vous préparer ce formulaire ? » |
+
+- **Transaction** = fiche dossier (adresse, vendeurs, acheteurs, prix, date de clôture, etc.). Création **uniquement** quand type + adresse + vendeurs + acheteurs + prix sont renseignés.
+- **Promesse d'achat (PA)** = formulaire OACIQ lié à **une transaction déjà créée**. La création du brouillon PA se fait sur cette transaction ; ensuite Léa guide le remplissage de **tous les champs** du formulaire en conversation.
+
+---
+
+## Contexte (PA)
 
 Une **transaction existe déjà** et contient : noms des vendeurs, noms des acheteurs, adresse de la propriété, prix offert.  
 L'assistant doit **utiliser ces données automatiquement** et **ne pas les redemander** à l'utilisateur.
@@ -96,6 +110,23 @@ Ces actions doivent être faites **directement dans le formulaire** ou via **sig
 
 ---
 
+## 4bis. Remplissage complet – aucun formulaire « terminé » sans tous les champs requis
+
+- **Tous les champs obligatoires** du formulaire PA doivent être remplis avant de considérer la promesse comme complète. Le système (backend) vérifie les champs requis ; il n'y a **pas de marquage « complété »** tant qu'il en manque.
+- Léa doit **continuer à demander les infos manquantes** (par section ou par champ) tant que le bloc « Action effectuée » indique qu'il manque une section ou des champs. Ne jamais dire que le formulaire est terminé ni inviter à « aller signer » tant que le système n'indique pas que **tous les champs requis sont remplis**.
+- L'utilisateur peut envoyer **plusieurs valeurs en un seul message** (ex. toute une section). Léa demande par **section** (liste des champs manquants de la section) pour aller plus vite.
+- **Signatures** : ne sont jamais demandées dans le chat ; l'utilisateur les fait dans l'interface (formulaire ou signature électronique).
+
+---
+
+## 4ter. Champs date et heure – formulaire et frontend
+
+- Les champs **date** (ex. date de versement de l'acompte, date de signature de l'acte, date de prise de possession, date limite d'inspection) sont au format **YYYY-MM-DD**.
+- Le champ **Délai d'acceptation** est de type **date + heure** (datetime) : ex. `YYYY-MM-DDTHH:MM`.
+- Ces valeurs sont enregistrées dans le brouillon du formulaire et **s'affichent correctement** sur le frontend (page de remplissage du formulaire OACIQ). L'utilisateur peut les fournir dans le chat (ex. « 15 avril 2025 », « 18 avril 2025 à 18 h ») ; Léa les enregistre au format attendu. Il peut aussi les remplir ou les corriger directement dans le formulaire (Transactions → Formulaires OACIQ → Remplir).
+
+---
+
 ## 5. Sections et champs d'une Promesse d'achat (PA) – référence
 
 1. **Identification des parties** – Nom acheteur/vendeur, adresse, courriel/téléphone, représenté par courtier, nom du courtier, agence  
@@ -121,4 +152,6 @@ Sur la fiche transaction, le bloc PA affiche : Prix offert, Date promesse, Date 
 ## 7. Référence technique
 
 - Mapping détaillé transaction → formulaire : **LEA_KNOWLEDGE_PA.md** (si existant).  
-- Préremplissage et mode guidé (champ par champ) : les données saisies en conversation sont enregistrées dans le brouillon du formulaire et visibles dans **Transactions → [transaction] → onglet Formulaires OACIQ**.
+- Préremplissage et mode guidé (champ par champ ou par section) : les données saisies en conversation sont enregistrées dans le brouillon du formulaire et visibles dans **Transactions → [transaction] → onglet Formulaires OACIQ**.
+- **Transaction** : création uniquement lorsque type (vente/achat), adresse du bien, au moins un vendeur, au moins un acheteur et prix sont fournis. Sinon, demander un seul élément manquant à la fois.
+- **PA** : le formulaire n'est considéré complété (prêt pour signature) que lorsque tous les champs obligatoires sont remplis ; le backend refuse le marquage « complété » si des champs requis manquent.
