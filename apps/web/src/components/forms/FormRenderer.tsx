@@ -62,6 +62,31 @@ export function FormRenderer({ fields, data, onChange }: FormRendererProps) {
   );
 }
 
+/** Normalize value for HTML date input (yyyy-mm-dd). */
+function toDateInputValue(val: unknown): string {
+  if (val == null || val === '') return '';
+  const s = String(val).trim();
+  if (!s) return '';
+  const match = s.match(/^(\d{4}-\d{2}-\d{2})/);
+  return match ? match[1] : s.slice(0, 10);
+}
+
+/** Normalize value for HTML datetime-local input (yyyy-mm-ddThh:mm). */
+function toDatetimeLocalInputValue(val: unknown): string {
+  if (val == null || val === '') return '';
+  const s = String(val).trim();
+  if (!s) return '';
+  const iso = s.replace(' ', 'T').replace(/\.\d{3}Z?$/, '');
+  const match = iso.match(/^(\d{4}-\d{2}-\d{2})T?(\d{1,2}:\d{2})?/);
+  if (match) {
+    const datePart = match[1];
+    const timePart = match[2] || '12:00';
+    return `${datePart}T${timePart}`;
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return `${s}T12:00`;
+  return s.slice(0, 16);
+}
+
 function FieldRenderer({ field, value, onChange }: any) {
   const commonProps = {
     id: field.id || field.name,
@@ -133,8 +158,17 @@ function FieldRenderer({ field, value, onChange }: any) {
         <Input
           {...commonProps}
           type="date"
-          value={value || ''}
-          onChange={(e) => onChange(e.target.value)}
+          value={toDateInputValue(value)}
+          onChange={(e) => onChange(e.target.value || undefined)}
+        />
+      )}
+
+      {field.type === 'datetime-local' && (
+        <Input
+          {...commonProps}
+          type="datetime-local"
+          value={toDatetimeLocalInputValue(value)}
+          onChange={(e) => onChange(e.target.value || undefined)}
         />
       )}
 
