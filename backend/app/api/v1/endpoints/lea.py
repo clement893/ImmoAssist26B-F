@@ -3746,11 +3746,31 @@ async def maybe_create_oaciq_form_submission_from_lea(
             or _extract_address_hint_from_assistant_message(last_assistant_message or "")
         )
         transaction = await get_user_transaction_by_address_hint(db, user_id, hint) if hint else None
-        # Fallback : si le dernier message de Léa indique qu'on vient de créer une transaction (ex. « J'ai créé la transaction #70 »),
-        # utiliser la dernière transaction de l'utilisateur pour permettre « maintenant je veux créer une promesse d'achat » sans redemander.
+        # Fallback : si l'utilisateur dit « cette transaction », « cette propriété », « pour cette transaction », utiliser la dernière.
+        if not transaction and message:
+            msg_lower = message.strip().lower()
+            if any(
+                p in msg_lower
+                for p in (
+                    "cette transaction",
+                    "cette propriété",
+                    "pour cette transaction",
+                    "pour cette propriété",
+                    "la même transaction",
+                    "la transaction dont on parlait",
+                )
+            ):
+                transaction = await get_user_latest_transaction(db, user_id)
+        # Fallback : si le dernier message de Léa indique qu'on vient de créer une transaction, utiliser la dernière.
         if not transaction and last_assistant_message:
             last_lower = last_assistant_message.strip().lower()
-            if "créé la transaction" in last_lower or "créé le dossier" in last_lower or "created the transaction" in last_lower:
+            if (
+                "créé la transaction" in last_lower
+                or "créé le dossier" in last_lower
+                or "created the transaction" in last_lower
+                or "a été créée" in last_lower
+                or "a ete creee" in last_lower
+            ):
                 transaction = await get_user_latest_transaction(db, user_id)
         if not transaction:
             return None
@@ -4693,12 +4713,15 @@ async def run_lea_actions(
                 lines.append(oaciq_line)
     # Enregistrer l'adresse dans le brouillon de création (pending) si on collecte pour un nouveau dossier
     # (pas de transaction existante, ou on est en mode « nouveau dossier » depuis une session liée à une autre tx)
+    # Ne pas traiter le message comme adresse pour un nouveau dossier si l'utilisateur est en train de remplir un PA.
+    in_pa_fill_early = isinstance(ctx.get("oaciq_fill"), dict) and ctx.get("oaciq_fill", {}).get("submission_id")
     if (
         not addr_result
         and pending.get("type")
         and session_id
         and (not has_transaction or building_new_only)
         and pending.get("stage") in (None, "address")
+        and not in_pa_fill_early
     ):
         addr_from_msg = _extract_address_from_message(message)
         if addr_from_msg:
