@@ -242,7 +242,7 @@ LEA_SYSTEM_PROMPT = (
     "Tu ne dois JAMAIS prétendre avoir fait une action (créer une transaction, mettre à jour une adresse, créer une promesse d'achat, etc.) "
     "si le bloc « Action effectuée » ci-dessous ne le mentionne pas explicitement. "
     "** Quand le bloc « Action effectuée » est présent et indique qu'une action a été faite (ex: transaction créée, formulaire OACIQ créé, adresse enregistrée), tu DOIS confirmer à l'utilisateur que c'est fait — INTERDICTION de dire « Je ne peux pas » ou « je ne peux pas encore » dans ce cas. ** "
-    "Si le bloc contient « Tu viens de créer le formulaire OACIQ » ou « Promesse d'achat », confirme que le formulaire a bien été créé. Si le bloc contient en plus « Demande immédiatement à l'utilisateur la valeur pour le premier champ » avec un nom de champ (ex. « Prix offert ($) »), tu DOIS dans la MÊME réponse : 1) confirmer brièvement que le formulaire est créé, 2) poser UNE SEULE question pour ce champ (ex. « Quel est le prix offert ($) ? »). INTERDICTION de dire « allez dans Formulaires OACIQ » ou « vous pouvez la compléter en allant dans Transactions → Formulaires OACIQ » : tu guides le remplissage en conversation, donc pose la question ici. Sinon (pas de « Demande immédiatement… premier champ »), propose de continuer avec toi en disant « aide-moi à remplir la promesse d'achat » pour un guidage champ par champ. NE JAMAIS indiquer d'aller dans Formulaires OACIQ pour compléter une promesse d'achat — c'est toi qui guides le remplissage. "
+    "Si le bloc contient « Tu viens de créer le formulaire OACIQ » ou « Promesse d'achat », confirme que le formulaire a bien été créé. Si le bloc contient en plus « Demande immédiatement à l'utilisateur » soit « la valeur pour le premier champ » (un champ), soit « les infos pour la section … » (plusieurs champs en un message), tu DOIS dans la MÊME réponse : 1) confirmer brièvement que le formulaire est créé, 2) demander les infos indiquées (un champ ou la section listée). INTERDICTION de dire « allez dans Formulaires OACIQ » ou « vous pouvez la compléter en allant dans Transactions → Formulaires OACIQ » : tu guides le remplissage en conversation, donc pose la question ici. Sinon (pas de « Demande immédiatement… »), propose de continuer avec toi en disant « aide-moi à remplir la promesse d'achat ». NE JAMAIS indiquer d'aller dans Formulaires OACIQ pour compléter une promesse d'achat — c'est toi qui guides le remplissage. "
     "Si l'utilisateur demande quelque chose et qu'il n'y a AUCUN bloc « Action effectuée » pour cette demande, "
     "dis-lui que tu ne peux pas encore faire cela automatiquement et invite-le à aller dans la section Transactions pour le faire. "
     "Ne invente jamais une confirmation du type « c'est fait » ou « j'ai créé » sans que « Action effectuée » le confirme. "
@@ -296,7 +296,7 @@ LEA_SYSTEM_PROMPT = (
 "Tu peux créer pour l'utilisateur n'importe quel formulaire de cette liste pour une de ses transactions : dès qu'il demande (ex. « crée une contre-proposition », « crée un CP », « je veux un formulaire CCVE pour la transaction rue X »), demande pour quelle transaction si besoin (adresse ou numéro de dossier), puis confirme ; le système créera le brouillon. "
 "** Tu peux aussi aider à compléter les formulaires : ** quand l'utilisateur dit « toi complète le », « remplis le formulaire », « complète le » (après avoir parlé d'un formulaire en brouillon), le système préremplit le formulaire avec les données de la transaction (adresse, vendeurs, acheteurs, prix, date de clôture). Confirme que c'est fait. Pour le PA (promesse d'achat), propose ensuite de continuer avec toi pour remplir les champs restants dans le chat ; ne dis pas « allez dans Formulaires OACIQ pour compléter ». Pour les autres formulaires, tu peux mentionner qu'il peut vérifier dans Transactions → cette transaction → onglet Formulaires OACIQ. Ne dis pas que tu ne peux pas — l'action est effectuée par le système. "
 "** Tu dois aider l'utilisateur à remplir les champs du formulaire (ex. PA) : ** rappelle quelles sections ou champs restent à remplir, indique où ils se trouvent (ex. section 4 Prix et acompte, section 7 Date de signature de l'acte), explique le sens des champs si besoin (sans inventer de valeurs). Guide-le dans le remplissage du formulaire en conversation. "
-"** Remplissage champ par champ (PA) : ** Quand « Action effectuée » indique « Tu aides l'utilisateur à remplir le formulaire PA champ par champ » ou « Demande immédiatement… la valeur pour le premier champ » ou « Demande… la valeur pour le champ suivant », ta réponse doit contenir UNE SEULE question : demande à l'utilisateur la valeur du champ indiqué (ex. « Quel est le prix offert ($) ? »). Ne dis pas seulement « allez dans Formulaires OACIQ » : pose la question dans le chat pour que l'utilisateur puisse répondre ici. Quand « Action effectuée » dit « Valeur enregistrée pour le champ … Demande… le champ suivant » : confirme brièvement que c'est enregistré puis pose UNE SEULE question pour le champ suivant. Les valeurs sont enregistrées dans le brouillon et s'afficheront dans Transactions → Formulaires OACIQ. "
+"** Remplissage PA (champ ou section) : ** Quand « Action effectuée » indique « Tu aides l'utilisateur à remplir le formulaire PA par section » ou « Pour la section … il me manque : … Tu peux tout envoyer en un seul message », demande à l'utilisateur les infos de cette section (liste des champs manquants) et précise qu'il peut tout envoyer en un seul message. Quand « Action effectuée » indique « champ par champ » ou « la valeur pour le premier champ » ou « le champ suivant », pose UNE SEULE question pour le champ indiqué. Quand « Action effectuée » dit « Valeur(s) enregistrée(s). Pour la section … » : confirme brièvement puis demande la section suivante (champs listés) en précisant qu'il peut tout envoyer en un message. Ne dis pas « allez dans Formulaires OACIQ » : pose la question dans le chat. Les valeurs sont enregistrées dans le brouillon et s'afficheront dans Transactions → Formulaires OACIQ. "
 "** PA – Données transaction : ** Pour le formulaire Promesse d'achat (PA), utilise TOUJOURS les données déjà présentes dans la transaction (noms des acheteurs, noms des vendeurs, adresse complète de la propriété, prix offert) : préremplis ou utilise-les sans les redemander à l'utilisateur. Demande uniquement les champs qui ne sont pas dans la transaction (coordonnées détaillées, dépôt, conditions, inclusions/exclusions, dates, délai d'acceptation). "
 "** PA – Signatures : ** Ne demande JAMAIS les signatures (acheteur, vendeur, courtiers) ni l'acceptation légale du vendeur dans le chat. Ces actes sont faits par l'utilisateur directement dans le formulaire ou via signature électronique. Tu peux indiquer où signer, pas remplir à sa place. "
 "Tu peux indiquer quels formulaires OACIQ sont en brouillon, complétés ou signés pour une transaction. "
@@ -3951,6 +3951,59 @@ async def get_draft_pa_submission_for_transaction(
         return None
 
 
+def _build_fillable_field_by_key(form_fields: object) -> dict:
+    """Retourne un dict field_id -> {label, type, ...} pour tous les champs remplissables (hors signature)."""
+    flat = _flatten_oaciq_field_defs(form_fields)
+    by_key: dict = {}
+    for f in flat:
+        key = str(f.get("name") or f.get("id") or "").strip()
+        if not key or _is_pa_signature_field(key, str(f.get("label") or "")):
+            continue
+        by_key[key] = f
+    return by_key
+
+
+async def _merge_extracted_pa_and_save(
+    db: AsyncSession,
+    submission: FormSubmission,
+    form_fields: object,
+    current: dict,
+    extracted: dict,
+    by_key: dict,
+) -> bool:
+    """Fusionne les valeurs extraites (valides) dans current, sauvegarde submission et sync tx. Retourne True si au moins une valeur a été fusionnée."""
+    merged = False
+    for fid, raw in extracted.items():
+        if fid not in by_key:
+            continue
+        f = by_key[fid]
+        ftype = str(f.get("type") or "text")
+        if isinstance(raw, str):
+            value = _normalize_pa_value(ftype, raw)
+        else:
+            value = raw
+        if value is not None and _is_valid_pa_value_for_field(ftype, value):
+            current[fid] = value
+            merged = True
+    if not merged:
+        return False
+    submission.data = current
+    flag_modified(submission, "data")
+    await db.flush()
+    version = FormSubmissionVersion(submission_id=submission.id, data=current)
+    db.add(version)
+    if submission.transaction_id:
+        tx_r = await db.execute(
+            select(RealEstateTransaction).where(RealEstateTransaction.id == submission.transaction_id)
+        )
+        tx = tx_r.scalar_one_or_none()
+        if tx:
+            sync_pa_data_to_transaction(tx, current)
+    await db.commit()
+    await db.refresh(submission)
+    return True
+
+
 async def maybe_oaciq_fill_help_or_save(
     db: AsyncSession,
     user_id: int,
@@ -3960,20 +4013,17 @@ async def maybe_oaciq_fill_help_or_save(
     conv: Optional[LeaConversation],
 ) -> Tuple[List[str], Optional[dict]]:
     """
-    Soit enregistre la réponse de l'utilisateur dans le champ PA en cours (si oaciq_fill actif),
-    soit entre en mode « aide au remplissage » et retourne le premier champ à demander.
+    Soit enregistre la réponse de l'utilisateur (extraction LLM multi-champs ou champ unique),
+    soit entre en mode « aide au remplissage » et demande les infos par section.
     Retourne (lignes pour Action effectuée, mise à jour de conv.context['oaciq_fill'] ou None).
     """
     if not conv or not session_id:
         return ([], None)
     ctx = conv.context or {}
     oaciq_fill = ctx.get("oaciq_fill")
-    if isinstance(oaciq_fill, dict) and oaciq_fill.get("last_asked_field"):
-        # Enregistrer la valeur pour last_asked_field
-        sub_id = oaciq_fill.get("submission_id")
-        if not sub_id:
-            return ([], {"submission_id": None, "last_asked_field": None})
-        r = await db.execute(
+
+    async def _load_submission(sub_id: int):
+        return await db.execute(
             select(FormSubmission, Form.fields)
             .join(Form, FormSubmission.form_id == Form.id)
             .where(
@@ -3982,18 +4032,100 @@ async def maybe_oaciq_fill_help_or_save(
                 FormSubmission.status == "draft",
             )
         )
+
+    # --- Réponse en mode section (last_asked_section + missing_in_section) ---
+    if isinstance(oaciq_fill, dict) and oaciq_fill.get("last_asked_section"):
+        sub_id = oaciq_fill.get("submission_id")
+        if not sub_id:
+            return ([], {"submission_id": None, "last_asked_field": None, "last_asked_section": None, "missing_in_section": None})
+        r = await _load_submission(int(sub_id))
+        row = r.first()
+        if not row:
+            return (["La soumission PA en brouillon n'existe plus. Tu peux proposer à l'utilisateur de créer un nouveau formulaire PA."], {"submission_id": None, "last_asked_field": None, "last_asked_section": None, "missing_in_section": None})
+        submission, form_fields = row[0], row[1]
+        current = dict(submission.data) if isinstance(submission.data, dict) else {}
+        by_key = _build_fillable_field_by_key(form_fields)
+        missing_in_section = oaciq_fill.get("missing_in_section") or []
+        field_descriptions = []
+        for item in missing_in_section:
+            fid = item[0] if isinstance(item, (list, tuple)) else item.get("id") or item.get("field_id")
+            label = item[1] if isinstance(item, (list, tuple)) and len(item) > 1 else (item.get("label") or fid)
+            ftype = (by_key.get(fid) or {}).get("type", "text") if fid in by_key else "text"
+            field_descriptions.append((fid, label, str(ftype)))
+        extracted = await _extract_pa_fields_llm(message, field_descriptions) if field_descriptions else {}
+        if extracted:
+            await _merge_extracted_pa_and_save(db, submission, form_fields, current, extracted, by_key)
+            current = dict(submission.data) if isinstance(submission.data, dict) else {}
+        next_section = _get_next_empty_pa_section(form_fields, current)
+        if not extracted and missing_in_section:
+            section_title = oaciq_fill.get("section_title") or "cette section"
+            labels = [item[1] if isinstance(item, (list, tuple)) and len(item) > 1 else (item.get("label", "") if isinstance(item, dict) else "") for item in missing_in_section]
+            line = (
+                f"Pour la section « {section_title} », il me manque : {', '.join(l for l in labels if l)}. "
+                "Tu peux tout envoyer en un seul message."
+            )
+            return ([line], oaciq_fill)
+        if next_section:
+            section_id, section_title, missing = next_section
+            labels = [m[1] for m in missing]
+            missing_ctx = [[m[0], m[1]] for m in missing]
+            line = (
+                "Valeur(s) enregistrée(s). "
+                f"Pour la section « {section_title} », il me manque : {', '.join(labels)}. "
+                "Tu peux tout envoyer en un seul message."
+            )
+            return ([line], {"submission_id": sub_id, "last_asked_section": section_id, "section_title": section_title, "missing_in_section": missing_ctx})
+        line = (
+            "Tous les champs requis du formulaire PA sont remplis. "
+            "Confirme à l'utilisateur et indique-lui d'aller dans Transactions → cette transaction → onglet Formulaires OACIQ pour vérifier et signer (les signatures se font dans l'interface). Ne dis pas « pour compléter » — le remplissage s'est fait avec toi dans le chat."
+        )
+        return ([line], {"submission_id": None, "last_asked_field": None, "last_asked_section": None, "missing_in_section": None})
+
+    # --- Réponse en mode champ (last_asked_field) : essai extraction LLM puis fallback single-field ---
+    if isinstance(oaciq_fill, dict) and oaciq_fill.get("last_asked_field"):
+        sub_id = oaciq_fill.get("submission_id")
+        if not sub_id:
+            return ([], {"submission_id": None, "last_asked_field": None})
+        r = await _load_submission(int(sub_id))
         row = r.first()
         if not row:
             return (["La soumission PA en brouillon n'existe plus. Tu peux proposer à l'utilisateur de créer un nouveau formulaire PA."], {"submission_id": None, "last_asked_field": None})
         submission, form_fields = row[0], row[1]
         last_asked = oaciq_fill.get("last_asked_field")
         flat = _flatten_oaciq_field_defs(form_fields)
+        by_key = _build_fillable_field_by_key(form_fields)
         field_def = next((f for f in flat if (f.get("name") or f.get("id")) == last_asked), None)
         field_type = str(field_def.get("type") or "text") if field_def else "text"
         label = str(field_def.get("label") or last_asked) if field_def else last_asked
+        current = dict(submission.data) if isinstance(submission.data, dict) else {}
+
+        # Tenter extraction LLM (ne bloque jamais)
+        field_descriptions = [(k, str(f.get("label") or k), str(f.get("type") or "text")) for k, f in by_key.items()]
+        extracted = await _extract_pa_fields_llm(message, field_descriptions)
+        if extracted:
+            merged = await _merge_extracted_pa_and_save(db, submission, form_fields, current, extracted, by_key)
+            if merged:
+                current = dict(submission.data) if isinstance(submission.data, dict) else {}
+                next_section = _get_next_empty_pa_section(form_fields, current)
+                if next_section:
+                    section_id, section_title, missing = next_section
+                    labels = [m[1] for m in missing]
+                    missing_ctx = [[m[0], m[1]] for m in missing]
+                    line = (
+                        "Valeur(s) enregistrée(s). "
+                        f"Pour la section « {section_title} », il me manque : {', '.join(labels)}. "
+                        "Tu peux tout envoyer en un seul message."
+                    )
+                    return ([line], {"submission_id": sub_id, "last_asked_section": section_id, "section_title": section_title, "missing_in_section": missing_ctx})
+                line = (
+                    "Tous les champs requis du formulaire PA sont remplis. "
+                    "Confirme à l'utilisateur et indique-lui d'aller dans Transactions → cette transaction → onglet Formulaires OACIQ pour vérifier et signer (les signatures se font dans l'interface). Ne dis pas « pour compléter » — le remplissage s'est fait avec toi dans le chat."
+                )
+                return ([line], {"submission_id": None, "last_asked_field": None})
+
+        # Fallback : message = valeur du champ attendu uniquement
         value = _normalize_pa_value(field_type, message)
         if value is not None and _is_valid_pa_value_for_field(field_type, value):
-            current = dict(submission.data) if isinstance(submission.data, dict) else {}
             current[last_asked] = value
             submission.data = current
             flag_modified(submission, "data")
@@ -4010,6 +4142,16 @@ async def maybe_oaciq_fill_help_or_save(
             await db.commit()
             await db.refresh(submission)
             logger.info(f"Lea saved PA field {last_asked}={value} for submission id={submission.id}")
+            next_section = _get_next_empty_pa_section(form_fields, submission.data or {})
+            if next_section:
+                section_id, section_title, missing = next_section
+                labels = [m[1] for m in missing]
+                missing_ctx = [[m[0], m[1]] for m in missing]
+                line = (
+                    f"Valeur enregistrée pour le champ « {label} ». "
+                    f"Pour la section « {section_title} », il me manque : {', '.join(labels)}. Tu peux tout envoyer en un seul message."
+                )
+                return ([line], {"submission_id": sub_id, "last_asked_section": section_id, "section_title": section_title, "missing_in_section": missing_ctx})
             next_id, next_label = _get_next_empty_pa_field(form_fields, submission.data or {})
             if next_id:
                 line = (
@@ -4034,6 +4176,7 @@ async def maybe_oaciq_fill_help_or_save(
         )
         return ([line], {"submission_id": sub_id, "last_asked_field": last_asked})
 
+    # --- Entrée en mode aide : demander par section ---
     if not _wants_help_filling_oaciq(message) or not transaction_preferred:
         return ([], None)
     draft = await get_draft_pa_submission_for_transaction(db, user_id, transaction_preferred)
@@ -4047,6 +4190,17 @@ async def maybe_oaciq_fill_help_or_save(
         )
     submission, form_code, form_name, form_fields = draft[0], draft[1], draft[2], draft[3]
     current = dict(submission.data) if isinstance(submission.data, dict) else {}
+    next_section = _get_next_empty_pa_section(form_fields, current)
+    if next_section:
+        section_id, section_title, missing = next_section
+        labels = [m[1] for m in missing]
+        missing_ctx = [[m[0], m[1]] for m in missing]
+        line = (
+            f"Tu aides l'utilisateur à remplir le formulaire PA par section. "
+            f"Pour la section « {section_title} », il me manque : {', '.join(labels)}. "
+            "Demande-lui ces infos (il peut tout envoyer en un seul message)."
+        )
+        return ([line], {"submission_id": submission.id, "last_asked_section": section_id, "section_title": section_title, "missing_in_section": missing_ctx})
     next_id, next_label = _get_next_empty_pa_field(form_fields, current)
     if not next_id:
         return (
@@ -4160,6 +4314,83 @@ def _flatten_oaciq_field_defs(form_fields: object) -> list[dict]:
             if isinstance(f, dict):
                 out.append(f)
     return out
+
+
+def _get_next_empty_pa_section(
+    form_fields: object, current_data: dict
+) -> Optional[Tuple[str, str, List[Tuple[str, str, str]]]]:
+    """Retourne la première section qui a encore des champs vides : (section_id, section_title, [(field_id, label, type), ...]).
+    Exclut les champs signature. Ordre des sections = order du formulaire."""
+    if not isinstance(form_fields, dict):
+        return None
+    sections = form_fields.get("sections")
+    if not isinstance(sections, list):
+        return None
+    current = current_data or {}
+    # tri par order
+    ordered = [(i, s) for i, s in enumerate(sections) if isinstance(s, dict)]
+    ordered.sort(key=lambda x: (x[1].get("order", 999), x[0]))
+    for _idx, section in ordered:
+        section_id = str(section.get("id") or section.get("title") or "")
+        section_title = str(section.get("title") or section.get("name") or section_id or "Section")
+        fields = section.get("fields")
+        if not isinstance(fields, list):
+            continue
+        missing: List[Tuple[str, str, str]] = []
+        for f in fields:
+            if not isinstance(f, dict):
+                continue
+            key = str(f.get("name") or f.get("id") or "").strip()
+            if not key or _is_pa_signature_field(key, str(f.get("label") or "")):
+                continue
+            if not _value_is_filled(current.get(key)):
+                label = str(f.get("label") or f.get("id") or key)
+                ftype = str(f.get("type") or "text")
+                missing.append((key, label, ftype))
+        if missing:
+            return (section_id, section_title, missing)
+    return None
+
+
+async def _extract_pa_fields_llm(
+    message: str, field_descriptions: List[Tuple[str, str, str]]
+) -> dict:
+    """Extrait des champs PA depuis le message utilisateur via LLM. Retourne un dict field_id -> value.
+    En cas d'erreur (timeout, JSON invalide, pas de clé API), retourne {} pour ne jamais bloquer."""
+    if not message or not field_descriptions:
+        return {}
+    lines = [f"- {fid}: {label} (type: {ftype})" for fid, label, ftype in field_descriptions]
+    field_list = "\n".join(lines)
+    system_prompt = (
+        "Tu es un assistant qui extrait des données d'un message utilisateur pour un formulaire "
+        "de promesse d'achat (Québec). Retourne UNIQUEMENT un objet JSON valide, sans texte avant ou après. "
+        "Clés = identifiants de champs exactement comme listés ci-dessous. Valeurs = données extraites. "
+        "Types : string pour texte, number pour montants et délais en jours, date en YYYY-MM-DD, "
+        "datetime en YYYY-MM-DDTHH:MM. N'inclure que les champs pour lesquels tu as trouvé une valeur claire."
+    )
+    user_content = f"Champs à extraire (id: label, type):\n{field_list}\n\nMessage utilisateur:\n{message}"
+    try:
+        ai = AIService(provider=AIProvider.AUTO)
+        resp = await ai.chat_completion(
+            [{"role": "user", "content": user_content}],
+            system_prompt=system_prompt,
+            temperature=0.1,
+            max_tokens=2000,
+        )
+        content = (resp.get("content") or "").strip()
+        if not content:
+            return {}
+        # Extraire un bloc JSON (au cas où le modèle ajoute du texte)
+        start = content.find("{")
+        end = content.rfind("}") + 1
+        if start < 0 or end <= start:
+            return {}
+        content = content[start:end]
+        out = json.loads(content)
+        return out if isinstance(out, dict) else {}
+    except Exception as e:
+        logger.debug(f"LLM PA extraction failed (non-blocking): {e}")
+        return {}
 
 
 def _value_is_filled(v: object) -> bool:
@@ -4703,14 +4934,27 @@ async def run_lea_actions(
             if draft:
                 submission, _fc, _fn, form_fields = draft[0], draft[1], draft[2], draft[3]
                 current = dict(submission.data) if isinstance(submission.data, dict) else {}
-                next_id, next_label = _get_next_empty_pa_field(form_fields, current)
-                if not next_id or not next_label:
-                    next_id, next_label = PA_FIRST_FIELD_FALLBACK
-                lines.append(
-                    f"Demande immédiatement à l'utilisateur la valeur pour le premier champ : « {next_label} » ({next_id}). Une seule question."
-                )
-                # Ne pas définir oaciq_fill ici : le message actuel (« créer une promesse d'achat ») serait pris comme réponse au champ. On le reporte après maybe_oaciq_fill_help_or_save.
-                deferred_oaciq_fill = {"submission_id": submission.id, "last_asked_field": next_id}
+                next_section = _get_next_empty_pa_section(form_fields, current)
+                if next_section:
+                    section_id, section_title, missing = next_section
+                    labels = [m[1] for m in missing]
+                    lines.append(
+                        f"Demande immédiatement à l'utilisateur les infos pour la section « {section_title} » : {', '.join(labels)}. Il peut tout envoyer en un seul message."
+                    )
+                    deferred_oaciq_fill = {
+                        "submission_id": submission.id,
+                        "last_asked_section": section_id,
+                        "section_title": section_title,
+                        "missing_in_section": [[m[0], m[1]] for m in missing],
+                    }
+                else:
+                    next_id, next_label = _get_next_empty_pa_field(form_fields, current)
+                    if not next_id or not next_label:
+                        next_id, next_label = PA_FIRST_FIELD_FALLBACK
+                    lines.append(
+                        f"Demande immédiatement à l'utilisateur la valeur pour le premier champ : « {next_label} » ({next_id}). Une seule question."
+                    )
+                    deferred_oaciq_fill = {"submission_id": submission.id, "last_asked_field": next_id}
     prefill_line = await maybe_prefill_oaciq_form_from_lea(db, user_id, message, last_assistant_message) if not building_new_only else None
     if prefill_line:
         lines.append(prefill_line)
