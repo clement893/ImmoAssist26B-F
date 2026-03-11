@@ -4372,6 +4372,47 @@ def _get_next_empty_pa_section(
     return None
 
 
+async def _classify_lea_intent_llm(
+    message: str,
+    last_assistant_message: Optional[str],
+    context_summary: str,
+) -> Optional[str]:
+    """
+    Utilise le LLM pour comprendre l'intention de l'utilisateur.
+    Retourne: "create_transaction" | "create_pa" | "fill_pa" | "other", ou None en cas d'erreur (fallback sur les fonctions).
+    """
+    if not message or not message.strip():
+        return None
+    system_prompt = (
+        "Tu es un classifieur d'intention. À partir du message utilisateur et du contexte, retourne UNIQUEMENT un des mots suivants, rien d'autre:\n"
+        "- create_transaction: l'utilisateur veut créer un nouveau dossier/transaction (ex. « je veux créer une transaction », « nouveau dossier », « une vente »).\n"
+        "- create_pa: l'utilisateur veut créer une promesse d'achat / formulaire PA pour une transaction existante (ex. « créer une promesse d'achat », « je veux un PA », « préparer la promesse pour cette transaction », « #78 » en réponse à « pour quelle propriété ? »).\n"
+        "- fill_pa: l'utilisateur fournit des données pour remplir le formulaire PA en cours (coordonnées, prix, dates, conditions, etc.) ou pose une question sur ce qui manque.\n"
+        "- other: autre intention (modifier une transaction, poser une question, réponse à une question précise qui n'est pas du remplissage PA).\n"
+        "Ne retourne que le mot, en minuscules, sans ponctuation."
+    )
+    user_content = f"Contexte: {context_summary}\n\n"
+    if last_assistant_message and last_assistant_message.strip():
+        user_content += f"Dernier message de l'assistant: {last_assistant_message.strip()[:300]}\n\n"
+    user_content += f"Message utilisateur: {message.strip()}"
+    try:
+        ai = AIService(provider=AIProvider.AUTO)
+        resp = await ai.chat_completion(
+            [{"role": "user", "content": user_content}],
+            system_prompt=system_prompt,
+            temperature=0,
+            max_tokens=20,
+        )
+        content = (resp.get("content") or "").strip().lower()
+        for intent in ("create_transaction", "create_pa", "fill_pa", "other"):
+            if intent in content or content == intent:
+                return intent
+        return None
+    except Exception as e:
+        logger.debug(f"LLM intent classification failed (fallback to functions): {e}")
+        return None
+
+
 async def _extract_pa_fields_llm(
     message: str, field_descriptions: List[Tuple[str, str, str]]
 ) -> dict:
@@ -4609,11 +4650,33 @@ async def run_lea_actions(
             else:
                 pending["stage"] = "ready"
 
+    # Comprendre l'intention utilisateur via le LLM (fallback sur les fonctions si échec).
+    llm_intent: Optional[str] = None
+    if conv and session_id and message and len(message.strip()) >= 3:
+        in_pa_fill_ctx = isinstance(ctx.get("oaciq_fill"), dict) and (ctx.get("oaciq_fill") or {}).get("submission_id")
+        if in_pa_fill_ctx:
+            context_summary = "L'utilisateur est en cours de remplissage du formulaire PA (promesse d'achat)."
+        elif pending.get("type"):
+            context_summary = "L'utilisateur est en cours de création d'un nouveau dossier (transaction)."
+        elif has_transaction:
+            context_summary = "L'utilisateur a au moins une transaction existante."
+        else:
+            context_summary = "Conversation générale, pas de dossier en cours de création ni de formulaire PA en cours de remplissage."
+        try:
+            llm_intent = await _classify_lea_intent_llm(message, last_assistant_message, context_summary)
+        except Exception as e:
+            logger.debug(f"LLM intent classification failed: {e}")
+
+    # Création de transaction : ne lancer que si l'intention n'est pas "create_pa" (le LLM a compris que l'utilisateur veut un PA, pas un nouveau dossier).
     created: Optional[RealEstateTransaction] = None
-    created, duplicate_line = await maybe_create_transaction_from_lea(
-        db, user_id, message, last_assistant_message=last_assistant_message
-    )
-    ok_create, tx_type = _wants_to_create_transaction(message)
+    duplicate_line = None
+    if llm_intent != "create_pa":
+        created, duplicate_line = await maybe_create_transaction_from_lea(
+            db, user_id, message, last_assistant_message=last_assistant_message
+        )
+    _ok_create, _tx_type = _wants_to_create_transaction(message)
+    ok_create = False if llm_intent == "create_pa" else _ok_create
+    tx_type = "" if llm_intent == "create_pa" else _tx_type
     if duplicate_line:
         lines.append(duplicate_line)
         if ok_create and tx_type and conv is not None:
@@ -4630,7 +4693,7 @@ async def run_lea_actions(
                 "L'utilisateur souhaite créer une transaction mais n'a pas précisé si c'est une vente ou un achat. "
                 "Ta réponse doit contenir **uniquement** la question : « Est-ce une vente ou un achat ? » — NE PAS demander l'adresse ni aucune autre info tant qu'il n'a pas répondu (vente ou achat)."
             )
-        elif ok_create and tx_type and conv is not None:
+        elif ok_create and tx_type and conv is not None and llm_intent != "create_pa":
             pending["type"] = tx_type
             pending["stage"] = "address"
 
@@ -5020,7 +5083,7 @@ async def run_lea_actions(
         await maybe_update_seller_buyer_name_from_lea(
             db, user_id, message, last_assistant_message, transaction_preferred
         )
-        if not building_new_only
+        if not building_new_only and not in_pa_fill
         else None
     )
     if rename_line:
@@ -5029,7 +5092,7 @@ async def run_lea_actions(
         await maybe_remove_seller_buyer_from_lea(
             db, user_id, message, last_assistant_message, transaction_preferred
         )
-        if not building_new_only
+        if not building_new_only and not in_pa_fill
         else None
     )
     if remove_line:
@@ -5038,7 +5101,7 @@ async def run_lea_actions(
         await maybe_add_seller_buyer_contact_from_lea(
             db, user_id, message, last_assistant_message, transaction_preferred
         )
-        if not building_new_only
+        if not building_new_only and not in_pa_fill
         else None
     )
     if contact_line:
