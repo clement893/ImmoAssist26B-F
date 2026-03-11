@@ -210,9 +210,9 @@ export default function FormFillPage() {
             </span>
             {transactionId && (
               <Button
-                variant="link"
+                variant="ghost"
                 size="sm"
-                className="ml-2 h-auto p-0"
+                className="ml-2 h-auto p-0 text-primary underline hover:bg-transparent"
                 onClick={() => router.push(`/dashboard/transactions/${transactionId}?tab=forms`)}
               >
                 Voir la transaction →
