@@ -185,6 +185,20 @@ export function handleApiError(error: unknown): AppError {
       responseData &&
       typeof responseData === 'object' &&
       'detail' in responseData &&
+      responseData.detail &&
+      typeof responseData.detail === 'object' &&
+      'message' in responseData.detail
+    ) {
+      // FastAPI HTTPException with detail object (e.g. required_fields_missing)
+      const detailObj = responseData.detail as { message?: string; missing_fields?: string[] };
+      message = String(detailObj.message ?? '');
+      if (Array.isArray(detailObj.missing_fields) && detailObj.missing_fields.length > 0) {
+        message += ` Champs manquants : ${detailObj.missing_fields.join(', ')}.`;
+      }
+    } else if (
+      responseData &&
+      typeof responseData === 'object' &&
+      'detail' in responseData &&
       typeof responseData.detail === 'string'
     ) {
       // FastAPI HTTPException format

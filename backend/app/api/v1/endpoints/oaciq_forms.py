@@ -41,6 +41,59 @@ from app.services.s3_service import S3Service, AWS_S3_ENDPOINT_URL, AWS_S3_BUCKE
 router = APIRouter()
 
 
+def _get_required_fields_from_form(form_fields: Optional[dict]) -> list[dict]:
+    """Extrait la liste des champs obligatoires depuis form.fields (structure sections -> fields)."""
+    if not form_fields or not isinstance(form_fields, dict):
+        return []
+    sections = form_fields.get("sections")
+    if not isinstance(sections, list):
+        return []
+    required = []
+    for section in sections:
+        fields = section.get("fields")
+        if not isinstance(fields, list):
+            continue
+        for f in fields:
+            if not f.get("required"):
+                continue
+            name = f.get("name") or f.get("id")
+            if name:
+                required.append({"name": name, "label": f.get("label") or name})
+    return required
+
+
+def _is_value_filled(value) -> bool:
+    """True si la valeur est considérée comme remplie (non vide)."""
+    if value is None:
+        return False
+    if isinstance(value, str):
+        return bool(value.strip())
+    if isinstance(value, (list, dict)):
+        return len(value) > 0
+    return True  # number (0 inclus), bool, etc.
+
+
+def _validate_submission_required_fields(
+    form_fields: Optional[dict], submission_data: Optional[dict]
+) -> tuple[bool, list[dict]]:
+    """
+    Vérifie que tous les champs obligatoires du formulaire sont remplis dans submission.data.
+    Retourne (is_valid, missing) où missing est une liste de {"name", "label"}.
+    """
+    if not submission_data or not isinstance(submission_data, dict):
+        return False, []
+    required = _get_required_fields_from_form(form_fields)
+    if not required:
+        return True, []
+    missing = []
+    for field in required:
+        name = field["name"]
+        value = submission_data.get(name)
+        if not _is_value_filled(value):
+            missing.append(field)
+    return (len(missing) == 0, missing)
+
+
 def handle_database_error(e: Exception, operation: str = "operation"):
     """Handle database errors and provide helpful error messages"""
     error_msg = str(e).lower()
@@ -776,20 +829,50 @@ async def complete_oaciq_submission(
             detail="Non autorisé à compléter cette soumission"
         )
     
-    # Mettre à jour le statut
+    # Récupérer le formulaire pour validation et synchro PA → transaction
+    form_result = await db.execute(
+        select(Form).where(Form.id == submission.form_id)
+    )
+    form = form_result.scalar_one_or_none()
+    if not form:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Formulaire introuvable",
+        )
+    # Vérifier que tous les champs obligatoires sont remplis
+    is_valid, missing_fields = _validate_submission_required_fields(
+        form.fields, submission.data
+    )
+    if not is_valid:
+        missing_labels = [m.get("label") or m.get("name") for m in missing_fields]
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "required_fields_missing",
+                "message": "Tous les champs obligatoires doivent être remplis avant de marquer le formulaire comme complété.",
+                "missing_fields": missing_labels,
+            },
+        )
+    # Synchroniser les données PA vers la transaction avant de marquer complété (bloc PA à jour dans Étapes)
+    if (form.code or "").strip().upper() == "PA" and submission.transaction_id and isinstance(submission.data, dict):
+        tx_result = await db.execute(
+            select(RealEstateTransaction).where(
+                RealEstateTransaction.id == submission.transaction_id,
+                RealEstateTransaction.user_id == current_user.id,
+            )
+        )
+        tx = tx_result.scalar_one_or_none()
+        if tx:
+            sync_pa_data_to_transaction(tx, submission.data)
+    
+    # Mettre à jour le statut : brouillon → complété (remplissage terminé)
     submission.status = 'completed'
     
     await db.commit()
     await db.refresh(submission)
     
-    # Récupérer le code du formulaire
-    form_result = await db.execute(
-        select(Form).where(Form.id == submission.form_id)
-    )
-    form = form_result.scalar_one()
-    
     response = OACIQFormSubmissionResponse.model_validate(submission)
-    response.form_code = form.code
+    response.form_code = form.code if form else None
     return response
 
 

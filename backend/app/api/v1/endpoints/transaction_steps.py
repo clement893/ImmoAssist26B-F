@@ -220,6 +220,8 @@ async def get_transaction_steps(
         "price": price,
         # Données clés de promesse d'achat (PA) pour affichage UI dédié
         "offered_price": float(transaction.offered_price) if transaction.offered_price is not None else None,
+        "deposit_amount": float(transaction.deposit_amount) if transaction.deposit_amount is not None else None,
+        "possession_date": _get_date(transaction.possession_date),
         "promise_to_purchase_date": _get_date(transaction.promise_to_purchase_date),
         "promise_acceptance_date": _get_date(transaction.promise_acceptance_date),
         "inspection_deadline": _get_date(transaction.inspection_deadline),

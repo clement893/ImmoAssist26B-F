@@ -333,6 +333,18 @@ export default function TransactionStepsV2({
               </p>
             </div>
             <div>
+              <p className="text-gray-500">Acompte</p>
+              <p className="font-medium text-gray-900">
+                {transaction.deposit_amount != null ? formatCurrency(transaction.deposit_amount) : '-'}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-500">Date de prise de possession</p>
+              <p className="font-medium text-gray-900">
+                {transaction.possession_date ? formatDate(transaction.possession_date) : '-'}
+              </p>
+            </div>
+            <div>
               <p className="text-gray-500">Date promesse</p>
               <p className="font-medium text-gray-900">
                 {transaction.promise_to_purchase_date ? formatDate(transaction.promise_to_purchase_date) : '-'}

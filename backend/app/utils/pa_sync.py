@@ -70,3 +70,13 @@ def sync_pa_data_to_transaction(transaction: "RealEstateTransaction", data: dict
                 transaction.financing_deadline = datetime.strptime(v[:10], "%Y-%m-%d").date()
             except ValueError:
                 pass
+    # Date de prise de possession (champ PA date_occupation)
+    v = data.get("date_occupation")
+    if v:
+        if isinstance(v, date):
+            transaction.possession_date = v
+        elif isinstance(v, str) and len(v) >= 10:
+            try:
+                transaction.possession_date = datetime.strptime(v[:10], "%Y-%m-%d").date()
+            except ValueError:
+                pass

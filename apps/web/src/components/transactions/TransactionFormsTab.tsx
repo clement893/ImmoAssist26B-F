@@ -151,9 +151,14 @@ export default function TransactionFormsTab({ transactionId }: TransactionFormsT
   return (
     <div className="space-y-6">
       {submissions && submissions.length > 0 && (
-        <p className="text-sm text-gray-500">
-          Vos formulaires pour cette transaction (ex. Promesse d&apos;achat) sont listés ci-dessous. Cliquez sur <strong>Voir</strong> pour ouvrir et compléter un formulaire.
-        </p>
+        <div className="rounded-lg border border-gray-200 bg-gray-50/50 p-3 text-sm text-gray-600">
+          <p className="font-medium text-gray-700 mb-1">États des formulaires</p>
+          <ul className="list-disc list-inside space-y-0.5 text-gray-600">
+            <li><strong>Brouillon</strong> — En cours de remplissage. Cliquez sur <strong>Remplir</strong> pour ouvrir, remplir les champs puis <strong>Marquer comme complété</strong> sur la page.</li>
+            <li><strong>Complété</strong> — Remplissage terminé (prêt pour signature).</li>
+            <li><strong>Signé</strong> — Formulaire signé.</li>
+          </ul>
+        </div>
       )}
       {/* Header with search and filters */}
       <div className="flex items-center justify-between gap-4">
@@ -223,8 +228,17 @@ export default function TransactionFormsTab({ transactionId }: TransactionFormsT
                           );
                         }}
                       >
-                        <Eye className="w-4 h-4 mr-1" />
-                        Voir
+                        {submission.status === 'draft' ? (
+                          <>
+                            <FileText className="w-4 h-4 mr-1" />
+                            Remplir
+                          </>
+                        ) : (
+                          <>
+                            <Eye className="w-4 h-4 mr-1" />
+                            Voir
+                          </>
+                        )}
                       </Button>
                     </div>
                   </div>

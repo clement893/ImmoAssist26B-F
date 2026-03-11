@@ -42,6 +42,8 @@ export interface TransactionStepsTransaction {
   address: string;
   price?: number | null;
   offered_price?: number | null;
+  deposit_amount?: number | null;
+  possession_date?: string | null;
   promise_to_purchase_date?: string | null;
   promise_acceptance_date?: string | null;
   inspection_deadline?: string | null;

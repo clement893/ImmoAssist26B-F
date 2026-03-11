@@ -73,8 +73,13 @@ export default function FormFillPage() {
 
   const completeSubmissionMutation = useMutation({
     mutationFn: oaciqFormsAPI.completeSubmission,
-    onSuccess: () => {
-      router.push('/dashboard/modules/formulaire/oaciq');
+    onSuccess: (data) => {
+      showSuccess('Formulaire marqué comme complété');
+      if (data?.transaction_id) {
+        router.push(`/dashboard/transactions/${data.transaction_id}?tab=forms`);
+      } else {
+        router.push('/dashboard/modules/formulaire/oaciq');
+      }
     },
   });
 
@@ -180,6 +185,9 @@ export default function FormFillPage() {
 
   const fields = form.fields;
   const completionPercentage = calculateCompletion(formData, fields);
+  const isCompleted = existingSubmission?.status === 'completed';
+  const isSigned = existingSubmission?.status === 'signed';
+  const transactionId = existingSubmission?.transaction_id;
 
   return (
     <div className="container max-w-5xl py-8">
@@ -195,12 +203,35 @@ export default function FormFillPage() {
           Retour
         </Button>
 
+        {(isCompleted || isSigned) && (
+          <div className="mb-4 rounded-lg border bg-muted/50 p-3 text-sm">
+            <span className="font-medium">
+              {isSigned ? 'Formulaire signé' : 'Formulaire complété (remplissage terminé)'}
+            </span>
+            {transactionId && (
+              <Button
+                variant="link"
+                size="sm"
+                className="ml-2 h-auto p-0"
+                onClick={() => router.push(`/dashboard/transactions/${transactionId}?tab=forms`)}
+              >
+                Voir la transaction →
+              </Button>
+            )}
+          </div>
+        )}
+
         <div className="flex items-start justify-between">
           <div>
             <div className="flex items-center gap-2 mb-2">
               <span className="text-sm font-mono bg-muted px-2 py-1 rounded">
                 {form.code}
               </span>
+              {(isCompleted || isSigned) && (
+                <span className="text-xs rounded-full bg-green-100 text-green-800 px-2 py-0.5">
+                  {isSigned ? 'Signé' : 'Complété'}
+                </span>
+              )}
             </div>
             <h1 className="text-2xl font-bold">{form.name}</h1>
           </div>
@@ -209,7 +240,7 @@ export default function FormFillPage() {
             <div className="text-2xl font-bold text-primary">
               {completionPercentage}%
             </div>
-            <div className="text-xs text-muted-foreground">Complété</div>
+            <div className="text-xs text-muted-foreground">Remplissage</div>
           </div>
         </div>
 
@@ -237,20 +268,23 @@ export default function FormFillPage() {
               variant="outline"
               size="sm"
               onClick={() => handleSave(false)}
-              disabled={!hasUnsavedChanges || saveSubmissionMutation.isPending}
+              disabled={!hasUnsavedChanges || saveSubmissionMutation.isPending || isCompleted || isSigned}
             >
               <Save className="h-4 w-4 mr-2" />
               Sauvegarder
             </Button>
 
-            <Button
-              size="sm"
-              onClick={handleComplete}
-              disabled={completionPercentage < 100 || completeSubmissionMutation.isPending}
-            >
-              <Check className="h-4 w-4 mr-2" />
-              Compléter
-            </Button>
+            {!isCompleted && !isSigned && (
+              <Button
+                size="sm"
+                onClick={handleComplete}
+                disabled={completionPercentage < 100 || completeSubmissionMutation.isPending}
+                title={completionPercentage < 100 ? 'Remplissez tous les champs obligatoires pour marquer comme complété' : undefined}
+              >
+                <Check className="h-4 w-4 mr-2" />
+                Marquer comme complété
+              </Button>
+            )}
           </div>
         </div>
       </Card>
