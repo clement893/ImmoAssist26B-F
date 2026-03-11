@@ -68,7 +68,8 @@ function toDateInputValue(val: unknown): string {
   const s = String(val).trim();
   if (!s) return '';
   const match = s.match(/^(\d{4}-\d{2}-\d{2})/);
-  return match ? match[1] : s.slice(0, 10);
+  const datePart = match?.[1];
+  return typeof datePart === 'string' ? datePart : s.slice(0, 10);
 }
 
 /** Normalize value for HTML datetime-local input (yyyy-mm-ddThh:mm). */
@@ -80,8 +81,8 @@ function toDatetimeLocalInputValue(val: unknown): string {
   const match = iso.match(/^(\d{4}-\d{2}-\d{2})T?(\d{1,2}:\d{2})?/);
   if (match) {
     const datePart = match[1];
-    const timePart = match[2] || '12:00';
-    return `${datePart}T${timePart}`;
+    const timePart = match[2] ?? '12:00';
+    if (typeof datePart === 'string') return `${datePart}T${timePart}`;
   }
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return `${s}T12:00`;
   return s.slice(0, 16);
