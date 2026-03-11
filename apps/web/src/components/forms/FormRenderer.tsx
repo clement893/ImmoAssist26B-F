@@ -69,7 +69,13 @@ function toDateInputValue(val: unknown): string {
   if (!s) return '';
   const match = s.match(/^(\d{4}-\d{2}-\d{2})/);
   const datePart = match?.[1];
-  return typeof datePart === 'string' ? datePart : s.slice(0, 10);
+  if (typeof datePart === 'string') return datePart;
+  const ddmmyy = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/);
+  if (ddmmyy) {
+    const [, d, m, y] = ddmmyy;
+    if (d && m && y) return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+  }
+  return s.length >= 10 ? s.slice(0, 10) : '';
 }
 
 /** Normalize value for HTML datetime-local input (yyyy-mm-ddThh:mm). */
@@ -130,8 +136,16 @@ function FieldRenderer({ field, value, onChange }: any) {
         <Input
           {...commonProps}
           type="number"
-          value={value || ''}
-          onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
+          value={value !== undefined && value !== null && value !== '' ? String(value) : ''}
+          onChange={(e) => {
+            const v = e.target.value;
+            if (v === '') {
+              onChange(undefined);
+              return;
+            }
+            const n = parseFloat(v);
+            onChange(Number.isNaN(n) ? undefined : n);
+          }}
           min={field.validation?.min}
           max={field.validation?.max}
         />

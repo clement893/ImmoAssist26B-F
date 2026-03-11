@@ -3874,6 +3874,8 @@ def _is_valid_pa_value_for_field(field_type: str, value: Any) -> bool:
         return isinstance(value, (int, float)) and (value == value)
     if t == "date":
         return isinstance(value, str) and len(value) >= 8
+    if t in ("datetime-local", "datetime"):
+        return isinstance(value, str) and len(value) >= 10
     return True
 
 
@@ -3896,6 +3898,27 @@ def _normalize_pa_value(field_type: str, raw: str) -> Any:
         for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y"):
             try:
                 return datetime.strptime(s[:10], fmt).date().isoformat()
+            except ValueError:
+                continue
+        return s
+    if t in ("datetime-local", "datetime"):
+        # Garder ISO si déjà yyyy-mm-ddThh:mm ou yyyy-mm-ddThh:mm:ss
+        if re.match(r"^\d{4}-\d{2}-\d{2}T\d{1,2}:\d{2}", s):
+            return s[:16] if len(s) >= 16 else s
+        for fmt, s_slice in (
+            ("%Y-%m-%d %H:%M", s[:16].replace("T", " ")),
+            ("%Y-%m-%dT%H:%M", s[:16]),
+            ("%d/%m/%Y %H:%M", s[:16].replace("T", " ")),
+        ):
+            try:
+                dt = datetime.strptime(s_slice, fmt)
+                return dt.strftime("%Y-%m-%dT%H:%M")
+            except ValueError:
+                continue
+        for fmt in ("%Y-%m-%d", "%d/%m/%Y"):
+            try:
+                dt = datetime.strptime(s[:10], fmt)
+                return dt.strftime("%Y-%m-%dT12:00")
             except ValueError:
                 continue
         return s
