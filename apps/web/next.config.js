@@ -1,4 +1,5 @@
 /** @type {import('next').NextConfig} */
+// Deploy trigger - watch pattern /apps/web/**
 const createNextIntlPlugin = require('next-intl/plugin');
 const { withSentryConfig } = require('@sentry/nextjs');
 
