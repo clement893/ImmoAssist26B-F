@@ -4066,12 +4066,8 @@ async def maybe_oaciq_fill_help_or_save(
         current = dict(submission.data) if isinstance(submission.data, dict) else {}
         by_key = _build_fillable_field_by_key(form_fields)
         missing_in_section = oaciq_fill.get("missing_in_section") or []
-        field_descriptions = []
-        for item in missing_in_section:
-            fid = item[0] if isinstance(item, (list, tuple)) else item.get("id") or item.get("field_id")
-            label = item[1] if isinstance(item, (list, tuple)) and len(item) > 1 else (item.get("label") or fid)
-            ftype = (by_key.get(fid) or {}).get("type", "text") if fid in by_key else "text"
-            field_descriptions.append((fid, label, str(ftype)))
+        # Extraire depuis tout le formulaire (tous champs vides) pour qu'un long message remplisse plusieurs sections d'un coup
+        field_descriptions = _get_all_empty_pa_fields(form_fields, current)
         extracted = await _extract_pa_fields_llm(message, field_descriptions) if field_descriptions else {}
         if extracted:
             await _merge_extracted_pa_and_save(db, submission, form_fields, current, extracted, by_key)
@@ -4333,6 +4329,35 @@ def _flatten_oaciq_field_defs(form_fields: object) -> list[dict]:
         for f in fields:
             if isinstance(f, dict):
                 out.append(f)
+    return out
+
+
+def _get_all_empty_pa_fields(form_fields: object, current_data: dict) -> List[Tuple[str, str, str]]:
+    """Retourne la liste de tous les champs vides du formulaire PA (toutes sections), ordre des sections.
+    Exclut les champs signature. Utilisé pour extraire en une fois tout ce que l'utilisateur envoie."""
+    if not isinstance(form_fields, dict):
+        return []
+    sections = form_fields.get("sections")
+    if not isinstance(sections, list):
+        return []
+    current = current_data or {}
+    ordered = [(i, s) for i, s in enumerate(sections) if isinstance(s, dict)]
+    ordered.sort(key=lambda x: (x[1].get("order", 999), x[0]))
+    out: List[Tuple[str, str, str]] = []
+    for _idx, section in ordered:
+        fields = section.get("fields")
+        if not isinstance(fields, list):
+            continue
+        for f in fields:
+            if not isinstance(f, dict):
+                continue
+            key = str(f.get("name") or f.get("id") or "").strip()
+            if not key or _is_pa_signature_field(key, str(f.get("label") or "")):
+                continue
+            if not _value_is_filled(current.get(key)):
+                label = str(f.get("label") or f.get("id") or key)
+                ftype = str(f.get("type") or "text")
+                out.append((key, label, ftype))
     return out
 
 
