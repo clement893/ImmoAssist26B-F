@@ -4798,16 +4798,8 @@ async def _stream_lea_sse(
                 f"C'est fait ! J'ai créé la transaction {ref} pour vous. "
                 "Vous pouvez la voir et la compléter dans la section Transactions."
             )
-        if not confirmation_text and _action_lines_contain_oaciq_form_creation(action_lines):
-            # Si les actions demandent de poser le premier champ (guidage en conversation), laisser le LLM répondre.
-            if not _action_lines_contain_first_field_question(action_lines):
-                confirmation_text = _build_oaciq_form_creation_confirmation(action_lines)
-        if not confirmation_text and _action_lines_contain_pa_fill_next_section(action_lines):
-            # Remplissage PA section suivante : bypass LLM pour garantir que la question est posée.
-            confirmation_text = _build_pa_fill_next_section_response(action_lines)
-        if not confirmation_text and _action_lines_contain_pa_form_complete(action_lines):
-            # Formulaire PA terminé : confirmer et indiquer où signer.
-            confirmation_text = _build_pa_form_complete_response(action_lines)
+        # Plus de bypass : le LLM formule la réponse à partir du bloc « Action effectuée »
+        # et des instructions dans la base de connaissance (LEA_CORE_INSTRUCTIONS).
         if confirmation_text:
             for i in range(0, len(confirmation_text), 1):
                 yield f"data: {json.dumps({'delta': confirmation_text[i]})}\n\n"
@@ -4823,11 +4815,14 @@ async def _stream_lea_sse(
                 )
             return
         settings = get_settings()
-        system = LEA_SYSTEM_PROMPT
+        # Ordre : connaissance d'abord (Léa dépend des instructions et de la base de connaissance)
+        # puis règles système, puis données + actions
+        system = ""
         if lea_knowledge:
-            system += "\n\n--- Base de connaissance Léa (formulaires OACIQ + documents) ---\n" + lea_knowledge
+            system += "--- Base de connaissance Léa (instructions, formulaires OACIQ, documents) ---\n" + lea_knowledge + "\n\n"
+        system += "--- Règles système ---\n" + LEA_SYSTEM_PROMPT
         if user_context:
-            system += "\n\n--- Informations actuelles de l'utilisateur (plateforme) ---\n" + user_context
+            system += "\n\n--- Informations actuelles de l'utilisateur (plateforme) + Action effectuée ---\n" + user_context
         service = AIService(provider=AIProvider.AUTO)
         messages = messages_for_llm
         accumulated = []
@@ -4961,52 +4956,19 @@ async def lea_chat(
                     usage={},
                     actions=action_lines,
                 )
-            # Quand un formulaire OACIQ vient d'être créé, renvoyer une confirmation directe (sans appeler l'IA)
-            # sauf si les actions demandent de poser le premier champ : dans ce cas le LLM doit répondre pour guider en conversation.
-            if _action_lines_contain_oaciq_form_creation(action_lines) and not _action_lines_contain_first_field_question(action_lines):
-                confirmation_content = _build_oaciq_form_creation_confirmation(action_lines)
-                if sid:
-                    await persist_lea_messages(
-                        db, current_user.id, sid,
-                        body.message, confirmation_content,
-                        meta={"actions": action_lines},
-                    )
-                return LeaChatResponse(
-                    content=confirmation_content,
-                    session_id=sid,
-                    model=None,
-                    provider=None,
-                    usage={},
-                    actions=action_lines,
-                )
-            # Remplissage PA section suivante : réponse directe pour garantir que la question est posée.
-            if _action_lines_contain_pa_fill_next_section(action_lines):
-                confirmation_content = _build_pa_fill_next_section_response(action_lines)
-            elif _action_lines_contain_pa_form_complete(action_lines):
-                confirmation_content = _build_pa_form_complete_response(action_lines)
-            if confirmation_content and sid:
-                    await persist_lea_messages(
-                        db, current_user.id, sid,
-                        body.message, confirmation_content,
-                        meta={"actions": action_lines},
-                    )
-                    return LeaChatResponse(
-                        content=confirmation_content,
-                        session_id=sid,
-                        model=None,
-                        provider=None,
-                        usage={},
-                        actions=action_lines,
-                    )
+            # Plus de bypass : le LLM formule la réponse à partir du bloc « Action effectuée »
+            # et des instructions dans la base de connaissance.
             # Charger l'historique pour le LLM
             conv, sid = await get_or_create_lea_conversation(db, current_user.id, body.session_id)
             messages_for_llm = build_llm_messages_from_history(conv.messages or [], body.message)
-            system_prompt = LEA_SYSTEM_PROMPT
-            oaciq_knowledge = _get_oaciq_knowledge_for_lea()
-            if oaciq_knowledge:
-                system_prompt += "\n\n--- Base de connaissance formulaires OACIQ ---\n" + oaciq_knowledge
+            # Ordre : connaissance d'abord (instructions + formulaires OACIQ)
+            lea_knowledge = await _get_lea_knowledge_for_prompt(db)
+            system_prompt = ""
+            if lea_knowledge:
+                system_prompt += "--- Base de connaissance Léa (instructions, formulaires OACIQ, documents) ---\n" + lea_knowledge + "\n\n"
+            system_prompt += "--- Règles système ---\n" + LEA_SYSTEM_PROMPT
             if user_context:
-                system_prompt += "\n\n--- Informations actuelles de l'utilisateur (plateforme) ---\n" + user_context
+                system_prompt += "\n\n--- Informations actuelles de l'utilisateur (plateforme) + Action effectuée ---\n" + user_context
             settings = get_settings()
             service = AIService(provider=AIProvider.AUTO)
             result = await service.chat_completion(
@@ -5176,12 +5138,14 @@ async def lea_chat_voice(
             user_context = await get_lea_user_context(db, current_user.id)
             if action_lines:
                 user_context += "\n\n--- Action effectuée ---\n" + "\n".join(action_lines)
-            system_prompt = LEA_SYSTEM_PROMPT
+            # Ordre : connaissance d'abord
             lea_knowledge = await _get_lea_knowledge_for_prompt(db)
+            system_prompt = ""
             if lea_knowledge:
-                system_prompt += "\n\n--- Base de connaissance Léa (formulaires OACIQ + documents) ---\n" + lea_knowledge
+                system_prompt += "--- Base de connaissance Léa (instructions, formulaires OACIQ, documents) ---\n" + lea_knowledge + "\n\n"
+            system_prompt += "--- Règles système ---\n" + LEA_SYSTEM_PROMPT
             if user_context:
-                system_prompt += "\n\n--- Informations actuelles de l'utilisateur (plateforme) ---\n" + user_context
+                system_prompt += "\n\n--- Informations actuelles de l'utilisateur (plateforme) + Action effectuée ---\n" + user_context
 
             service = AIService(provider=AIProvider.AUTO)
             messages = [{"role": "user", "content": transcription}]

@@ -11,6 +11,7 @@ from app.core.logging import logger
 
 # docs/oaciq depuis la racine projet (parent de backend/)
 _LEA_DOCS_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent / "docs" / "oaciq"
+LEA_CORE_INSTRUCTIONS_PATH = _LEA_DOCS_ROOT / "LEA_CORE_INSTRUCTIONS.md"
 LEA_PA_KNOWLEDGE_PATH = _LEA_DOCS_ROOT / "LEA_KNOWLEDGE_PA.md"
 LEA_INSTRUCTION_PA_PATH = _LEA_DOCS_ROOT / "LEA_INSTRUCTION_PA.md"
 
@@ -67,6 +68,15 @@ async def load_lea_knowledge_async(db: AsyncSession) -> str:
                     parts.append(guide_content.strip())
             except Exception as e:
                 logger.warning("Could not load OACIQ Guide Expert for Léa: %s", e)
+
+        # Instructions centrales (Action effectuée, chat naturel) - en premier
+        if LEA_CORE_INSTRUCTIONS_PATH.exists():
+            try:
+                core_content = LEA_CORE_INSTRUCTIONS_PATH.read_text(encoding="utf-8")
+                if core_content.strip():
+                    parts.insert(0, core_content.strip())
+            except Exception as e:
+                logger.warning("Could not load LEA_CORE_INSTRUCTIONS for Léa: %s", e)
 
         pa_content = load_pa_files()
         if pa_content:
