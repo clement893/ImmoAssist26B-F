@@ -2825,24 +2825,43 @@ def _action_lines_contain_first_field_question(action_lines: list) -> bool:
 
 def _build_oaciq_form_creation_confirmation(action_lines: list) -> str:
     """Construit le message de confirmation utilisateur quand un formulaire OACIQ a été créé."""
-    # Extraire le nom du formulaire et la transaction depuis la ligne d'action si possible
+    tx_label = None
+    form_name = None
+    code = None
+    section_fields = None  # (section_title, liste des labels)
+
     for line in (action_lines or []):
         line = (line or "").strip()
-        if not line.startswith(OACIQ_FORM_CREATION_PREFIX) and OACIQ_FORM_CREATION_MARKER not in line:
-            continue
-        # "Tu viens de créer le formulaire OACIQ « ... » (code PA) pour la transaction ..."
-        m = re.search(r"formulaire OACIQ « ([^»]+) » \(code (\w+)\) pour la transaction ([^.]+)\.", line)
-        if m:
-            form_name, code, tx_label = m.group(1).strip(), m.group(2), m.group(3).strip()
-            if (code or "").upper() == "PA":
-                return (
-                    f"C'est fait ! J'ai créé la promesse d'achat pour la transaction {tx_label}. "
-                    "Je vais vous guider pour remplir les champs dans ce chat — répondez à ma prochaine question."
-                )
+        # Ligne "Demande immédiatement... les infos pour la section « X » : A, B, C"
+        if "demande immédiatement" in line.lower() and "les infos pour la section" in line.lower():
+            m_sect = re.search(r"section « ([^»]+) » : ([^.]+)\. Il peut", line)
+            if m_sect:
+                section_title = m_sect.group(1).strip()
+                labels_str = m_sect.group(2).strip()
+                section_fields = (section_title, labels_str)
+        # Ligne création formulaire
+        if line.startswith(OACIQ_FORM_CREATION_PREFIX) or OACIQ_FORM_CREATION_MARKER in line:
+            m = re.search(r"formulaire OACIQ « ([^»]+) » \(code (\w+)\) pour la transaction ([^.]+)\.", line)
+            if m:
+                form_name, code, tx_label = m.group(1).strip(), m.group(2), m.group(3).strip()
+
+    if tx_label and (code or "").upper() == "PA":
+        if section_fields:
+            section_title, labels_str = section_fields
             return (
-                f"C'est fait ! J'ai créé le formulaire OACIQ « {form_name} » (code {code}) pour la transaction {tx_label}. "
-                "Vous pouvez le compléter dans Transactions → cette transaction → onglet Formulaires OACIQ."
+                f"C'est fait ! J'ai créé la promesse d'achat pour la transaction {tx_label}. "
+                f"Pour la section {section_title}, il me faut : {labels_str}. "
+                "Vous pouvez tout envoyer en un seul message."
             )
+        return (
+            f"C'est fait ! J'ai créé la promesse d'achat pour la transaction {tx_label}. "
+            "Je vais vous guider pour remplir les champs dans ce chat — répondez à ma prochaine question."
+        )
+    if tx_label and form_name and code:
+        return (
+            f"C'est fait ! J'ai créé le formulaire OACIQ « {form_name} » (code {code}) pour la transaction {tx_label}. "
+            "Vous pouvez le compléter dans Transactions → cette transaction → onglet Formulaires OACIQ."
+        )
     return (
         "C'est fait ! J'ai créé la promesse d'achat pour cette transaction. "
         "Je vais vous guider pour remplir les champs dans ce chat — répondez à ma prochaine question."
