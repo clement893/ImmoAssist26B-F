@@ -1291,13 +1291,16 @@ async def google_oauth_callback(
                             )
                             raise
             
-            # Create JWT token (use email as subject, consistent with login endpoint)
+            # Create JWT tokens (use email as subject, consistent with login endpoint)
             access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
             jwt_token = create_access_token(
                 data={"sub": user.email, "type": "access"},
                 expires_delta=access_token_expires,
             )
-            
+            refresh_token = create_refresh_token(
+                data={"sub": user.email, "user_id": user.id, "type": "refresh"}
+            )
+
             # Log successful Google OAuth login
             # Use a fresh session for audit logging to avoid connection issues
             try:
@@ -1345,29 +1348,33 @@ async def google_oauth_callback(
                     logger.warning(f"Frontend base not configured, using fallback: {frontend_base}")
             
             logger.info(f"Final frontend base URL: {frontend_base}, state: {state}")
-            
+
+            # Query params for redirect: token (access), refresh_token, type
+            # refresh_token enables proactive token refresh so session does not expire while user is active
+            auth_params = urlencode({"token": jwt_token, "refresh_token": refresh_token, "type": "google"})
+
             # Default locale for next-intl (usually 'en' or 'fr')
             # This ensures the redirect goes to the correct localized route
             default_locale = os.getenv("DEFAULT_LOCALE", "fr")
-            
+
             if state and state.startswith(("http://", "https://")):
                 # State is already a full URL, use it directly
                 frontend_url = state.rstrip("/")
-                redirect_url = f"{frontend_url}?token={jwt_token}&type=google"
+                redirect_url = f"{frontend_url}?{auth_params}"
             elif state:
                 # State is a relative path (e.g., "/auth/callback")
                 # Ensure it starts with / and doesn't end with /
                 state_path = state if state.startswith("/") else f"/{state}"
                 state_path = state_path.rstrip("/")
-                
+
                 # If state doesn't include locale, add it for next-intl compatibility
                 if not state_path.startswith(f"/{default_locale}/"):
-                    redirect_url = f"{frontend_base}/{default_locale}{state_path}?token={jwt_token}&type=google"
+                    redirect_url = f"{frontend_base}/{default_locale}{state_path}?{auth_params}"
                 else:
-                    redirect_url = f"{frontend_base}{state_path}?token={jwt_token}&type=google"
+                    redirect_url = f"{frontend_base}{state_path}?{auth_params}"
             else:
                 # No state provided, use default callback URL with locale
-                redirect_url = f"{frontend_base}/{default_locale}/auth/callback?token={jwt_token}&type=google"
+                redirect_url = f"{frontend_base}/{default_locale}/auth/callback?{auth_params}"
             
             logger.info(f"Google OAuth successful for user {email}, redirecting to {redirect_url}")
             

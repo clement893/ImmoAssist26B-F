@@ -10,7 +10,7 @@ import { logger } from '@/lib/logger';
  * We only actually refresh when the user has been active within ACTIVE_WITHIN_MS.
  * Kept well below typical backend access token expiry (e.g. 120 min) so active users stay logged in.
  */
-const REFRESH_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
+const REFRESH_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes (refresh more often to avoid expiry while active)
 
 /**
  * Consider user "active" if there was any activity in the last 40 minutes.
@@ -82,6 +82,7 @@ export function useProactiveTokenRefresh() {
       const token = TokenStorage.getToken();
       const refreshToken = TokenStorage.getRefreshToken();
       if (!token || !refreshToken) return;
+      refreshIfVisible(); // Refresh immediately on start, then every REFRESH_INTERVAL_MS
       intervalRef.current = setInterval(runRefreshOnlyIfActive, REFRESH_INTERVAL_MS);
     };
 
