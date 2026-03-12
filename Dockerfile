@@ -157,8 +157,9 @@ USER nextjs
 # Railway provides PORT via environment variable, default to 3000 for local development
 EXPOSE 3000
 
-# Use PORT from Railway environment, fallback to 3000
-ENV PORT=${PORT:-3000}
+# ARG définit PORT pour le build (évite UndefinedVar) ; Railway override à l'exécution
+ARG PORT=3000
+ENV PORT=${PORT}
 ENV HOSTNAME="0.0.0.0"
 
 # Use ENTRYPOINT to prevent Railway from overriding the command
