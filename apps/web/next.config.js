@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-// Deploy trigger - watch pattern /apps/web/**
+// Build: Turbopack (default) - faster, less memory
 const createNextIntlPlugin = require('next-intl/plugin');
 const { withSentryConfig } = require('@sentry/nextjs');
 
