@@ -4798,8 +4798,12 @@ async def _stream_lea_sse(
                 f"C'est fait ! J'ai créé la transaction {ref} pour vous. "
                 "Vous pouvez la voir et la compléter dans la section Transactions."
             )
-        # Plus de bypass : le LLM formule la réponse à partir du bloc « Action effectuée »
-        # et des instructions dans la base de connaissance (LEA_CORE_INSTRUCTIONS).
+        # Bypass pour section suivante : le LLM conclut trop souvent par « n'hésitez pas... »
+        # au lieu de demander les champs → on garantit la question.
+        if not confirmation_text and _action_lines_contain_pa_fill_next_section(action_lines):
+            confirmation_text = _build_pa_fill_next_section_response(action_lines)
+        if not confirmation_text and _action_lines_contain_pa_form_complete(action_lines):
+            confirmation_text = _build_pa_form_complete_response(action_lines)
         if confirmation_text:
             for i in range(0, len(confirmation_text), 1):
                 yield f"data: {json.dumps({'delta': confirmation_text[i]})}\n\n"
@@ -4956,8 +4960,27 @@ async def lea_chat(
                     usage={},
                     actions=action_lines,
                 )
-            # Plus de bypass : le LLM formule la réponse à partir du bloc « Action effectuée »
-            # et des instructions dans la base de connaissance.
+            # Bypass pour section suivante : le LLM conclut par « n'hésitez pas... » au lieu
+            # de demander les champs → on garantit la question.
+            confirmation_content = None
+            if _action_lines_contain_pa_fill_next_section(action_lines):
+                confirmation_content = _build_pa_fill_next_section_response(action_lines)
+            elif _action_lines_contain_pa_form_complete(action_lines):
+                confirmation_content = _build_pa_form_complete_response(action_lines)
+            if confirmation_content and sid:
+                await persist_lea_messages(
+                    db, current_user.id, sid,
+                    body.message, confirmation_content,
+                    meta={"actions": action_lines},
+                )
+                return LeaChatResponse(
+                    content=confirmation_content,
+                    session_id=sid,
+                    model=None,
+                    provider=None,
+                    usage={},
+                    actions=action_lines,
+                )
             # Charger l'historique pour le LLM
             conv, sid = await get_or_create_lea_conversation(db, current_user.id, body.session_id)
             messages_for_llm = build_llm_messages_from_history(conv.messages or [], body.message)
