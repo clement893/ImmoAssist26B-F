@@ -2823,6 +2823,64 @@ def _action_lines_contain_first_field_question(action_lines: list) -> bool:
     return False
 
 
+def _action_lines_contain_pa_form_complete(action_lines: list) -> bool:
+    """True si les actions indiquent que le formulaire PA est entièrement rempli."""
+    if not action_lines:
+        return False
+    for line in (action_lines or []):
+        s = (line or "").strip().lower()
+        if "tous les champs requis du formulaire pa sont remplis" in s:
+            return True
+    return False
+
+
+def _action_lines_contain_pa_fill_next_section(action_lines: list) -> bool:
+    """True si les actions demandent de poser la question pour la section suivante (remplissage PA)."""
+    if not action_lines:
+        return False
+    for line in (action_lines or []):
+        s = (line or "").strip().lower()
+        if "pour la section" in s and "il me manque" in s:
+            return True
+    return False
+
+
+def _build_pa_form_complete_response(action_lines: list) -> Optional[str]:
+    """Réponse quand le formulaire PA est entièrement rempli."""
+    if not _action_lines_contain_pa_form_complete(action_lines):
+        return None
+    # Extraire la date de clôture si mentionnée
+    date_cloture = None
+    for line in (action_lines or []):
+        m = re.search(r"date de clôture prévue.*?(\d{1,2}\s+\w+\s+\d{4})", line, re.I)
+        if m:
+            date_cloture = m.group(1).strip()
+            break
+    msg = (
+        "Tous les champs du formulaire PA sont remplis. "
+        "Vous pouvez aller dans Transactions → cette transaction → onglet Formulaires OACIQ pour vérifier et signer (les signatures se font dans l'interface)."
+    )
+    if date_cloture:
+        msg = f"La date de clôture ({date_cloture}) a été enregistrée. " + msg
+    return msg
+
+
+def _build_pa_fill_next_section_response(action_lines: list) -> Optional[str]:
+    """Construit la réponse quand il faut demander la section suivante du PA (bypass LLM pour garantir la question)."""
+    for line in (action_lines or []):
+        line = (line or "").strip()
+        m = re.search(r"Pour la section « ([^»]+) », il me manque : ([^.]+)", line)
+        if m:
+            section_title = m.group(1).strip()
+            labels_str = m.group(2).strip()
+            return (
+                f"Merci, les informations ont été enregistrées. "
+                f"Pour la section « {section_title} », il me manque : {labels_str}. "
+                "Tu peux tout envoyer en un seul message."
+            )
+    return None
+
+
 def _build_oaciq_form_creation_confirmation(action_lines: list) -> str:
     """Construit le message de confirmation utilisateur quand un formulaire OACIQ a été créé."""
     tx_label = None
@@ -4744,6 +4802,12 @@ async def _stream_lea_sse(
             # Si les actions demandent de poser le premier champ (guidage en conversation), laisser le LLM répondre.
             if not _action_lines_contain_first_field_question(action_lines):
                 confirmation_text = _build_oaciq_form_creation_confirmation(action_lines)
+        if not confirmation_text and _action_lines_contain_pa_fill_next_section(action_lines):
+            # Remplissage PA section suivante : bypass LLM pour garantir que la question est posée.
+            confirmation_text = _build_pa_fill_next_section_response(action_lines)
+        if not confirmation_text and _action_lines_contain_pa_form_complete(action_lines):
+            # Formulaire PA terminé : confirmer et indiquer où signer.
+            confirmation_text = _build_pa_form_complete_response(action_lines)
         if confirmation_text:
             for i in range(0, len(confirmation_text), 1):
                 yield f"data: {json.dumps({'delta': confirmation_text[i]})}\n\n"
@@ -4915,6 +4979,25 @@ async def lea_chat(
                     usage={},
                     actions=action_lines,
                 )
+            # Remplissage PA section suivante : réponse directe pour garantir que la question est posée.
+            if _action_lines_contain_pa_fill_next_section(action_lines):
+                confirmation_content = _build_pa_fill_next_section_response(action_lines)
+            elif _action_lines_contain_pa_form_complete(action_lines):
+                confirmation_content = _build_pa_form_complete_response(action_lines)
+            if confirmation_content and sid:
+                    await persist_lea_messages(
+                        db, current_user.id, sid,
+                        body.message, confirmation_content,
+                        meta={"actions": action_lines},
+                    )
+                    return LeaChatResponse(
+                        content=confirmation_content,
+                        session_id=sid,
+                        model=None,
+                        provider=None,
+                        usage={},
+                        actions=action_lines,
+                    )
             # Charger l'historique pour le LLM
             conv, sid = await get_or_create_lea_conversation(db, current_user.id, body.session_id)
             messages_for_llm = build_llm_messages_from_history(conv.messages or [], body.message)
@@ -4990,11 +5073,13 @@ async def lea_chat(
         # Autres actions (adresse, prix, formulaire OACIQ, etc.) : confirmation directe pour éviter que l'agent réponde sans contexte
         if action_lines:
             confirmation = None
-            if _action_lines_contain_oaciq_form_creation(action_lines):
-                if not _action_lines_contain_first_field_question(action_lines):
-                    confirmation = _build_oaciq_form_creation_confirmation(action_lines)
-                # Si « premier champ » demandé : laisser passer pour que l'agent/LLM réponde et guide en conversation
-            else:
+            if _action_lines_contain_oaciq_form_creation(action_lines) and not _action_lines_contain_first_field_question(action_lines):
+                confirmation = _build_oaciq_form_creation_confirmation(action_lines)
+            elif _action_lines_contain_pa_fill_next_section(action_lines):
+                confirmation = _build_pa_fill_next_section_response(action_lines)
+            elif _action_lines_contain_pa_form_complete(action_lines):
+                confirmation = _build_pa_form_complete_response(action_lines)
+            elif not _action_lines_contain_oaciq_form_creation(action_lines):
                 confirmation = (
                     "C'est fait ! Les informations ont été mises à jour. "
                     "Vous pouvez voir la transaction dans la section Transactions."
