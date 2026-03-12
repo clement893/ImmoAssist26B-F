@@ -242,7 +242,7 @@ LEA_SYSTEM_PROMPT = (
     "Tu ne dois JAMAIS prétendre avoir fait une action (créer une transaction, mettre à jour une adresse, créer une promesse d'achat, etc.) "
     "si le bloc « Action effectuée » ci-dessous ne le mentionne pas explicitement. "
     "** Quand le bloc « Action effectuée » est présent et indique qu'une action a été faite (ex: transaction créée, formulaire OACIQ créé, adresse enregistrée), tu DOIS confirmer à l'utilisateur que c'est fait — INTERDICTION de dire « Je ne peux pas » ou « je ne peux pas encore » dans ce cas. ** "
-    "Si le bloc contient « Tu viens de créer le formulaire OACIQ » ou « Promesse d'achat », confirme que le formulaire a bien été créé. Si le bloc contient en plus « Demande immédiatement à l'utilisateur » soit « la valeur pour le premier champ » (un champ), soit « les infos pour la section … » (plusieurs champs en un message), tu DOIS dans la MÊME réponse : 1) confirmer brièvement que le formulaire est créé, 2) demander les infos indiquées (un champ ou la section listée). INTERDICTION de dire « allez dans Formulaires OACIQ » ou « vous pouvez la compléter en allant dans Transactions → Formulaires OACIQ » : tu guides le remplissage en conversation, donc pose la question ici. Sinon (pas de « Demande immédiatement… »), propose de continuer avec toi en disant « aide-moi à remplir la promesse d'achat ». NE JAMAIS indiquer d'aller dans Formulaires OACIQ pour compléter une promesse d'achat — c'est toi qui guides le remplissage. "
+    "Si le bloc contient « Tu viens de créer le formulaire OACIQ » ou « Promesse d'achat », confirme que le formulaire a bien été créé. Si le bloc contient en plus « Demande immédiatement à l'utilisateur » soit « la valeur pour le premier champ » (un champ), soit « les infos pour la section … » (plusieurs champs), tu DOIS dans la MÊME réponse : 1) confirmer brièvement que le formulaire est créé, 2) écrire explicitement la question ou la liste des champs demandés (ex. « Pour la section Identification des parties, il me faut : Adresse de l'acheteur, Téléphone de l'acheteur, Courriel de l'acheteur, Adresse du vendeur, Téléphone du vendeur, Courriel du vendeur. Vous pouvez tout envoyer en un seul message. »). INTERDICTION de te contenter de « répondez à ma prochaine question » ou « je vais vous guider » sans écrire la liste des champs dans ce message — l'utilisateur doit voir la question immédiatement. INTERDICTION de dire « allez dans Formulaires OACIQ ». Sinon (pas de « Demande immédiatement… »), propose de continuer en disant « aide-moi à remplir la promesse d'achat ». NE JAMAIS indiquer d'aller dans Formulaires OACIQ pour compléter une promesse d'achat — c'est toi qui guides le remplissage. "
     "Si l'utilisateur demande quelque chose et qu'il n'y a AUCUN bloc « Action effectuée » pour cette demande, "
     "dis-lui que tu ne peux pas encore faire cela automatiquement et invite-le à aller dans la section Transactions pour le faire. "
     "Ne invente jamais une confirmation du type « c'est fait » ou « j'ai créé » sans que « Action effectuée » le confirme. "
@@ -5057,7 +5057,8 @@ async def run_lea_actions(
                     section_id, section_title, missing = next_section
                     labels = [m[1] for m in missing]
                     lines.append(
-                        f"Demande immédiatement à l'utilisateur les infos pour la section « {section_title} » : {', '.join(labels)}. Il peut tout envoyer en un seul message."
+                        f"Demande immédiatement à l'utilisateur les infos pour la section « {section_title} » : {', '.join(labels)}. Il peut tout envoyer en un seul message. "
+                        "Tu DOIS écrire dans ta réponse la liste de ces champs (ne pas dire seulement « répondez à ma prochaine question »)."
                     )
                     deferred_oaciq_fill = {
                         "submission_id": submission.id,
@@ -5070,7 +5071,8 @@ async def run_lea_actions(
                     if not next_id or not next_label:
                         next_id, next_label = PA_FIRST_FIELD_FALLBACK
                     lines.append(
-                        f"Demande immédiatement à l'utilisateur la valeur pour le premier champ : « {next_label} » ({next_id}). Une seule question."
+                        f"Demande immédiatement à l'utilisateur la valeur pour le premier champ : « {next_label} » ({next_id}). "
+                        "Tu DOIS poser la question dans ce message (ex. « Quel est le montant de l'acompte ($) ? »), pas seulement « répondez à ma prochaine question »."
                     )
                     deferred_oaciq_fill = {"submission_id": submission.id, "last_asked_field": next_id}
     prefill_line = await maybe_prefill_oaciq_form_from_lea(db, user_id, message, last_assistant_message) if not building_new_only else None
