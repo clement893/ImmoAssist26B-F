@@ -56,6 +56,9 @@ const nextConfig = {
 
   // Experimental features - performance optimizations
   experimental: {
+    // Réduire workers et concurrence (éviter "context canceled" sur Railway - memory/timeout)
+    staticGenerationMaxConcurrency: 4,
+    staticGenerationMinPagesPerWorker: 50,
     optimizePackageImports: [
       'lucide-react',
       '@tanstack/react-query',
