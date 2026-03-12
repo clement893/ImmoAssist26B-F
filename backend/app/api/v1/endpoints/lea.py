@@ -48,6 +48,7 @@ from app.services.lea_chat.actions.transaction import (
     _extract_address_from_message,
     _extract_price_from_message,
     _extract_seller_buyer_names_list,
+    _extract_sellers_and_buyers_from_creation_message,
     _wants_to_create_transaction,
 )
 from app.services.lea_chat.actions.purchase_offer import extract_pa_fields_llm as _extract_pa_fields_llm
