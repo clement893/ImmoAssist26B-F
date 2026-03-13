@@ -110,14 +110,13 @@ ENV SKIP_TYPE_CHECK=${SKIP_TYPE_CHECK}
 RUN cd apps/web && node scripts/validate-build.js
 
 # Build Next.js application (Railway: failures will show which step failed)
-# Turbopack = 2.7x faster, 68% less memory (évite "context canceled" sur Railway)
+# Webpack requis : Turbopack échoue sur /api/auth/[...nextauth] (app-router-context)
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NEXT_PRIVATE_STANDALONE=true
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 # Prebuild (ensure-css, api:manifest) - fail fast with clear step name
 RUN cd apps/web && pnpm run prebuild
-# Next.js 16 : Turbopack par défaut (plus rapide, moins de mémoire)
-RUN cd apps/web && pnpm exec next build
+RUN cd apps/web && USE_WEBPACK=true pnpm exec next build --webpack
 
 # Production image
 FROM base AS runner
