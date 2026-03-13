@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-// Build: Turbopack (default) - faster, less memory
+// Build: Webpack in prod (Dockerfile) - Turbopack fails on /api/auth/[...nextauth]
 const createNextIntlPlugin = require('next-intl/plugin');
 const { withSentryConfig } = require('@sentry/nextjs');
 
