@@ -45,6 +45,11 @@ from app.services.lea_chat.actions.session import (
 )
 from app.services.lea_chat.actions.transaction import (
     maybe_create_transaction_from_lea,
+    create_transaction_record,
+    build_transaction_creation_confirmation,
+    compute_missing_transaction_fields,
+    parse_names_for_pending,
+    update_transaction_record,
     _extract_address_from_message,
     _extract_price_from_message,
     _extract_seller_buyer_names_list,
@@ -53,7 +58,42 @@ from app.services.lea_chat.actions.transaction import (
 )
 from app.services.lea_chat.actions.purchase_offer import extract_pa_fields_llm as _extract_pa_fields_llm
 from app.services.lea_chat.orchestrator import run as run_lea_actions_from_orchestrator
-from app.services.lea_chat.knowledge import load_lea_knowledge_async as load_lea_knowledge_from_module
+from app.services.lea_chat.context_loader import load_active_conversation_context
+from app.services.lea_chat.knowledge import (
+    load_lea_knowledge_async as load_lea_knowledge_from_module,
+    LEA_KNOWLEDGE_FOLDER,
+    LEA_KNOWLEDGE_KEY_OACIQ,
+    LEA_OACIQ_KNOWLEDGE_PATH,
+)
+from app.services.lea_chat.prompts import LEA_SYSTEM_PROMPT
+from app.services.lea_chat.response_composer import build_context as build_lea_context
+from app.services.lea_chat.heuristics import (
+    _format_canadian_postal_code,
+    _extract_transaction_ref_from_message,
+    _extract_address_hint_from_message,
+    _extract_address_hint_from_assistant_message,
+    _last_message_asked_for_address,
+    _last_message_asked_for_property_for_form,
+    _last_message_asked_to_confirm_pa_creation,
+    _is_short_confirmation_message,
+    _last_message_asked_for_sellers,
+    _last_message_asked_for_buyers,
+    _wants_to_update_address,
+    _wants_to_set_promise,
+    _extract_postal_code_from_message,
+    _extract_city_correction_from_message,
+    _is_correcting_postal_or_city,
+    _wants_to_geocode_existing_address,
+    _extract_seller_buyer_contact_from_message,
+    _extract_seller_buyer_names_from_assistant_question,
+    _extract_rename_seller_buyer_from_message,
+    _extract_remove_person_from_message,
+    _wants_to_update_price,
+    _wants_to_create_oaciq_form_for_transaction,
+    _get_oaciq_form_code_for_lea_message,
+    _wants_lea_to_complete_form,
+    _wants_help_filling_oaciq,
+)
 
 from sqlalchemy import select, and_, or_, insert
 from sqlalchemy.exc import ProgrammingError, OperationalError
@@ -80,53 +120,9 @@ AGENT_ERR_MSG = (
     "Example: AGENT_API_URL=https://agentia-immo-production.up.railway.app"
 )
 
-# Dossier S3 et filtre pour la base de connaissance Léa
-LEA_KNOWLEDGE_FOLDER = "lea_knowledge"
+# Constantes de connaissance Léa : importées depuis lea_chat.knowledge (centralisées)
 
-# Fichier de connaissance OACIQ (formulaires) pour Léa — chargé à chaque requête
-# Racine projet = parent de backend/ (docs/ est à la racine)
-_LEA_DOCS_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent.parent / "docs" / "oaciq"
-_LEA_OACIQ_KNOWLEDGE_PATH = _LEA_DOCS_ROOT / "LEA_KNOWLEDGE_OACIQ.md"
-_LEA_OACIQ_GUIDE_EXPERT_PATH = _LEA_DOCS_ROOT / "OACIQ_Guide_Expert_IA.md"
-_LEA_PA_KNOWLEDGE_PATH = _LEA_DOCS_ROOT / "LEA_KNOWLEDGE_PA.md"
-_LEA_INSTRUCTION_PA_PATH = _LEA_DOCS_ROOT / "LEA_INSTRUCTION_PA.md"
-
-
-LEA_KNOWLEDGE_KEY_OACIQ = "oaciq"
-
-# Codes OACIQ connus (alignés sur le guide expert et la table forms) — pour détecter "crée un CP", "formulaire CCVE", etc.
-LEA_KNOWN_OACIQ_CODES = frozenset({
-    "CCVE", "CCDE", "CCIE", "CCM", "CCVNE", "CCDNE", "CCINE", "CCA", "CCADI", "CCL",
-    "DV", "DVD", "PA", "PAD", "PAI", "PAM", "PAG", "CP", "CPCP", "MO",
-    "AVIS-CCA", "AVIS-CVAN", "AVIS-DAVP", "DR", "DRCOP", "PAC", "ACD", "ACI", "BOCP", "MOCP",
-    "AG", "AF", "AR", "EAU", "EXP", "D", "PL", "PLC", "PSL", "ML", "CVHP", "LD", "VI", "AS", "CM",
-    "DIA", "DIV-ENT", "DIV-PAR", "DESC-LOC", "DESC-RES",
-})
-
-# Mots-clés / expressions → code formulaire (pour extraire l'intention de l'utilisateur)
-LEA_OACIQ_KEYWORD_TO_CODE: list = [
-    (["promesse", "d'achat", "promesse d'achat", "d'achar", "promesse d'achar"], "PA"),
-    (["contre-proposition", "contre proposition"], "CP"),
-    (["modifications", "modification"], "MO"),
-    (["déclarations du vendeur", "déclaration vendeur", "déclarations vendeur"], "DV"),
-    (["déclarations vendeur copropriété", "dvd"], "DVD"),
-    (["contrat de courtage", "courtage exclusif vente", "ccve"], "CCVE"),
-    (["contrat courtage copropriété", "ccde"], "CCDE"),
-    (["contrat courtage achat", "cca"], "CCA"),
-    (["contrat courtage location", "ccl"], "CCL"),
-    (["avis réalisation conditions", "avis conditions", "lever les conditions", "aviscvan"], "AVIS-CVAN"),
-    (["annulation promesse", "avis-davp"], "AVIS-DAVP"),
-    (["annexe expertise", "expertise"], "EXP"),
-    (["annexe financement", "financement"], "AF"),
-    (["annexe générale", "ag"], "AG"),
-    (["annexe eau", "eau potable", "septique"], "EAU"),
-    (["déboursés", "rétribution", "dr "], "DR"),
-    (["demande renseignements syndicat", "drcop", "syndicat copropriété"], "DRCOP"),
-    (["promesse location", "pl "], "PL"),
-    (["vérification identité", "identité", "vi "], "VI"),
-]
-
-# Cache in-memory pour la base de connaissance Léa (réduit DB + fichiers à chaque message)
+# Cache in-memory pour la base de connaissance Léa (réduit DB + fichiers à chaque requête)
 _LEA_KNOWLEDGE_CACHE_TTL_SEC = 60
 _lea_knowledge_cache: Optional[Tuple[float, str]] = None
 
@@ -183,83 +179,6 @@ OACIQ_FORM_RECOMMENDED_BY_KIND: dict = {
     "achat": ["PA"],   # Promesse d'achat
     "vente": ["DIA"],  # Déclaration d'intention d'achat (côté vendeur)
 }
-
-LEA_SYSTEM_PROMPT = (
-    "Tu es Léa, une assistante immobilière experte au Québec. "
-    "Tu aides les courtiers et les particuliers : transactions, formulaires OACIQ, vente, achat.\n\n"
-    "Tu as TOUJOURS accès aux données de la plateforme pour l'utilisateur connecté. "
-    "Un bloc « Données plateforme » est fourni ci-dessous avec ses transactions et dossiers. "
-    "Base-toi UNIQUEMENT sur ces données pour répondre aux questions sur ses transactions en cours, ses dossiers, etc.\n\n"
-    "** Ne jamais assumer une adresse ou une transaction d'une ancienne conversation : ** Si l'utilisateur demande de préparer une promesse d'achat (ou un formulaire) sans donner d'adresse ni de numéro de transaction, ne prends PAS la dernière transaction par défaut. Demande toujours : « Pour quelle propriété (adresse ou transaction) ? »\n\n"
-    "** Créer une transaction = toujours une NOUVELLE transaction (jamais une modification) : ** Quand l'utilisateur demande de créer une transaction (vente ou achat), le système enregistre un **nouveau** dossier — on n'écrase ni ne modifie une transaction existante. Il peut y avoir plusieurs transactions (vente et achat) ; chaque création en ajoute une de plus. Même si le chat a été ouvert depuis une transaction, « créer une transaction » = nouveau dossier avec sa propre adresse, vendeurs, acheteurs et prix.\n\n"
-    "** Tolérance aux fautes (type vente/achat) : ** Quand tu viens de poser « Est-ce une vente ou un achat ? », accepte les réponses abrégées ou fautives (ex. « vent », « vnt », « ven », « ach », « acha ») et interprète correctement l'intention (vente/achat) selon le contexte. Si c'est ambigu, pose une mini-confirmation (« Voulez-vous dire vente ? »).\n\n"
-    "** Quantité ≠ nom de personne : ** Les phrases « il y a un seul vendeur/acheteur », « pas d'autres vendeurs/acheteurs », « un seul vendeur », « un seul acheteur » décrivent une quantité, PAS un nom. Ne les enregistre JAMAIS comme nom. Dans ce cas, demande soit le nom exact à garder, soit le nom exact à ajouter.\n\n"
-    "** Nouvelle transaction demandée explicitement : ** Si l'utilisateur dit « créer une nouvelle transaction », « encore une transaction », « une autre transaction », tu dois traiter la demande comme un NOUVEAU dossier et ne pas proposer de modifier la transaction en cours.\n\n"
-    "** RÈGLE CRUCIALE - ACTIONS RÉELLES : **\n"
-    "Tu ne dois JAMAIS prétendre avoir fait une action (créer une transaction, mettre à jour une adresse, créer une promesse d'achat, etc.) "
-    "si le bloc « Action effectuée » ci-dessous ne le mentionne pas explicitement. "
-    "** Quand le bloc « Action effectuée » est présent et indique qu'une action a été faite (ex: transaction créée, formulaire OACIQ créé, adresse enregistrée), tu DOIS confirmer à l'utilisateur que c'est fait — INTERDICTION de dire « Je ne peux pas » ou « je ne peux pas encore » dans ce cas. ** "
-    "Si le bloc contient « Tu viens de créer le formulaire OACIQ » ou « Promesse d'achat », confirme que le formulaire a bien été créé. Si le bloc contient en plus « Demande immédiatement à l'utilisateur » soit « la valeur pour le premier champ » (un champ), soit « les infos pour la section … » (plusieurs champs), tu DOIS dans la MÊME réponse : 1) confirmer brièvement que le formulaire est créé, 2) écrire explicitement la question ou la liste des champs demandés (ex. « Pour la section Identification des parties, il me faut : Adresse de l'acheteur, Téléphone de l'acheteur, Courriel de l'acheteur, Adresse du vendeur, Téléphone du vendeur, Courriel du vendeur. Vous pouvez tout envoyer en un seul message. »). INTERDICTION de te contenter de « répondez à ma prochaine question » ou « je vais vous guider » sans écrire la liste des champs dans ce message — l'utilisateur doit voir la question immédiatement. INTERDICTION de dire « allez dans Formulaires OACIQ ». Sinon (pas de « Demande immédiatement… »), propose de continuer en disant « aide-moi à remplir la promesse d'achat ». NE JAMAIS indiquer d'aller dans Formulaires OACIQ pour compléter une promesse d'achat — c'est toi qui guides le remplissage. "
-    "Si l'utilisateur demande quelque chose et qu'il n'y a AUCUN bloc « Action effectuée » pour cette demande, "
-    "dis-lui que tu ne peux pas encore faire cela automatiquement et invite-le à aller dans la section Transactions pour le faire. "
-    "Ne invente jamais une confirmation du type « c'est fait » ou « j'ai créé » sans que « Action effectuée » le confirme. "
-    "** Si « Action effectuée » contient « L'utilisateur n'a pas précisé pour quelle propriété » ou « Demande-lui : Pour quelle propriété » : ** tu DOIS poser exactement cette question à l'utilisateur. INTERDICTION de dire que tu crées le formulaire, de mentionner une transaction précise (ex. « pour la transaction au 5540 Saint-Denis ») ou d'inviter à aller dans Formulaires OACIQ avant qu'il ait répondu. Ta réponse se limite à : demander pour quelle propriété (adresse ou numéro de transaction) il souhaite préparer le formulaire. "
-    "** Corrections (code postal, ville, etc.) : ** Quand l'utilisateur te corrige (ex. « non le code postal c'est H2K 1E1 », « corrige la ville en Laval »), ne dis jamais que c'est corrigé ou enregistré si le bloc « Action effectuée » ne mentionne pas explicitement que la correction a été appliquée à la transaction — sinon l'utilisateur verrait la transaction inchangée. Si « Action effectuée » indique que le code postal ou la ville a été corrigé(e), confirme alors que c'est bien enregistré dans la transaction. "
-    "** Changement de nom (vendeur/acheteur) : ** Quand l'utilisateur demande de changer le nom d'un vendeur ou d'un acheteur (ex. « changer le nom de l'acheteur Paul en Pierre », « l'acheteur c'est Pierre Martin pas Paul », « change le vendeur pour Jean Dupont », « remplace l'acheteur par Marie », « ajoute Paul comme vendeur », « retire Pierre des vendeurs »), ne dis jamais que c'est modifié si le bloc « Action effectuée » ne mentionne pas explicitement que le nom a été corrigé dans la transaction. Si « Action effectuée » indique que le nom du vendeur ou de l'acheteur a été corrigé, confirme alors que c'est bien enregistré. Quand l'utilisateur est sur la fiche d'une transaction, les modifications s'appliquent à cette transaction.\n\n"
-    "** DEMANDE D'INFORMATION vs DEMANDE D'ACTION : ** "
-    "Si l'utilisateur pose une question sur ce qui est possible (ex. « as-t-on d'autres informations qu'on peut ajouter ? », « quelles infos peut-on ajouter pour une telle transaction ? », « qu'est-ce qu'on peut faire ? »), il demande une **explication ou une liste**, pas d'exécuter une action. "
-    "Réponds alors uniquement en donnant des informations (formulaires utiles, données à compléter, prochaines étapes). Ne prétends jamais avoir créé un formulaire ou effectué une action à la place de l'utilisateur dans ce cas — sauf si le bloc « Action effectuée » indique explicitement qu'une action a été faite pour cette demande.\n\n"
-    "** PLUSIEURS TRANSACTIONS : ** Un courtier peut avoir autant de transactions qu'il veut. Chaque fois qu'il dit « créer une transaction » ou « nouvelle transaction », c'est un **ajout** (un dossier de plus), pas un remplacement de l'unique transaction existante.\n\n"
-    "Quand « Action effectuée » indique une ou plusieurs actions (ex: transaction créée, adresse ajoutée, promesse d'achat enregistrée), "
-    "confirme uniquement ce qui est indiqué et invite l'utilisateur à compléter dans la section Transactions si pertinent. "
-    "**Si « Action effectuée » dit que tu viens de CRÉER une nouvelle transaction (ex. « Tu viens de créer une nouvelle transaction », « le dossier est créé ») :** ta réponse se limite à confirmer la création et indiquer où voir le dossier (section Transactions). NE PAS poser « Quelle est l'adresse du bien ? » ni aucune autre question (vendeurs, acheteurs, prix) — le dossier est créé et terminé ; attendre que l'utilisateur demande explicitement d'en créer un autre. "
-    "Tu peux aussi effectuer une **recherche en ligne** (géocodage) pour compléter une adresse (ville, code postal, province) : si l'utilisateur demande de « trouver le code postal en ligne », « chercher l'adresse sur internet » ou « ajouter le code postal trouvé en ligne », le bloc « Action effectuée » indiquera le résultat ; confirme-le alors à l'utilisateur (ne dis pas que tu ne peux pas). "
-    "** CODE POSTAL TROUVÉ = RÉPONDRE AVEC LE RÉSULTAT : ** Quand « Action effectuée » contient « Recherche en ligne (géocodage) », « Résultat géocodage » ou « Adresse complète à indiquer » avec une ville et un code postal, le système a DÉJÀ trouvé le code postal. Ta réponse doit être celle d'**après** la recherche : tu DOIS donner l'adresse complète (rue, ville, province, code postal) dans CE message et confirmer que c'est enregistré. Ne fais jamais attendre l'utilisateur : ne dis JAMAIS « Je vais chercher », « Un instant », « Je vais effectuer la recherche » — réponds une fois que tu as le résultat, en le fournissant directement (ex. « L'adresse complète est : 5136 Bd Décarie, Montréal (Québec) H3X 2H9. C'est enregistré. Qui sont les vendeurs pour ce dossier ? »). **\n\n"
-    "** ADRESSE OBLIGATOIREMENT COMPLÈTE AVANT LA SUITE : **\n"
-    "Tu ne DOIS JAMAIS poser « Qui sont les vendeurs ? », « Qui sont les acheteurs ? », « Quel est le prix ? » ou toute autre question sur le dossier tant que l'adresse du bien (dernière transaction) n'est pas complète avec ville, province et code postal. "
-    "Si l'adresse n'a pas encore de ville/code postal : demande uniquement la **ville** à l'utilisateur (ne demande pas le code postal). Une fois la ville donnée, propose de trouver le code postal en ligne (géocodage) ou fais la recherche. "
-    "Une fois l'adresse complète (éventuellement après recherche en ligne), tu DOIS d'abord indiquer cette adresse complète à l'utilisateur dans ta réponse ; seulement après tu peux poser la question suivante (vendeurs, etc.).\n\n"
-    "** CONFIRMATION DE LA PROPRIÉTÉ AVANT D'AVANCER : ** Quand l'utilisateur désigne une propriété par une référence partielle (ex. « trouve la transaction sur de Bordeaux », « celle sur la rue X ») et que tu identifies un bien dans les Données plateforme, tu DOIS d'abord indiquer l'adresse complète du bien trouvé et demander à l'utilisateur de **confirmer que c'est bien ce dossier** avant de poser toute question sur les vendeurs, acheteurs ou prix. Formule par exemple : « J'ai trouvé la propriété au [adresse complète]. Est-ce bien ce dossier ? » ou « Confirmes-tu qu'il s'agit bien du [adresse complète] ? » — INTERDICTION de poser « Qui sont les vendeurs ? » (ou acheteurs, prix, etc.) dans la même réponse où tu identifies le bien. Attends la confirmation de l'utilisateur (ex. « oui », « c'est ça ») avant de passer à la suite.\n\n"
-    "** CONTEXTE DE LA CONVERSATION – PROPRIÉTÉ DONT ON VIENT DE PARLER : ** La « transaction actuelle » ou « propriété dont on parle » ne s'applique QUE si **dans ton tout dernier message** tu as toi-même nommé une propriété (ex. « nous travaillons sur la propriété au 8876 de Bordeaux », « la transaction au 5540 Saint-Denis »). Si l'utilisateur dit « je veux créer la promesse d'achat » sans donner d'adresse et que tu n'as PAS nommé de propriété dans ton message précédent, ce n'est PAS une référence : tu DOIS demander « Pour quelle propriété (adresse ou numéro de transaction) ? » — ne jamais prendre une transaction des Données plateforme comme « actuelle » dans ce cas. Quand l'utilisateur dit « celle dont on parlait » ou « pour la propriété qu'on vient de discuter » juste après que tu aies indiqué une propriété, alors oui considère qu'il fait référence à celle-là.\n\n"
-    "** INFORMATIONS À COLLECTER – TYPE PUIS LES 4 INFOS : **\n"
-    "Quand l'utilisateur veut **créer une transaction** sans préciser si c'est une vente ou un achat, ta **première et seule question** doit être : « Est-ce une vente ou un achat ? » Ne demande pas l'adresse avant d'avoir le type (vente/achat). "
-    "Une fois le type connu (vente ou achat), tu ne poses des questions que pour les **4 informations principales** : adresse, vendeurs, acheteurs, prix. Une seule question à la fois. "
-    "Ordre : 0) type (vente/achat) si pas encore dit, puis 1) adresse du bien, 2) vendeurs, 3) acheteurs, 4) prix. "
-    "1. **Adresse** : « Quelle est l'adresse du bien ? » "
-    "Une adresse complète = rue, ville, province, code postal (ex. 2643 Sherbrooke Est, Montréal (Québec) H2K 1E1). Ne demande pas le code postal : demande la ville, puis propose de le trouver en ligne (géocodage). "
-    "Si le géocodage donne une ville non précisée par l'utilisateur, demande confirmation (ex. « Est-ce bien à [ville] ? ») avant de passer à la suite.\n"
-    "2. **Vendeurs** : « Qui sont les vendeurs ? » (nom, téléphone, courriel si l'utilisateur les donne).\n"
-    "3. **Acheteurs** : « Qui sont les acheteurs ? » (idem).\n"
-    "4. **Prix** : « Quel est le prix demandé ? » ou « le prix offert ? » "
-    "Quand l'utilisateur donne un prix (ex. « 600k », « 550 000 $ »), écris en fin de message : PRIX_LISTING: 600000 ou PRIX_OFFERT: 500000 (nombre sans espace ni $) pour que le système l'enregistre.\n"
-    "**Une fois les 4 infos réunies (adresse, vendeurs, acheteurs, prix), ne pose plus de question spécifique.** Demande une seule fois : « Souhaitez-vous ajouter une autre information (date de clôture, notaire, coordonnées, etc.) ? » Si l'utilisateur dit oui et précise (ex. date de clôture, notaire), enregistre ce qu'il donne ; sinon passe à la confirmation ou à la suite.\n"
-    "Après une demande de création : si le type (vente/achat) n'est pas encore connu, pose **d'abord** « Est-ce une vente ou un achat ? » ; sinon pose la prochaine des 4 (ex. après l'adresse : « Qui sont les vendeurs pour ce dossier ? »). "
-    "**La modification est possible pendant la création (brouillon) ou après :** si l'utilisateur corrige une info (ex. « en fait l'adresse c'est 456 rue X », « le prix c'est 500 000 », « les vendeurs c'est seulement Paul »), accepte la correction et confirme que c'est noté. "
-    "**Ne redemande jamais une information déjà fournie** parmi les 4 (adresse, vendeurs, acheteurs, prix). Propose uniquement la prochaine des 4 qui manque (ex. après vendeurs : « Qui sont les acheteurs ? »). "
-    "Si le bloc « Données plateforme » indique déjà des vendeurs ou acheteurs pour une transaction, ne redemande pas « Qui sont les vendeurs ? » ni « Qui sont les acheteurs ? » — passe à la prochaine des 4 qui manque (ex. prix). "
-    "Si dans l'échange précédent tu as toi-même répondu en listant les vendeurs (ex. « Les vendeurs sont X et Y »), ne redemande jamais « Qui sont les vendeurs ? » : considère que c'est enregistré et passe à la suite (acheteurs ou prix). "
-    "** Singulier / pluriel : ** Quand tu mentionnes les vendeurs ou acheteurs déjà enregistrés (d'après les Données plateforme ou l'Action effectuée), adapte ta formulation au nombre de personnes : **une seule personne** → singulier (ex. « L'acheteur, Celia Gomez, a déjà été enregistré » ; « Le vendeur, X, a été enregistré ») ; **plusieurs personnes** → pluriel (ex. « Les acheteurs, Paul et Marie, ont déjà été enregistrés » ; « Les vendeurs ont été mis à jour »). "
-    "**Quand tu viens de demander « Quelle est la date de clôture prévue ? » ou « date d'écriture prévue »** et que l'utilisateur répond par une date (ex. « le 15 mars 2026 »), considère que c'est la date de clôture pour cette transaction — ne demande pas « à quoi elle se rapporte ».\n"
-    "Si l'utilisateur dit qu'il n'y a pas encore d'acheteurs (mise en vente), considère que c'est noté et pose la prochaine des 4 si il en manque (ex. « Quel est le prix demandé ? »).\n\n"
-    "Reste concise : une question à la fois, ou deux maximum si le contexte s'y prête.\n\n"
-    "Règles générales:\n"
-    "- Réponds en français, de façon courtoise et professionnelle.\n"
-    "- **Adresses** : quand tu indiques une adresse, utilise toujours le format complet « [rue], [ville] ([province]) [code postal] » (ex. 2643 Sherbrooke Est, Montréal (Québec) H2K 1E1). Une adresse sans code postal ou sans ville n'est pas complète.\n"
-    "- Garde tes réponses **courtes** (2 à 4 phrases max), sauf si l'utilisateur demande explicitement plus de détails.\n"
-    "- Pour faire avancer la conversation, **pose une question pertinente** ou propose la prochaine étape quand c'est naturel.\n"
-    "- Sois directe et efficace : pas de formules de politesse longues, va à l'essentiel.\n\n"
-"** FORMULAIRES ET DOCUMENTS OACIQ : **\n"
-"Tu es reliée à tous les formulaires OACIQ du système. La liste « Formulaires OACIQ disponibles » (dans Données plateforme) contient tous les codes (PA, CP, CCVE, DV, MO, etc.). "
-"Tu peux créer pour l'utilisateur n'importe quel formulaire de cette liste pour une de ses transactions : dès qu'il demande (ex. « crée une contre-proposition », « crée un CP », « je veux un formulaire CCVE pour la transaction rue X »), demande pour quelle transaction si besoin (adresse ou numéro de dossier), puis confirme ; le système créera le brouillon. "
-"** Tu peux aussi aider à compléter les formulaires : ** quand l'utilisateur dit « toi complète le », « remplis le formulaire », « complète le » (après avoir parlé d'un formulaire en brouillon), le système préremplit le formulaire avec les données de la transaction (adresse, vendeurs, acheteurs, prix, date de clôture). Confirme que c'est fait. Pour le PA (promesse d'achat), propose ensuite de continuer avec toi pour remplir les champs restants dans le chat ; ne dis pas « allez dans Formulaires OACIQ pour compléter ». Pour les autres formulaires, tu peux mentionner qu'il peut vérifier dans Transactions → cette transaction → onglet Formulaires OACIQ. Ne dis pas que tu ne peux pas — l'action est effectuée par le système. "
-"** Tu dois aider l'utilisateur à remplir les champs du formulaire (ex. PA) : ** rappelle quelles sections ou champs restent à remplir, indique où ils se trouvent (ex. section 4 Prix et acompte, section 7 Date de signature de l'acte), explique le sens des champs si besoin (sans inventer de valeurs). Guide-le dans le remplissage du formulaire en conversation. "
-"** Remplissage PA (champ ou section) : ** Quand « Action effectuée » indique « Tu aides l'utilisateur à remplir le formulaire PA par section » ou « Pour la section … il me manque : … Tu peux tout envoyer en un seul message », demande à l'utilisateur les infos de cette section (liste des champs manquants) et précise qu'il peut tout envoyer en un seul message. Quand « Action effectuée » indique « champ par champ » ou « la valeur pour le premier champ » ou « le champ suivant », pose UNE SEULE question pour le champ indiqué. Quand « Action effectuée » dit « Valeur(s) enregistrée(s). Pour la section … » : confirme brièvement puis demande la section suivante (champs listés) en précisant qu'il peut tout envoyer en un message. Ne considère pas le formulaire PA terminé tant que « Action effectuée » indique qu'il manque des champs ou une section : continue à demander les infos manquantes jusqu'à ce que le bloc dise que tous les champs requis sont remplis. Ne dis pas « allez dans Formulaires OACIQ » : pose la question dans le chat. Les valeurs sont enregistrées dans le brouillon et s'afficheront dans Transactions → Formulaires OACIQ. "
-"** PA – Données transaction : ** Pour le formulaire Promesse d'achat (PA), utilise TOUJOURS les données déjà présentes dans la transaction (noms des acheteurs, noms des vendeurs, adresse complète de la propriété, prix offert) : préremplis ou utilise-les sans les redemander à l'utilisateur. Demande uniquement les champs qui ne sont pas dans la transaction (coordonnées détaillées, dépôt, conditions, inclusions/exclusions, dates, délai d'acceptation). "
-"** PA – Signatures : ** Ne demande JAMAIS les signatures (acheteur, vendeur, courtiers) ni l'acceptation légale du vendeur dans le chat. Ces actes sont faits par l'utilisateur directement dans le formulaire ou via signature électronique. Tu peux indiquer où signer, pas remplir à sa place. "
-"Tu peux indiquer quels formulaires OACIQ sont en brouillon, complétés ou signés pour une transaction. "
-"Quand l'utilisateur demande « quels documents me manquent » ou « quelle est la prochaine étape », base-toi sur le bloc Données plateforme (formulaires OACIQ par transaction) et indique ce qui est en brouillon, complété, signé, et ce qu'il reste à faire ou à créer (ex. compléter le PA, créer un DIA pour une vente). "
-"Quand une action a créé un formulaire : pour la promesse d'achat (PA), NE JAMAIS dire « vous pouvez la compléter en allant dans Transactions → Formulaires OACIQ » — tu guides le remplissage dans le chat. Pour les autres formulaires, tu peux indiquer où les trouver (Transactions → cette transaction → onglet Formulaires OACIQ) si l'utilisateur le demande."
-)
 
 router = APIRouter(prefix="/lea", tags=["lea"])
 
@@ -615,39 +534,6 @@ async def get_existing_empty_transaction(
     return None
 
 
-def _extract_transaction_ref_from_message(message: str) -> Optional[str]:
-    """
-    Extrait une référence à une transaction (numéro de dossier ou id) du message.
-    Ex: "transaction 4", "transaction #4", "#4", "dossier 4", "la transaction 4".
-    Retourne "4" ou None.
-    """
-    if not message or len(message.strip()) < 2:
-        return None
-    t = message.strip()
-    # #4 ou # 4
-    m = re.search(r"#\s*(\d+)", t, re.I)
-    if m:
-        return m.group(1)
-    # "transaction 4" / "transaction #4" / "la transaction 4" / "pour la transaction 4" / "de la transaction 4"
-    m = re.search(r"(?:pour\s+|de\s+)?(?:la\s+)?transaction\s+#?\s*(\d+)", t, re.I)
-    if m:
-        return m.group(1)
-    # "dossier 4"
-    m = re.search(r"dossier\s+#?\s*(\d+)", t, re.I)
-    if m:
-        return m.group(1)
-    # "transaction numéro 4" / "la transaction numéro 4"
-    m = re.search(r"(?:la\s+)?transaction\s+numéro\s+#?\s*(\d+)", t, re.I)
-    if m:
-        return m.group(1)
-    # Réponse courte du type "72" ou "# 72" (ex. après « Pour quelle propriété ? »)
-    if re.match(r"^\s*#?\s*\d+\s*$", t):
-        m = re.search(r"\d+", t)
-        if m:
-            return m.group(0)
-    return None
-
-
 async def get_user_transaction_by_ref(
     db: AsyncSession, user_id: int, ref: str
 ) -> Optional[RealEstateTransaction]:
@@ -683,57 +569,6 @@ async def get_user_transaction_by_ref(
     return r.scalar_one_or_none()
 
 
-def _extract_address_hint_from_message(message: str) -> Optional[str]:
-    """Extrait un indice d'adresse du message pour cibler une transaction (ex: 'Bordeaux' dans 'transaction sur de Bordeaux')."""
-    if not message or len(message.strip()) < 3:
-        return None
-    t = message.strip()
-    # "sur la transaction de Bordeaux" / "pour la transaction de Bordeaux" / "transaction de Bordeaux"
-    m = re.search(r"(?:sur|pour)\s+(?:la\s+)?transaction\s+(?:de\s+|sur\s+)([A-Za-zÀ-ÿ\-]+)", t, re.I)
-    if m:
-        return m.group(1).strip()
-    # "transaction sur (la) rue de Bordeaux" / "transaction sur de Bordeaux" / "rue de Bordeaux"
-    m = re.search(r"(?:rue\s+de|sur\s+(?:la\s+)?(?:rue\s+)?(?:de\s+)?)([A-Za-zÀ-ÿ\-]+)", t, re.I)
-    if m:
-        return m.group(1).strip()
-    # "transaction Bordeaux" / "transaction sur de Bordeaux"
-    m = re.search(r"transaction\s+(?:sur\s+)?(?:de\s+)?([A-Za-zÀ-ÿ\-]+)", t, re.I)
-    if m:
-        return m.group(1).strip()
-    return None
-
-
-def _extract_address_hint_from_assistant_message(message: str) -> Optional[str]:
-    """
-    Extrait un indice d'adresse du message assistant quand Léa vient de donner l'adresse (ex. "est : 8569 delorimier, Val-d'Or",
-    "propriété au 8876 de Bordeaux, Val-d'Or"). Permet de cibler la bonne transaction quand l'utilisateur répond sans répéter l'adresse.
-    """
-    if not message or len(message.strip()) < 5:
-        return None
-    t = message.strip()
-    # "propriété au 8876 de Bordeaux, Val-d'Or" / "nous travaillons sur la propriété au 8876 de Bordeaux"
-    m = re.search(r"propriété\s+au\s+(\d+\s+(?:de\s+)?[A-Za-zÀ-ÿ\-]+)", t, re.I)
-    if m:
-        return m.group(1).strip()
-    # "au 8876 de Bordeaux, Val-d'Or (Québec)" -> extraire "Bordeaux" ou "8876 de Bordeaux"
-    m = re.search(r"au\s+(\d+\s+de\s+[A-Za-zÀ-ÿ\-]+)", t, re.I)
-    if m:
-        return m.group(1).strip()
-    # "L'adresse ... est : 8569 delorimier, Val-d'Or" / "est : 8569 delorimier," / "adresse suivante est : 8569 delorimier"
-    m = re.search(r"(?:adresse\s+(?:suivante\s+)?(?:est\s*:\s*)|est\s*:\s*)\s*(\d+\s+[A-Za-zÀ-ÿ\-]+)", t, re.I)
-    if m:
-        return m.group(1).strip()
-    # Mot de rue après "de " (ex. "de Bordeaux", "de Lorimier") dans un contexte d'adresse
-    m = re.search(r"\bde\s+([A-Za-zÀ-ÿ]{4,})\s*[,)]", t)
-    if m:
-        return m.group(1).strip()
-    # Dernier recours : un mot typique de rue (ex. "delorimier", "Bordeaux") après "transaction", "dossier" ou "propriété"
-    m = re.search(r"(?:transaction|dossier|propriété).*?\b([A-Za-zÀ-ÿ]{4,})\b", t, re.I)
-    if m:
-        return m.group(1).strip()
-    return None
-
-
 async def get_user_transaction_by_address_hint(
     db: AsyncSession, user_id: int, hint: str
 ) -> Optional[RealEstateTransaction]:
@@ -755,121 +590,6 @@ async def get_user_transaction_by_address_hint(
     )
     r = await db.execute(q)
     return r.scalar_one_or_none()
-
-
-def _last_message_asked_for_address(last_assistant_message: Optional[str] = None) -> bool:
-    """True si le dernier message de Léa demandait l'adresse du bien (ex. « Quelle est l'adresse du bien ? »)."""
-    if not last_assistant_message or len(last_assistant_message.strip()) < 10:
-        return False
-    t = last_assistant_message.strip().lower()
-    return (
-        "adresse" in t
-        and ("quelle" in t or "du bien" in t or "propriété" in t or "l'adresse" in t or "me dire" in t)
-    )
-
-
-def _last_message_asked_for_property_for_form(last_assistant_message: Optional[str] = None) -> bool:
-    """True si Léa demandait pour quelle propriété/transaction préparer un formulaire (ex. promesse d'achat)."""
-    if not last_assistant_message or len(last_assistant_message.strip()) < 15:
-        return False
-    t = last_assistant_message.strip().lower()
-    return (
-        ("quelle propriété" in t or "quelle transaction" in t)
-        and ("formulaire" in t or "promesse" in t or "préparer" in t or "préparer ce formulaire" in t)
-    )
-
-
-def _last_message_asked_to_confirm_pa_creation(last_assistant_message: Optional[str] = None) -> bool:
-    """True si Léa demandait de confirmer la création d'une promesse d'achat pour une propriété (ex. « Pour confirmer, souhaitez-vous créer… »)."""
-    if not last_assistant_message or len(last_assistant_message.strip()) < 20:
-        return False
-    t = last_assistant_message.strip().lower()
-    return (
-        ("promesse" in t and ("achat" in t or "d'achat" in t))
-        and ("confirmer" in t or "souhaitez-vous" in t or "voulez-vous" in t or "créer" in t)
-        and ("transaction" in t or "propriété" in t or "au " in t)
-    )
-
-
-def _is_short_confirmation_message(message: str) -> bool:
-    """True si le message est une confirmation courte (oui, exact, ok, c'est ça, etc.)."""
-    if not message or len(message.strip()) > 25:
-        return False
-    t = message.strip().lower()
-    return t in (
-        "oui", "ouais", "ouaip", "ok", "exact", "exactement", "c'est ça", "cest ca",
-        "oui merci", "ok merci", "d'accord", "daccord", "confirmé", "confirme",
-        "vas-y", "vas y", "go", "yep", "yeah",
-    ) or t.startswith(("oui ", "ok "))
-
-
-def _last_message_asked_for_sellers(last_assistant_message: Optional[str] = None) -> bool:
-    """True si le dernier message de Léa demandait les vendeurs (ex. « Qui sont les vendeurs ? »)."""
-    if not last_assistant_message or len(last_assistant_message.strip()) < 5:
-        return False
-    t = last_assistant_message.strip().lower()
-    return "vendeur" in t and ("qui" in t or "quels" in t or "noms" in t or "nom" in t or "?" in t)
-
-
-def _last_message_asked_for_buyers(last_assistant_message: Optional[str] = None) -> bool:
-    """True si le dernier message de Léa demandait les acheteurs (ex. « Qui sont les acheteurs ? »)."""
-    if not last_assistant_message or len(last_assistant_message.strip()) < 5:
-        return False
-    t = last_assistant_message.strip().lower()
-    return "acheteur" in t and ("qui" in t or "quels" in t or "noms" in t or "nom" in t or "?" in t)
-
-
-def _wants_to_update_address(message: str) -> bool:
-    t = (message or "").strip().lower()
-    if not t:
-        return False
-    # "créer une transaction (de vente/d'achat) pour 123 rue X" — adresse dans la même phrase que la création
-    if ("créer" in t or "creer" in t) and "transaction" in t and _extract_address_from_message(message):
-        return True
-    # "le bien est au X" / "est au X" sans le mot "adresse"
-    if "est au" in t or "c'est au" in t or "bien est" in t or "biais est" in t:
-        if _extract_address_from_message(message):
-            return True
-    # "56 26 de Lorimier toi trouve en ligne le reste" — adresse + demande de compléter en ligne
-    if ("trouve" in t or "en ligne" in t or "reste" in t) and _extract_address_from_message(message):
-        return True
-    # "les 7 2 3 6 rue Waverly" (vocal : adresse sans mot "adresse")
-    if re.search(r"\bles\s+\d(?:\s*\d)*\s+(?:rue|avenue|av\.?|boulevard)\s+", t, re.I) and _extract_address_from_message(message):
-        return True
-    if "adresse" not in t:
-        return False
-    # Correction / mise à jour explicite (incl. "l'adresse du bien et le X" — typo "et" pour "est")
-    if (
-        "n'est pas la bonne" in t
-        or "pas la bonne adresse" in t
-        or "corriger" in t
-        or "changer l'adresse" in t
-        or "modifier l'adresse" in t
-        or "mettre" in t
-        or "rentrer" in t
-        or "rentre" in t
-        or "est le" in t
-        or "et le" in t
-        or "du bien" in t
-        or "est " in t
-        or "c'est " in t
-        or "enregistrer" in t
-        or "ajouter" in t
-        or "ajoutes" in t
-        or "ajoute " in t
-    ):
-        return _extract_address_from_message(message) is not None
-    return False
-
-
-def _wants_to_set_promise(message: str) -> bool:
-    t = (message or "").strip().lower()
-    if not t:
-        return False
-    return (
-        "promesse" in t and ("achat" in t or "d'achat" in t) and
-        ("créer" in t or "crée" in t or "crééz" in t or "générer" in t or "faire" in t or "créez" in t)
-    )
 
 
 # En-têtes pour éviter les réponses en cache et obtenir les données de géocodage les plus récentes
@@ -1221,16 +941,6 @@ async def _geocode_one(addr: str, limit: int = 5) -> Optional[dict]:
     return result
 
 
-def _format_canadian_postal_code(raw: str) -> str:
-    """Normalise un code postal canadien au format A1A 1A1 (espace au milieu)."""
-    if not raw:
-        return ""
-    s = re.sub(r"\s+", "", str(raw).strip().upper())
-    if len(s) == 6 and s[0].isalpha() and s[1].isdigit() and s[2].isalpha() and s[3].isdigit() and s[4].isalpha() and s[5].isdigit():
-        return f"{s[0]}{s[1]}{s[2]} {s[3]}{s[4]}{s[5]}"
-    return str(raw).strip()
-
-
 def _format_full_address_ca(street: str, city: str, province: str, postcode: str) -> str:
     """
     Formate une adresse complète au format canadien standard :
@@ -1336,87 +1046,6 @@ async def _update_transaction_address_from_context(
         logger.warning(f"Lea update address from context failed: {e}", exc_info=True)
         await db.rollback()
         return None
-
-
-def _extract_postal_code_from_message(message: str) -> Optional[str]:
-    """Extrait un code postal canadien (A1A 1A1) du message, s'il y en a un."""
-    if not message or len(message.strip()) < 5:
-        return None
-    t = message.strip()
-    # Format A1A 1A1 ou A1A1A1 (avec ou sans espaces)
-    m = re.search(r"[A-Za-z]\d[A-Za-z]\s*\d[A-Za-z]\d", t)
-    if m:
-        raw = re.sub(r"\s+", "", m.group(0).upper())
-        if len(raw) == 6 and raw[0].isalpha() and raw[1].isdigit() and raw[2].isalpha() and raw[3].isdigit() and raw[4].isalpha() and raw[5].isdigit():
-            return _format_canadian_postal_code(raw)
-    return None
-
-
-def _extract_city_correction_from_message(message: str) -> Optional[str]:
-    """Extrait une ville indiquée en correction (ex. « la ville c'est Montréal », « corrige la ville en Laval »)."""
-    if not message or len(message.strip()) < 2:
-        return None
-    t = (message or "").strip()
-    t_lower = t.lower()
-    # "la ville c'est X" / "c'est X" (contexte ville) / "corrige la ville en X" / "la bonne ville c'est X"
-    for pattern in (
-        r"(?:la\s+ville\s+(?:c'est|est)\s+|ville\s*:\s*)([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$|\s+,|\s+et\s+)",
-        r"(?:corrige(?:r?)\s+la\s+ville\s+(?:en\s+|à\s+)?|remplace\s+la\s+ville\s+par\s+)([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$|\s+,)",
-        r"(?:le\s+bon\s+code\s+postal|la\s+bonne\s+ville)\s+(?:c'est|est)\s+([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$)",
-    ):
-        m = re.search(pattern, t, re.I)
-        if m:
-            city = m.group(1).strip()
-            if 2 <= len(city) <= 50 and not any(c.isdigit() for c in city):
-                return city
-    # Message court type « Montréal » ou « Laval » après une question sur la ville
-    if len(t.split()) <= 3 and not any(c.isdigit() for c in t) and t[0].isupper():
-        return t.strip()
-    return None
-
-
-def _last_message_mentioned_address_or_postal(last_assistant_message: Optional[str]) -> bool:
-    """True si le dernier message de Léa mentionnait une adresse ou un code postal (contexte de correction)."""
-    if not last_assistant_message or len(last_assistant_message.strip()) < 10:
-        return False
-    lower = last_assistant_message.strip().lower()
-    return (
-        "adresse" in lower
-        or "code postal" in lower
-        or "montréal" in lower
-        or "québec" in lower
-        or re.search(r"[A-Za-z]\d[A-Za-z]\s*\d[A-Za-z]\d", last_assistant_message) is not None
-    )
-
-
-def _is_correcting_postal_or_city(message: str, last_assistant_message: Optional[str]) -> bool:
-    """True si l'utilisateur corrige le code postal ou la ville (après que Léa ait indiqué une adresse)."""
-    if not message or len(message.strip()) < 2:
-        return False
-    t = (message or "").strip().lower()
-    if not _last_message_mentioned_address_or_postal(last_assistant_message):
-        return False
-    correction_phrases = (
-        "non ",
-        "non,",
-        "corrige",
-        "correction",
-        "c'est ",
-        "c’est ",
-        "le code postal",
-        "code postal c'est",
-        "code postal est",
-        "le bon code postal",
-        "la ville c'est",
-        "la ville est",
-        "corrige la ville",
-        "changer le code postal",
-        "modifier le code postal",
-        "pas ça",
-        "pas le bon",
-        "erreur",
-    )
-    return any(p in t for p in correction_phrases)
 
 
 async def maybe_correct_transaction_postal_or_city_from_lea(
@@ -1570,31 +1199,6 @@ async def maybe_geocode_on_user_confirmation(
         return None
 
 
-def _wants_to_geocode_existing_address(message: str) -> bool:
-    """True si l'utilisateur demande de chercher l'adresse / code postal / ville sur Internet (géocodage sur la transaction déjà enregistrée)."""
-    t = (message or "").strip().lower()
-    if not t:
-        return False
-    has_verb = (
-        "chercher" in t or "cherche" in t or "trouve" in t or "trouver" in t
-        or "recherche" in t or "rechercher" in t
-        or "écris" in t or "écrire" in t
-        or "ajout" in t  # "ajouter le code postal", "ajoutons le code postal"
-        or "fais" in t or "faire" in t  # "toi fais la recherche en ligne", "fais la recherche"
-    )
-    # Adresse complète, code postal ou ville (recherche en ligne)
-    has_address = (
-        "adresse" in t or "l'adresse" in t
-        or "code postal" in t or "ville" in t
-        or "complète" in t or "compléter" in t or "complétons" in t  # "compléter l'adresse"
-    )
-    has_trigger = (
-        "internet" in t or "en ligne" in t or "ligne" in t
-        or "complète" in t or "code postal" in t or "ville" in t
-    )
-    return has_verb and has_address and (has_trigger or "recherche" in t or "écris" in t or "écrire" in t)
-
-
 async def maybe_complete_address_with_city_then_geocode(
     db: AsyncSession, user_id: int, message: str
 ) -> Optional[Tuple[str, RealEstateTransaction, dict]]:
@@ -1714,270 +1318,6 @@ async def maybe_set_promise_from_lea(
         logger.warning(f"Lea set promise failed: {e}", exc_info=True)
         await db.rollback()
         return None
-
-
-def _extract_seller_buyer_contact_from_message(message: str, last_assistant_message: Optional[str] = None) -> Optional[tuple[str, str, Optional[str], Optional[str], str]]:
-    """
-    Détecte si l'utilisateur donne les coordonnées d'un vendeur ou d'un acheteur.
-    Retourne (first_name, last_name, phone, email, role). Avec last_assistant_message, on peut inférer le rôle pour une réponse de suivi (« Johnny a … gmail.com et 438… »).
-    """
-    if not message or len(message.strip()) < 10:
-        return None
-    t = message.strip()
-    role: Optional[str] = None
-    if re.search(r"\bvendeur(s?)\b", t, re.I) or "coordonnée du vendeur" in t.lower() or "coordonnées du vendeur" in t.lower():
-        role = "Vendeur"
-    elif re.search(r"\bacheteur(s?)\b", t, re.I) or "coordonnée de l'acheteur" in t.lower() or "coordonnées de l'acheteur" in t.lower():
-        role = "Acheteur"
-    if not role and last_assistant_message:
-        last_lower = last_assistant_message.strip().lower()
-        if "vendeur" in last_lower and ("téléphone" in last_lower or "courriel" in last_lower or "coordonnées" in last_lower):
-            role = "Vendeur"
-        elif "acheteur" in last_lower and ("téléphone" in last_lower or "courriel" in last_lower or "coordonnées" in last_lower):
-            role = "Acheteur"
-    if not role:
-        return None
-    name_from_followup: Optional[str] = None
-
-    # "les vendeurs sont A et B" / "les vendeurs sont A, B et C" → géré par _extract_seller_buyer_names_list
-    if re.search(r"les\s+vendeurs\s+sont\s+.+\s+et\s+", t, re.I) or re.search(r"les\s+acheteurs\s+sont\s+.+\s+et\s+", t, re.I):
-        return None
-
-    # Nom : "il s'appelle X" / "s'appelle X" / "c'est X" / en suivi "Johnny a ... gmail.com et ..."
-    name_match = re.search(
-        r"(?:il\s+)?s['']appelle\s+([A-Za-zÀ-ÿ\s\-]+?)(?:\s+son\s+numéro|\s+numéro|\s+téléphone|\s+phone|\s+courriel|\s+email|$|,)",
-        t,
-        re.I,
-    )
-    if not name_match:
-        name_match = re.search(r"c'est\s+([A-Za-zÀ-ÿ\s\-]+?)(?:\s+son\s+numéro|\s+numéro|\s+téléphone|$|,)", t, re.I)
-    name_from_followup = None
-    if not name_match and ("@" in t or "gmail.com" in t) and last_assistant_message:
-        # Réponse de suivi : "Johnny a commercial gmail.com et 4 3 8..." -> nom au début ou dans le message assistant
-        m_start = re.match(r"^([A-Za-zÀ-ÿ]+)(?:\s+([A-Za-zÀ-ÿ\-]+))?\s+(?:a|à)\s+", t, re.I)
-        if m_start:
-            name_from_followup = (m_start.group(1) + " " + (m_start.group(2) or "")).strip()
-        else:
-            m_last = re.search(r"(?:de|du|pour)\s+([A-Za-zÀ-ÿ]+\s+[A-Za-zÀ-ÿ\-]+)(?:\s|,|\.|$)", last_assistant_message.strip(), re.I)
-            if m_last:
-                name_from_followup = m_last.group(1).strip()
-    name = (name_match.group(1).strip() if name_match else name_from_followup) or None
-    if not name or len(name) < 2:
-        return None
-    parts = name.split()
-    if len(parts) >= 2:
-        first_name, last_name = parts[0], " ".join(parts[1:])
-    else:
-        first_name = last_name = parts[0]
-    # Téléphone : 514-266-5543, 514 266 5543, ou chiffres espacés "4 3 8 4 9 2 5 3 0 7"
-    phone_match = re.search(
-        r"(?:numéro|téléphone|phone)(?:\s+de\s+(?:téléphone|phone))?\s*(?:est\s*)?(?:le\s*)?[:\s]*(\d{3}[\s.\-]*\d{3}[\s.\-]*\d{4})",
-        t,
-        re.I,
-    )
-    if not phone_match:
-        phone_match = re.search(r"\b(\d{3}[\s.\-]\d{3}[\s.\-]\d{4})\b", t)
-    if not phone_match:
-        phone_match = re.search(r"(\d(?:\s*\d){9})", t)
-    phone = None
-    if phone_match:
-        raw_phone = phone_match.group(1).replace(" ", "").replace(".", "").replace("-", "")
-        if len(raw_phone) == 10 and raw_phone.isdigit():
-            phone = f"{raw_phone[0:3]}-{raw_phone[3:6]}-{raw_phone[6:10]}"
-    # Email optionnel
-    email_match = re.search(r"(?:courriel|email)\s*(?:est\s*)?[:\s]*([^\s,\.]+@[^\s,\.]+)", t, re.I)
-    email = email_match.group(1).strip() if email_match else None
-    if not email and "gmail.com" in t:
-        local = re.search(r"(\w+)\s+(?:a|à|@)?\s*(?:commercial\s+)?gmail\.com", t, re.I)
-        if local:
-            email = f"{local.group(1).strip()}@gmail.com"
-    # En suivi (nom depuis contexte), exiger au moins téléphone ou courriel pour éviter doublon
-    if name_from_followup is not None and not phone and not email:
-        return None
-    return (first_name.strip(), last_name.strip(), phone, email, role)
-
-
-def _extract_seller_buyer_names_from_assistant_question(assistant_message: str) -> Optional[tuple[str, List[tuple[str, str]]]]:
-    """
-    Quand l'assistant a demandé « Souhaitez-vous enregistrer X et Y comme vendeurs ? »
-    et l'utilisateur répond « oui enregistrez les », extrait X et Y du message assistant.
-    Retourne (role, [(first_name, last_name), ...]) ou None.
-    """
-    if not assistant_message or len(assistant_message.strip()) < 10:
-        return None
-    t = assistant_message.strip()
-    role: Optional[str] = None
-    if "comme vendeurs" in t.lower() or "comme vendeur" in t.lower():
-        role = "Vendeur"
-    elif "comme acheteurs" in t.lower() or "comme acheteur" in t.lower():
-        role = "Acheteur"
-    if not role:
-        return None
-    # "enregistrer Michel et Lucie Zapata comme vendeurs" / "X et Y comme vendeurs"
-    m = re.search(r"(?:enregistrer\s+)?(.+?)\s+comme\s+" + ("vendeurs?" if role == "Vendeur" else "acheteurs?"), t, re.I | re.DOTALL)
-    if not m:
-        return None
-    raw = m.group(1).strip()
-    raw = re.sub(r"\s+vocales?\s+terminées?.*$", "", raw, flags=re.I).strip()
-    if not raw or len(raw) < 3:
-        return None
-    parts = re.split(r"\s+et\s+|\s*,\s*", raw)
-    names: List[tuple[str, str]] = []
-    for part in parts:
-        part = part.strip()
-        if not part or len(part) < 2:
-            continue
-        words = part.split()
-        if len(words) >= 2:
-            first_name, last_name = words[0], " ".join(words[1:])
-        else:
-            first_name = last_name = part
-        if len(first_name) >= 1 and len(last_name) >= 1:
-            names.append((first_name.strip(), last_name.strip()))
-    if not names:
-        return None
-    return (role, names)
-
-
-def _extract_rename_seller_buyer_from_message(
-    message: str, last_assistant_message: Optional[str] = None
-) -> Optional[Tuple[str, str, str]]:
-    """
-    Détecte une demande de changement de nom d'un vendeur ou acheteur.
-    Retourne (ancien_nom_ou_recherche, nouveau_nom, "Acheteur"|"Vendeur") ou None.
-    """
-    if not message or len(message.strip()) < 5:
-        return None
-    t = (message or "").strip()
-    t_lower = t.lower()
-    role: Optional[str] = None
-    if re.search(r"\bacheteur(s?)\b", t_lower):
-        role = "Acheteur"
-    if re.search(r"\bvendeur(s?)\b", t_lower):
-        role = role or "Vendeur"
-    if not role and last_assistant_message:
-        last_lower = (last_assistant_message or "").strip().lower()
-        if "acheteur" in last_lower:
-            role = "Acheteur"
-        elif "vendeur" in last_lower:
-            role = "Vendeur"
-    if not role:
-        return None
-
-    # "changer le nom de l'acheteur X en Y" / "remplacer l'acheteur X par Y"
-    m = re.search(
-        r"(?:changer|modifier|corriger)\s+(?:le\s+)?nom\s+(?:de\s+l['']?)?(?:acheteur|vendeur)\s+(?:c['']est\s+)?([A-Za-zÀ-ÿ\s\-]+?)\s+en\s+([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$|\s+pour)",
-        t,
-        re.I,
-    )
-    if m:
-        old_name = m.group(1).strip()
-        new_name = m.group(2).strip()
-        if len(old_name) >= 2 and len(new_name) >= 2:
-            return (old_name, new_name, role)
-
-    m = re.search(
-        r"remplacer\s+(?:l['']?)?(?:acheteur|vendeur)\s+([A-Za-zÀ-ÿ\s\-]+?)\s+par\s+([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$|\s+pour)",
-        t,
-        re.I,
-    )
-    if m:
-        old_name = m.group(1).strip()
-        new_name = m.group(2).strip()
-        if len(old_name) >= 2 and len(new_name) >= 2:
-            return (old_name, new_name, role)
-
-    # "l'acheteur c'est pas X, c'est Y" / "non l'acheteur c'est Y" / "c'est Y pas X"
-    m = re.search(
-        r"(?:l['']?|le\s+)(?:acheteur|vendeur)\s+(?:c['']est\s+)?(?:pas\s+)?([A-Za-zÀ-ÿ\s\-]+?)\s*,\s*(?:c['']est\s+)?([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$)",
-        t,
-        re.I,
-    )
-    if m:
-        old_name = m.group(1).strip()
-        new_name = m.group(2).strip()
-        if len(old_name) >= 2 and len(new_name) >= 2:
-            return (old_name, new_name, role)
-
-    m = re.search(
-        r"non\s+(?:l['']?|le\s+)(?:acheteur|vendeur)\s+(?:c['']est\s+)?([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$)",
-        t,
-        re.I,
-    )
-    if m:
-        new_name = m.group(1).strip()
-        if len(new_name) >= 2 and last_assistant_message:
-            # Ancien nom peut être dans le message assistant (ex. "L'acheteur est Paul Dupont")
-            last = last_assistant_message.strip()
-            name_in_last = re.search(
-                r"(?:acheteur|vendeur)\s+(?:est\s+|c['']est\s+|:)\s*([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$|\s+,)",
-                last,
-                re.I,
-            )
-            old_name = name_in_last.group(1).strip() if name_in_last else ""
-            if old_name and len(old_name) >= 2:
-                return (old_name, new_name, role)
-
-    # "corriger le nom (de l'acheteur), c'est Y"
-    m = re.search(
-        r"(?:corriger|changer|modifier)\s+(?:le\s+)?nom\s+(?:de\s+l['']?)?(?:acheteur|vendeur)?\s*[,:]?\s*c['']est\s+([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$)",
-        t,
-        re.I,
-    )
-    if m:
-        new_name = m.group(1).strip()
-        if len(new_name) >= 2 and last_assistant_message:
-            last = last_assistant_message.strip()
-            name_in_last = re.search(
-                r"(?:acheteur|vendeur)\s+(?:est\s+|c['']est\s+|:)\s*([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$|\s+,)",
-                last,
-                re.I,
-            )
-            old_name = name_in_last.group(1).strip() if name_in_last else ""
-            if old_name and len(old_name) >= 2:
-                return (old_name, new_name, role)
-
-    # "change le vendeur pour X" / "remplace l'acheteur par X" / "change l'acheteur pour X"
-    m = re.search(
-        r"(?:change|remplace|mets?|définir?)\s+(?:le\s+)?(?:l['']?)?(?:acheteur|vendeur)\s+(?:pour|par|c['']est)\s+([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$|\s+pour)",
-        t,
-        re.I,
-    )
-    if m:
-        new_name = m.group(1).strip()
-        if len(new_name) >= 2 and last_assistant_message:
-            last = last_assistant_message.strip()
-            name_in_last = re.search(
-                r"(?:acheteur|vendeur)\s+(?:est\s+|c['']est\s+|:)\s*([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$|\s+,)",
-                last,
-                re.I,
-            )
-            old_name = name_in_last.group(1).strip() if name_in_last else ""
-            if old_name and len(old_name) >= 2:
-                return (old_name, new_name, role)
-        return ("*", new_name, role)
-
-    # "le vendeur c'est maintenant X" / "l'acheteur c'est X"
-    m = re.search(
-        r"(?:l['']?|le\s+)(?:acheteur|vendeur)\s+c['']est\s+(?:maintenant\s+)?([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$|\s+pour)",
-        t,
-        re.I,
-    )
-    if m:
-        new_name = m.group(1).strip()
-        if len(new_name) >= 2 and last_assistant_message:
-            last = last_assistant_message.strip()
-            name_in_last = re.search(
-                r"(?:acheteur|vendeur)\s+(?:est\s+|c['']est\s+|:)\s*([A-Za-zÀ-ÿ\s\-]+?)(?:\s*\.|$|\s+,)",
-                last,
-                re.I,
-            )
-            old_name = name_in_last.group(1).strip() if name_in_last else ""
-            if old_name and len(old_name) >= 2:
-                return (old_name, new_name, role)
-        return ("*", new_name, role)
-
-    return None
 
 
 async def maybe_update_seller_buyer_name_from_lea(
@@ -2230,47 +1570,6 @@ async def maybe_add_seller_buyer_contact_from_lea(
         return None
 
 
-def _extract_remove_person_from_message(message: str) -> Optional[Tuple[str, Optional[str]]]:
-    """
-    Détecte une demande de suppression/retrait d'un vendeur ou acheteur.
-    Ex: « supprimer Hind », « retirer le vendeur Pierre », « enlever Marie des acheteurs ».
-    Retourne (nom_à_supprimer, role_hint) où role_hint est "Vendeur", "Acheteur" ou None.
-    """
-    if not message or len(message.strip()) < 5:
-        return None
-    t = (message or "").strip().lower()
-    # Mots déclencheurs
-    remove_verbs = ("supprimer", "supprime", "retirer", "retire", "enlever", "enlève", "remove")
-    if not any(v in t for v in remove_verbs):
-        return None
-    # Indice de rôle
-    role_hint: Optional[str] = None
-    if "vendeur" in t or "vendeuse" in t:
-        role_hint = "Vendeur"
-    elif "acheteur" in t or "acheteuse" in t:
-        role_hint = "Acheteur"
-    # Extraire le nom après le verbe
-    for verb in remove_verbs:
-        pat = re.compile(
-            r"(?:" + verb + r")\s+(?:le\s+|la\s+|l[''])?\s*(?:vendeur\s+|acheteur\s+|vendeuse\s+|acheteuse\s+)?\s*([a-zàâäéèêëïîôùûüç\s\-]+?)(?:\s+des?\s+vendeurs?|\s+des?\s+acheteurs?|\s+du\s+rôle\s+(?:vendeur|acheteur)|$)",
-            re.I,
-        )
-        m = pat.search(t)
-        if m:
-            name = m.group(1).strip()
-            if len(name) >= 2:
-                return (name, role_hint)
-        # Pattern simple : "supprimer Hind", "retirer Hind."
-        simple = re.search(r"(?:" + verb + r")\s+(?:le\s+|la\s+|l[''])?\s*(?:vendeur\s+|acheteur\s+|vendeuse\s+|acheteuse\s+)?\s*([a-zàâäéèêëïîôùûüç\s\-]+?)(?:\s+des?\s+|\s*$|\.|,|!|\?)", t, re.I)
-        if not simple:
-            simple = re.search(r"(?:" + verb + r")\s+([a-zàâäéèêëïîôùûüç\-]+)(?:\s|$|\.|,)", t, re.I)
-        if simple:
-            name = simple.group(1).strip()
-            if len(name) >= 2 and name.lower() not in ("le", "la", "des", "du", "les"):
-                return (name, role_hint)
-    return None
-
-
 async def maybe_remove_seller_buyer_from_lea(
     db: AsyncSession,
     user_id: int,
@@ -2371,20 +1670,6 @@ async def maybe_remove_seller_buyer_from_lea(
         logger.warning(f"Lea remove seller/buyer failed: {e}", exc_info=True)
         await db.rollback()
         return None
-
-
-def _wants_to_update_price(message: str) -> bool:
-    """True si le message semble donner un prix pour la transaction."""
-    if not message or len(message.strip()) < 5:
-        return False
-    t = (message or "").strip().lower()
-    if "prix" not in t and "million" not in t and "mille" not in t and "piles" not in t:
-        # "650 000" ou "650000$" sans mot-clé
-        if re.search(r"\d{2,}[\s]*\d{3}", t) or re.search(r"\d{1,3}\s*mille", t, re.I):
-            return True
-    if "prix" in t or "mille" in t or "million" in t or "piles" in t:
-        return _extract_price_from_message(message) is not None
-    return False
 
 
 async def maybe_update_transaction_price_from_lea(
@@ -2691,116 +1976,6 @@ def _get_lea_guidance_lines(message: str) -> list[str]:
 _AS_FALSE_POSITIVE_PREFIXES = ("as-t-on", "as-tu", "as-t-il", "as-t-elle", "as-t-ils", "as-t-elles")
 
 
-def _extract_oaciq_form_code_from_message(message: str) -> Optional[str]:
-    """
-    Extrait le code du formulaire OACIQ demandé dans le message.
-    Cherche d'abord un code explicite (ex. « crée un CP », « formulaire CCVE »),
-    puis les mots-clés (contre-proposition → CP, etc.). Retourne None si rien trouvé.
-    Exclut le code AS quand "as" fait partie de « as-t-on », « as-tu », etc. (verbe avoir).
-    """
-    if not message or not message.strip():
-        return None
-    t = (message or "").strip().lower()
-    # 1) Code explicite : chercher le plus long d'abord pour éviter que PA matche dans PAD
-    for code in sorted(LEA_KNOWN_OACIQ_CODES, key=lambda c: -len(c)):
-        code_lower = code.lower()
-        # Mot entier ou précédé/suivi par espace, ponctuation, fin/début
-        if code_lower in t:
-            idx = t.find(code_lower)
-            before_ok = idx == 0 or t[idx - 1] in " \t\n\r,;.?!»\"'(-"
-            after_ok = idx + len(code_lower) >= len(t) or t[idx + len(code_lower)] in " \t\n\r,;.?!«\"')-"
-            if not (before_ok and after_ok):
-                continue
-            # Ne pas interpréter "d" comme code OACIQ D dans « promesse d'achat », « d'achat », « d'achar » (typo)
-            if code == "D" and idx + 1 < len(t):
-                rest = t[idx:]
-                if rest.startswith("d'achat") or rest.startswith("d\u2019achat") or rest.startswith("d'achar"):
-                    continue
-            # Ne pas interpréter "as" comme code OACIQ AS dans « as-t-on », « as-tu », etc.
-            if code == "AS" and idx == 0:
-                rest = t[idx:]
-                if any(rest.startswith(prefix) for prefix in _AS_FALSE_POSITIVE_PREFIXES):
-                    continue
-            if code == "AS" and idx > 0:
-                rest = t[idx:]
-                if any(rest.startswith(prefix) for prefix in _AS_FALSE_POSITIVE_PREFIXES):
-                    continue
-            return code
-    # 2) Mots-clés
-    for keywords, code in LEA_OACIQ_KEYWORD_TO_CODE:
-        if any(kw in t for kw in keywords):
-            return code
-    return None
-
-
-def _is_information_request_only(message: str) -> bool:
-    """
-    True si le message est une demande d'information / explication (ce qu'on peut faire,
-    quelles infos ajouter, etc.) et non une demande d'action à exécuter.
-    """
-    if not message or len(message.strip()) < 10:
-        return False
-    t = (message or "").strip().lower()
-    info_phrases = (
-        "as-t-on ",
-        "as-t-on d'",
-        "as-t-on des ",
-        "as-t-on d'autres ",
-        "est-ce qu'on peut ",
-        "qu'est-ce qu'on peut ",
-        "quelles autres informations",
-        "quelles autres infos",
-        "quelles informations ",
-        "quelles infos ",
-        "d'autres informations qu'on peut",
-        "d'autres infos qu'on peut",
-        "qu'on peut ajouter",
-        "qu'on peut faire",
-        "quelles données ",
-        "quoi d'autre ",
-    )
-    if any(p in t for p in info_phrases):
-        return True
-    if "?" in message and ("informations" in t or "infos" in t) and ("qu'on peut" in t or "peut-on" in t or "peut on" in t):
-        return True
-    return False
-
-
-def _wants_to_create_oaciq_form_for_transaction(message: str) -> bool:
-    """True si l'utilisateur demande de créer un formulaire OACIQ pour une transaction."""
-    if not message or len(message.strip()) < 5:
-        return False
-    if _is_information_request_only(message):
-        return False
-    t = (message or "").strip().lower()
-    create_verbs = ("créons", "créer", "crée", "créez", "crééz", "faire", "ouvrir", "ajouter", "lancer", "préparer", "préparons", "générer", "génère")
-    if not any(v in t for v in create_verbs):
-        return False
-    # Demande de création d'un formulaire : code explicite OU mots OACIQ/formulaire/promesse OU mot-clé métier
-    if _extract_oaciq_form_code_from_message(message):
-        return True
-    if "formulaire" in t or "form " in t or "form." in t:
-        if "oaciq" in t or "oacq" in t or "promesse" in t or "contre-proposition" in t or "modifications" in t or "modification" in t or "déclaration" in t or "contrat" in t or "annexe" in t or "avis" in t:
-            return True
-    if "promesse" in t and ("achat" in t or "achar" in t):
-        return True
-    if "contre-proposition" in t or "contre proposition" in t:
-        return True
-    if "modifications" in t or "modification" in t and "formulaire" in t:
-        return True
-    return False
-
-
-def _get_oaciq_form_code_for_lea_message(message: str) -> str:
-    """Retourne le code du formulaire OACIQ à créer selon le message (PA par défaut)."""
-    code = _extract_oaciq_form_code_from_message(message)
-    return code if code else "PA"
-
-
-OACIQ_FORM_CREATION_PREFIX = "Tu viens de créer le formulaire OACIQ "
-OACIQ_FORM_CREATION_MARKER = "créé le formulaire OACIQ"
-
-
 def _action_lines_contain_oaciq_form_creation(action_lines: list) -> bool:
     """True si une des lignes d'action indique la création d'un formulaire OACIQ."""
     if not action_lines:
@@ -2984,14 +2159,19 @@ async def _create_oaciq_form_submission_for_transaction(
 
 
 async def maybe_create_oaciq_form_submission_from_lea(
-    db: AsyncSession, user_id: int, message: str, last_assistant_message: Optional[str] = None
+    db: AsyncSession,
+    user_id: int,
+    message: str,
+    last_assistant_message: Optional[str] = None,
+    *,
+    wants_create_pa_from_router: Optional[bool] = None,
 ) -> Optional[Tuple[str, RealEstateTransaction]]:
     """
     Si l'utilisateur demande de créer une promesse d'achat / un formulaire OACIQ pour une transaction,
     crée la soumission (brouillon) liée à la transaction et retourne une ligne pour « Action effectuée ».
-    Utilise last_assistant_message pour déduire la transaction cible (ex. « La transaction sur la rue de Bordeaux… »).
+    Si wants_create_pa_from_router est True (décision LLM), on ne vérifie pas l'heuristique.
     """
-    if not _wants_to_create_oaciq_form_for_transaction(message):
+    if wants_create_pa_from_router is not True and not _wants_to_create_oaciq_form_for_transaction(message):
         return None
     form_code = _get_oaciq_form_code_for_lea_message(message)
     ref = _extract_transaction_ref_from_message(message) or (
@@ -3037,37 +2217,6 @@ async def maybe_create_oaciq_form_submission_from_lea(
     if not transaction:
         return None
     return await _create_oaciq_form_submission_for_transaction(db, user_id, transaction, form_code)  # (line, transaction) or None
-
-
-def _wants_lea_to_complete_form(message: str) -> bool:
-    """True si l'utilisateur demande à Léa de compléter / remplir le formulaire (ex. « toi complète le », « remplis le »)."""
-    if not message or len(message.strip()) < 4:
-        return False
-    t = (message or "").strip().lower()
-    complete_phrases = (
-        "toi complète", "toi complete", "complète le", "complete le", "complète-le", "complete-le",
-        "remplis le", "remplis-le", "remplis le formulaire", "remplir le formulaire",
-        "tu peux le compléter", "tu peux le remplir", "complète le formulaire", "complete le formulaire",
-        "remplis-moi", "remplis moi", "complète-moi", "complète moi",
-        "aide-moi à compléter", "aide moi a completer", "préremplis", "preremplis",
-    )
-    return any(p in t for p in complete_phrases)
-
-
-def _wants_help_filling_oaciq(message: str) -> bool:
-    """True si l'utilisateur demande à Léa de l'aider à remplir le formulaire champ par champ (ex. « guide moi », « aide-moi à le remplir »)."""
-    if not message or len(message.strip()) < 4:
-        return False
-    t = (message or "").strip().lower()
-    help_phrases = (
-        "guide moi", "guide-moi", "guidez moi", "guidez-moi",
-        "aide moi a le remplir", "aide-moi à le remplir", "aide moi à le remplir",
-        "aide-moi a le remplir", "aide moi pour le remplir", "aide-moi pour le remplir",
-        "aide-moi à remplir", "aide moi a remplir", "guide-moi pour remplir", "guide moi pour remplir",
-        "aide-moi à le remplir", "m'aide à le remplir", "m aide a le remplir",
-        "remplir avec moi", "remplis avec moi", "on le remplit ensemble",
-    )
-    return any(p in t for p in help_phrases)
 
 
 def _is_pa_signature_field(field_id: str, field_label: str) -> bool:
@@ -3143,6 +2292,16 @@ PA_FIELDS_ORDER: List[str] = [
     # Courtier et description
     "courtier_nom", "courtier_permis", "description_immeuble",
 ]
+
+# Champs PA dont la source de vérité est la transaction : adresse du bien, prix offert, noms acheteurs/vendeurs.
+# Le formulaire PA les récupère de la transaction ; on ne les écrase jamais avec les données extraites du message.
+PA_FIELDS_FROM_TRANSACTION: frozenset = frozenset({
+    "property_address", "property_city", "property_postal_code", "property_province",
+    "adresse", "ville", "code_postal", "full_address", "adresse_complete",
+    "adresse_immeuble", "adresse_bien", "adresse_complete_immeuble",
+    "prix_offert", "prix_achat", "offered_price", "purchase_price", "prix", "prix_demandé", "listing_price",
+    "acheteurs", "vendeurs", "buyers", "sellers", "acheteur", "vendeur", "noms_acheteurs", "noms_vendeurs",
+})
 
 
 def _is_valid_pa_value_for_field(field_type: str, value: Any) -> bool:
@@ -3251,10 +2410,18 @@ async def _merge_extracted_pa_and_save(
     extracted: dict,
     by_key: dict,
 ) -> bool:
-    """Fusionne les valeurs extraites (valides) dans current, sauvegarde submission et sync tx. Retourne True si au moins une valeur a été fusionnée."""
+    """Fusionne les valeurs extraites (valides) dans current, sauvegarde submission et sync tx.
+    Les champs adresse/prix/acheteurs/vendeurs restent toujours pris de la transaction (jamais du message)."""
+    tx = None
+    if submission.transaction_id:
+        tx_r = await db.execute(
+            select(RealEstateTransaction).where(RealEstateTransaction.id == submission.transaction_id)
+        )
+        tx = tx_r.scalar_one_or_none()
+    current_with_tx = _overlay_pa_current_with_transaction(tx, current) if tx else dict(current)
     merged = False
     for fid, raw in extracted.items():
-        if fid not in by_key:
+        if fid not in by_key or fid in PA_FIELDS_FROM_TRANSACTION:
             continue
         f = by_key[fid]
         ftype = str(f.get("type") or "text")
@@ -3263,22 +2430,17 @@ async def _merge_extracted_pa_and_save(
         else:
             value = raw
         if value is not None and _is_valid_pa_value_for_field(ftype, value):
-            current[fid] = value
+            current_with_tx[fid] = value
             merged = True
     if not merged:
         return False
-    submission.data = current
+    submission.data = current_with_tx
     flag_modified(submission, "data")
     await db.flush()
     version = FormSubmissionVersion(submission_id=submission.id, data=current)
     db.add(version)
-    if submission.transaction_id:
-        tx_r = await db.execute(
-            select(RealEstateTransaction).where(RealEstateTransaction.id == submission.transaction_id)
-        )
-        tx = tx_r.scalar_one_or_none()
-        if tx:
-            sync_pa_data_to_transaction(tx, current)
+    if submission.transaction_id and tx:
+        sync_pa_data_to_transaction(tx, current_with_tx)
     await db.commit()
     await db.refresh(submission)
     return True
@@ -3324,6 +2486,13 @@ async def maybe_oaciq_fill_help_or_save(
             return (["La soumission PA en brouillon n'existe plus. Tu peux proposer à l'utilisateur de créer un nouveau formulaire PA."], {"submission_id": None, "last_asked_field": None, "last_asked_section": None, "missing_in_section": None})
         submission, form_fields = row[0], row[1]
         current = dict(submission.data) if isinstance(submission.data, dict) else {}
+        if submission.transaction_id:
+            tx_r = await db.execute(
+                select(RealEstateTransaction).where(RealEstateTransaction.id == submission.transaction_id)
+            )
+            tx = tx_r.scalar_one_or_none()
+            if tx:
+                current = _overlay_pa_current_with_transaction(tx, current)
         by_key = _build_fillable_field_by_key(form_fields)
         missing_in_section = oaciq_fill.get("missing_in_section") or []
         # Extraire depuis tout le formulaire (tous champs vides) pour qu'un long message remplisse plusieurs sections d'un coup
@@ -3374,6 +2543,13 @@ async def maybe_oaciq_fill_help_or_save(
         field_type = str(field_def.get("type") or "text") if field_def else "text"
         label = str(field_def.get("label") or last_asked) if field_def else last_asked
         current = dict(submission.data) if isinstance(submission.data, dict) else {}
+        if submission.transaction_id:
+            tx_r = await db.execute(
+                select(RealEstateTransaction).where(RealEstateTransaction.id == submission.transaction_id)
+            )
+            tx = tx_r.scalar_one_or_none()
+            if tx:
+                current = _overlay_pa_current_with_transaction(tx, current)
 
         # Tenter extraction LLM (ne bloque jamais)
         field_descriptions = [(k, str(f.get("label") or k), str(f.get("type") or "text")) for k, f in by_key.items()]
@@ -3418,7 +2594,15 @@ async def maybe_oaciq_fill_help_or_save(
             await db.commit()
             await db.refresh(submission)
             logger.info(f"Lea saved PA field {last_asked}={value} for submission id={submission.id}")
-            next_section = _get_next_empty_pa_section(form_fields, submission.data or {})
+            current_after = dict(submission.data) if isinstance(submission.data, dict) else {}
+            if submission.transaction_id:
+                tx_r = await db.execute(
+                    select(RealEstateTransaction).where(RealEstateTransaction.id == submission.transaction_id)
+                )
+                tx_after = tx_r.scalar_one_or_none()
+                if tx_after:
+                    current_after = _overlay_pa_current_with_transaction(tx_after, current_after)
+            next_section = _get_next_empty_pa_section(form_fields, current_after)
             if next_section:
                 section_id, section_title, missing = next_section
                 labels = [m[1] for m in missing]
@@ -3428,7 +2612,7 @@ async def maybe_oaciq_fill_help_or_save(
                     f"Pour la section « {section_title} », il me manque : {', '.join(labels)}. Tu peux tout envoyer en un seul message."
                 )
                 return ([line], {"submission_id": sub_id, "last_asked_section": section_id, "section_title": section_title, "missing_in_section": missing_ctx})
-            next_id, next_label = _get_next_empty_pa_field(form_fields, submission.data or {})
+            next_id, next_label = _get_next_empty_pa_field(form_fields, current_after)
             if next_id:
                 line = (
                     f"Valeur enregistrée pour le champ « {label} ». "
@@ -3466,6 +2650,13 @@ async def maybe_oaciq_fill_help_or_save(
         )
     submission, form_code, form_name, form_fields = draft[0], draft[1], draft[2], draft[3]
     current = dict(submission.data) if isinstance(submission.data, dict) else {}
+    if submission.transaction_id:
+        tx_r = await db.execute(
+            select(RealEstateTransaction).where(RealEstateTransaction.id == submission.transaction_id)
+        )
+        tx = tx_r.scalar_one_or_none()
+        if tx:
+            current = _overlay_pa_current_with_transaction(tx, current)
     next_section = _get_next_empty_pa_section(form_fields, current)
     if next_section:
         section_id, section_title, missing = next_section
@@ -3552,6 +2743,22 @@ def _build_oaciq_prefill_from_transaction(tx: RealEstateTransaction) -> dict:
     if prefill.get("full_address"):
         prefill["adresse_complete_immeuble"] = prefill["full_address"]
     return {k: v for k, v in prefill.items() if v is not None}
+
+
+def _overlay_pa_current_with_transaction(
+    tx: RealEstateTransaction, current: dict
+) -> dict:
+    """
+    Retourne une copie de current où les champs « source transaction » (adresse, prix, acheteurs, vendeurs)
+    sont toujours pris depuis la transaction. Utilisé pour que le PA affiche et utilise les données
+    du dossier, pas celles éventuellement collées dans le message.
+    """
+    prefill = _build_oaciq_prefill_from_transaction(tx)
+    out = dict(current)
+    for k, v in prefill.items():
+        if k in PA_FIELDS_FROM_TRANSACTION and v is not None:
+            out[k] = v
+    return out
 
 
 def _build_pa_initial_data_from_transaction(
@@ -3657,45 +2864,71 @@ def _get_next_empty_pa_section(
     return None
 
 
+ROUTER_CONFIDENCE_THRESHOLD = 0.5  # En dessous, on bascule sur les heuristiques
+
+
+def _routing_decision_to_legacy(decision: dict) -> dict:
+    """Convertit une RoutingDecision (domain+intent+entities) en format legacy pour run_lea_actions."""
+    domain = decision.get("domain") or "other"
+    intent = decision.get("intent") or "answer"
+    _domain_intent_to_legacy = {
+        ("transaction", "create"): "create_transaction",
+        ("transaction", "answer"): "create_transaction",
+        ("transaction", "update"): "other",
+        ("purchase_offer", "create"): "create_pa",
+        ("purchase_offer", "confirm"): "create_pa",
+        ("purchase_offer", "fill"): "fill_pa",
+        ("purchase_offer", "update"): "fill_pa",
+        ("purchase_offer", "ask_help"): "fill_pa",
+    }
+    legacy_intent = _domain_intent_to_legacy.get((domain, intent), "other")
+    entities = decision.get("entities") or []
+    if isinstance(entities, list):
+        entities = [e for e in entities if isinstance(e, dict)]
+    return {
+        "intent": legacy_intent,
+        "tx_type": (decision.get("tx_type") or "")[:10],
+        "signals": decision.get("signals") or {},
+        "confidence": float(decision.get("confidence", 0.5)),
+        "entities": entities,
+        "domain": domain,
+    }
+
+
+async def _route_lea_llm(
+    message: str,
+    last_assistant_message: Optional[str],
+    context_summary: str,
+) -> Optional[dict]:
+    """
+    Délègue au routeur lea_chat pour les décisions de routage.
+    Le routeur gère Domain-Intent-Entities, fallback legacy et classifieur minimal.
+    Retourne un dict avec intent, tx_type, signals, confidence. None si échec (heuristiques).
+    """
+    if not message or not message.strip():
+        return None
+    try:
+        from app.services.lea_chat import route_user_message
+
+        decision = await route_user_message(message, last_assistant_message, context_summary)
+        if decision:
+            return _routing_decision_to_legacy(decision)
+    except Exception as e:
+        logger.debug("lea_chat router failed: %s", e)
+    return None
+
+
 async def _classify_lea_intent_llm(
     message: str,
     last_assistant_message: Optional[str],
     context_summary: str,
 ) -> Optional[str]:
     """
-    Utilise le LLM pour comprendre l'intention de l'utilisateur.
-    Retourne: "create_transaction" | "create_pa" | "fill_pa" | "other", ou None en cas d'erreur (fallback sur les fonctions).
+    Wrapper pour compatibilité : appelle _route_lea_llm et retourne uniquement intent.
+    Utilisé en fallback quand on a besoin que d'intent.
     """
-    if not message or not message.strip():
-        return None
-    system_prompt = (
-        "Tu es un classifieur d'intention. À partir du message utilisateur et du contexte, retourne UNIQUEMENT un des mots suivants, rien d'autre:\n"
-        "- create_transaction: l'utilisateur veut créer un nouveau dossier/transaction (ex. « je veux créer une transaction », « nouveau dossier », « une vente »).\n"
-        "- create_pa: l'utilisateur veut créer une promesse d'achat / formulaire PA pour une transaction existante (ex. « créer une promesse d'achat », « je veux un PA », « préparer la promesse pour cette transaction », « #78 » en réponse à « pour quelle propriété ? »).\n"
-        "- fill_pa: l'utilisateur fournit des données pour remplir le formulaire PA en cours (coordonnées, prix, dates, conditions, etc.) ou pose une question sur ce qui manque.\n"
-        "- other: autre intention (modifier une transaction, poser une question, réponse à une question précise qui n'est pas du remplissage PA).\n"
-        "Ne retourne que le mot, en minuscules, sans ponctuation."
-    )
-    user_content = f"Contexte: {context_summary}\n\n"
-    if last_assistant_message and last_assistant_message.strip():
-        user_content += f"Dernier message de l'assistant: {last_assistant_message.strip()[:300]}\n\n"
-    user_content += f"Message utilisateur: {message.strip()}"
-    try:
-        ai = AIService(provider=AIProvider.AUTO)
-        resp = await ai.chat_completion(
-            [{"role": "user", "content": user_content}],
-            system_prompt=system_prompt,
-            temperature=0,
-            max_tokens=20,
-        )
-        content = (resp.get("content") or "").strip().lower()
-        for intent in ("create_transaction", "create_pa", "fill_pa", "other"):
-            if intent in content or content == intent:
-                return intent
-        return None
-    except Exception as e:
-        logger.debug(f"LLM intent classification failed (fallback to functions): {e}")
-        return None
+    out = await _route_lea_llm(message, last_assistant_message, context_summary)
+    return out.get("intent") if out else None
 
 
 def _value_is_filled(v: object) -> bool:
@@ -3858,12 +3091,14 @@ async def run_lea_actions(
     message: str,
     last_assistant_message: Optional[str] = None,
     session_id: Optional[str] = None,
+    router_decision_override: Optional[dict] = None,
 ) -> tuple[list, Optional[RealEstateTransaction]]:
     """
     Exécute les actions Léa (création transaction, mise à jour adresse, promesse d'achat).
     Retourne (liste de lignes pour « Action effectuée », transaction créée si création).
     last_assistant_message : dernier message de Léa (pour confirmer « oui enregistrez » avec les noms).
     session_id : si fourni, la transaction liée à la session est utilisée en priorité pour les mises à jour contacts.
+    router_decision_override : si fourni par l'orchestrateur, utilisé au lieu du routage interne (évite double LLM).
     """
     lines = []
     transaction_preferred: Optional[RealEstateTransaction] = None
@@ -3895,24 +3130,98 @@ async def run_lea_actions(
             else:
                 pending["stage"] = "ready"
 
-    # Comprendre l'intention utilisateur via le LLM (fallback sur les fonctions si échec).
+    # Décisions de routage : utiliser override de l'orchestrateur si fourni, sinon routage interne (LLM/heuristiques)
+    router_out: Optional[dict] = router_decision_override
     llm_intent: Optional[str] = None
-    if conv and session_id and message and len(message.strip()) >= 3:
-        in_pa_fill_ctx = isinstance(ctx.get("oaciq_fill"), dict) and (ctx.get("oaciq_fill") or {}).get("submission_id")
-        if in_pa_fill_ctx:
-            context_summary = "L'utilisateur est en cours de remplissage du formulaire PA (promesse d'achat)."
-        elif pending.get("type"):
-            context_summary = "L'utilisateur est en cours de création d'un nouveau dossier (transaction)."
-        elif has_transaction:
-            context_summary = "L'utilisateur a au moins une transaction existante."
-        else:
-            context_summary = "Conversation générale, pas de dossier en cours de création ni de formulaire PA en cours de remplissage."
+    llm_tx_type = ""
+    asked_property_for_form = False
+    user_confirmed_pa = False
+    wants_oaciq_or_promise = False
+    if not router_decision_override and conv and session_id and message and len(message.strip()) >= 3:
+        active_ctx = await load_active_conversation_context(
+            db, user_id, session_id, last_assistant_message=last_assistant_message
+        )
+        context_summary = active_ctx.get("summary", "") or (
+            "Conversation générale, pas de dossier en cours de création ni de formulaire PA en cours de remplissage."
+        )
         try:
-            llm_intent = await _classify_lea_intent_llm(message, last_assistant_message, context_summary)
+            router_out = await _route_lea_llm(message, last_assistant_message, context_summary)
         except Exception as e:
-            logger.debug(f"LLM intent classification failed: {e}")
+            logger.debug("LLM router failed: %s", e)
+    if router_out and router_out.get("confidence", 0) >= ROUTER_CONFIDENCE_THRESHOLD:
+        llm_intent = router_out.get("intent")
+        llm_tx_type = (router_out.get("tx_type") or "")[:10]
+        sig = router_out.get("signals") or {}
+        asked_property_for_form = bool(sig.get("asked_property_for_form"))
+        user_confirmed_pa = bool(sig.get("user_confirmed") and sig.get("last_message_asked_to_confirm_pa"))
+        wants_oaciq_or_promise = bool(sig.get("user_wants_create_oaciq_form") or sig.get("user_wants_set_promise"))
+    else:
+        llm_intent = router_out.get("intent") if router_out else None
+        asked_property_for_form = _last_message_asked_for_property_for_form(last_assistant_message)
+        user_confirmed_pa = _is_short_confirmation_message(message) and _last_message_asked_to_confirm_pa_creation(last_assistant_message)
+        wants_oaciq_or_promise = _wants_to_set_promise(message) or _wants_to_create_oaciq_form_for_transaction(message)
 
-    # Création de transaction : ne lancer que si l'intention n'est pas "create_pa" (le LLM a compris que l'utilisateur veut un PA, pas un nouveau dossier).
+    # Cas transversal : intent=cancel — vider le brouillon et réinitialiser le flow
+    if (
+        router_out
+        and router_out.get("intent_verb") == "cancel"
+        and conv
+        and session_id
+        and (ctx.get("pending_transaction_creation") or ctx.get("oaciq_fill"))
+    ):
+        ctx["pending_transaction_creation"] = {}
+        ctx.pop("oaciq_fill", None)
+        pending.clear()
+        need_conv_commit = True
+        lines.append(
+            "L'utilisateur a annulé. Confirme que le flow en cours a été abandonné et que vous pouvez commencer une nouvelle conversation."
+        )
+
+    # Fusionner les entities du routeur dans pending (Domain-Intent-Entities)
+    if router_out and llm_intent == "create_transaction" and conv and session_id:
+        entities = router_out.get("entities") or []
+        for e in entities:
+            if not isinstance(e, dict) or not e.get("name"):
+                continue
+            name, val = e.get("name"), e.get("value")
+            if val is None or val == "":
+                continue
+            if name == "transaction_type":
+                v = str(val).lower()
+                if v in ("vente", "achat"):
+                    pending["type"] = v
+                    if not pending.get("stage"):
+                        pending["stage"] = "address"
+            elif name in ("property_reference", "address") and isinstance(val, str) and len(val.strip()) >= 5:
+                pending["address"] = val.strip()
+                if not pending.get("stage"):
+                    pending["stage"] = "sellers"
+            elif name == "seller_names" and isinstance(val, str):
+                sellers = parse_names_for_pending(val)
+                if sellers:
+                    pending["sellers"] = sellers
+                    if not pending.get("stage"):
+                        pending["stage"] = "buyers"
+            elif name == "buyer_names" and isinstance(val, str):
+                buyers = parse_names_for_pending(val)
+                if buyers:
+                    pending["buyers"] = buyers
+                    if not pending.get("stage"):
+                        pending["stage"] = "price"
+            elif name == "listing_price":
+                try:
+                    pending["price"] = float(Decimal(str(val)))
+                    pending["price_kind"] = "listing"
+                except (ValueError, TypeError):
+                    pass
+            elif name in ("offer_price", "offered_price"):
+                try:
+                    pending["price"] = float(Decimal(str(val)))
+                    pending["price_kind"] = "offered"
+                except (ValueError, TypeError):
+                    pass
+
+    # Création de transaction : ne lancer que si l'intention n'est pas "create_pa".
     created: Optional[RealEstateTransaction] = None
     duplicate_line = None
     if llm_intent != "create_pa":
@@ -3921,7 +3230,7 @@ async def run_lea_actions(
         )
     _ok_create, _tx_type = _wants_to_create_transaction(message)
     ok_create = False if llm_intent == "create_pa" else _ok_create
-    tx_type = "" if llm_intent == "create_pa" else _tx_type
+    tx_type = "" if llm_intent == "create_pa" else (llm_tx_type if llm_tx_type else _tx_type)
     if duplicate_line:
         lines.append(duplicate_line)
         if ok_create and tx_type and conv is not None:
@@ -3960,6 +3269,25 @@ async def run_lea_actions(
         and isinstance((conv.context or {}).get("oaciq_fill"), dict)
         and (conv.context or {}).get("oaciq_fill", {}).get("submission_id")
     )
+
+    # T10 : Mise à jour transaction selon entities du routeur (domain=transaction, intent=update)
+    if (
+        not building_new_only
+        and not in_pa_fill
+        and transaction_preferred
+        and router_out
+        and router_out.get("domain") == "transaction"
+        and router_out.get("intent_verb") == "update"
+    ):
+        entities = router_out.get("entities") or []
+        if entities:
+            updated_tx = await update_transaction_record(db, transaction_preferred, entities)
+            if updated_tx:
+                ref = updated_tx.dossier_number or f"#{updated_tx.id}"
+                lines.append(
+                    f"La transaction {ref} a été mise à jour avec les informations fournies. "
+                    "Confirme à l'utilisateur que les modifications ont été enregistrées."
+                )
 
     addr_result = None
     if not building_new_only and not in_pa_fill:
@@ -4033,6 +3361,7 @@ async def run_lea_actions(
                     if draft:
                         submission, _fc, _fn, form_fields = draft[0], draft[1], draft[2], draft[3]
                         current = dict(submission.data) if isinstance(submission.data, dict) else {}
+                        current = _overlay_pa_current_with_transaction(tx, current)
                         next_section = _get_next_empty_pa_section(form_fields, current)
                         if next_section:
                             section_id, section_title, missing = next_section
@@ -4144,8 +3473,10 @@ async def run_lea_actions(
                     f"Ville notée (« {city_candidate} »), mais le code postal n'a pas été confirmé automatiquement. "
                     "Reste sur l'adresse et propose de rechercher le code postal en ligne."
                 )
-    # Correction par l'utilisateur du code postal ou de la ville (sans refournir toute l'adresse) — appliquer en base
-    if not addr_result and not building_new_only:
+    # Correction par l'utilisateur du code postal ou de la ville (sans refournir toute l'adresse) — appliquer en base.
+    # Ne pas appliquer en contexte remplissage PA : le message peut contenir plusieurs adresses (acheteur, vendeur, bien)
+    # et on ne doit pas écraser l'adresse du bien avec le premier code postal trouvé (ex. H2J 2S4 de l'acheteur).
+    if not addr_result and not building_new_only and not in_pa_fill:
         correction_result = await maybe_correct_transaction_postal_or_city_from_lea(
             db, user_id, message, last_assistant_message
         )
@@ -4164,7 +3495,7 @@ async def run_lea_actions(
                 )
     # Utilisateur a répondu par la ville seule (ex. « Montréal ») : compléter l'adresse partielle et géocoder dans le même tour
     city_geocode_result = None
-    if not addr_result and not building_new_only:
+    if not addr_result and not building_new_only and not in_pa_fill:
         city_geocode_result = await maybe_complete_address_with_city_then_geocode(db, user_id, message)
         if city_geocode_result:
             addr, tx, validation = city_geocode_result
@@ -4268,16 +3599,23 @@ async def run_lea_actions(
             f"La date de promesse d'achat a été enregistrée sur la transaction {ref}. "
             "Confirme à l'utilisateur que la promesse d'achat est enregistrée et qu'il peut compléter le formulaire dans la section Transactions."
         )
-    oaciq_result = await maybe_create_oaciq_form_submission_from_lea(db, user_id, message, last_assistant_message) if not building_new_only else None
+    oaciq_result = (
+        await maybe_create_oaciq_form_submission_from_lea(
+            db, user_id, message, last_assistant_message,
+            wants_create_pa_from_router=wants_oaciq_or_promise if (router_out and router_out.get("confidence", 0) >= ROUTER_CONFIDENCE_THRESHOLD) else None,
+        )
+        if not building_new_only
+        else None
+    )
     # Si Léa venait de demander « pour quelle propriété ? » et que l'utilisateur répond par une ref (ex. « 72 »), créer le PA pour cette transaction.
-    if not building_new_only and oaciq_result is None and _last_message_asked_for_property_for_form(last_assistant_message):
+    if not building_new_only and oaciq_result is None and asked_property_for_form:
         ref = _extract_transaction_ref_from_message(message)
         if ref:
             tx_for_pa = await get_user_transaction_by_ref(db, user_id, ref)
             if tx_for_pa:
                 oaciq_result = await _create_oaciq_form_submission_for_transaction(db, user_id, tx_for_pa, "PA")
-    # Si l'utilisateur confirme par une réponse courte (ex. « oui », « exact ») après « Pour confirmer, souhaitez-vous créer une promesse d'achat pour la transaction au … », créer le PA.
-    if not building_new_only and oaciq_result is None and _is_short_confirmation_message(message) and _last_message_asked_to_confirm_pa_creation(last_assistant_message):
+    # Si l'utilisateur confirme (ex. « oui », « exact ») après « Souhaitez-vous créer la PA pour … », créer le PA.
+    if not building_new_only and oaciq_result is None and user_confirmed_pa:
         hint = (
             _extract_address_hint_from_message(message)
             or _extract_address_hint_from_message(last_assistant_message or "")
@@ -4301,6 +3639,7 @@ async def run_lea_actions(
             if draft:
                 submission, _fc, _fn, form_fields = draft[0], draft[1], draft[2], draft[3]
                 current = dict(submission.data) if isinstance(submission.data, dict) else {}
+                current = _overlay_pa_current_with_transaction(tx_for_pa, current)
                 next_section = _get_next_empty_pa_section(form_fields, current)
                 if next_section:
                     section_id, section_title, missing = next_section
@@ -4348,9 +3687,7 @@ async def run_lea_actions(
     # Ne pas ajouter cette ligne quand il est en train de remplir un PA (ex. « ajoute ces conditions à la promesse d'achat »).
     oaciq_fill_ctx = (conv.context or {}).get("oaciq_fill") if conv else None
     in_pa_fill = isinstance(oaciq_fill_ctx, dict) and oaciq_fill_ctx.get("submission_id")
-    if not promise_tx and not oaciq_line and not in_pa_fill and (
-        _wants_to_set_promise(message) or _wants_to_create_oaciq_form_for_transaction(message)
-    ):
+    if not promise_tx and not oaciq_line and not in_pa_fill and wants_oaciq_or_promise:
         lines.append(
             "L'utilisateur n'a pas précisé pour quelle propriété ni quelle transaction. "
             "Ne prends PAS la dernière transaction par défaut. Demande-lui : « Pour quelle propriété (adresse ou numéro de transaction) souhaitez-vous préparer ce formulaire ? »"
@@ -4516,7 +3853,7 @@ async def run_lea_actions(
             "Confirme à l'utilisateur que c'est enregistré."
         )
 
-    # Créer la transaction à partir du brouillon (pending) une fois tout collecté : type, adresse, prix, vendeurs, acheteurs (date de clôture facultative)
+    # Créer la transaction à partir du brouillon (pending) une fois tout collecté (T8, T9)
     if (
         conv is not None
         and session_id
@@ -4528,77 +3865,40 @@ async def run_lea_actions(
     ):
         try:
             tx_type = pending["type"]
-            name = f"Transaction {tx_type.capitalize()}"
             amount = Decimal(str(pending["price"]))
             price_kind = pending.get("price_kind") or "listing"
-            sellers_json = [
-                {"name": f"{s.get('first_name', '')} {s.get('last_name', '')}".strip(), "phone": None, "email": None}
-                for s in (pending.get("sellers") or [])
-            ]
-            buyers_json = [
-                {"name": f"{b.get('first_name', '')} {b.get('last_name', '')}".strip(), "phone": None, "email": None}
-                for b in (pending.get("buyers") or [])
-            ]
-            transaction = RealEstateTransaction(
-                user_id=user_id,
-                name=name,
-                dossier_number=None,
-                status="En cours",
-                sellers=sellers_json,
-                buyers=buyers_json,
-                property_province="QC",
-                property_address=pending["address"],
-                property_city=pending.get("city"),
-                property_postal_code=pending.get("postal_code"),
-                transaction_kind=tx_type,
-                pipeline_stage="creation_dossier",
-                listing_price=amount if price_kind == "listing" else None,
-                offered_price=amount if price_kind == "offered" else None,
+            sellers_tuples = [(s.get("first_name", ""), s.get("last_name", "")) for s in (pending.get("sellers") or [])]
+            buyers_tuples = [(b.get("first_name", ""), b.get("last_name", "")) for b in (pending.get("buyers") or [])]
+            transaction = await create_transaction_record(
+                db,
+                user_id,
+                tx_type,
+                pending["address"],
+                sellers_tuples,
+                buyers_tuples,
+                amount,
+                price_kind=price_kind,
+                city=pending.get("city"),
+                postal_code=pending.get("postal_code"),
             )
-            db.add(transaction)
-            await db.flush()
-            for s in (pending.get("sellers") or []):
-                contact = RealEstateContact(
-                    first_name=s.get("first_name", ""),
-                    last_name=s.get("last_name", ""),
-                    phone=None,
-                    email=None,
-                    type=ContactType.CLIENT,
-                    user_id=user_id,
+            if transaction:
+                created = transaction
+                logger.info(
+                    f"Lea created transaction id={transaction.id} from pending (type={tx_type}, address={pending['address'][:50]}...)"
                 )
-                db.add(contact)
-                await db.flush()
-                db.add(TransactionContact(transaction_id=transaction.id, contact_id=contact.id, role="Vendeur"))
-            for b in (pending.get("buyers") or []):
-                contact = RealEstateContact(
-                    first_name=b.get("first_name", ""),
-                    last_name=b.get("last_name", ""),
-                    phone=None,
-                    email=None,
-                    type=ContactType.CLIENT,
-                    user_id=user_id,
+                confirm_msg = build_transaction_creation_confirmation(transaction, has_more_info_to_add=True)
+                lines.append(
+                    f"Tu viens de créer une nouvelle transaction pour l'utilisateur : « {created.name} » (id {created.id}). "
+                    f"Confirme-lui : « {confirm_msg} » Ne pose AUCUNE question après — le dossier est créé."
                 )
-                db.add(contact)
-                await db.flush()
-                db.add(TransactionContact(transaction_id=transaction.id, contact_id=contact.id, role="Acheteur"))
-            await db.commit()
-            await db.refresh(transaction)
-            created = transaction
-            logger.info(
-                f"Lea created transaction id={transaction.id} from pending (type={tx_type}, address={pending['address'][:50]}...)"
-            )
-            lines.append(
-                f"Tu viens de créer une nouvelle transaction pour l'utilisateur : « {created.name} » (id {created.id}) avec l'adresse, le prix, les vendeurs et les acheteurs (date de clôture facultative). "
-                "Confirme-lui que le dossier est créé et qu'il peut le consulter dans la section Transactions. Ne pose AUCUNE question après (pas d'adresse, pas de vendeurs, etc.) — le dossier est terminé."
-            )
-            pending.clear()
-            if conv is not None:
-                conv.context = conv.context or {}
-                conv.context["pending_transaction_creation"] = None
-                flag_modified(conv, "context")
-                await db.commit()
-            if session_id and created:
-                await link_lea_session_to_transaction(db, user_id, session_id, created.id)
+                pending.clear()
+                if conv is not None:
+                    conv.context = conv.context or {}
+                    conv.context["pending_transaction_creation"] = None
+                    flag_modified(conv, "context")
+                    await db.commit()
+                if session_id and created:
+                    await link_lea_session_to_transaction(db, user_id, session_id, created.id)
         except Exception as e:
             logger.warning(f"Lea create from pending failed: {e}", exc_info=True)
             await db.rollback()
@@ -4819,20 +4119,15 @@ async def _stream_lea_sse(
                 )
             return
         settings = get_settings()
-        # Ordre : connaissance d'abord (Léa dépend des instructions et de la base de connaissance)
-        # puis règles système, puis données + actions
-        system = ""
-        if lea_knowledge:
-            system += "--- Base de connaissance Léa (instructions, formulaires OACIQ, documents) ---\n" + lea_knowledge + "\n\n"
-        system += "--- Règles système ---\n" + LEA_SYSTEM_PROMPT
-        if user_context:
-            system += "\n\n--- Informations actuelles de l'utilisateur (plateforme) + Action effectuée ---\n" + user_context
+        system, _, _ = build_lea_context(
+            user_context, action_lines or [], knowledge=lea_knowledge
+        )
         service = AIService(provider=AIProvider.AUTO)
         messages = messages_for_llm
         accumulated = []
         async for delta in service.stream_chat_completion(
             messages=messages,
-            system_prompt=system,
+            system_prompt=system or "",
             max_tokens=getattr(settings, "LEA_MAX_TOKENS", 256),
         ):
             accumulated.append(delta)
@@ -4984,14 +4279,10 @@ async def lea_chat(
             # Charger l'historique pour le LLM
             conv, sid = await get_or_create_lea_conversation(db, current_user.id, body.session_id)
             messages_for_llm = build_llm_messages_from_history(conv.messages or [], body.message)
-            # Ordre : connaissance d'abord (instructions + formulaires OACIQ)
             lea_knowledge = await _get_lea_knowledge_for_prompt(db)
-            system_prompt = ""
-            if lea_knowledge:
-                system_prompt += "--- Base de connaissance Léa (instructions, formulaires OACIQ, documents) ---\n" + lea_knowledge + "\n\n"
-            system_prompt += "--- Règles système ---\n" + LEA_SYSTEM_PROMPT
-            if user_context:
-                system_prompt += "\n\n--- Informations actuelles de l'utilisateur (plateforme) + Action effectuée ---\n" + user_context
+            system_prompt, _, _ = build_lea_context(
+                user_context, action_lines or [], knowledge=lea_knowledge
+            )
             settings = get_settings()
             service = AIService(provider=AIProvider.AUTO)
             result = await service.chat_completion(
@@ -5161,15 +4452,10 @@ async def lea_chat_voice(
             user_context = await get_lea_user_context(db, current_user.id)
             if action_lines:
                 user_context += "\n\n--- Action effectuée ---\n" + "\n".join(action_lines)
-            # Ordre : connaissance d'abord
             lea_knowledge = await _get_lea_knowledge_for_prompt(db)
-            system_prompt = ""
-            if lea_knowledge:
-                system_prompt += "--- Base de connaissance Léa (instructions, formulaires OACIQ, documents) ---\n" + lea_knowledge + "\n\n"
-            system_prompt += "--- Règles système ---\n" + LEA_SYSTEM_PROMPT
-            if user_context:
-                system_prompt += "\n\n--- Informations actuelles de l'utilisateur (plateforme) + Action effectuée ---\n" + user_context
-
+            system_prompt, _, _ = build_lea_context(
+                user_context, action_lines or [], knowledge=lea_knowledge
+            )
             service = AIService(provider=AIProvider.AUTO)
             messages = [{"role": "user", "content": transcription}]
             settings = get_settings()
@@ -5487,9 +4773,9 @@ async def get_lea_knowledge_content(
     result = await db.execute(q)
     row = result.scalar_one_or_none()
     content = (row.content or "").strip() if row else ""
-    if not content and _LEA_OACIQ_KNOWLEDGE_PATH.exists():
+    if not content and LEA_OACIQ_KNOWLEDGE_PATH.exists():
         try:
-            content = _LEA_OACIQ_KNOWLEDGE_PATH.read_text(encoding="utf-8").strip()
+            content = LEA_OACIQ_KNOWLEDGE_PATH.read_text(encoding="utf-8").strip()
         except Exception:
             pass
     return LeaKnowledgeContentResponse(content=content or "")

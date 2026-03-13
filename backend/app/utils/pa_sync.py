@@ -17,13 +17,8 @@ def sync_pa_data_to_transaction(transaction: "RealEstateTransaction", data: dict
     """
     if not data or not isinstance(data, dict):
         return
-    # Prix offert
-    v = data.get("prix_offert")
-    if v is not None and (isinstance(v, (int, float)) or (isinstance(v, str) and str(v).strip())):
-        try:
-            transaction.offered_price = float(v) if not isinstance(v, (int, float)) else (float(v) if isinstance(v, float) else int(v))
-        except (ValueError, TypeError):
-            pass
+    # Ne pas écraser le prix offert ni l'adresse/parties : la transaction est la source de vérité
+    # pour ces champs ; le PA les récupère de la transaction, pas l'inverse.
     # Acompte
     v = data.get("acompte")
     if v is not None and (isinstance(v, (int, float)) or (isinstance(v, str) and str(v).strip())):

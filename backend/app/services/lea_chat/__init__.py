@@ -1,20 +1,13 @@
 """
 Module lea_chat — Refactor du chat AI Léa.
-Router, orchestrator, actions, response_composer, knowledge, heuristics.
+Router (Domain-Intent-Entities), orchestrator, actions, context_loader.
 """
 
-from app.services.lea_chat.schemas import (
-    LeaDomain,
-    LeaIntentVerb,
-    LeaSignals,
-    LeaIntent,
-    ActionResult,
-)
+from app.services.lea_chat.router import route_user_message
+from app.services.lea_chat.context_loader import load_active_conversation_context
 
+# Réduit aux exports réellement consommés par lea.py et autres modules
 __all__ = [
-    "LeaDomain",
-    "LeaIntentVerb",
-    "LeaSignals",
-    "LeaIntent",
-    "ActionResult",
+    "route_user_message",
+    "load_active_conversation_context",
 ]

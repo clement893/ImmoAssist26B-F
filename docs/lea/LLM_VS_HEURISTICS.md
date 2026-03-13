@@ -1,6 +1,8 @@
 # Léa: LLM vs heuristics (chats and decisions)
 
-This doc summarizes **where the LLM is used** vs **where pure heuristics decide**, so the chat can (or cannot) influence backend behavior.
+**Mise à jour** : Le routeur LLM (`_route_lea_llm`) prend désormais toutes les décisions via `docs/oaciq/LEA_ROUTING_KNOWLEDGE.md`. Les heuristiques ne servent qu'en fallback (LLM échoue ou confidence < 0.5).
+
+This doc summarizes **where the LLM is used** vs **where heuristics are fallback**.
 
 ---
 

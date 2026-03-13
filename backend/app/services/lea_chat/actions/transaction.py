@@ -1,16 +1,26 @@
 """
 Actions transaction : création de transaction, extraction type/adresse/prix/vendeurs/acheteurs.
+Fonctions selon le plan Domain-Intent-Entities (T1-T10).
 """
 
 import re
 import unicodedata
 from decimal import Decimal
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import logger
 from app.models import RealEstateTransaction, RealEstateContact, TransactionContact, ContactType
+
+# Ordre de collecte pour compute_missing_transaction_fields
+TRANSACTION_FIELDS_ORDER: List[tuple[str, str]] = [
+    ("type", "type (vente ou achat)"),
+    ("address", "adresse du bien"),
+    ("sellers", "vendeurs"),
+    ("buyers", "acheteurs"),
+    ("price", "prix"),
+]
 
 
 def _wants_to_create_transaction(message: str) -> tuple[bool, str]:
@@ -236,6 +246,12 @@ def _wants_to_create_transaction(message: str) -> tuple[bool, str]:
             return True, "vente"
         return True, default_type()
     return False, ""
+
+
+def parse_names_for_pending(raw: str) -> list[dict[str, str]]:
+    """Parse une chaîne de noms (ex. 'William Ford et Kate Volkswagen') en liste de {first_name, last_name} pour pending."""
+    parsed = _parse_names_from_raw(raw)
+    return [{"first_name": f, "last_name": l} for f, l in parsed]
 
 
 def _parse_names_from_raw(raw: str) -> List[tuple[str, str]]:
@@ -717,3 +733,232 @@ async def maybe_create_transaction_from_lea(
         logger.warning(f"Lea create transaction failed: {e}", exc_info=True)
         await db.rollback()
         return (None, None)
+
+
+# --- Fonctions du plan Domain-Intent-Entities (T7, T8, T9, T10) ---
+
+
+def compute_missing_transaction_fields(pending: Dict[str, Any]) -> List[Tuple[str, str]]:
+    """
+    Détermine les champs manquants pour créer une transaction (T7).
+    Retourne [(field_key, label), ...] dans l'ordre de collecte.
+    """
+    if not pending:
+        return [(k, v) for k, v in TRANSACTION_FIELDS_ORDER]
+    missing: List[Tuple[str, str]] = []
+    for field_key, label in TRANSACTION_FIELDS_ORDER:
+        if field_key == "type":
+            if not pending.get("type"):
+                missing.append((field_key, label))
+        elif field_key == "address":
+            addr = pending.get("address") or ""
+            city = pending.get("city") or ""
+            postal = pending.get("postal_code") or ""
+            if not addr.strip() or not (city.strip() and len(str(postal).strip()) >= 6):
+                missing.append((field_key, label))
+        elif field_key == "sellers":
+            if not pending.get("sellers"):
+                missing.append((field_key, label))
+        elif field_key == "buyers":
+            if not pending.get("buyers"):
+                missing.append((field_key, label))
+        elif field_key == "price":
+            if pending.get("price") is None:
+                missing.append((field_key, label))
+    return missing
+
+
+def build_transaction_creation_confirmation(
+    transaction: RealEstateTransaction,
+    has_more_info_to_add: bool = False,
+) -> str:
+    """
+    Produit la confirmation métier après création (T9).
+    """
+    ref = getattr(transaction, "dossier_number", None) or f"#{transaction.id}"
+    if has_more_info_to_add:
+        return (
+            f"Transaction {ref} créée. "
+            "Tu peux compléter les informations (date de clôture, notaire, etc.) dans la section Transactions."
+        )
+    return (
+        f"Transaction {ref} créée. "
+        "Tu peux la consulter et la compléter dans la section Transactions."
+    )
+
+
+async def create_transaction_record(
+    db: AsyncSession,
+    user_id: int,
+    tx_type: str,
+    address: str,
+    sellers: List[Tuple[str, str]],
+    buyers: List[Tuple[str, str]],
+    price: Decimal,
+    price_kind: str = "listing",
+    entities: Optional[List[Dict[str, Any]]] = None,
+    city: Optional[str] = None,
+    postal_code: Optional[str] = None,
+) -> Optional[RealEstateTransaction]:
+    """
+    Crée la transaction en base (T8).
+    Accepte des entities optionnelles du router pour préremplissage.
+    """
+    if not tx_type or not address or not sellers or not buyers or price is None:
+        return None
+    try:
+        name = f"Transaction {tx_type.capitalize()}"
+        sellers_json = [{"name": f"{f} {l}".strip(), "phone": None, "email": None} for f, l in sellers]
+        buyers_json = [{"name": f"{f} {l}".strip(), "phone": None, "email": None} for f, l in buyers]
+        transaction = RealEstateTransaction(
+            user_id=user_id,
+            name=name,
+            dossier_number=None,
+            status="En cours",
+            sellers=sellers_json,
+            buyers=buyers_json,
+            property_province="QC",
+            property_address=address,
+            property_city=city,
+            property_postal_code=postal_code,
+            transaction_kind=tx_type,
+            pipeline_stage="creation_dossier",
+            listing_price=price if price_kind == "listing" else None,
+            offered_price=price if price_kind == "offered" else None,
+        )
+        db.add(transaction)
+        await db.flush()
+        for first_name, last_name in sellers:
+            contact = RealEstateContact(
+                first_name=first_name,
+                last_name=last_name,
+                phone=None,
+                email=None,
+                type=ContactType.CLIENT,
+                user_id=user_id,
+            )
+            db.add(contact)
+            await db.flush()
+            db.add(TransactionContact(transaction_id=transaction.id, contact_id=contact.id, role="Vendeur"))
+        for first_name, last_name in buyers:
+            contact = RealEstateContact(
+                first_name=first_name,
+                last_name=last_name,
+                phone=None,
+                email=None,
+                type=ContactType.CLIENT,
+                user_id=user_id,
+            )
+            db.add(contact)
+            await db.flush()
+            db.add(TransactionContact(transaction_id=transaction.id, contact_id=contact.id, role="Acheteur"))
+        await db.commit()
+        await db.refresh(transaction)
+        logger.info(f"Lea create_transaction_record: id={transaction.id} type={tx_type}")
+        return transaction
+    except Exception as e:
+        logger.warning(f"create_transaction_record failed: {e}", exc_info=True)
+        await db.rollback()
+        return None
+
+
+def _entity_value(entities: Optional[List[Dict[str, Any]]], name: str) -> Optional[Any]:
+    """Retourne la valeur de la première entity portant le nom donné."""
+    if not entities:
+        return None
+    for e in entities:
+        if isinstance(e, dict) and e.get("name") == name:
+            return e.get("value")
+    return None
+
+
+async def update_transaction_record(
+    db: AsyncSession,
+    transaction: RealEstateTransaction,
+    entities: List[Dict[str, Any]],
+) -> Optional[RealEstateTransaction]:
+    """
+    Met à jour une transaction selon les entities du router (T10).
+    Prend en charge : property_reference (adresse), listing_price, offer_price,
+    seller_names, buyer_names.
+    Appelé par run_lea_actions quand domain=transaction, intent=update.
+    """
+    if not entities:
+        return transaction
+    updated = False
+    try:
+        addr = _entity_value(entities, "property_reference") or _entity_value(entities, "address")
+        if addr and isinstance(addr, str) and len(addr.strip()) >= 5:
+            transaction.property_address = addr.strip()
+            updated = True
+
+        listing_val = _entity_value(entities, "listing_price")
+        if listing_val is not None:
+            try:
+                amount = Decimal(str(listing_val))
+                if amount > 0 and amount <= Decimal("999999999"):
+                    transaction.listing_price = amount
+                    updated = True
+            except (ValueError, TypeError):
+                pass
+
+        offer_val = _entity_value(entities, "offer_price") or _entity_value(entities, "offered_price")
+        if offer_val is not None:
+            try:
+                amount = Decimal(str(offer_val))
+                if amount > 0 and amount <= Decimal("999999999"):
+                    transaction.offered_price = amount
+                    updated = True
+            except (ValueError, TypeError):
+                pass
+
+        seller_names = _entity_value(entities, "seller_names")
+        if seller_names:
+            if isinstance(seller_names, str):
+                names = _parse_names_from_raw(seller_names)
+            elif isinstance(seller_names, list):
+                names = []
+                for item in seller_names:
+                    if isinstance(item, str):
+                        names.extend(_parse_names_from_raw(item))
+                    elif isinstance(item, dict):
+                        fn = item.get("first_name", item.get("name", ""))
+                        ln = item.get("last_name", "")
+                        if fn or ln:
+                            names.append((str(fn), str(ln)))
+            else:
+                names = _parse_names_from_raw(str(seller_names))
+            if names:
+                transaction.sellers = [{"name": f"{f} {l}".strip(), "phone": None, "email": None} for f, l in names]
+                updated = True
+
+        buyer_names = _entity_value(entities, "buyer_names")
+        if buyer_names:
+            if isinstance(buyer_names, str):
+                names = _parse_names_from_raw(buyer_names)
+            elif isinstance(buyer_names, list):
+                names = []
+                for item in buyer_names:
+                    if isinstance(item, str):
+                        names.extend(_parse_names_from_raw(item))
+                    elif isinstance(item, dict):
+                        fn = item.get("first_name", item.get("name", ""))
+                        ln = item.get("last_name", "")
+                        if fn or ln:
+                            names.append((str(fn), str(ln)))
+            else:
+                names = _parse_names_from_raw(str(buyer_names))
+            if names:
+                transaction.buyers = [{"name": f"{f} {l}".strip(), "phone": None, "email": None} for f, l in names]
+                updated = True
+
+        if updated:
+            await db.commit()
+            await db.refresh(transaction)
+            logger.info(f"Lea update_transaction_record: id={transaction.id}")
+            return transaction
+        return transaction
+    except Exception as e:
+        logger.warning(f"update_transaction_record failed: {e}", exc_info=True)
+        await db.rollback()
+        return None
