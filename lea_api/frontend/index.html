@@ -258,7 +258,8 @@
       font-family: inherit;
       resize: none;
       min-height: 44px;
-      max-height: 160px;
+      max-height: 260px;
+      overflow-y: auto;
     }
     .input-row textarea:focus {
       outline: none;
@@ -603,8 +604,9 @@
             <p class="progress-label" style="margin: 0.25rem 0 0 0;">Les transactions enregistrées via le Chat apparaissent ici.</p>
           </div>
           <div class="transaction-tabs">
-            <button type="button" class="tab-btn active" data-kind="vente">Transactions Vente</button>
-            <button type="button" class="tab-btn" data-kind="achat">Transactions Achat</button>
+            <button type="button" class="tab-btn active" data-kind="">Toutes</button>
+            <button type="button" class="tab-btn" data-kind="vente">Vente</button>
+            <button type="button" class="tab-btn" data-kind="achat">Achat</button>
           </div>
         </div>
         <div id="transactions-list-container">
@@ -759,6 +761,7 @@
     }
 
     function startVoiceRecording() {
+      stopSpeaking(); // ← Léa se tait dès que le micro s'active
       return navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
         recordStream = stream;
         isRecording = true;
@@ -869,6 +872,7 @@
     function startDictation() {
       if (!recognition) initSpeechRecognition();
       if (!recognition) return;
+      stopSpeaking(); // ← Léa se tait dès que la dictée démarre
       userStoppedDictate = false;
       dictationTranscript = '';
       inputEl.value = '';
@@ -930,8 +934,10 @@
 
     async function sendMessage(text) {
       if (!text.trim()) return;
+      stopSpeaking();
       addMessage('user', text.trim());
       inputEl.value = '';
+      inputEl.style.height = 'auto'; // Reset hauteur après envoi
       btnSend.disabled = true;
       if (btnMic) btnMic.disabled = true;
       if (btnDictate) btnDictate.disabled = true;
@@ -1080,17 +1086,20 @@
       }
     }
 
-    let transactionsKind = 'vente';
+    let transactionsKind = '';
 
     async function loadDbTransactions() {
       const list = document.getElementById('transactions-list');
       if (!list) return;
       try {
-        const res = await fetch(`${API}/transactions?transaction_type=${transactionsKind}`);
+        const url = transactionsKind
+          ? `${API}/transactions?transaction_type=${transactionsKind}`
+          : `${API}/transactions`;
+        const res = await fetch(url);
         const data = await res.json();
         const items = data.transactions || [];
         if (items.length === 0) {
-          list.innerHTML = `<p class="progress-label">Aucune transaction ${transactionsKind === 'vente' ? 'de vente' : "d'achat"} pour le moment. Créez-en une via le Chat avec Léa.</p>`;
+          list.innerHTML = `<p class="progress-label">Aucune transaction${transactionsKind ? ' de ' + transactionsKind : ''} pour le moment. Créez-en une via le Chat avec Léa.</p>`;
           return;
         }
         list.innerHTML = items.map(t => {
@@ -1350,10 +1359,17 @@
 
     btnSend.addEventListener('click', () => sendMessage(inputEl.value));
     inputEl.addEventListener('keydown', (e) => {
+      stopSpeaking(); // ← Léa se tait dès que le courtier tape
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         sendMessage(inputEl.value);
       }
+    });
+    inputEl.addEventListener('input', () => {
+      if (inputEl.value.length === 1) stopSpeaking(); // ← Premier caractère = Léa se tait
+      // Auto-resize
+      inputEl.style.height = 'auto';
+      inputEl.style.height = Math.min(inputEl.scrollHeight, 260) + 'px';
     });
     suggestionsEl.querySelectorAll('button').forEach(b => {
       b.addEventListener('click', () => sendMessage(b.dataset.prompt));

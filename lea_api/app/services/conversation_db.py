@@ -5,12 +5,10 @@ from typing import Optional, List, Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.db.models import LeaConversation
 
 
 def _json_serial(obj: Any) -> Any:
-    """Make object JSON-serializable (dates, etc.)."""
     if isinstance(obj, (datetime, date)):
         return obj.isoformat()
     if isinstance(obj, dict):
@@ -21,7 +19,6 @@ def _json_serial(obj: Any) -> Any:
 
 
 def _state_to_db(state: dict) -> tuple:
-    """Extract messages and context from state for DB storage."""
     history = state.get("history", [])
     context = {
         "conversation_id": state.get("conversation_id"),
@@ -37,7 +34,6 @@ def _state_to_db(state: dict) -> tuple:
 
 
 def _db_to_state(session_id: str, user_id: str, messages: list, context: dict) -> dict:
-    """Reconstruct state from DB row."""
     return {
         "conversation_id": session_id,
         "user_id": str(context.get("user_id", user_id)),
@@ -51,16 +47,22 @@ def _db_to_state(session_id: str, user_id: str, messages: list, context: dict) -
     }
 
 
-async def save_conversation(db: AsyncSession, conversation_id: str, state: dict, user_id: int = 1) -> None:
-    """Upsert conversation to lea_conversations. Links transaction_id and promesse_achat_id when set."""
+async def save_conversation(
+    db: AsyncSession,
+    conversation_id: str,
+    state: dict,
+    user_id: int = 1,
+) -> None:
     messages, context = _state_to_db(state)
     context = _json_serial(context)
     tx_id = state.get("transaction", {}).get("id")
     pa_id = state.get("promesse_achat", {}).get("id")
+
     result = await db.execute(
         select(LeaConversation).where(LeaConversation.session_id == conversation_id)
     )
     row = result.scalar_one_or_none()
+
     if row:
         row.messages = messages
         row.context = context
@@ -79,11 +81,16 @@ async def save_conversation(db: AsyncSession, conversation_id: str, state: dict,
             context=context,
         )
         db.add(row)
+
     await db.flush()
+    await db.commit()
 
 
-async def load_conversation(db: AsyncSession, conversation_id: str, user_id: int = 1) -> Optional[dict]:
-    """Load state from lea_conversations. Returns None if not found."""
+async def load_conversation(
+    db: AsyncSession,
+    conversation_id: str,
+    user_id: int = 1,
+) -> Optional[dict]:
     result = await db.execute(
         select(LeaConversation).where(LeaConversation.session_id == conversation_id)
     )
@@ -98,8 +105,10 @@ async def load_conversation(db: AsyncSession, conversation_id: str, user_id: int
     )
 
 
-async def list_conversations_db(db: AsyncSession, limit: int = 50) -> List[dict]:
-    """List conversations from DB for history sidebar."""
+async def list_conversations_db(
+    db: AsyncSession,
+    limit: int = 50,
+) -> List[dict]:
     result = await db.execute(
         select(LeaConversation)
         .order_by(LeaConversation.updated_at.desc())

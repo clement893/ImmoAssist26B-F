@@ -15,7 +15,7 @@ engine = create_async_engine(
 AsyncSessionLocal = async_sessionmaker(
     engine,
     class_=AsyncSession,
-    expire_on_commit=False,
+    expire_on_commit=False,   # ✅ Évite les erreurs de détachement après commit
     autocommit=False,
     autoflush=False,
 )
@@ -24,11 +24,14 @@ Base = declarative_base()
 
 
 async def get_db():
-    """Dependency for FastAPI."""
+    """
+    Dependency FastAPI.
+    On n'auto-commit PAS ici — chaque service gère son propre commit.
+    Rollback uniquement en cas d'exception non gérée.
+    """
     async with AsyncSessionLocal() as session:
         try:
             yield session
-            await session.commit()
         except Exception:
             await session.rollback()
             raise
@@ -57,7 +60,7 @@ async def init_db():
                 "ALTER TABLE promesses_achat ALTER COLUMN delai_acceptation TYPE VARCHAR(100) USING delai_acceptation::text"
             ))
         except Exception:
-            pass  # Déjà VARCHAR ou table vide
+            pass
 
     async with AsyncSessionLocal() as session:
         from app.db.models import User

@@ -1,0 +1,339 @@
+# 📊 Suivi des Batches - Revamp UI
+
+**Suivi de progression batch par batch**  
+**Dernière mise à jour :** 31 Janvier 2026
+
+---
+
+## 📈 Vue d'Ensemble
+
+- **Total batches** : 6
+- **Batches complétés** : 2/6 (33%)
+- **Batches en cours** : 4/6 (67%)
+- **Composants migrés** : 135/270+ (50%) (pages dashboard migrées)
+
+### Dernières Migrations
+- ✅ MultiSelect.tsx - transition-modern
+- ✅ Dropdown.tsx - transition-modern
+- ✅ Accordion.tsx - transition-modern
+- ✅ Calendar.tsx - transition-modern
+- ✅ Table.tsx - transition-modern (3 occurrences)
+- ✅ Toast.tsx - transition-modern
+- ✅ Tabs.tsx - transition-modern
+- ✅ Sidebar.tsx - transition-modern (2 occurrences)
+- ✅ Alert.tsx - transition-modern, shadow-subtle-sm (2 occurrences)
+- ✅ FileUploadWithPreview.tsx - transition-modern (2 occurrences)
+- ✅ VideoPlayer.tsx - transition-modern
+- ✅ DataTable.tsx - transition-modern
+- ✅ Input.tsx - transition-modern (placeholder)
+- ✅ AdvancedCharts.tsx - transition-modern (2 occurrences)
+- ✅ DashboardHeader.tsx - shadow-subtle-sm, transition-modern (4 occurrences)
+- ✅ Header.tsx - transition-modern (4 occurrences)
+- ✅ MotionDiv.tsx - transition-modern
+- ✅ FontUploader.tsx - transition-modern
+- ✅ TemplateManager.tsx - transition-modern, shadow-standard-lg
+- ✅ LeaWidget.tsx - shadow-standard-xl, shadow-standard-lg, transition-modern
+- ✅ LeaMessageBubble.tsx - shadow-subtle-sm
+- ✅ LeaWelcomeScreen.tsx - shadow-standard-xl, shadow-standard-lg, transition-modern (7 occurrences)
+- ✅ LeaInitialUI.tsx - shadow-standard-xl, shadow-standard-lg, transition-modern (7 occurrences)
+- ✅ LeaChatInput.tsx - transition-modern, shadow-standard-lg (3 occurrences)
+- ✅ LeaConversationHeader.tsx - shadow-standard-lg
+- ✅ StatusStepper.tsx - transition-modern (4 occurrences)
+- ✅ ContactDetailPopup.tsx - shadow-standard-xl, transition-modern (4 occurrences)
+- ✅ LinkContactToTransactionModal.tsx - transition-modern
+- ✅ MultiSelectFilter.tsx - shadow-standard-lg
+- ✅ ImportLogsViewer.tsx - transition-modern
+- ✅ ContactsGallery.tsx - transition-modern, shadow-standard-md
+- ✅ CompaniesGallery.tsx - transition-modern, shadow-standard-md
+- ✅ AddContactToTransactionModal.tsx - transition-modern
+- ✅ PDFImportModal.tsx - transition-modern
+- ✅ TransactionContactsCard.tsx - transition-modern
+- ✅ TaskManager.tsx - transition-modern
+- ✅ TriggerManager.tsx - transition-modern
+- ✅ Drawer.tsx - transition-modern (bouton close)
+- ✅ Sidebar.tsx - transition-modern (4 occurrences)
+- ✅ Footer.tsx - transition-modern (17 occurrences)
+- ✅ InternalLayout.tsx - transition-modern
+- ✅ NotificationCenter.tsx - transition-modern (4 occurrences)
+- ✅ NotificationBell.tsx - transition-modern + shadow-standard-xl
+- ✅ UserSettings.tsx - transition-modern
+- ✅ SettingsNavigation.tsx - transition-modern + shadow-standard-lg
+- ✅ IntegrationsSettings.tsx - transition-modern
+- ✅ OnboardingWizard.tsx - transition-modern
+- ✅ ProfileSetup.tsx - transition-modern
+- ✅ IntegrationList.tsx - shadow-standard-md
+- ✅ APIDocumentation.tsx - transition-modern
+- ✅ VideoTutorials.tsx - transition-modern + shadow-standard-lg
+- ✅ UserGuides.tsx - transition-modern
+- ✅ HelpCenter.tsx - transition-modern (2 occurrences)
+- ✅ SearchBar.tsx - shadow-standard-lg
+- ✅ AdvancedFilters.tsx - shadow-standard-lg
+- ✅ LocaleSwitcher.tsx - shadow-standard-lg + transition-modern
+- ✅ LanguageSwitcher.tsx - shadow-standard-lg + transition-modern
+- ✅ ShareDialog.tsx - shadow-standard-xl
+- ✅ PricingCard.tsx - shadow-standard-lg
+- ✅ TagInput.tsx - shadow-standard-lg
+- ✅ SectionTemplates.tsx - transition-modern
+- ✅ FeedbackForm.tsx - transition-modern
+- ✅ ERPNavigation.tsx - transition-modern (2 occurrences)
+- ✅ EmailTemplateManager.tsx - transition-modern
+- ✅ ArticleList.tsx - shadow-standard-lg/md + transition-modern (2 occurrences)
+- ✅ MediaLibrary.tsx - shadow-standard-lg + transition-modern (5 occurrences)
+- ✅ ContentDashboard.tsx - shadow-standard-md + transition-modern (2 occurrences)
+- ✅ CommentThread.tsx - shadow-standard-lg
+- ✅ CollaborationPanel.tsx - transition-modern
+- ✅ Mentions.tsx - shadow-standard-lg + transition-modern
+- ✅ ClientNavigation.tsx - transition-modern
+- ✅ PaymentHistory.tsx - transition-modern
+- ✅ SubscriptionPlans.tsx - transition-modern
+- ✅ AuditTrailViewer.tsx - transition-modern
+- ✅ TemplateAIChat.tsx - shadow-standard-lg/xl
+- ✅ UserRolesEditor.tsx - transition-modern
+- ✅ RolePermissionsEditor.tsx - transition-modern
+- ✅ ActivityTimeline.tsx - shadow-subtle-sm (2 occurrences)
+- ✅ ActivityFeed.tsx - transition-modern
+- ✅ Sidebar.tsx (ui) - shadow-subtle-sm + transition-modern (5 occurrences)
+- ✅ DashboardLayout.tsx - transition-modern
+- ✅ Header.tsx - transition-modern
+- ✅ Tabs.tsx - shadow-subtle-sm/md + transition-modern (3 occurrences)
+- ✅ InlineEditableField.tsx - transition-modern
+- ✅ ContactDetailPopup.tsx - transition-modern (2 occurrences)
+- ✅ StatusStepper.tsx - transition-modern
+
+---
+
+## ✅ Batch 1 : Fondations (TERMINÉ)
+
+**Statut :** ✅ Terminé  
+**Date de début :** 31 Janvier 2026  
+**Date de fin :** 31 Janvier 2026
+
+### Objectifs
+- [x] Créer le système de suivi
+- [x] Mettre à jour le système de thème
+- [x] Créer les nouveaux tokens d'ombres
+- [x] Mettre à jour Tailwind config
+- [x] Créer les animations CSS
+- [x] Créer les utilitaires de migration
+
+### Progression
+- **Tâches complétées** : 6/6 (100%)
+- **Fichiers créés/modifiés** : 3
+- **Tests passants** : N/A (fondations)
+
+### Fichiers Modifiés
+- [x] `apps/web/tailwind.config.ts` - Ajout système d'ombres complet
+- [x] `apps/web/src/components/ui/tokens.ts` - Ajout shadowSystem
+- [x] `apps/web/src/app/globals.css` - Ajout animations CSS
+
+### Changements Appliqués
+1. **Tailwind Config** : Ajout de 20+ nouvelles ombres (subtile, standard, colored, hover, glass, inner)
+2. **Tokens** : Création de `shadowSystem` avec helper `getShadow()`
+3. **Animations CSS** : Ajout de 5 animations (cardLift, cardGlow, cardScale, sidebarSlideIn, itemHighlight)
+4. **Utilitaires** : Classes CSS pour transitions modernes et glassmorphism
+
+---
+
+## ✅ Batch 2 : Composants Critiques (TERMINÉ)
+
+**Statut :** ✅ Terminé  
+**Date de début :** 31 Janvier 2026  
+**Date de fin :** 31 Janvier 2026  
+**Dépend de :** Batch 1 ✅
+
+### Composants
+- [x] Card.tsx ⭐ **PRIORITÉ #1** ✅ **TERMINÉ**
+- [x] Sidebar.tsx ⭐ **PRIORITÉ #2** ✅ **TERMINÉ**
+- [x] Button.tsx ⭐ **PRIORITÉ #3** ✅ **TERMINÉ**
+- [x] Input.tsx ⭐ **PRIORITÉ #4** ✅ **TERMINÉ**
+- [x] DashboardLayout.tsx ⭐ **PRIORITÉ #5** ✅ **TERMINÉ**
+
+### Progression
+- **Composants complétés** : 5/5 (100%)
+- **Fichiers modifiés** : 5
+
+### Card.tsx - Changements Appliqués ✅
+- ✅ Ajout de nouveaux variants : `floating`, `bordered`, `image`
+- ✅ Nouveau système d'ombres : `shadow-standard-*` au lieu de `shadow-*`
+- ✅ Props ajoutées : `elevation`, `hoverEffect`, `accentBorder`, `accentColor`, `imageHeader`, `glassIntensity`
+- ✅ Support glassmorphism amélioré avec intensité configurable
+- ✅ Effets hover : `lift`, `glow`, `scale`
+- ✅ Border radius : 20px pour floating, 16px pour les autres
+- ✅ Backward compatibility : `leftBorder` toujours supporté
+
+### Sidebar.tsx - Changements Appliqués ✅
+- ✅ Ajout de 4 nouveaux variants : `modern`, `colored`, `minimal`, `floating`
+- ✅ Nouveau système d'ombres : `shadow-standard-*` pour le container
+- ✅ Props ajoutées : `variant`, `collapsedWidth`, `expandedWidth`, `accentColor`, `showNotifications`
+- ✅ Styles variant-specific pour container et items
+- ✅ Support glassmorphism pour variant `floating`
+- ✅ Recherche intégrée améliorée avec nouveaux styles
+- ✅ Animations fluides avec `transition-modern`
+- ✅ Backward compatibility : tous les props existants maintenus
+
+### Button.tsx - Changements Appliqués ✅
+- ✅ Nouveau système d'ombres : `shadow-standard-*` au lieu de `shadow-*`
+- ✅ Ombres colorées au hover : `shadow-colored-primary`, `shadow-colored-secondary`, `shadow-colored-error`
+- ✅ Ombres subtiles pour variants `soft` et `outline` : `shadow-subtle-*`
+- ✅ Transition moderne : `transition-modern` au lieu de classes individuelles
+- ✅ Tous les variants migrés avec nouvelles ombres
+- ✅ Backward compatibility : tous les variants existants maintenus
+
+### Input.tsx - Changements Appliqués ✅
+- ✅ Nouveau système d'ombres : `shadow-subtle-*` pour les inputs
+- ✅ Ombre colorée au focus : `shadow-colored-primary` et `shadow-colored-error`
+- ✅ Transition moderne : `transition-modern` au lieu de classes individuelles
+- ✅ États améliorés : hover avec `shadow-subtle-md`
+- ✅ Focus amélioré : ombre colorée pour meilleur feedback visuel
+- ✅ Backward compatibility : tous les props existants maintenus
+
+---
+
+## 🔄 Batch 3 : Form Components (PRÊT À COMMENCER)
+
+**Statut :** 🔄 Prêt à commencer  
+**Date de début prévue :** 31 Janvier 2026  
+**Dépend de :** Batch 2 ✅
+
+### Composants
+- [ ] Select.tsx
+- [ ] Checkbox.tsx
+- [ ] Radio.tsx
+- [ ] Switch.tsx
+- [ ] DatePicker.tsx
+- [ ] TimePicker.tsx
+- [ ] FileUpload.tsx
+- [ ] ... (autres form components)
+
+---
+
+## 🔄 Batch 4 : Layout Components (EN COURS)
+
+**Statut :** 🔄 En cours  
+**Date de début :** 31 Janvier 2026  
+**Dépend de :** Batch 2 ✅
+
+### Composants
+- [ ] Container.tsx
+- [x] Tabs.tsx ✅
+- [ ] Accordion.tsx
+- [x] Modal.tsx ✅
+- [ ] Drawer.tsx
+- [ ] Divider.tsx
+- [ ] Breadcrumb.tsx
+- [ ] Grid.tsx
+- [ ] Stack.tsx
+- [ ] List.tsx
+- [ ] EmptyState.tsx
+- [ ] ErrorBoundary.tsx
+
+### Progression
+- **Composants complétés** : 5/12 (42%) (Modal, Tabs, Drawer, Accordion, Container déjà OK)
+
+---
+
+## 🔄 Batch 5 : Data Display (EN COURS)
+
+**Statut :** 🔄 En cours  
+**Date de début :** 31 Janvier 2026  
+**Dépend de :** Batch 2 ✅
+
+### Composants
+- [x] DataTable.tsx ✅
+- [ ] Chart.tsx
+- [ ] Calendar.tsx
+- [ ] Timeline.tsx
+- [ ] KanbanBoard.tsx
+- [ ] TreeView.tsx
+- [ ] Avatar.tsx
+- [x] Badge.tsx ✅ (déjà migré dans Batch 4)
+- [ ] StatusCard.tsx
+- [x] StatsCard.tsx ✅
+- [x] MetricCard.tsx ✅
+- [ ] WidgetGrid.tsx
+- [x] Table.tsx ✅
+- [ ] ... (autres data display components)
+
+### Progression
+- **Composants complétés** : 10/20 (50%) (DataTable, Table, StatsCard, MetricCard, Badge, Calendar, Timeline, Avatar, Chart, TreeView)
+
+### Composants Migrés Récemment
+- ✅ TimePicker.tsx - shadow-standard-lg
+- ✅ Calendar.tsx - shadow-standard-lg, shadow-standard-md, transition-modern
+- ✅ Timeline.tsx - shadow-subtle-sm, shadow-colored-primary, transition-modern
+- ✅ Drawer.tsx - shadow-standard-xl, transition-modern
+- ✅ Accordion.tsx - transition-modern
+- ✅ Avatar.tsx - shadow-subtle-sm, shadow-subtle-md, transition-modern
+- ✅ Dropdown.tsx - shadow-standard-lg
+- ✅ Tooltip.tsx - shadow-standard-lg
+- ✅ MultiSelect.tsx - shadow-standard-lg
+- ✅ ButtonLink.tsx - shadow-standard-*, shadow-colored-*, transition-modern
+- ✅ ActivityChart.tsx - shadow-standard-lg, shadow-subtle-sm, transition-modern
+- ✅ ServiceTestCard.tsx - shadow-standard-lg, transition-modern
+- ✅ KanbanBoard.tsx - shadow-subtle-sm, shadow-standard-md, transition-modern
+- ✅ ColorPicker.tsx - shadow-standard-lg, transition-modern
+- ✅ PricingCardSimple.tsx - shadow-standard-xl
+- ✅ BillingPeriodToggle.tsx - shadow-standard-md
+- ✅ SkipLink.tsx - shadow-standard-lg, transition-modern
+- ✅ Progress.tsx - transition-modern
+- ✅ Modal.tsx (bouton close) - transition-modern
+- ✅ Breadcrumb.tsx - transition-modern
+- ✅ CommandPalette.tsx - shadow-standard-xl, transition-modern
+- ✅ Popover.tsx - shadow-standard-xl
+- ✅ ProgressRing.tsx - transition-modern
+- ✅ Autocomplete.tsx - shadow-standard-xl, transition-modern
+- ✅ Stepper.tsx - transition-modern
+- ✅ TreeView.tsx - transition-modern
+- ✅ Chart.tsx - transition-modern
+- ✅ List.tsx - transition-modern
+- ✅ FileUpload.tsx - transition-modern
+- ✅ RichTextEditor.tsx - transition-modern
+- ✅ Form.tsx - transition-modern
+- ✅ ThemeToggle.tsx - transition-modern
+- ✅ DragDropList.tsx - transition-modern
+
+---
+
+## 🔄 Batch 6 : Feedback & Navigation (EN COURS)
+
+**Statut :** 🔄 En cours  
+**Date de début :** 31 Janvier 2026  
+**Dépend de :** Batch 2 ✅
+
+### Composants
+- [x] Alert.tsx ✅
+- [ ] Toast.tsx
+- [ ] Loading.tsx
+- [ ] Pagination.tsx
+- [ ] CommandPalette.tsx
+- [ ] SearchBar.tsx
+- [ ] Stepper.tsx
+- [ ] Dropdown.tsx
+- [ ] Tooltip.tsx
+- [ ] ... (autres feedback & navigation components)
+
+### Progression
+- **Composants complétés** : 8/10 (80%) (Alert.tsx, Toast.tsx, Dropdown.tsx, Tooltip.tsx, MultiSelect.tsx, CommandPalette.tsx, Popover.tsx, Stepper.tsx)
+
+---
+
+## 📝 Notes de Batch
+
+### Batch 1 ✅
+- ✅ Création du système de suivi
+- ✅ Mise à jour Tailwind config avec nouveau système d'ombres
+- ✅ Création de shadowSystem dans tokens.ts
+- ✅ Ajout des animations CSS dans globals.css
+- ✅ Batch 1 terminé avec succès
+
+### Batch 2 ✅
+- ✅ Card.tsx migré avec succès
+- ✅ Sidebar.tsx migré avec succès
+- ✅ Button.tsx migré avec succès
+- ✅ Input.tsx migré avec succès
+- ✅ DashboardLayout.tsx migré avec succès
+- ✅ Batch 2 terminé à 100% !
+
+---
+
+**Dernière mise à jour :** 31 Janvier 2026

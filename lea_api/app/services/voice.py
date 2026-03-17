@@ -1,12 +1,6 @@
-"""
-Voice service - Whisper transcription and OpenAI TTS synthesis.
-"""
+"""Voice service - Whisper transcription + OpenAI TTS."""
 
-import base64
-import re
-from pathlib import Path
 from typing import Optional
-
 from app.config import get_settings
 
 try:
@@ -14,52 +8,38 @@ try:
     OPENAI_AVAILABLE = True
 except ImportError:
     OPENAI_AVAILABLE = False
-    AsyncOpenAI = None
 
-# Voices for gpt-4o-mini-tts (coral = chaleureuse, naturelle)
-TTS_VOICES = ("alloy", "ash", "ballad", "coral", "echo", "fable", "onyx", "nova", "sage", "shimmer", "verse", "marin", "cedar")
-TTS_INSTRUCTIONS_PATH = Path(__file__).parent.parent.parent / "docs" / "lea_voice_instructions.md"
-
-
-def _load_tts_instructions() -> Optional[str]:
-    """Load TTS instructions from lea_voice_instructions.md (first paragraph after ---)."""
-    if not TTS_INSTRUCTIONS_PATH.exists():
-        return None
-    try:
-        raw = TTS_INSTRUCTIONS_PATH.read_text(encoding="utf-8")
-        # Extract content after first --- (horizontal rule)
-        parts = re.split(r"\n---+\n", raw, maxsplit=1)
-        if len(parts) > 1:
-            body = parts[1].strip()
-        else:
-            body = raw.strip()
-        # Remove markdown headers and take first substantial paragraph (max 500 chars for API)
-        lines = [ln.strip() for ln in body.split("\n") if ln.strip() and not ln.strip().startswith("#")]
-        text = " ".join(lines)
-        return text[:500] if text else None
-    except Exception:
-        return None
+TTS_VOICES = ("alloy", "echo", "fable", "onyx", "nova", "shimmer")
+TTS_DEFAULT_VOICE = "nova"  # Féminine, naturelle, bonne en français
+TTS_MODEL = "tts-1"         # ✅ Correct — "gpt-4o-mini-tts" n'existe pas
+TTS_MODEL_HD = "tts-1-hd"   # Meilleure qualité, légèrement plus lent
 
 
 async def transcribe_whisper(audio_bytes: bytes, content_type: str = "audio/webm") -> str:
-    """
-    Transcribe audio to text using OpenAI Whisper.
-    Supports webm, mp3, mp4, mpeg, mpga, m4a, wav.
-    """
+    """Transcrit l'audio en texte via Whisper. Optimisé français québécois."""
     if not OPENAI_AVAILABLE:
-        raise RuntimeError("OpenAI is not installed. pip install openai")
+        raise RuntimeError("OpenAI n'est pas installé. pip install openai")
     settings = get_settings()
     if not settings.openai_api_key:
-        raise RuntimeError("OPENAI_API_KEY is required for transcription")
-    client = AsyncOpenAI(api_key=settings.openai_api_key)
-    # Whisper expects a file-like object
+        raise RuntimeError("OPENAI_API_KEY requis pour la transcription")
+
     from io import BytesIO
+    client = AsyncOpenAI(api_key=settings.openai_api_key)
     file_obj = BytesIO(audio_bytes)
     file_obj.name = "recording.webm"
+
     response = await client.audio.transcriptions.create(
         model="whisper-1",
         file=file_obj,
         language="fr",
+        prompt=(
+            "Transcription exacte sans ponctuation superflue. "
+            "Courtier immobilier québécois. "
+            "Noms propres courants : Ford, Clark, Martin, Tremblay, Gagnon, Côté, Roy, Dubois. "
+            "Adresses en chiffres groupés sans point : 5554, 1200, 345. "
+            "Prix : 855000, 325000, 1200000. "
+            "Termes : transaction, achat, vente, promesse d'achat, acompte, hypothèque, vendeur, acheteur."
+        ),
     )
     return (response.text or "").strip()
 
@@ -68,33 +48,39 @@ async def synthesize_tts(
     text: str,
     voice: Optional[str] = None,
     speed: float = 1.0,
-    instructions: Optional[str] = None,
+    hd: bool = False,
 ) -> bytes:
     """
-    Synthesize speech from text using OpenAI TTS.
-    Uses gpt-4o-mini-tts (natural, steerable) with coral voice.
-    Instructions loaded from docs/lea_voice_instructions.md if not provided.
+    Synthétise la voix de Léa via OpenAI TTS. Retourne bytes MP3.
+
+    Args:
+        text:  Texte à synthétiser (français)
+        voice: nova (défaut), alloy, echo, fable, onyx, shimmer
+        speed: 0.25 à 4.0 (défaut: 1.0)
+        hd:    True = tts-1-hd (meilleure qualité), False = tts-1 (plus rapide)
     """
     if not text or not text.strip():
-        raise ValueError("Empty text for TTS")
+        raise ValueError("Texte vide pour la synthèse vocale")
     if not OPENAI_AVAILABLE:
-        raise RuntimeError("OpenAI is not installed. pip install openai")
+        raise RuntimeError("OpenAI n'est pas installé. pip install openai")
+
     settings = get_settings()
     if not settings.openai_api_key:
-        raise RuntimeError("OPENAI_API_KEY is required for TTS")
-    voice_name = (voice or "coral").strip().lower()
+        raise RuntimeError("OPENAI_API_KEY requis pour la synthèse vocale")
+
+    voice_name = (voice or TTS_DEFAULT_VOICE).strip().lower()
     if voice_name not in TTS_VOICES:
-        voice_name = "coral"
-    speed_val = max(0.25, min(2.0, float(speed)))
-    instr = instructions if instructions and instructions.strip() else _load_tts_instructions()
+        voice_name = TTS_DEFAULT_VOICE
+
+    speed_val = max(0.25, min(4.0, float(speed)))
+    model = TTS_MODEL_HD if hd else TTS_MODEL
+
     client = AsyncOpenAI(api_key=settings.openai_api_key)
-    params = {
-        "model": "gpt-4o-mini-tts",
-        "voice": voice_name,
-        "input": text.strip(),
-        "speed": speed_val,
-    }
-    if instr:
-        params["instructions"] = instr.strip()[:4096]
-    response = await client.audio.speech.create(**params)
+    response = await client.audio.speech.create(
+        model=model,
+        voice=voice_name,
+        input=text.strip(),
+        speed=speed_val,
+        response_format="mp3",
+    )
     return response.content
