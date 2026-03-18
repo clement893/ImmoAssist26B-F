@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     # API OpenAI
     openai_api_key: str = ""
     llm_model: str = "gpt-4o"
+    deepgram_api_key: str = ""
 
     # Database: use DATABASE_URL or build from PostgreSQL vars
     database_url: str = "sqlite+aiosqlite:///./lea_api.db"
@@ -22,6 +23,9 @@ class Settings(BaseSettings):
     # Redis (optional - for session state)
     redis_url: str = "redis://localhost:6379"
     use_redis: bool = False
+
+    # Realtime: désactiver transcription Whisper si elle échoue (le modèle garde l'audio)
+    realtime_disable_transcription: bool = False
 
     class Config:
         env_file = ".env"

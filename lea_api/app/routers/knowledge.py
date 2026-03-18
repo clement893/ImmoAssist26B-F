@@ -39,12 +39,20 @@ async def list_knowledge():
             if f.is_file() and f.suffix.lower() in (".md", ".docx", ".txt"):
                 desc = None
                 if f.suffix == ".md":
-                    if "lea_courtier" in f.name:
+                    if "lea_courtier" in f.name and "realtime" not in f.name:
                         desc = "Guide LLM pour Léa (intents, entités, actions)"
+                    elif "lea_realtime_rules" in f.name:
+                        desc = "Règles mode vocal Realtime (français, confirmation, expertise)"
                     elif "fiche_technique" in f.name:
                         desc = "Fiche technique API Chat"
                     elif "lea_voice" in f.name:
                         desc = "Instructions vocales TTS pour le ton et le style de Léa"
+                    elif "REALTIME_PARAMS" in f.name:
+                        desc = "Paramètres OpenAI Realtime (VAD, bruit, seuils)"
+                    elif "RAILWAY_DEPLOY" in f.name:
+                        desc = "Déploiement Railway (root directory, variables, branches)"
+                    else:
+                        desc = "Documentation"
                 docs.append(
                     KnowledgeDoc(
                         name=f.name,

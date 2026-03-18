@@ -5,3 +5,4 @@ __pycache__/
 .env
 *.db
 lea_api.db
+correct_files/

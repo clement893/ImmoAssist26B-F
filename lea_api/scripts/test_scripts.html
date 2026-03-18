@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scripts de test — Léa</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 2rem;
+      background: #1a1a2e;
+      color: #e8e8e8;
+      line-height: 1.6;
+    }
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+      color: #7dd3fc;
+    }
+    h2 {
+      font-size: 1.15rem;
+      color: #a5b4fc;
+      margin-top: 2rem;
+      margin-bottom: 0.75rem;
+    }
+    .block {
+      background: #252540;
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      margin: 0.75rem 0;
+      border-left: 4px solid #7dd3fc;
+    }
+    .block.pa { border-left-color: #a5b4fc; }
+    blockquote {
+      margin: 0.5rem 0;
+      padding: 0.75rem 1rem;
+      background: #16162a;
+      border-radius: 6px;
+      font-size: 1rem;
+    }
+    .step { font-size: 0.9rem; color: #94a3b8; margin-bottom: 0.25rem; }
+    small { color: #94a3b8; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <h1>Scripts de test — Léa (Realtime)</h1>
+
+  <h2>1. Transaction complète</h2>
+  <div class="block">
+    <p><strong>Une seule phrase :</strong></p>
+    <blockquote>« Bonjour Léa, je veux créer une transaction d'achat. L'adresse est 5554 rue Saint-Denis à Montréal. La vendeuse est Jennifer Ford et l'acheteuse Diana Clark. Le prix est 855 000 dollars. »</blockquote>
+    <p><strong>Ou si Léa demande confirmation :</strong></p>
+    <blockquote>« Oui, c'est bien 5554 rue Saint-Denis, Montréal. Jennifer Ford vendeuse, Diana Clark acheteuse, 855 000 dollars. Je confirme. »</blockquote>
+  </div>
+
+  <h2>2. Promesse d'achat</h2>
+
+  <div class="block pa">
+    <p><strong>Option A — Tout en une fois :</strong> <small>(long)</small></p>
+    <blockquote>« Oui, on fait la promesse d'achat. L'acheteuse Diana Clark : 123 rue Sherbrooke à Montréal, 514-555-1234, diana.clark@email.com. La vendeuse Jennifer Ford : 999 rue Saint-Hubert à Montréal, 514-555-9999, jennifer.ford@email.com. Description : condo 4 pièces avec balcon. Acompte 50 000 dollars, le 15 mai, délai remise 5 jours. Mode de paiement hypothèque, 400 000 dollars, délai financement 15 jours. Date acte de vente 30 juin. Inspection oui, date limite inspection 20 juin. Condition documents oui. Inclusions : électroménagers. Exclusions : aucune. Délai d'acceptation 24 heures. Pas d'autres conditions. Je confirme. »</blockquote>
+  </div>
+
+  <div class="block pa">
+    <p><strong>Option B — Par étapes :</strong></p>
+
+    <p class="step">Étape 1 — Coordonnées acheteur</p>
+    <blockquote>« L'acheteuse Diana Clark : 123 rue Sherbrooke Montréal, 514-555-1234, diana.clark@email.com. »</blockquote>
+
+    <p class="step">Étape 2 — Coordonnées vendeur</p>
+    <blockquote>« La vendeuse Jennifer Ford : 999 rue Saint-Hubert Montréal, 514-555-9999, jennifer.ford@email.com. »</blockquote>
+
+    <p class="step">Étape 3 — Description et acompte</p>
+    <blockquote>« Description : condo 4 pièces avec balcon. Acompte 50 000 dollars, le 15 mai, délai remise 5 jours. »</blockquote>
+
+    <p class="step">Étape 4 — Financement</p>
+    <blockquote>« Hypothèque 400 000 dollars, délai financement 15 jours. Date acte de vente le 30 juin. »</blockquote>
+
+    <p class="step">Étape 5 — Conditions</p>
+    <blockquote>« Inspection oui, date limite 20 juin. Documents oui. Inclusions : électroménagers. Exclusions aucune. Délai d'acceptation 24 heures. »</blockquote>
+
+    <p class="step">Étape 6 — Confirmation</p>
+    <blockquote>« Oui, je confirme. »</blockquote>
+  </div>
+</body>
+</html>

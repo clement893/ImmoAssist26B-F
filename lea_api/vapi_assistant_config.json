@@ -1,0 +1,36 @@
+{
+  "name": "léa",
+  "serverUrl": "https://pastose-idella-tachygraphically.ngrok-free.dev/api/vapi/chat",
+  "voice": {
+    "model": "tts-1",
+    "voiceId": "nova",
+    "provider": "openai"
+  },
+  "model": {
+    "model": "gpt-4o-mini",
+    "provider": "openai",
+    "messages": [
+      {
+        "role": "system",
+        "content": "Tu es Léa, assistante courtier immobilier québécois. Réponds toujours en français québécois. Phrases courtes et naturelles."
+      }
+    ],
+    "temperature": 0.7,
+    "maxTokens": 250
+  },
+  "transcriber": {
+    "model": "nova-2",
+    "language": "fr",
+    "provider": "deepgram"
+  },
+  "firstMessage": "Bonjour, je suis Léa votre assistante courtier immobilier. Comment puis-je vous aider ?",
+  "firstMessageMode": "assistant-speaks-first",
+  "endCallMessage": "Au revoir, bonne journée !",
+  "voicemailMessage": "Bonjour, vous avez joint Léa. Rappelez-nous quand vous êtes disponible.",
+  "backgroundDenoisingEnabled": true,
+  "isServerUrlSecretSet": false,
+  "analysisPlan": {
+    "summaryPlan": { "enabled": false },
+    "successEvaluationPlan": { "enabled": false }
+  }
+}
