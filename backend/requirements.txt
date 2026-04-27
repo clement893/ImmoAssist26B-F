@@ -28,7 +28,7 @@ geopy>=2.4.0
 # Utilities
 python-dotenv>=1.0.0
 email-validator>=2.1.0
-python-json-logger>=2.0.0
+python-json-logger>=4.1.0
 slowapi>=0.1.9
 brotli>=1.1.0  # Brotli compression support
 msgpack>=1.0.7  # MessagePack for efficient serialization
