@@ -55,7 +55,7 @@ python-magic>=0.4.27
 
 # Data Export/Import (optional but recommended)
 pandas>=2.0.0  # For Excel export/import
-openpyxl>=3.1.0  # Excel file support
+openpyxl>=3.1.5  # Excel file support
 reportlab>=4.0.0  # For PDF export
 PyPDF2>=3.0.0  # PDF text extraction for transaction analyze-pdf
 
